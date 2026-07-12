@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAppStore } from '../../store/useAppStore';
-import { LogOut, Settings, Database, Cpu, Check, Globe, Moon, Sun, PanelLeft, PanelRight, Play, Pause, Square } from 'lucide-react';
+import { 
+  LogOut, Settings, Database, Cpu, Check, Globe, Moon, Sun, 
+  PanelLeft, PanelRight, PanelBottom, 
+  Undo, Redo, FileDown, Copy, Grid, ChevronDown
+} from 'lucide-react';
 import { translations } from '../../i18n/translations';
 import { calculateSchedules } from '../../store/scheduler';
-
-const TimeReadout: React.FC<{ maxTime: number }> = ({ maxTime }) => {
-  const currentTime = useAppStore((state) => state.currentTime);
-  return <>{currentTime.toFixed(0)}ms / {maxTime}ms</>;
-};
+import { generateStandaloneHtml } from '../../utils/exportTemplate';
+import { save } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
 
 export const TopBar: React.FC = () => {
   const currentWorkspace = useAppStore((s) => s.currentWorkspace);
@@ -22,14 +25,17 @@ export const TopBar: React.FC = () => {
   const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
   const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
   const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
-  const isPlaying = useAppStore((s) => s.isPlaying);
-  const playbackRate = useAppStore((s) => s.playbackRate);
-  const startPlayback = useAppStore((s) => s.startPlayback);
-  const pausePlayback = useAppStore((s) => s.pausePlayback);
-  const stopPlayback = useAppStore((s) => s.stopPlayback);
-  const setPlaybackRate = useAppStore((s) => s.setPlaybackRate);
   const logicalData = useAppStore((s) => s.logicalData);
   const visualData = useAppStore((s) => s.visualData);
+  const currentView = useAppStore((s) => s.currentView);
+  const libraryComponents = useAppStore((s) => s.libraryComponents);
+  const applyAutoLayout = useAppStore((s) => s.applyAutoLayout);
+  const pastStates = useAppStore((s) => s.pastStates);
+  const futureStates = useAppStore((s) => s.futureStates);
+  const undo = useAppStore((s) => s.undo);
+  const redo = useAppStore((s) => s.redo);
+  const timelineOpen = useAppStore((s) => s.timelineOpen);
+  const toggleTimeline = useAppStore((s) => s.toggleTimeline);
 
   const t = translations[language];
 
@@ -37,16 +43,7 @@ export const TopBar: React.FC = () => {
   const [editName, setEditName] = useState(currentWorkspace?.name || '');
   const [editDesc, setEditDesc] = useState(currentWorkspace?.description || '');
 
-  const schedules = calculateSchedules(logicalData.sequences, visualData.timelines);
-  const maxTime = Math.max(
-    2000,
-    ...Object.values(schedules).map((s) => {
-      const seqId = Object.keys(schedules).find(k => schedules[k] === s);
-      const timing = seqId ? visualData.timelines[seqId] : null;
-      const tooltipDur = timing?.internalProcess?.duration ?? 0;
-      return s.end + tooltipDur;
-    })
-  );
+  const [showLayoutMenu, setShowLayoutMenu] = useState(false);
 
   const handleBackToWelcome = () => {
     setWorkspace(null);
@@ -57,6 +54,80 @@ export const TopBar: React.FC = () => {
     if (!editName.trim()) return;
     saveWorkspaceDetails(editName.trim(), editDesc.trim());
     setShowSettings(false);
+  };
+
+  const handleExportHtml = async () => {
+    try {
+      const defaultName = `${currentWorkspace?.name || 'diagram'}_simulation.html`;
+      const selectedPath = await save({
+        title: language === 'tr' ? 'HTML Simülasyonunu Kaydet' : 'Save Standalone HTML Simulation',
+        defaultPath: defaultName,
+        filters: [{ name: 'HTML', extensions: ['html'] }],
+      });
+
+      if (!selectedPath) return;
+
+      const htmlContent = generateStandaloneHtml(logicalData, visualData, libraryComponents);
+      await invoke('save_text_file', { path: selectedPath, content: htmlContent });
+      alert(language === 'tr' ? 'HTML Simülasyonu başarıyla kaydedildi!' : 'HTML Simulation saved successfully!');
+    } catch (err) {
+      console.error('Error exporting HTML:', err);
+      alert(language === 'tr' ? `Dışa aktarma hatası: ${err}` : `Export error: ${err}`);
+    }
+  };
+
+  const handleCopyForAi = async () => {
+    let text = `${language === 'tr' 
+      ? 'Aşağıdaki sistem mimarisi için altyapı kodlarını (Terraform/Pulumi/Docker Compose) üret veya mimariyi analiz et:' 
+      : 'Generate infrastructure code (Terraform/Pulumi/Docker Compose) or analyze the following system architecture:'}\n\n`;
+
+    text += `**${language === 'tr' ? 'Bileşenler' : 'Components'}:**\n`;
+    logicalData.nodes.forEach(node => {
+      const customTemplate = libraryComponents.find(c => c.componentId === node.type);
+      const category = customTemplate ? customTemplate.category : node.type;
+      text += `- \`${node.name}\` (Type: ${category})\n`;
+    });
+
+    if (logicalData.edges.length > 0) {
+      text += `\n**${language === 'tr' ? 'Bağlantılar' : 'Connections'}:**\n`;
+      logicalData.edges.forEach(edge => {
+        text += `- \`${edge.from}\` → \`${edge.to}\` (Protocol: ${edge.protocol || 'Call'})\n`;
+      });
+    }
+
+    if (logicalData.sequences.length > 0) {
+      text += `\n**${language === 'tr' ? 'Etkileşim Akışı (Zaman Tüneli)' : 'Interaction Flow (Timeline)'}:**\n`;
+      
+      const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges);
+      const sortedSchedules = Object.entries(schedules)
+        .map(([id, range]) => ({ id, start: range.start, end: range.end }))
+        .sort((a, b) => a.start - b.start);
+      
+      sortedSchedules.forEach(s => {
+        const seq = logicalData.sequences.find(q => q.id === s.id);
+        const edge = logicalData.edges.find(e => e.id === seq?.edgeId);
+        if (!seq || !edge) return;
+
+        const syncType = seq.isAsync ? (language === 'tr' ? 'Asenkron' : 'Asynchronous') : (language === 'tr' ? 'Senkron' : 'Synchronous');
+        const directionStr = seq.direction === 'reverse' 
+          ? `\`${edge.to}\` → \`${edge.from}\`` 
+          : `\`${edge.from}\` → \`${edge.to}\``;
+
+        text += `${seq.stepNumber}. [${syncType}] ${directionStr} (Protocol: ${edge.protocol || 'Call'}, Timing: ${(s.start/1000).toFixed(2)}s - ${(s.end/1000).toFixed(2)}s)\n`;
+        
+        const timing = visualData.timelines[s.id];
+        if (timing?.internalProcess?.text) {
+          text += `   - Node \`${seq.direction === 'reverse' ? edge.from : edge.to}\` internal process: "${timing.internalProcess.text}" (${(timing.internalProcess.duration/1000).toFixed(2)}s)\n`;
+        }
+      });
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      alert(language === 'tr' ? 'Mimari verisi AI için kopyalandı!' : 'Architecture data copied to clipboard for AI!');
+    } catch (err) {
+      console.error('Clipboard copy failed:', err);
+    }
   };
 
   return (
@@ -89,11 +160,26 @@ export const TopBar: React.FC = () => {
               setEditDesc(currentWorkspace?.description || '');
               setShowSettings(true);
             }}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300 rounded cursor-pointer transition-colors"
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300 rounded cursor-pointer transition-colors mr-1"
             title={t.settings}
           >
             <Settings className="w-3.5 h-3.5" />
           </button>
+
+          {/* Auto-Save Indicator Badge */}
+          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100/80 dark:bg-slate-900/50 rounded-full border border-slate-200 dark:border-slate-800 select-none shrink-0">
+            {isDirty ? (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="text-[10px] text-slate-600 dark:text-slate-400 font-semibold">{t.unsavedChanges}</span>
+              </>
+            ) : (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[10px] text-slate-650 dark:text-slate-400 font-semibold">{t.saved}</span>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
@@ -110,6 +196,18 @@ export const TopBar: React.FC = () => {
           >
             <PanelLeft className="w-4 h-4" />
           </button>
+
+          <button
+            onClick={toggleTimeline}
+            className={`p-1.5 rounded cursor-pointer transition-colors ${
+              timelineOpen 
+                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10' 
+                : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
+            }`}
+            title={language === 'tr' ? 'Zaman çizelgesini gizle/göster' : 'Toggle timeline'}
+          >
+            <PanelBottom className="w-4 h-4" />
+          </button>
           
           <button
             onClick={toggleRightSidebar}
@@ -125,76 +223,90 @@ export const TopBar: React.FC = () => {
         </div>
       </div>
 
-      {/* Middle Section: Auto-Save Indicator */}
-      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-        <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100/80 dark:bg-slate-900/50 rounded-full border border-slate-200 dark:border-slate-800">
-          {isDirty ? (
-            <>
-              <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-              <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">{t.unsavedChanges}</span>
-            </>
-          ) : (
-            <>
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">{t.saved}</span>
-            </>
-          )}
-        </div>
-      </div>
+
 
       {/* Right Section: Actions */}
       <div className="flex items-center gap-3">
-        {/* Playback Controls Area */}
-        <div className="flex items-center gap-2 mr-2 border-r border-slate-200 dark:border-slate-800 pr-3">
-          {isPlaying ? (
-            <button 
-              onClick={pausePlayback}
-              className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 transition-colors cursor-pointer"
-              title={language === 'tr' ? 'Duraklat' : 'Pause'}
+        {/* Phase 6 Actions (Only visible in Diagram view) */}
+        {currentView === 'diagram' && (
+          <div className="flex items-center gap-2 border-r border-slate-200 dark:border-slate-800 pr-3 mr-2 relative">
+            {/* Undo/Redo Buttons */}
+            <button
+              onClick={undo}
+              disabled={pastStates.length === 0}
+              className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              title={language === 'tr' ? 'Geri Al (Ctrl+Z)' : 'Undo (Ctrl+Z)'}
             >
-              <Pause className="w-3.5 h-3.5 fill-indigo-600 dark:fill-indigo-400" />
+              <Undo className="w-3.5 h-3.5" />
             </button>
-          ) : (
-            <button 
-              onClick={startPlayback}
-              disabled={logicalData.sequences.length === 0}
-              className="p-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-colors cursor-pointer"
-              title={language === 'tr' ? 'Oynat' : 'Play'}
+            <button
+              onClick={redo}
+              disabled={futureStates.length === 0}
+              className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              title={language === 'tr' ? 'İleri Al (Ctrl+Y)' : 'Redo (Ctrl+Y)'}
             >
-              <Play className="w-3.5 h-3.5 fill-white" />
+              <Redo className="w-3.5 h-3.5" />
             </button>
-          )}
-          
-          <button 
-            onClick={stopPlayback}
-            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
-            title={language === 'tr' ? 'Durdur' : 'Stop'}
-          >
-            <Square className="w-3.5 h-3.5 fill-current" />
-          </button>
 
-          <span 
-            className="text-[10px] font-mono text-slate-500 dark:text-slate-400 min-w-[85px] text-center bg-slate-50 dark:bg-slate-900/80 px-2 py-1 rounded border border-slate-200/50 dark:border-slate-800/50"
-          >
-            <TimeReadout maxTime={maxTime} />
-          </span>
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800/80 mx-0.5" />
 
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded border border-slate-200/50 dark:border-slate-800/50">
-            {[0.5, 1, 1.5, 2].map((rate) => (
+            {/* Auto-Layout Dropdown Button */}
+            <div className="relative">
               <button
-                key={rate}
-                onClick={() => setPlaybackRate(rate)}
-                className={`text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition-all duration-155 ${
-                  playbackRate === rate 
-                    ? 'bg-indigo-600 text-white shadow-sm' 
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                }`}
+                onClick={() => setShowLayoutMenu(!showLayoutMenu)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-850 rounded-lg text-xs cursor-pointer font-semibold transition-all"
+                title={language === 'tr' ? 'Otomatik Düzenle (Dagre)' : 'Auto-Layout (Dagre)'}
               >
-                {rate}x
+                <Grid className="w-3.5 h-3.5 text-indigo-500" />
+                <span>{language === 'tr' ? 'Düzenle' : 'Layout'}</span>
+                <ChevronDown className="w-3 h-3 text-slate-400" />
               </button>
-            ))}
+
+              {showLayoutMenu && (
+                <div className="absolute right-0 mt-1.5 w-36 bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      applyAutoLayout('TB');
+                      setShowLayoutMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
+                  >
+                    {language === 'tr' ? 'Yukarıdan Aşağıya (TB)' : 'Top to Bottom (TB)'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      applyAutoLayout('LR');
+                      setShowLayoutMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
+                  >
+                    {language === 'tr' ? 'Soldan Sağa (LR)' : 'Left to Right (LR)'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Standalone HTML Export */}
+            <button
+              onClick={handleExportHtml}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 rounded-lg text-xs cursor-pointer font-semibold transition-colors"
+              title={language === 'tr' ? 'HTML Oynatıcı Olarak Dışa Aktar' : 'Export Standalone HTML'}
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              <span>{language === 'tr' ? 'Dışa Aktar' : 'Export HTML'}</span>
+            </button>
+
+            {/* Copy Logical data for AI */}
+            <button
+              onClick={handleCopyForAi}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-850 rounded-lg text-xs cursor-pointer font-semibold transition-colors"
+              title={language === 'tr' ? 'Mantıksal Akışı AI İçin Kopyala' : 'Copy Logical for AI'}
+            >
+              <Copy className="w-3.5 h-3.5 text-indigo-500" />
+              <span>{language === 'tr' ? 'AI Kopyala' : 'Copy for AI'}</span>
+            </button>
           </div>
-        </div>
+        )}
 
         <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono hidden sm:block truncate max-w-[200px]" title={currentWorkspace?.path}>
           {currentWorkspace?.path}
@@ -210,8 +322,8 @@ export const TopBar: React.FC = () => {
       </div>
 
       {/* Settings Modal (Includes Workspace and App Preferences) */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50">
+      {showSettings && createPortal(
+        <div className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[9999]">
           <div className="bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl transition-all">
             
             <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
@@ -242,20 +354,20 @@ export const TopBar: React.FC = () => {
                   value={editDesc}
                   onChange={(e) => setEditDesc(e.target.value)}
                   rows={2}
-                  className="w-full bg-slate-55 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl px-4 py-2 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl px-4 py-2 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 resize-none"
                   maxLength={200}
                 />
               </div>
 
               {/* Application Preferences Section inside Modal */}
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
-                <h4 className="text-xs font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wider">
+                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   {t.appPrefTitle}
                 </h4>
                 
                 {/* Language Select */}
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-650 dark:text-slate-350 flex items-center gap-1">
+                  <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
                     <Globe className="w-3.5 h-3.5" />
                     {t.language}:
                   </span>
@@ -287,7 +399,7 @@ export const TopBar: React.FC = () => {
 
                 {/* Theme Select */}
                 <div className="flex items-center justify-between text-xs mt-2">
-                  <span className="text-slate-650 dark:text-slate-350 flex items-center gap-1">
+                  <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
                     {theme === 'dark' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
                     {t.theme}:
                   </span>
@@ -336,7 +448,8 @@ export const TopBar: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </header>
   );

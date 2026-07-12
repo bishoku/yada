@@ -3,6 +3,7 @@ import {
   ReactFlow,
   Background,
   Controls,
+  MiniMap,
   ReactFlowProvider,
   useReactFlow,
   useNodesState,
@@ -15,6 +16,7 @@ import {
   addEdge,
   applyNodeChanges,
   applyEdgeChanges,
+  reconnectEdge,
 } from '@xyflow/react';
 import { BaseNode } from './BaseNode';
 import { AnimatedEdge } from './AnimatedEdge';
@@ -33,10 +35,19 @@ const edgeTypes = { customEdge: AnimatedEdge };
 
 const FlowWrapper: React.FC = () => {
   const logicalData = useAppStore((s) => s.logicalData);
-  const visualData = useAppStore((s) => s.visualData);
+  const visualDataRef = useRef(useAppStore.getState().visualData);
+
+  useEffect(() => {
+    const unsub = useAppStore.subscribe((state) => {
+      visualDataRef.current = state.visualData;
+    });
+    return unsub;
+  }, []);
+
   const addNode = useAppStore((s) => s.addNode);
   const updateNodePosition = useAppStore((s) => s.updateNodePosition);
   const zustandAddEdge = useAppStore((s) => s.addEdge);
+  const zustandReconnectEdge = useAppStore((s) => s.reconnectEdge);
   const deleteNode = useAppStore((s) => s.deleteNode);
   const deleteEdge = useAppStore((s) => s.deleteEdge);
   const updateCanvasViewport = useAppStore((s) => s.updateCanvasViewport);
@@ -48,6 +59,10 @@ const FlowWrapper: React.FC = () => {
   const theme = useAppStore((s) => s.theme);
   const clearCanvas = useAppStore((s) => s.clearCanvas);
   const updateNodeDetails = useAppStore((s) => s.updateNodeDetails);
+  const pushToHistory = useAppStore((s) => s.pushToHistory);
+  const undo = useAppStore((s) => s.undo);
+  const redo = useAppStore((s) => s.redo);
+  const layoutVersion = useAppStore((s) => s.layoutVersion);
 
   const { screenToFlowPosition, setCenter } = useReactFlow();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -104,7 +119,7 @@ const FlowWrapper: React.FC = () => {
     setActiveEdgeProperties(null);
 
     const ln = logicalData.nodes.find(n => n.id === node.id);
-    const vn = visualData.layoutNodes[node.id];
+    const vn = visualDataRef.current.layoutNodes[node.id];
     if (ln) {
       setActiveNodeProperties({
         id: node.id,
@@ -115,7 +130,7 @@ const FlowWrapper: React.FC = () => {
         theme: vn?.theme ?? 'indigo',
       });
     }
-  }, [logicalData.nodes, visualData.layoutNodes, closeMenu]);
+  }, [logicalData.nodes, closeMenu]);
 
   const handleEdgeDoubleClick = useCallback((e: React.MouseEvent, edge: Edge) => {
     e.stopPropagation();
@@ -125,7 +140,7 @@ const FlowWrapper: React.FC = () => {
     const le = logicalData.edges.find(e => e.id === edge.id);
     if (le) {
       const seq = logicalData.sequences.find(s => s.edgeId === edge.id);
-      const timing = seq ? visualData.timelines[seq.id] : null;
+      const timing = seq ? visualDataRef.current.timelines[seq.id] : null;
 
       setActiveEdgeProperties({
         id: edge.id,
@@ -140,7 +155,7 @@ const FlowWrapper: React.FC = () => {
         tooltipDuration: timing?.internalProcess?.duration ?? 1000,
       });
     }
-  }, [logicalData.edges, logicalData.sequences, visualData.timelines, closeMenu]);
+  }, [logicalData.edges, logicalData.sequences, closeMenu]);
 
   // ── Local React Flow state ─────────────────────────────────────────────────
   const [rfNodes, setRfNodes] = useNodesState<Node>([]);
@@ -152,7 +167,7 @@ const FlowWrapper: React.FC = () => {
     if (initialised.current) return;
     initialised.current = true;
     const nodes: Node[] = logicalData.nodes.map((ln) => {
-      const vn = visualData.layoutNodes[ln.id] ?? { x: 0, y: 0 };
+      const vn = useAppStore.getState().visualData.layoutNodes[ln.id] ?? { x: 0, y: 0 };
       return {
         id: ln.id,
         type: 'customNode',
@@ -169,10 +184,67 @@ const FlowWrapper: React.FC = () => {
       target: le.to,
       sourceHandle: le.fromPort,
       targetHandle: le.toPort,
+      reconnectable: true,
     }));
     setRfNodes(nodes);
     setRfEdges(edges);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Sync node positions on Layout Recalculation / Undo / Redo ──────────────
+  useEffect(() => {
+    if (layoutVersion === 0) return;
+    setRfNodes((currentNodes) =>
+      currentNodes.map((node) => {
+        const vn = visualDataRef.current.layoutNodes[node.id];
+        if (vn) {
+          return {
+            ...node,
+            position: { x: vn.x, y: vn.y },
+          };
+        }
+        return node;
+      })
+    );
+  }, [layoutVersion, setRfNodes]);
+
+  // ── Sync nodes list when additions or deletions occur (Undo/Redo / Drop) ───
+  useEffect(() => {
+    setRfNodes((currentNodes) => {
+      // 1. Filter out deleted nodes
+      const remainingNodes = currentNodes.filter((cn) =>
+        logicalData.nodes.some((ln) => ln.id === cn.id)
+      );
+
+      // 2. Add newly created nodes
+      const newNodes = logicalData.nodes
+        .filter((ln) => !currentNodes.some((cn) => cn.id === ln.id))
+        .map((ln) => {
+          const vn = visualDataRef.current.layoutNodes[ln.id] ?? { x: 0, y: 0 };
+          return {
+            id: ln.id,
+            type: 'customNode',
+            position: { x: vn.x, y: vn.y },
+            data: { name: ln.name, type: ln.type },
+            width: vn.width ?? 224,
+            height: vn.height ?? 52,
+          };
+        });
+
+      return [...remainingNodes, ...newNodes];
+    });
+
+    setRfEdges(() =>
+      logicalData.edges.map((le) => ({
+        id: le.id,
+        type: 'customEdge',
+        source: le.from,
+        target: le.to,
+        sourceHandle: le.fromPort,
+        targetHandle: le.toPort,
+        reconnectable: true,
+      }))
+    );
+  }, [logicalData.nodes, logicalData.edges, setRfNodes, setRfEdges]);
 
   // ── Bi-directional Zoom/Center Focus on active Sequence/Edge ───────────────
   useEffect(() => {
@@ -183,8 +255,8 @@ const FlowWrapper: React.FC = () => {
     const edge = logicalData.edges.find((e) => e.id === seq.edgeId);
     if (!edge) return;
 
-    const sourceNode = visualData.layoutNodes[edge.from];
-    const targetNode = visualData.layoutNodes[edge.to];
+    const sourceNode = visualDataRef.current.layoutNodes[edge.from];
+    const targetNode = visualDataRef.current.layoutNodes[edge.to];
     if (!sourceNode || !targetNode) return;
 
     const srcName = logicalData.nodes.find((n) => n.id === edge.from)?.name ?? edge.from;
@@ -193,7 +265,7 @@ const FlowWrapper: React.FC = () => {
     const centerY = (sourceNode.y + targetNode.y) / 2 + 24;
     console.log(`[Focus] Zooming to connection: S${seq.stepNumber} (${srcName} → ${dstName}) at (${centerX.toFixed(0)}, ${centerY.toFixed(0)})`);
     setCenter(centerX, centerY, { zoom: 1.3, duration: 800 });
-  }, [selectedSequenceId, logicalData.edges, logicalData.sequences, visualData.layoutNodes, setCenter]);
+  }, [selectedSequenceId, logicalData.edges, logicalData.sequences, setCenter]);
 
   useEffect(() => {
     window.addEventListener('click', closeMenu);
@@ -239,7 +311,7 @@ const FlowWrapper: React.FC = () => {
     return () => el.removeEventListener('mouseup', handleMouseUp);
   }, [screenToFlowPosition, setRfNodes, addNode, cancelDrag]);
 
-  // ── Cancel drag on Escape key ──────────────────────────────────────────────
+  // ── Keyboard Hotkeys: Escape, Undo (Ctrl/Cmd+Z), Redo (Ctrl/Cmd+Y) ──────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && useAppStore.getState().pendingDrop) {
@@ -249,10 +321,25 @@ const FlowWrapper: React.FC = () => {
         closeMenu();
         setPendingConnection(null);
       }
+
+      // Undo hotkey
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+      }
+      // Redo hotkey
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cancelDrag, closeMenu]);
+  }, [cancelDrag, closeMenu, undo, redo]);
+
+  const onNodeDragStart = useCallback(() => {
+    pushToHistory();
+  }, [pushToHistory]);
 
   // ── Node changes ──────────────────────────────────────────────────────────
   const onNodesChange = useCallback(
@@ -323,6 +410,17 @@ const FlowWrapper: React.FC = () => {
       });
     },
     [logicalData.sequences]
+  );
+
+  const onReconnect = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => {
+      if (!newConnection.source || !newConnection.target) return;
+      setRfEdges((els) => reconnectEdge(oldEdge, newConnection, els));
+      const fromPort = (newConnection.sourceHandle ?? 'right') as 'top' | 'right' | 'bottom' | 'left';
+      const toPort = (newConnection.targetHandle ?? 'left') as 'top' | 'right' | 'bottom' | 'left';
+      zustandReconnectEdge(oldEdge.id, newConnection.source, newConnection.target, fromPort, toPort);
+    },
+    [setRfEdges, zustandReconnectEdge]
   );
 
   const confirmConnection = useCallback(() => {
@@ -495,6 +593,7 @@ const FlowWrapper: React.FC = () => {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectStart={onConnectStart}
+        onReconnect={onReconnect}
         onMoveEnd={onMoveEnd}
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
@@ -507,6 +606,7 @@ const FlowWrapper: React.FC = () => {
         }}
         onNodeDoubleClick={handleNodeDoubleClick}
         onEdgeDoubleClick={handleEdgeDoubleClick}
+        onNodeDragStart={onNodeDragStart}
         deleteKeyCode="Delete"
         className="w-full h-full"
         proOptions={{ hideAttribution: true }}
@@ -516,6 +616,17 @@ const FlowWrapper: React.FC = () => {
           gap={16}
         />
         <Controls className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-md font-sans" />
+        <MiniMap 
+          position="bottom-left" 
+          style={{ 
+            background: theme === 'dark' ? '#0f172a' : '#ffffff', 
+            border: theme === 'dark' ? '1px solid #1e293b' : '1px solid #e2e8f0', 
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          }} 
+          zoomable 
+          pannable 
+        />
       </ReactFlow>
 
       {/* Floating Clear Canvas Button (Bottom Right) */}

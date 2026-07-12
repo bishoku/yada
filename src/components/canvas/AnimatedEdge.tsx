@@ -39,8 +39,8 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
 
   // Calculate schedules
   const schedules = useMemo(() => {
-    return calculateSchedules(logicalData.sequences, visualData.timelines);
-  }, [logicalData.sequences, visualData.timelines]);
+    return calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges);
+  }, [logicalData.sequences, visualData.timelines, logicalData.edges]);
   
   // Find if playhead is currently animating this edge
   let activeSeq = null;
@@ -85,14 +85,19 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
 
       if (activeSeq.isRoundTrip) {
         const transitHalf = stepDuration / 2;
-        const tooltipDuration = timing?.internalProcess?.duration ?? 0;
+        // Return transit starts at (end - transitHalf) relative to schedule start
+        // This accounts for nested children extending the schedule beyond just forward+ip+return
+        const returnStartElapsed = (sched.end - sched.start) - transitHalf;
 
         if (elapsed < transitHalf) {
+          // Forward transit
           actualProgress = Math.min(Math.max(elapsed / transitHalf, 0), 1);
-        } else if (elapsed < transitHalf + tooltipDuration) {
+        } else if (elapsed < returnStartElapsed) {
+          // Waiting at target (internal process + nested children executing)
           actualProgress = 1.0;
         } else {
-          const returnElapsed = elapsed - transitHalf - tooltipDuration;
+          // Return transit
+          const returnElapsed = elapsed - returnStartElapsed;
           actualProgress = 1.0 - Math.min(Math.max(returnElapsed / transitHalf, 0), 1);
         }
       } else {
@@ -113,12 +118,15 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
     }
   }, [currentTime, isAnimating, activeSeq, logicalData.sequences, visualData.timelines, schedules, particlePos]);
 
-  // Determine stroke color
+  // Determine stroke color and style
   let strokeColor = '#94a3b8'; // Default slate-400
-  if (isSelected) {
+  let isEdgeActive = false;
+
+  if (isAnimating) {
+    strokeColor = '#6366f1'; // Active animating indigo-500
+    isEdgeActive = true;
+  } else if (isSelected) {
     strokeColor = '#6366f1'; // Selected indigo-500
-  } else if (isAnimating) {
-    strokeColor = '#10b981'; // Animating emerald-500
   }
 
   return (
@@ -139,13 +147,14 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
         d={edgePath}
         fill="none"
         stroke={strokeColor}
-        strokeWidth={isSelected || isAnimating ? 3 : 2}
+        strokeWidth={isEdgeActive ? 3.5 : (isSelected ? 3 : 2)}
         strokeDasharray={isAsync ? '5,5' : undefined}
         markerEnd={markerEnd}
         className="react-flow__edge-path transition-all duration-150"
+        style={isEdgeActive ? { filter: 'drop-shadow(0 0 3px rgba(99, 102, 241, 0.6))' } : undefined}
       />
       
-      {/* Playback particle dot */}
+      {/* Playback particle dot (Indigo themed to match exported simulation style) */}
       {particlePos && (
         <g>
           {/* Outer glow ring */}
@@ -153,7 +162,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
             cx={particlePos.x}
             cy={particlePos.y}
             r={10}
-            fill="#10b981"
+            fill="#818cf8"
             style={{ opacity: 0.4 }}
           />
           {/* Inner solid particle */}
@@ -161,7 +170,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
             cx={particlePos.x}
             cy={particlePos.y}
             r={6}
-            fill="#10b981"
+            fill="#818cf8"
           />
         </g>
       )}
@@ -177,7 +186,13 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
             }}
             className="nodrag nopan"
           >
-            <div className="px-2 py-0.5 rounded-full bg-slate-900/90 dark:bg-white text-white dark:text-slate-950 text-[9px] font-extrabold shadow-md border border-slate-700/50 dark:border-slate-200 transition-colors select-none">
+            <div 
+              className={
+                isEdgeActive
+                  ? "px-2 py-0.5 rounded-full bg-indigo-600 text-white border border-indigo-400 text-[9px] font-extrabold shadow-md select-none transition-colors duration-150"
+                  : "px-2 py-0.5 rounded-full bg-slate-900/90 dark:bg-white text-white dark:text-slate-950 text-[9px] font-extrabold shadow-md border border-slate-700/50 dark:border-slate-200 transition-colors select-none"
+              }
+            >
               {stepLabel}
             </div>
           </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Trash2, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -17,8 +18,8 @@ export const ClearCanvasModal: React.FC<ClearCanvasModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 font-sans">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 font-sans">
       <div className="w-[360px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between">
           <span className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -54,6 +55,7 @@ export const ClearCanvasModal: React.FC<ClearCanvasModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

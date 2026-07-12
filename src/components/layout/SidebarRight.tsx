@@ -23,7 +23,7 @@ export const SidebarRight: React.FC = () => {
   });
 
   // Calculate schedules
-  const schedules = calculateSchedules(logicalData.sequences, visualData.timelines);
+  const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges);
 
   // Auto-scroll active sequence into view
   const activeIdsString = activeSequenceIds.join(',');

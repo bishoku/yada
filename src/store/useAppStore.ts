@@ -3,6 +3,7 @@ import { AppState, WorkspaceMeta, LogicalNode, LogicalEdge, VisualNode, Sequence
 import { Language, Theme } from '../i18n/translations';
 import { invoke } from '@tauri-apps/api/core';
 import { calculateSchedules } from './scheduler';
+import { getLayoutedElements } from '../utils/layout';
 
 // Helper to apply theme to document element
 const applyTheme = (theme: Theme) => {
@@ -26,6 +27,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   activeComponent: null,
   selectedLayerId: null,
   libraryComponents: [],
+
+  // Phase 6 History States
+  pastStates: [],
+  futureStates: [],
+  layoutVersion: 0,
   
   // Phase 2 Canvas Initial State
   logicalData: { nodes: [], edges: [], sequences: [] },
@@ -42,6 +48,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Layout State
   leftSidebarOpen: true,
   rightSidebarOpen: true,
+  timelineOpen: true,
   timelineHeight: 250,
 
   setWorkspace: (ws) => set({ currentWorkspace: ws }),
@@ -193,6 +200,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // Phase 2 Canvas Action Implementations
   addNode: (logical: LogicalNode, visual: VisualNode) => {
+    get().pushToHistory();
     set((state) => {
       const nodes = [...state.logicalData.nodes, logical];
       const layoutNodes = { ...state.visualData.layoutNodes, [visual.id]: visual };
@@ -250,6 +258,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deleteNode: (id: string) => {
+    get().pushToHistory();
     set((state) => {
       const nodes = state.logicalData.nodes.filter((n) => n.id !== id);
       const deletedEdgeIds = state.logicalData.edges
@@ -281,7 +290,33 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
+  reconnectEdge: (edgeId: string, from: string, to: string, fromPort: 'top' | 'right' | 'bottom' | 'left', toPort: 'top' | 'right' | 'bottom' | 'left') => {
+    get().pushToHistory();
+    const state = get();
+    const edges = state.logicalData.edges.map((e) => {
+      if (e.id === edgeId) {
+        return {
+          ...e,
+          from,
+          to,
+          fromPort,
+          toPort,
+        };
+      }
+      return e;
+    });
+
+    set({
+      logicalData: {
+        ...state.logicalData,
+        edges,
+      },
+      isDirty: true,
+    });
+  },
+
   deleteEdge: (id: string) => {
+    get().pushToHistory();
     set((state) => {
       const edges = state.logicalData.edges.filter((e) => e.id !== id);
       const deletedSeqIds = state.logicalData.sequences
@@ -329,7 +364,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   stopPlayback: () => set({ isPlaying: false, currentTime: 0, activeSequenceIds: [] }),
   setCurrentTime: (time) => {
     set((state) => {
-      const schedules = calculateSchedules(state.logicalData.sequences, state.visualData.timelines);
+      const schedules = calculateSchedules(state.logicalData.sequences, state.visualData.timelines, state.logicalData.edges);
       const activeSequenceIds: string[] = [];
       
       Object.entries(schedules).forEach(([seqId, sched]) => {
@@ -455,6 +490,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   toggleLeftSidebar: () => set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
   toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
+  toggleTimeline: () => set((state) => ({ timelineOpen: !state.timelineOpen })),
   setTimelineHeight: (height) => set({ timelineHeight: height }),
   clearCanvas: () => set((state) => ({
     logicalData: { nodes: [], edges: [], sequences: [] },
@@ -606,6 +642,106 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (err) {
       console.error('Error deleting component from library:', err);
     }
+  },
+
+  // Phase 6 Actions
+  pushToHistory: () => {
+    const state = get();
+    const snapshot = {
+      logicalData: JSON.parse(JSON.stringify(state.logicalData)),
+      visualData: JSON.parse(JSON.stringify(state.visualData)),
+    };
+    const pastStates = [...state.pastStates, snapshot];
+    if (pastStates.length > 30) {
+      pastStates.shift();
+    }
+    set({
+      pastStates,
+      futureStates: [],
+    });
+  },
+
+  undo: () => {
+    const state = get();
+    if (state.pastStates.length === 0) return;
+
+    const pastStates = [...state.pastStates];
+    const previous = pastStates.pop()!;
+    const currentSnapshot = {
+      logicalData: JSON.parse(JSON.stringify(state.logicalData)),
+      visualData: JSON.parse(JSON.stringify(state.visualData)),
+    };
+
+    set({
+      pastStates,
+      futureStates: [currentSnapshot, ...state.futureStates],
+      logicalData: previous.logicalData,
+      visualData: previous.visualData,
+      layoutVersion: state.layoutVersion + 1,
+      isDirty: true,
+    });
+  },
+
+  redo: () => {
+    const state = get();
+    if (state.futureStates.length === 0) return;
+
+    const futureStates = [...state.futureStates];
+    const next = futureStates.shift()!;
+    const currentSnapshot = {
+      logicalData: JSON.parse(JSON.stringify(state.logicalData)),
+      visualData: JSON.parse(JSON.stringify(state.visualData)),
+    };
+
+    set({
+      pastStates: [...state.pastStates, currentSnapshot],
+      futureStates,
+      logicalData: next.logicalData,
+      visualData: next.visualData,
+      layoutVersion: state.layoutVersion + 1,
+      isDirty: true,
+    });
+  },
+
+  applyAutoLayout: (direction) => {
+    get().pushToHistory();
+    const state = get();
+    const { nodes, edges } = state.logicalData;
+
+    // Convert logical nodes to nodes array for dagre
+    const rfNodes = nodes.map((node) => {
+      const visual = state.visualData.layoutNodes[node.id] || {};
+      return {
+        id: node.id,
+        position: { x: visual.x ?? 0, y: visual.y ?? 0 },
+        data: { name: node.name, type: node.type },
+        width: visual.width ?? 224,
+        height: visual.height ?? 52,
+      };
+    });
+
+    const rfEdges = edges.map((edge) => ({
+      id: edge.id,
+      source: edge.from,
+      target: edge.to,
+    }));
+
+    const layouted = getLayoutedElements(rfNodes, rfEdges as any, direction);
+
+    const layoutNodes = { ...state.visualData.layoutNodes };
+    layouted.forEach((node) => {
+      layoutNodes[node.id] = {
+        ...layoutNodes[node.id],
+        x: node.position.x,
+        y: node.position.y,
+      };
+    });
+
+    set({
+      visualData: { ...state.visualData, layoutNodes },
+      layoutVersion: state.layoutVersion + 1,
+      isDirty: true
+    });
   }
 }));
 

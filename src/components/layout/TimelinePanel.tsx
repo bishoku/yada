@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
-  Plus, Settings, ArrowRightLeft, Trash2, Clock, X, Save
+  Plus, Settings, ArrowRightLeft, Trash2, Clock, X, Save,
+  Play, Pause, Square
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { calculateSchedules } from '../../store/scheduler';
@@ -12,6 +14,11 @@ import { TimelineGrid } from '../timeline/TimelineGrid';
 import { ScrubLine } from '../timeline/ScrubLine';
 
 const PX_PER_MS = 0.2; // 1000ms = 200px
+
+const TimeReadout: React.FC<{ maxTime: number }> = ({ maxTime }) => {
+  const currentTime = useAppStore((state) => state.currentTime);
+  return <>{currentTime.toFixed(0)}ms / {maxTime}ms</>;
+};
 
 export const TimelinePanel: React.FC = () => {
   // Selective Zustand selectors to completely eliminate playback re-renders
@@ -30,6 +37,12 @@ export const TimelinePanel: React.FC = () => {
   const setSequenceStepOrder = useAppStore((s) => s.setSequenceStepOrder);
   const toggleSequenceAsync = useAppStore((s) => s.toggleSequenceAsync);
 
+  const startPlayback = useAppStore((s) => s.startPlayback);
+  const pausePlayback = useAppStore((s) => s.pausePlayback);
+  const stopPlayback = useAppStore((s) => s.stopPlayback);
+  const setPlaybackRate = useAppStore((s) => s.setPlaybackRate);
+  const playbackRate = useAppStore((s) => s.playbackRate);
+
   const [showTooltipModal, setShowTooltipModal] = useState<string | null>(null);
   const [tooltipText, setTooltipText] = useState('');
   const [tooltipDuration, setTooltipDuration] = useState(1000);
@@ -39,7 +52,7 @@ export const TimelinePanel: React.FC = () => {
   const playheadRef = useRef<HTMLDivElement>(null);
 
   // Calculate schedules
-  const schedules = calculateSchedules(logicalData.sequences, visualData.timelines);
+  const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges);
 
   // Find max simulation time
   const maxTime = Math.max(
@@ -155,14 +168,70 @@ export const TimelinePanel: React.FC = () => {
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-950 transition-colors duration-300 text-slate-800 dark:text-slate-100 select-none font-sans">
       {/* Playback Controls & Top bar */}
-      <div className="p-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/60 backdrop-blur-md shrink-0">
+      <div className="p-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/60 backdrop-blur-md shrink-0">
         
-        {/* Left: Section Label */}
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-indigo-500" />
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-            {theme === 'dark' ? 'Zaman Çizelgesi & Simülasyon' : 'Timeline & Simulation'}
-          </span>
+        {/* Left: Section Label & Controls */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Clock className="w-4 h-4 text-indigo-500" />
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+              {theme === 'dark' ? 'Zaman Çizelgesi' : 'Timeline'}
+            </span>
+          </div>
+
+          <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
+
+          {/* PLAYBACK ACTIONS */}
+          <div className="flex items-center gap-1.5">
+            {isPlaying ? (
+              <button 
+                onClick={pausePlayback}
+                className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 transition-colors cursor-pointer"
+                title={theme === 'dark' ? 'Duraklat' : 'Pause'}
+              >
+                <Pause className="w-3.5 h-3.5 fill-indigo-600 dark:fill-indigo-400" />
+              </button>
+            ) : (
+              <button 
+                onClick={startPlayback}
+                disabled={logicalData.sequences.length === 0}
+                className="p-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-colors cursor-pointer"
+                title={theme === 'dark' ? 'Oynat' : 'Play'}
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+              </button>
+            )}
+            
+            <button 
+              onClick={stopPlayback}
+              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
+              title={theme === 'dark' ? 'Durdur' : 'Stop'}
+            >
+              <Square className="w-3.5 h-3.5 fill-current" />
+            </button>
+
+            <span 
+              className="text-[10px] font-mono text-slate-500 dark:text-slate-400 min-w-[85px] text-center bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-800/50"
+            >
+              <TimeReadout maxTime={maxTime} />
+            </span>
+
+            <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-900 p-0.5 rounded border border-slate-200/50 dark:border-slate-800/50">
+              {[0.5, 1, 1.5, 2].map((rate) => (
+                <button
+                  key={rate}
+                  onClick={() => setPlaybackRate(rate)}
+                  className={`text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition-all duration-155 ${
+                    playbackRate === rate 
+                      ? 'bg-indigo-600 text-white shadow-sm' 
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-350'
+                  }`}
+                >
+                  {rate}x
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Right: Add Buttons */}
@@ -404,8 +473,8 @@ export const TimelinePanel: React.FC = () => {
       </div>
 
       {/* Tooltip Internal Process Modal */}
-      {showTooltipModal && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 font-sans">
+      {showTooltipModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 font-sans">
           <div className="w-[380px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
@@ -462,7 +531,8 @@ export const TimelinePanel: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

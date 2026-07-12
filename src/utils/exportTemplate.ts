@@ -1,0 +1,1221 @@
+import { LogicalDiagram, VisualDiagram, CustomComponentTemplate } from '../types';
+
+/**
+ * Generates a single, self-contained standalone HTML file containing the entire diagram,
+ * custom SVG assets, active timeline sequences, and a JavaScript animation engine.
+ */
+export const generateStandaloneHtml = (
+  logicalData: LogicalDiagram,
+  visualData: VisualDiagram,
+  libraryComponents: CustomComponentTemplate[]
+): string => {
+  const logicalJson = JSON.stringify(logicalData);
+  const visualJson = JSON.stringify(visualData);
+  const libraryJson = JSON.stringify(libraryComponents);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architectural Diagram & Simulation Runner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #020617;
+      color: #f8fafc;
+      font-family: 'Outfit', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation bar */
+    header {
+      height: 60px;
+      background-color: #0f172a;
+      border-b: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-dot {
+      width: 10px;
+      height: 10px;
+      background-color: #6366f1;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #6366f1;
+    }
+    .logo-text {
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Simulation Canvas */
+    #canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background-color: #0b0f19;
+      background-image: radial-gradient(#1e293b 1px, transparent 1px);
+      background-size: 20px 20px;
+      user-select: none;
+      cursor: grab;
+    }
+    #canvas-container:active {
+      cursor: grabbing;
+    }
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transform-origin: 0 0;
+    }
+
+    /* Zoom controls widget */
+    .zoom-controls {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 20;
+    }
+    .zoom-controls button {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background-color: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid #1e293b;
+      color: #e2e8f0;
+      font-size: 16px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s, transform 0.1s;
+    }
+    .zoom-controls button:hover {
+      background-color: #6366f1;
+      color: #ffffff;
+      transform: scale(1.05);
+    }
+    .zoom-controls button:active {
+      transform: scale(0.95);
+    }
+
+    /* Nodes styles */
+    .node-card {
+      position: absolute;
+      background-color: #0f172a;
+      border: 2px solid #1e293b;
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #e2e8f0;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    }
+    .node-card.processing {
+      border-color: #10b981;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+      transform: scale(1.02);
+    }
+    .node-icon-box {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background-color: rgba(99, 102, 241, 0.05);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .node-icon-box svg {
+      width: 20px;
+      height: 20px;
+    }
+    .node-info {
+      min-width: 0;
+      flex: 1;
+    }
+    .node-name {
+      font-weight: 600;
+      font-size: 13px;
+      color: #f8fafc;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .node-type {
+      font-size: 9px;
+      color: #64748b;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    /* Node tooltip overlay bubbles */
+    .node-tooltip {
+      position: absolute;
+      top: -46px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #4f46e5;
+      color: #ffffff;
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+      pointer-events: none;
+      animation: bounce 1s infinite alternate;
+    }
+    .node-tooltip-arrow {
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      width: 8px;
+      height: 8px;
+      background-color: #4f46e5;
+    }
+
+    @keyframes bounce {
+      from { transform: translateX(-50%) translateY(0); }
+      to { transform: translateX(-50%) translateY(-4px); }
+    }
+
+    /* Flow connection paths */
+    .edge-path {
+      fill: none;
+      stroke: #1e293b;
+      stroke-width: 2;
+      transition: stroke 0.25s, stroke-width 0.25s;
+    }
+    .edge-path-active {
+      stroke: #6366f1;
+      stroke-width: 3.5;
+    }
+    .edge-badge-group {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Playback Control Bar */
+    #control-bar {
+      height: 80px;
+      background-color: #0f172a;
+      border-top: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      z-index: 10;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .btn {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+    }
+    .btn:hover {
+      background-color: #334155;
+      color: #ffffff;
+      transform: scale(1.05);
+    }
+    .btn:active {
+      transform: scale(0.95);
+    }
+    .btn.primary {
+      background-color: #4f46e5;
+      border-color: #6366f1;
+      color: #ffffff;
+      width: 42px;
+      height: 42px;
+    }
+    .btn.primary:hover {
+      background-color: #6366f1;
+    }
+
+    /* Playback progress playhead scrubbing slider */
+    .timeline-container {
+      flex: 1;
+      max-width: 500px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .time-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      font-family: monospace;
+      width: 60px;
+    }
+    .slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 5px;
+      border-radius: 3px;
+      background: #1e293b;
+      outline: none;
+      cursor: pointer;
+    }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #6366f1;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+      transition: transform 0.1s;
+    }
+    .slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .speed-select {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* List of active steps panel */
+    #steps-panel {
+      position: absolute;
+      top: 80px;
+      right: 24px;
+      width: 280px;
+      max-height: calc(100vh - 180px);
+      background-color: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 16px;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+      z-index: 5;
+    }
+    .steps-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+    .step-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      margin-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+    .step-item.active {
+      background-color: rgba(99, 102, 241, 0.08);
+      border-color: rgba(99, 102, 241, 0.25);
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .step-order {
+      font-size: 9px;
+      font-weight: 700;
+      background-color: #1e293b;
+      color: #94a3b8;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    .step-item.active .step-order {
+      background-color: #4f46e5;
+      color: #ffffff;
+    }
+    .step-label {
+      font-weight: 600;
+      font-size: 11px;
+      color: #e2e8f0;
+    }
+    .step-flow {
+      font-size: 10px;
+      color: #64748b;
+    }
+    .step-item.active .step-flow {
+      color: #818cf8;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <div class="logo-text">Architecture Simulation</div>
+    </div>
+    <div style="font-size: 11px; color: #64748b; font-weight: 600;" id="diag-name">Diagram View</div>
+  </header>
+
+  <div id="canvas-container">
+    <div id="canvas">
+      <!-- SVG overlay for rendering edges and particles -->
+      <svg id="svg-edges" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:visible;"></svg>
+      <!-- HTML Nodes wrapper -->
+      <div id="nodes-layer" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></div>
+    </div>
+
+    <!-- Zoom controls panel -->
+    <div class="zoom-controls">
+      <button id="btn-zoom-in" title="Zoom In">+</button>
+      <button id="btn-zoom-out" title="Zoom Out">-</button>
+      <button id="btn-zoom-fit" title="Fit Diagram">[ ]</button>
+    </div>
+
+    <!-- Active steps display panel -->
+    <div id="steps-panel">
+      <div class="steps-title">Interaction Steps</div>
+      <div id="steps-list"></div>
+    </div>
+  </div>
+
+  <div id="control-bar">
+    <div class="control-group">
+      <button class="btn" id="btn-stop" title="Stop">
+        <svg fill="currentColor" viewBox="0 0 24 24" width="14" height="14"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+      </button>
+      <button class="btn primary" id="btn-play" title="Play">
+        <svg id="play-icon" fill="currentColor" viewBox="0 0 24 24" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+    </div>
+
+    <div class="timeline-container">
+      <span class="time-label" id="current-time-readout">0.00s</span>
+      <input type="range" class="slider" id="time-slider" min="0" max="1000" value="0">
+      <span class="time-label" id="total-time-readout">0.00s</span>
+    </div>
+
+    <div class="control-group">
+      <select class="speed-select" id="speed-multiplier">
+        <option value="0.5">0.5x</option>
+        <option value="1.0" selected>1.0x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2.0">2.0x</option>
+      </select>
+    </div>
+  </div>
+
+  <script>
+    // Embedded initial data injected during compilation
+    const initialData = {
+      logicalData: ${logicalJson},
+      visualData: ${visualJson},
+      libraryComponents: ${libraryJson}
+    };
+
+    // State Variables
+    let isPlaying = false;
+    let currentTime = 0; // ms
+    let playbackRate = 1.0;
+    let maxDuration = 1000; // ms (calculated dynamically)
+    let lastTick = null;
+    let activeSequenceIds = [];
+
+    // Pan & Zoom State
+    let zoomScale = 1.0;
+    let panX = 0;
+    let panY = 0;
+
+    // Resolve built-in icons
+    const iconsMap = {
+      client: '<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+      gateway: '<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M12 8v8M5 16v-4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4"/></svg>',
+      server: '<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>',
+      database: '<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>',
+      cache: '<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+      queue: '<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24"><path d="m3 16 4 4 4-4M21 8l-4-4-4 4M3 16h18M21 8H3"/></svg>'
+    };
+
+    // Helper: compile custom SVG layers
+    function renderCustomSvg(layers, width, height) {
+      const sorted = [...layers].sort((a, b) => a.zIndex - b.zIndex);
+      let svgContent = '';
+      sorted.forEach(layer => {
+        const { type, x, y, width: w, height: h, style, content } = layer;
+        const opacity = style.opacity ?? 1;
+        const fill = style.fill || 'transparent';
+        const stroke = style.stroke || 'none';
+        const strokeW = style.strokeWidth ?? 0;
+        const rx = style.rx ?? 0;
+
+        if (type === 'rectangle') {
+          svgContent += \`<rect x="\${x}" y="\${y}" width="\${w}" height="\${h}" fill="\${fill}" stroke="\${stroke}" stroke-width="\${strokeW}" rx="\${rx}" opacity="\${opacity}" />\`;
+        } else if (type === 'circle') {
+          svgContent += \`<ellipse cx="\${x + w/2}" cy="\${y + h/2}" rx="\${w/2}" ry="\${h/2}" fill="\${fill}" stroke="\${stroke}" stroke-width="\${strokeW}" opacity="\${opacity}" />\`;
+        } else if (type === 'text') {
+          svgContent += \`<text x="\${x + w/2}" y="\${y + h/2}" text-anchor="middle" dominant-baseline="central" fill="\${fill}" stroke="\${stroke}" stroke-width="\${strokeW}" font-size="\${h * 0.7}" font-family="sans-serif" font-weight="bold" opacity="\${opacity}">\${content || ''}</text>\`;
+        } else if (type === 'image') {
+          svgContent += \`<image href="\${content || ''}" x="\${x}" y="\${y}" width="\${w}" height="\${h}" preserveAspectRatio="none" opacity="\${opacity}" />\`;
+        }
+      });
+      return \`<svg width="100%" height="100%" viewBox="0 0 \${width} \${height}" xmlns="http://www.w3.org/2000/svg">\${svgContent}</svg>\`;
+    }
+
+    // Schedule Math Calculations (Recursive nesting tree with round-trip return waiting)
+    function calculateSchedules(logicalData, timelines) {
+      const sortedSeqs = [...logicalData.sequences].sort((a, b) => a.stepNumber - b.stepNumber);
+      const schedules = [];
+      
+      const edgeMap = {};
+      logicalData.edges.forEach(e => { edgeMap[e.id] = e; });
+
+      // Resolve source/target for each step
+      const seqNodes = {};
+      sortedSeqs.forEach(seq => {
+        const edge = edgeMap[seq.edgeId];
+        const src = edge ? (seq.direction === 'reverse' ? edge.to : edge.from) : '';
+        const tgt = edge ? (seq.direction === 'reverse' ? edge.from : edge.to) : '';
+        seqNodes[seq.id] = { src, tgt };
+      });
+
+      // Build nesting tree
+      const childrenOf = {};
+      const nested = {};
+      const activeRTTargets = {};
+
+      sortedSeqs.forEach(seq => {
+        const src = seqNodes[seq.id].src;
+        const parentId = src ? activeRTTargets[src] : undefined;
+
+        if (parentId) {
+          nested[seq.id] = true;
+          if (!childrenOf[parentId]) childrenOf[parentId] = [];
+          childrenOf[parentId].push(seq);
+        }
+
+        if (seq.isRoundTrip) {
+          const tgt = seqNodes[seq.id].tgt;
+          if (tgt) activeRTTargets[tgt] = seq.id;
+        }
+      });
+
+      // Recursive: process a step and its nested children
+      function processStep(seq, startTime) {
+        const tConf = timelines[seq.id] || { duration: 1000, delay: 0 };
+        const duration = tConf.duration ?? 1000;
+
+        if (!seq.isRoundTrip) {
+          const internalProcess = tConf.internalProcess ? {
+            text: tConf.internalProcess.text,
+            start: startTime + duration,
+            end: startTime + duration + (tConf.internalProcess.duration ?? 1000),
+            duration: tConf.internalProcess.duration ?? 1000
+          } : null;
+
+          schedules.push({
+            id: seq.id, stepNumber: seq.stepNumber, edgeId: seq.edgeId,
+            direction: seq.direction || 'forward', isRoundTrip: false,
+            isAsync: seq.isAsync || false, start: startTime,
+            mainEnd: startTime + duration, end: startTime + duration,
+            duration: duration, internalProcess: internalProcess
+          });
+          return startTime + duration;
+        }
+
+        // Round-trip
+        const halfTransit = duration / 2;
+        const forwardReach = startTime + halfTransit;
+        const ipDur = tConf.internalProcess ? (tConf.internalProcess.duration ?? 1000) : 0;
+
+        // Process children grouped by stepNumber
+        const children = childrenOf[seq.id] || [];
+        const childGroups = {};
+        children.forEach(c => {
+          if (!childGroups[c.stepNumber]) childGroups[c.stepNumber] = [];
+          childGroups[c.stepNumber].push(c);
+        });
+
+        let childReadyTime = forwardReach;
+        let latestSyncEnd = forwardReach;
+
+        Object.keys(childGroups).map(Number).sort((a, b) => a - b).forEach(gn => {
+          const group = childGroups[gn];
+          const snapshot = childReadyTime;
+
+          group.forEach(child => {
+            const childTiming = timelines[child.id] || { duration: 1000, delay: 0 };
+            const childDelay = childTiming.delay ?? 0;
+            const childStart = snapshot + childDelay;
+            const childEnd = processStep(child, childStart);
+
+            if (!child.isAsync) {
+              if (childEnd > childReadyTime) childReadyTime = childEnd;
+              if (childEnd > latestSyncEnd) latestSyncEnd = childEnd;
+            }
+          });
+        });
+
+        const returnStart = latestSyncEnd + ipDur;
+        const totalEnd = returnStart + halfTransit;
+
+        const internalProcess = tConf.internalProcess ? {
+          text: tConf.internalProcess.text,
+          start: latestSyncEnd,
+          end: returnStart,
+          duration: ipDur
+        } : null;
+
+        schedules.push({
+          id: seq.id, stepNumber: seq.stepNumber, edgeId: seq.edgeId,
+          direction: seq.direction || 'forward', isRoundTrip: true,
+          isAsync: seq.isAsync || false, start: startTime,
+          mainEnd: startTime + duration, end: totalEnd,
+          duration: duration, internalProcess: internalProcess
+        });
+        return totalEnd;
+      }
+
+      // Process root-level steps grouped by stepNumber
+      const rootSteps = sortedSeqs.filter(seq => !nested[seq.id]);
+      const rootGroups = {};
+      rootSteps.forEach(seq => {
+        if (!rootGroups[seq.stepNumber]) rootGroups[seq.stepNumber] = [];
+        rootGroups[seq.stepNumber].push(seq);
+      });
+
+      let groupStartTime = 0;
+
+      Object.keys(rootGroups).map(Number).sort((a, b) => a - b).forEach(gn => {
+        const group = rootGroups[gn];
+        const snapshot = groupStartTime;
+        let maxSyncEnd = groupStartTime;
+
+        group.forEach(seq => {
+          const tConf = timelines[seq.id] || { duration: 1000, delay: 0 };
+          const delay = tConf.delay ?? 0;
+          const startTime = snapshot + delay;
+          const totalEnd = processStep(seq, startTime);
+
+          if (!seq.isAsync && totalEnd > maxSyncEnd) {
+            maxSyncEnd = totalEnd;
+          }
+        });
+
+        groupStartTime = maxSyncEnd;
+      });
+
+      return schedules.sort((a, b) => a.start - b.start);
+    }
+
+    // Initialize DOM Layout
+    const schedules = calculateSchedules(initialData.logicalData, initialData.visualData.timelines || {});
+    maxDuration = schedules.length > 0 ? Math.max(...schedules.map(s => s.end)) + 500 : 2000;
+    
+    // Set Slider Limits
+    document.getElementById('time-slider').max = maxDuration;
+    document.getElementById('total-time-readout').textContent = (maxDuration / 1000).toFixed(2) + 's';
+
+    // Renders the Canvas Nodes
+    function renderNodes() {
+      const nodesLayer = document.getElementById('nodes-layer');
+      nodesLayer.innerHTML = '';
+      
+      initialData.logicalData.nodes.forEach(node => {
+        const visual = initialData.visualData.layoutNodes[node.id] || { x: 100, y: 100, width: 224, height: 52 };
+        const customTemplate = initialData.libraryComponents.find(c => c.componentId === node.type);
+        
+        const card = document.createElement('div');
+        card.id = 'node-card-' + node.id;
+        card.className = 'node-card';
+        card.style.left = visual.x + 'px';
+        card.style.top = visual.y + 'px';
+        card.style.width = (visual.width || 224) + 'px';
+        card.style.height = (visual.height || 52) + 'px';
+
+        // Render standard card contents
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'node-icon-box';
+        if (customTemplate) {
+          iconDiv.innerHTML = renderCustomSvg(customTemplate.layers, customTemplate.dimensions.width, customTemplate.dimensions.height);
+        } else {
+          iconDiv.innerHTML = iconsMap[node.type] || iconsMap.client;
+        }
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'node-info';
+        infoDiv.innerHTML = \`<div class="node-name">\${node.name}</div>
+          <div class="node-type">\${customTemplate ? customTemplate.category : node.type}</div>\`;
+
+        // Tooltip slot
+        const tooltipSlot = document.createElement('div');
+        tooltipSlot.id = 'tooltip-slot-' + node.id;
+        tooltipSlot.style.position = 'absolute';
+        tooltipSlot.style.top = '0';
+        tooltipSlot.style.left = '0';
+        tooltipSlot.style.width = '100%';
+        tooltipSlot.style.height = '100%';
+        tooltipSlot.style.pointerEvents = 'none';
+
+        card.appendChild(iconDiv);
+        card.appendChild(infoDiv);
+        card.appendChild(tooltipSlot);
+        nodesLayer.appendChild(card);
+      });
+    }
+
+    // Draw Static Edge Connections
+    function renderEdges() {
+      const svg = document.getElementById('svg-edges');
+      svg.innerHTML = '';
+
+      initialData.logicalData.edges.forEach(edge => {
+        const sourceCard = document.getElementById('node-card-' + edge.from);
+        const targetCard = document.getElementById('node-card-' + edge.to);
+        if (!sourceCard || !targetCard) return;
+
+        const pathData = calculateOrthogonalPath(edge.from, edge.to, edge.fromPort, edge.toPort);
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.id = 'edge-path-' + edge.id;
+        path.setAttribute('d', pathData);
+        path.setAttribute('class', 'edge-path');
+        svg.appendChild(path);
+
+        // Render Step Badge on Edge Midpoint
+        const edgeSeqs = initialData.logicalData.sequences
+          .filter(seq => seq.edgeId === edge.id)
+          .sort((a, b) => a.stepNumber - b.stepNumber);
+
+        if (edgeSeqs.length > 0) {
+          // Temporary path element to calculate midpoint length
+          const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          tempPath.setAttribute('d', pathData);
+          
+          let midPt = { x: 0, y: 0 };
+          try {
+            const totalLen = tempPath.getTotalLength ? tempPath.getTotalLength() : 0;
+            if (totalLen > 0 && tempPath.getPointAtLength) {
+              midPt = tempPath.getPointAtLength(totalLen / 2);
+            } else {
+              throw new Error('Fallback coordinates');
+            }
+          } catch(e) {
+            const sVis = initialData.visualData.layoutNodes[edge.from];
+            const tVis = initialData.visualData.layoutNodes[edge.to];
+            if (sVis && tVis) {
+              midPt = {
+                x: (sVis.x + tVis.x) / 2 + 112,
+                y: (sVis.y + tVis.y) / 2 + 26
+              };
+            }
+          }
+
+          const badgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          badgeGroup.setAttribute('class', 'edge-badge-group');
+          badgeGroup.id = 'edge-badge-' + edge.id;
+
+          const stepText = edgeSeqs.map(s => 'S' + s.stepNumber).join(',');
+          const badgeW = Math.max(22, stepText.length * 7 + 8);
+          const badgeH = 16;
+
+          const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          rect.setAttribute('x', midPt.x - badgeW / 2);
+          rect.setAttribute('y', midPt.y - badgeH / 2);
+          rect.setAttribute('width', badgeW);
+          rect.setAttribute('height', badgeH);
+          rect.setAttribute('rx', '8');
+          rect.setAttribute('fill', '#1e293b');
+          rect.setAttribute('stroke', '#475569');
+          rect.setAttribute('stroke-width', '1.5');
+          rect.style.transition = 'fill 0.2s, stroke 0.2s';
+
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', midPt.x);
+          text.setAttribute('y', midPt.y + 1);
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('dominant-baseline', 'middle');
+          text.setAttribute('fill', '#f1f5f9');
+          text.setAttribute('font-size', '9px');
+          text.setAttribute('font-family', 'monospace');
+          text.setAttribute('font-weight', 'bold');
+          text.textContent = stepText;
+
+          badgeGroup.appendChild(rect);
+          badgeGroup.appendChild(text);
+          svg.appendChild(badgeGroup);
+        }
+      });
+    }
+
+    // Calculate Straight/Orthogonal coordinates between ports
+    function calculateOrthogonalPath(sourceId, targetId, sourcePort = 'right', targetPort = 'left') {
+      const sVis = initialData.visualData.layoutNodes[sourceId];
+      const tVis = initialData.visualData.layoutNodes[targetId];
+      if (!sVis || !tVis) return '';
+
+      const sW = sVis.width || 224;
+      const sH = sVis.height || 52;
+      const tW = tVis.width || 224;
+      const tH = tVis.height || 52;
+
+      // Source Port coordinate
+      let sX, sY;
+      if (sourcePort === 'left') {
+        sX = sVis.x;
+        sY = sVis.y + sH / 2;
+      } else if (sourcePort === 'right') {
+        sX = sVis.x + sW;
+        sY = sVis.y + sH / 2;
+      } else if (sourcePort === 'top') {
+        sX = sVis.x + sW / 2;
+        sY = sVis.y;
+      } else { // bottom
+        sX = sVis.x + sW / 2;
+        sY = sVis.y + sH;
+      }
+
+      // Target Port coordinate
+      let tX, tY;
+      if (targetPort === 'left') {
+        tX = tVis.x;
+        tY = tVis.y + tH / 2;
+      } else if (targetPort === 'right') {
+        tX = tVis.x + tW;
+        tY = tVis.y + tH / 2;
+      } else if (targetPort === 'top') {
+        tX = tVis.x + tW / 2;
+        tY = tVis.y;
+      } else { // bottom
+        tX = tVis.x + tW / 2;
+        tY = tVis.y + tH;
+      }
+
+      // Create a clean orthogonal path
+      if (sourcePort === 'left' || sourcePort === 'right') {
+        const midX = sX + (tX - sX) / 2;
+        return 'M ' + sX + ' ' + sY + ' L ' + midX + ' ' + sY + ' L ' + midX + ' ' + tY + ' L ' + tX + ' ' + tY;
+      } else {
+        const midY = sY + (tY - sY) / 2;
+        return 'M ' + sX + ' ' + sY + ' L ' + sX + ' ' + midY + ' L ' + tX + ' ' + midY + ' L ' + tX + ' ' + tY;
+      }
+    }
+
+    // Renders list of steps in the sidebar
+    function renderStepsList() {
+      const container = document.getElementById('steps-list');
+      container.innerHTML = '';
+
+      schedules.forEach(s => {
+        const seq = initialData.logicalData.sequences.find(q => q.id === s.id);
+        const edge = initialData.logicalData.edges.find(e => e.id === seq.edgeId);
+        if (!edge) return;
+
+        const srcNode = initialData.logicalData.nodes.find(n => n.id === edge.from);
+        const dstNode = initialData.logicalData.nodes.find(n => n.id === edge.to);
+        const srcName = srcNode ? srcNode.name : edge.from;
+        const dstName = dstNode ? dstNode.name : edge.to;
+
+        const item = document.createElement('div');
+        item.id = 'step-item-' + s.id;
+        item.className = 'step-item';
+        
+        item.innerHTML = \`<div class="step-header">
+            <span class="step-order">Step \${s.stepNumber}</span>
+            <span style="font-size: 9px; font-weight:600; color:#64748b;">\${(s.start/1000).toFixed(1)}s - \${(s.end/1000).toFixed(1)}s</span>
+          </div>
+          <div class="step-label">\${seq.protocol || 'JSON'} Call</div>
+          <div class="step-flow">\${srcName} → \${dstName}</div>\`;
+
+        // Click to jump playhead to the start of this step
+        item.addEventListener('click', () => {
+          currentTime = s.start;
+          isPlaying = false;
+          const btn = document.getElementById('btn-play');
+          const icon = document.getElementById('play-icon');
+          if (btn && icon) {
+            btn.title = 'Play';
+            icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+          }
+          updateSimulation(currentTime);
+        });
+
+        container.appendChild(item);
+      });
+    }
+
+    // Main animation loop runner
+    function updateSimulation(time) {
+      // 1. Update sliders
+      document.getElementById('time-slider').value = time;
+      document.getElementById('current-time-readout').textContent = (time / 1000).toFixed(2) + 's';
+
+      // 2. Clear previous active classes
+      const svg = document.getElementById('svg-edges');
+      // remove old particles
+      const particles = svg.querySelectorAll('.sim-particle');
+      particles.forEach(p => p.remove());
+
+      // Reset node cards borders & tooltips
+      initialData.logicalData.nodes.forEach(n => {
+        const card = document.getElementById('node-card-' + n.id);
+        if (card) {
+          card.classList.remove('processing');
+        }
+        const tooltipSlot = document.getElementById('tooltip-slot-' + n.id);
+        if (tooltipSlot) tooltipSlot.innerHTML = '';
+      });
+
+      // Reset step highlights, active edges, and edge badges
+      schedules.forEach(s => {
+        const el = document.getElementById('step-item-' + s.id);
+        if (el) el.classList.remove('active');
+
+        const seq = initialData.logicalData.sequences.find(q => q.id === s.id);
+        if (seq) {
+          const pathEl = document.getElementById('edge-path-' + seq.edgeId);
+          if (pathEl) pathEl.classList.remove('edge-path-active');
+          const badgeEl = document.getElementById('edge-badge-' + seq.edgeId);
+          if (badgeEl) {
+            const rect = badgeEl.querySelector('rect');
+            if (rect) {
+              rect.setAttribute('fill', '#1e293b');
+              rect.setAttribute('stroke', '#475569');
+            }
+          }
+        }
+      });
+
+      // 3. Trace active schedules
+      let stepToScroll = null;
+      schedules.forEach(s => {
+        if (time >= s.start && time <= s.end) {
+          // Highlight sequence step list
+          const stepItem = document.getElementById('step-item-' + s.id);
+          if (stepItem) {
+            stepItem.classList.add('active');
+            stepToScroll = stepItem;
+          }
+
+          const seq = initialData.logicalData.sequences.find(q => q.id === s.id);
+          const edge = initialData.logicalData.edges.find(e => e.id === seq.edgeId);
+          if (!edge) return;
+
+          // Highlight edge line and step badge
+          const pathEl = document.getElementById('edge-path-' + edge.id);
+          if (pathEl) pathEl.classList.add('edge-path-active');
+          const badgeEl = document.getElementById('edge-badge-' + edge.id);
+          if (badgeEl) {
+            const rect = badgeEl.querySelector('rect');
+            if (rect) {
+              rect.setAttribute('fill', '#6366f1');
+              rect.setAttribute('stroke', '#818cf8');
+            }
+          }
+          
+          // Draw particle running along the path (supports round trip return calls)
+          const elapsed = time - s.start;
+          let actualProgress = 0;
+          let showParticle = false;
+
+          if (s.isRoundTrip) {
+            const transitHalf = s.duration / 2;
+            const returnStartElapsed = (s.end - s.start) - transitHalf;
+            
+            if (elapsed < transitHalf) {
+              actualProgress = Math.min(Math.max(elapsed / transitHalf, 0), 1);
+              showParticle = true;
+            } else if (elapsed < returnStartElapsed) {
+              actualProgress = 1.0;
+              showParticle = true;
+            } else {
+              const returnElapsed = elapsed - returnStartElapsed;
+              actualProgress = 1.0 - Math.min(Math.max(returnElapsed / transitHalf, 0), 1);
+              showParticle = true;
+            }
+          } else {
+            const duration = s.end - s.start;
+            actualProgress = duration > 0 ? Math.min(Math.max(elapsed / duration, 0), 1) : 1;
+            showParticle = (time <= s.end);
+          }
+
+          if (showParticle && pathEl) {
+            const pathLen = pathEl.getTotalLength();
+            let pointProgress = s.direction === 'reverse' ? (1 - actualProgress) : actualProgress;
+            
+            // Check if getPointAtLength is supported
+            if (pathEl.getPointAtLength) {
+              const pt = pathEl.getPointAtLength(pointProgress * pathLen);
+              const particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+              particle.setAttribute('cx', pt.x);
+              particle.setAttribute('cy', pt.y);
+              particle.setAttribute('r', '6');
+              particle.setAttribute('fill', '#818cf8');
+              particle.setAttribute('class', 'sim-particle');
+              particle.setAttribute('filter', 'drop-shadow(0 0 4px #4f46e5)');
+              svg.appendChild(particle);
+            }
+          }
+
+          // Trigger internal process tooltip
+          if (s.internalProcess && time >= s.internalProcess.start && time <= s.internalProcess.end) {
+            const targetNodeId = s.direction === 'reverse' ? edge.from : edge.to;
+            const card = document.getElementById('node-card-' + targetNodeId);
+            if (card) card.classList.add('processing');
+
+            const tooltipSlot = document.getElementById('tooltip-slot-' + targetNodeId);
+            if (tooltipSlot && !tooltipSlot.querySelector('.node-tooltip')) {
+              const tip = document.createElement('div');
+              tip.className = 'node-tooltip';
+              tip.innerHTML = '<span>' + s.internalProcess.text + '</span><div class="node-tooltip-arrow"></div>';
+              tooltipSlot.appendChild(tip);
+            }
+          }
+        }
+      });
+
+      // Smooth scroll the active step item into view inside the list panel
+      if (stepToScroll) {
+        stepToScroll.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    // Playback Animation Loop
+    function tick(timestamp) {
+      if (!isPlaying) return;
+      if (!lastTick) lastTick = timestamp;
+
+      const delta = timestamp - lastTick;
+      lastTick = timestamp;
+
+      currentTime += delta * playbackRate;
+      if (currentTime >= maxDuration) {
+        currentTime = 0;
+      }
+
+      updateSimulation(currentTime);
+      requestAnimationFrame(tick);
+    }
+
+    // Event Listeners
+    document.getElementById('btn-play').addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      const btn = document.getElementById('btn-play');
+      const icon = document.getElementById('play-icon');
+
+      if (isPlaying) {
+        btn.title = 'Pause';
+        icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        lastTick = null;
+        requestAnimationFrame(tick);
+      } else {
+        btn.title = 'Play';
+        icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      }
+    });
+
+    document.getElementById('btn-stop').addEventListener('click', () => {
+      isPlaying = false;
+      currentTime = 0;
+      lastTick = null;
+      
+      const btn = document.getElementById('btn-play');
+      const icon = document.getElementById('play-icon');
+      btn.title = 'Play';
+      icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      
+      updateSimulation(0);
+    });
+
+    document.getElementById('time-slider').addEventListener('input', (e) => {
+      currentTime = Number(e.target.value);
+      updateSimulation(currentTime);
+    });
+
+    document.getElementById('speed-multiplier').addEventListener('change', (e) => {
+      playbackRate = parseFloat(e.target.value);
+    });
+
+    // Fit diagrams view layout size viewport
+    function adjustViewZoom() {
+      const container = document.getElementById('canvas-container');
+      const nodes = initialData.logicalData.nodes;
+      if (nodes.length === 0) return;
+
+      const layout = initialData.visualData.layoutNodes;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+      nodes.forEach(n => {
+        const pos = layout[n.id] || { x: 100, y: 100, width: 224, height: 52 };
+        minX = Math.min(minX, pos.x);
+        minY = Math.min(minY, pos.y);
+        maxX = Math.max(maxX, pos.x + (pos.width || 224));
+        maxY = Math.max(maxY, pos.y + (pos.height || 52));
+      });
+
+      const width = maxX - minX + 200;
+      const height = maxY - minY + 200;
+
+      const containerW = container.clientWidth;
+      const containerH = container.clientHeight;
+
+      zoomScale = Math.min(containerW / width, containerH / height, 1.0);
+      panX = (containerW - width * zoomScale) / 2 - minX * zoomScale + 100 * zoomScale;
+      panY = (containerH - height * zoomScale) / 2 - minY * zoomScale + 100 * zoomScale;
+
+      updateCanvasTransform();
+    }
+
+    function updateCanvasTransform() {
+      const canvas = document.getElementById('canvas');
+      canvas.style.transform = 'translate(' + panX + 'px, ' + panY + 'px) scale(' + zoomScale + ')';
+    }
+
+    // Mouse Drag Panning
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    const canvasContainer = document.getElementById('canvas-container');
+
+    canvasContainer.addEventListener('mousedown', (e) => {
+      if (e.button === 0 || e.button === 1) {
+        if (e.target.closest('.node-card')) return;
+        isDragging = true;
+        startX = e.clientX - panX;
+        startY = e.clientY - panY;
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      panX = e.clientX - startX;
+      panY = e.clientY - startY;
+      updateCanvasTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    // Mouse Wheel Zooming
+    canvasContainer.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomIntensity = 0.05;
+      const rect = canvasContainer.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const canvasX = (mouseX - panX) / zoomScale;
+      const canvasY = (mouseY - panY) / zoomScale;
+
+      const zoomFactor = e.deltaY < 0 ? (1 + zoomIntensity) : (1 - zoomIntensity);
+      const newScale = Math.max(0.15, Math.min(4.0, zoomScale * zoomFactor));
+
+      panX = mouseX - canvasX * newScale;
+      panY = mouseY - canvasY * newScale;
+      zoomScale = newScale;
+
+      updateCanvasTransform();
+    }, { passive: false });
+
+    // Zoom Button Listeners
+    document.getElementById('btn-zoom-in').addEventListener('click', () => {
+      const rect = canvasContainer.getBoundingClientRect();
+      const midX = rect.width / 2;
+      const midY = rect.height / 2;
+      const canvasX = (midX - panX) / zoomScale;
+      const canvasY = (midY - panY) / zoomScale;
+
+      zoomScale = Math.min(4.0, zoomScale * 1.2);
+      panX = midX - canvasX * zoomScale;
+      panY = midY - canvasY * zoomScale;
+      updateCanvasTransform();
+    });
+
+    document.getElementById('btn-zoom-out').addEventListener('click', () => {
+      const rect = canvasContainer.getBoundingClientRect();
+      const midX = rect.width / 2;
+      const midY = rect.height / 2;
+      const canvasX = (midX - panX) / zoomScale;
+      const canvasY = (midY - panY) / zoomScale;
+
+      zoomScale = Math.max(0.15, zoomScale / 1.2);
+      panX = midX - canvasX * zoomScale;
+      panY = midY - canvasY * zoomScale;
+      updateCanvasTransform();
+    });
+
+    document.getElementById('btn-zoom-fit').addEventListener('click', () => {
+      adjustViewZoom();
+    });
+
+    // Startup Init
+    window.addEventListener('resize', adjustViewZoom);
+    document.getElementById('diag-name').textContent = initialData.logicalData.name || 'Standalone System Diagram';
+    
+    renderNodes();
+    renderEdges();
+    renderStepsList();
+    adjustViewZoom();
+    updateSimulation(0);
+
+  </script>
+</body>
+</html>
+`;
+};

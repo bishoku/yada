@@ -81,7 +81,7 @@ const themeStyles: Record<string, { border: string; borderHover: string; ring: s
 
 const getNodeTooltipState = (logicalData: any, visualData: any, currentTime: number, id: string) => {
   try {
-    const schedules = calculateSchedules(logicalData.sequences, visualData.timelines);
+    const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges);
     const targetSeqs = logicalData.sequences.filter((s: any) => {
       const edge = logicalData.edges.find((e: any) => e.id === s.edgeId);
       return edge && edge.to === id;
@@ -97,8 +97,11 @@ const getNodeTooltipState = (logicalData: any, visualData: any, currentTime: num
 
         if (seq.isRoundTrip) {
           const transitHalf = timing.duration / 2;
-          tooltipStart = sched.start + transitHalf;
-          tooltipEnd = tooltipStart + timing.internalProcess.duration;
+          // Internal process starts after forward transit + nested children complete
+          // which is: end - transitHalf(return) - ipDuration
+          const ipDuration = timing.internalProcess.duration ?? 1000;
+          tooltipStart = sched.end - transitHalf - ipDuration;
+          tooltipEnd = tooltipStart + ipDuration;
         } else {
           // Backward compatibility: show after edge animation completes
           tooltipStart = sched.end;

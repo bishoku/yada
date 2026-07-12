@@ -119,6 +119,11 @@ export interface AppState {
   activeComponent: CustomComponentTemplate | null;
   selectedLayerId: string | null;
   libraryComponents: CustomComponentTemplate[];
+
+  // Phase 6 History Stacks
+  pastStates: Array<{ logicalData: LogicalDiagram; visualData: VisualDiagram }>;
+  futureStates: Array<{ logicalData: LogicalDiagram; visualData: VisualDiagram }>;
+  layoutVersion: number;
   
   // App Preferences
   language: Language;
@@ -141,6 +146,7 @@ export interface AppState {
   // Dynamic Layout State (Splitters & Toggle Sidebars)
   leftSidebarOpen: boolean;
   rightSidebarOpen: boolean;
+  timelineOpen: boolean;
   timelineHeight: number;
   
   // Actions
@@ -165,6 +171,13 @@ export interface AppState {
   updateNodePosition: (id: string, x: number, y: number) => void;
   updateNodeDimensions: (id: string, width: number, height: number) => void;
   addEdge: (edge: LogicalEdge) => void;
+  reconnectEdge: (
+    edgeId: string,
+    from: string,
+    to: string,
+    fromPort: 'top' | 'right' | 'bottom' | 'left',
+    toPort: 'top' | 'right' | 'bottom' | 'left'
+  ) => void;
   deleteNode: (id: string) => void;
   deleteEdge: (id: string) => void;
   updateCanvasViewport: (zoom: number, pan: { x: number; y: number }) => void;
@@ -194,6 +207,7 @@ export interface AppState {
   // Layout Actions
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
+  toggleTimeline: () => void;
   setTimelineHeight: (height: number) => void;
 
   // Phase 5 Component Studio Actions
@@ -207,4 +221,10 @@ export interface AppState {
   saveComponentToLibrary: () => Promise<void>;
   loadLibrary: () => Promise<void>;
   deleteComponentFromLibrary: (componentId: string) => Promise<void>;
+
+  // Phase 6 Actions
+  applyAutoLayout: (direction: 'TB' | 'LR') => void;
+  pushToHistory: () => void;
+  undo: () => void;
+  redo: () => void;
 }

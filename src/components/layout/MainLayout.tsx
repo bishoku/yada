@@ -9,6 +9,7 @@ import { TimelinePanel } from './TimelinePanel';
 
 export const MainLayout: React.FC = () => {
   const timelineHeight = useAppStore((s) => s.timelineHeight);
+  const timelineOpen = useAppStore((s) => s.timelineOpen);
   const setTimelineHeight = useAppStore((s) => s.setTimelineHeight);
   const language = useAppStore((s) => s.language);
   const [isResizing, setIsResizing] = useState(false);
@@ -66,20 +67,24 @@ export const MainLayout: React.FC = () => {
           </div>
 
           {/* Resizer Splitter Bar */}
-          <div
-            ref={resizerRef}
-            onMouseDown={handleMouseDown}
-            className="h-1 bg-slate-200/60 hover:h-1.5 hover:bg-indigo-500 dark:bg-slate-800 dark:hover:bg-indigo-500 cursor-ns-resize transition-all duration-150 relative z-30 flex-shrink-0"
-            title={language === 'tr' ? 'Zaman çizelgesini boyutlandır' : 'Resize timeline'}
-          />
+          {timelineOpen && (
+            <div
+              ref={resizerRef}
+              onMouseDown={handleMouseDown}
+              className="h-1 bg-slate-200/60 hover:h-1.5 hover:bg-indigo-500 dark:bg-slate-800 dark:hover:bg-indigo-500 cursor-ns-resize transition-all duration-150 relative z-30 flex-shrink-0"
+              title={language === 'tr' ? 'Zaman çizelgesini boyutlandır' : 'Resize timeline'}
+            />
+          )}
 
           {/* Timeline Animation Panel */}
-          <div 
-            style={{ height: timelineHeight }}
-            className="border-t border-slate-200 dark:border-slate-800 z-10 shrink-0 select-none overflow-hidden"
-          >
-            <TimelinePanel />
-          </div>
+          {timelineOpen && (
+            <div 
+              style={{ height: timelineHeight }}
+              className="border-t border-slate-200 dark:border-slate-800 z-10 shrink-0 select-none overflow-hidden"
+            >
+              <TimelinePanel />
+            </div>
+          )}
           
         </main>
 
