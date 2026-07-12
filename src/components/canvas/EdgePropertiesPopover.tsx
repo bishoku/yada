@@ -32,7 +32,8 @@ export const EdgePropertiesPopover: React.FC<EdgePropertiesPopoverProps> = ({
     updateEdgeDetails, 
     setSequenceStepOrder,
     setSequenceStepDirection,
-    setSequenceStepRoundTrip
+    setSequenceStepRoundTrip,
+    maxSteps
   } = useAppStore();
 
   const [protocol, setProtocol] = useState('');
@@ -137,7 +138,7 @@ export const EdgePropertiesPopover: React.FC<EdgePropertiesPopoverProps> = ({
               onChange={(e) => setStepNumber(Number(e.target.value))}
               className="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none text-slate-800 dark:text-slate-200 cursor-pointer font-bold font-sans"
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+              {Array.from({ length: maxSteps }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>Step {n}</option>
               ))}
             </select>

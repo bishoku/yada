@@ -42,7 +42,8 @@ export const translations = {
     workspaceLoadError: "Çalışma alanı yüklenemedi:",
     workspaceCreateError: "Çalışma alanı oluşturulamadı:",
     preferencesSaved: "Tercihler kaydedildi.",
-    editWorkspaceDetails: "Çalışma Alanı Detaylarını Düzenle"
+    editWorkspaceDetails: "Çalışma Alanı Detaylarını Düzenle",
+    maxStepsSetting: "Maksimum Adım Sayısı"
   },
   en: {
     welcomeTitle: "Diagramer",
@@ -87,7 +88,8 @@ export const translations = {
     workspaceLoadError: "Failed to load workspace:",
     workspaceCreateError: "Failed to create workspace:",
     preferencesSaved: "Preferences saved.",
-    editWorkspaceDetails: "Edit Workspace Details"
+    editWorkspaceDetails: "Edit Workspace Details",
+    maxStepsSetting: "Max Step Count"
   }
 };
 
@@ -97,4 +99,5 @@ export type Theme = 'dark' | 'light';
 export interface Preferences {
   language: 'system' | Language;
   theme: Theme;
+  maxSteps?: number;
 }

@@ -131,6 +131,7 @@ export interface AppState {
   // App Preferences
   language: Language;
   theme: Theme;
+  maxSteps: number;
   
   // Phase 2 Canvas State
   logicalData: LogicalDiagram;
@@ -168,6 +169,7 @@ export interface AppState {
   // Preferences Operations
   changeLanguage: (lang: Language) => Promise<void>;
   changeTheme: (theme: Theme) => Promise<void>;
+  changeMaxSteps: (max: number) => Promise<void>;
   loadAppPreferences: () => Promise<void>;
   
   // Phase 2 Canvas Actions

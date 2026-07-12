@@ -50,6 +50,7 @@ export const TimelinePanel: React.FC = () => {
   const theme = useAppStore((s) => s.theme);
   const timelineOpen = useAppStore((s: any) => s.timelineOpen);
   const schedules = useAppStore((s) => s.schedules);
+  const maxSteps = useAppStore((s) => s.maxSteps);
 
   const setCurrentTime = useAppStore((s) => s.setCurrentTime);
   const setSelectedSequenceId = useAppStore((s) => s.setSelectedSequenceId);
@@ -318,7 +319,7 @@ export const TimelinePanel: React.FC = () => {
                           className="text-[9px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-1 py-0.5 font-bold cursor-pointer focus:outline-none"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                          {Array.from({ length: maxSteps }, (_, i) => i + 1).map((n) => (
                             <option key={n} value={n}>Step {n}</option>
                           ))}
                         </select>

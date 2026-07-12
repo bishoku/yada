@@ -18,6 +18,7 @@ export interface WorkspaceSlice {
   isDirty: boolean;
   language: Language;
   theme: Theme;
+  maxSteps: number;
   leftSidebarOpen: boolean;
   rightSidebarOpen: boolean;
   isSaving: boolean;
@@ -32,6 +33,7 @@ export interface WorkspaceSlice {
   saveWorkspaceDetails: (name: string, description: string) => Promise<void>;
   changeLanguage: (lang: Language) => Promise<void>;
   changeTheme: (theme: Theme) => Promise<void>;
+  changeMaxSteps: (max: number) => Promise<void>;
   loadAppPreferences: () => Promise<void>;
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
@@ -45,6 +47,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   isDirty: false,
   language: 'en',
   theme: 'light',
+  maxSteps: 30,
   leftSidebarOpen: true,
   rightSidebarOpen: true,
   isSaving: false,
@@ -162,7 +165,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   changeLanguage: async (lang: Language) => {
     try {
       set({ language: lang });
-      const prefObj = { language: lang, theme: get().theme };
+      const prefObj = { language: lang, theme: get().theme, maxSteps: get().maxSteps };
       await StorageService.save_preferences(JSON.stringify(prefObj));
     } catch (err) {
       console.error('Error saving language preference:', err);
@@ -173,10 +176,20 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     try {
       set({ theme });
       applyTheme(theme);
-      const prefObj = { language: get().language, theme };
+      const prefObj = { language: get().language, theme, maxSteps: get().maxSteps };
       await StorageService.save_preferences(JSON.stringify(prefObj));
     } catch (err) {
       console.error('Error saving theme preference:', err);
+    }
+  },
+
+  changeMaxSteps: async (max: number) => {
+    try {
+      set({ maxSteps: max });
+      const prefObj = { language: get().language, theme: get().theme, maxSteps: max };
+      await StorageService.save_preferences(JSON.stringify(prefObj));
+    } catch (err) {
+      console.error('Error saving maxSteps preference:', err);
     }
   },
 
@@ -194,8 +207,9 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       }
       
       const finalTheme: Theme = prefObj.theme === 'dark' ? 'dark' : 'light';
+      const finalMaxSteps: number = typeof prefObj.maxSteps === 'number' ? prefObj.maxSteps : 30;
       
-      set({ language: finalLang, theme: finalTheme });
+      set({ language: finalLang, theme: finalTheme, maxSteps: finalMaxSteps });
       applyTheme(finalTheme);
       
       await get().loadLibrary();
@@ -203,7 +217,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       console.error('Error loading app preferences:', err);
       const sysLang = navigator.language || 'en';
       const finalLang: Language = sysLang.toLowerCase().startsWith('tr') ? 'tr' : 'en';
-      set({ language: finalLang, theme: 'light' });
+      set({ language: finalLang, theme: 'light', maxSteps: 30 });
       applyTheme('light');
       
       try {

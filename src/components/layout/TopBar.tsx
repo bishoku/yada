@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppStore } from '../../store/useAppStore';
 import { 
@@ -20,8 +20,10 @@ export const TopBar: React.FC = () => {
   const setWorkspace = useAppStore((s) => s.setWorkspace);
   const language = useAppStore((s) => s.language);
   const theme = useAppStore((s) => s.theme);
+  const maxSteps = useAppStore((s) => s.maxSteps);
   const changeLanguage = useAppStore((s) => s.changeLanguage);
   const changeTheme = useAppStore((s) => s.changeTheme);
+  const changeMaxSteps = useAppStore((s: any) => s.changeMaxSteps);
   const saveWorkspaceDetails = useAppStore((s) => s.saveWorkspaceDetails);
   const leftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
   const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
@@ -44,6 +46,15 @@ export const TopBar: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [editName, setEditName] = useState(currentWorkspace?.name || '');
   const [editDesc, setEditDesc] = useState(currentWorkspace?.description || '');
+  const [editMaxSteps, setEditMaxSteps] = useState(maxSteps);
+
+  useEffect(() => {
+    if (showSettings) {
+      setEditName(currentWorkspace?.name || '');
+      setEditDesc(currentWorkspace?.description || '');
+      setEditMaxSteps(maxSteps);
+    }
+  }, [showSettings, currentWorkspace, maxSteps]);
 
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
 
@@ -55,6 +66,7 @@ export const TopBar: React.FC = () => {
     e.preventDefault();
     if (!editName.trim()) return;
     saveWorkspaceDetails(editName.trim(), editDesc.trim());
+    changeMaxSteps(Number(editMaxSteps) || 30);
     setShowSettings(false);
   };
 
@@ -454,6 +466,22 @@ export const TopBar: React.FC = () => {
                       {t.themeLight}
                     </button>
                   </div>
+                </div>
+
+                {/* Max Steps Config */}
+                <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/40">
+                  <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                    <Grid className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                    {t.maxStepsSetting}:
+                  </span>
+                  <input
+                    type="number"
+                    min={5}
+                    max={100}
+                    value={editMaxSteps}
+                    onChange={(e) => setEditMaxSteps(Math.max(5, Math.min(100, Number(e.target.value) || 5)))}
+                    className="w-16 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-slate-800 dark:text-slate-200 text-xs font-bold text-center focus:outline-none focus:border-indigo-500/80"
+                  />
                 </div>
               </div>
 

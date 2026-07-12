@@ -17,6 +17,7 @@ interface ContextMenuProps {
 export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelete }) => {
   const logicalData = useAppStore((state) => state.logicalData);
   const theme = useAppStore((state) => state.theme);
+  const maxSteps = useAppStore((state) => state.maxSteps);
   const setSequenceStepOrder = useAppStore((state) => state.setSequenceStepOrder);
   const addSequenceStep = useAppStore((state) => state.addSequenceStep);
 
@@ -60,7 +61,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelet
                   }}
                   className="text-[10px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 font-bold cursor-pointer outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200"
                 >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                  {Array.from({ length: maxSteps }, (_, i) => i + 1).map((n) => (
                     <option key={n} value={n}>Step {n}</option>
                   ))}
                 </select>
