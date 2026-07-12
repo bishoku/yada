@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-app",
+  "productName": "diagrammer",
   "version": "0.1.0",
-  "identifier": "com.barishoku.tauri-app",
+  "identifier": "com.bishokudev.diagrammer",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,11 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "tauri-app",
+        "title": "Diagrammer",
         "width": 800,
         "height": 600,
         "maximized": true,
-        "fullscreen": true
+        "fullscreen": false
       }
     ],
     "security": {
