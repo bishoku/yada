@@ -3,7 +3,9 @@ name: Deploy static content to Pages
 
 on:
   push:
-    branches: ['main'] # Eğer ana branch'in master ise burayı 'master' yap
+    branches: ['main']
+    tags:
+      - 'v*'
 
 # İzinleri ayarlıyoruz
 permissions:
