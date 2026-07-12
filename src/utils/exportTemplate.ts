@@ -623,7 +623,6 @@ export const generateStandaloneHtml = (
       // Phase 2: Section nesting
       const sectionEntrySteps = {};
       sortedSeqs.forEach(seq => {
-        if (nested[seq.id]) return;
         const tgt = seqNodes[seq.id].tgt;
         if (tgt && sectionIds[tgt]) {
           sectionEntrySteps[tgt] = seq.id;

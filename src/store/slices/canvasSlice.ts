@@ -395,8 +395,8 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     });
 
     // Update edge connection ports based on layout direction
-    const fromPort = direction === 'TB' ? 'bottom' : 'right';
-    const toPort = direction === 'TB' ? 'top' : 'left';
+    const fromPort: 'bottom' | 'right' = direction === 'TB' ? 'bottom' : 'right';
+    const toPort: 'top' | 'left' = direction === 'TB' ? 'top' : 'left';
     const updatedEdges = edges.map((edge) => ({
       ...edge,
       fromPort,

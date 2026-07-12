@@ -53,7 +53,6 @@ export const calculateSchedules = (
   const sectionEntrySteps = new Map<string, string>(); // sectionId -> stepId that targets it
   
   sortedSeqs.forEach(seq => {
-    if (nested.has(seq.id)) return; // Already nested by RT
     const { tgt } = seqNodes.get(seq.id)!;
     if (tgt && sectionIds.has(tgt)) {
       sectionEntrySteps.set(tgt, seq.id);
