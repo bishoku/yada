@@ -77,11 +77,48 @@ export interface DiagramMeta {
   updatedAt: string;
 }
 
+// --- CUSTOM COMPONENT STUDIO DATA ---
+export type ShapeType = 'rectangle' | 'circle' | 'text' | 'image';
+
+export interface ShapeLayer {
+  id: string;
+  type: ShapeType;
+  name: string;
+  zIndex: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  style: {
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+    opacity?: number;
+    rx?: number;
+  };
+  content?: string;
+}
+
+export interface CustomComponentTemplate {
+  componentId: string;
+  name: string;
+  category: string;
+  dimensions: { width: number; height: number };
+  layers: ShapeLayer[];
+  createdAt: string;
+}
+
 export interface AppState {
   currentWorkspace: WorkspaceMeta | null;
   recentWorkspaces: WorkspaceMeta[];
   currentDiagram: DiagramMeta | null;
   isDirty: boolean;
+  
+  // Phase 5 Studio State
+  currentView: 'diagram' | 'studio';
+  activeComponent: CustomComponentTemplate | null;
+  selectedLayerId: string | null;
+  libraryComponents: CustomComponentTemplate[];
   
   // App Preferences
   language: Language;
@@ -158,4 +195,16 @@ export interface AppState {
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
   setTimelineHeight: (height: number) => void;
+
+  // Phase 5 Component Studio Actions
+  setView: (view: 'diagram' | 'studio') => void;
+  setActiveComponent: (comp: CustomComponentTemplate | null) => void;
+  setSelectedLayerId: (id: string | null) => void;
+  addLayer: (layer: ShapeLayer) => void;
+  updateLayer: (id: string, updates: Partial<ShapeLayer>) => void;
+  deleteLayer: (id: string) => void;
+  reorderLayers: (sourceIndex: number, destinationIndex: number) => void;
+  saveComponentToLibrary: () => Promise<void>;
+  loadLibrary: () => Promise<void>;
+  deleteComponentFromLibrary: (componentId: string) => Promise<void>;
 }

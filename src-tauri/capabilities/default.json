@@ -17,6 +17,10 @@
     "allow-load-preferences",
     "allow-save-preferences",
     "allow-load-diagram",
-    "allow-save-diagram"
+    "allow-save-diagram",
+    "allow-save-text-file",
+    "allow-read-text-file",
+    "allow-delete-file",
+    "allow-list-json-files-in-dir"
   ]
 }

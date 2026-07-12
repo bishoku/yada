@@ -212,8 +212,12 @@ const FlowWrapper: React.FC = () => {
       const { type, name } = current;
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
       const nodeId = `node-${type}-${Date.now()}`;
-      const x = position.x - 112;
-      const y = position.y - 25;
+
+      const width = 224;
+      const height = 52;
+
+      const x = position.x - width / 2;
+      const y = position.y - height / 2;
 
       console.log(`[Canvas] Placing "${name}" at flow (${x.toFixed(0)}, ${y.toFixed(0)})`);
 
@@ -222,12 +226,12 @@ const FlowWrapper: React.FC = () => {
         type: 'customNode',
         position: { x, y },
         data: { name, type },
-        width: 224,
-        height: 52,
+        width,
+        height,
       };
 
       setRfNodes((nds) => [...nds, newNode]);
-      addNode({ id: nodeId, type, name }, { id: nodeId, x, y, width: 224, height: 52 });
+      addNode({ id: nodeId, type, name }, { id: nodeId, x, y, width, height });
       cancelDrag();
     };
 

@@ -262,6 +262,55 @@ fn save_diagram(path: String, logical_json: String, visual_json: String) -> Resu
     Ok(())
 }
 
+#[tauri::command]
+fn save_text_file(path: String, content: String) -> Result<(), String> {
+    let file_path = Path::new(&path);
+    if let Some(parent) = file_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directories: {}", e))?;
+    }
+    fs::write(file_path, content).map_err(|e| format!("Failed to write file: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+fn read_text_file(path: String) -> Result<String, String> {
+    let file_path = Path::new(&path);
+    if !file_path.exists() {
+        return Err("File not found".to_string());
+    }
+    let content = fs::read_to_string(file_path).map_err(|e| format!("Failed to read file: {}", e))?;
+    Ok(content)
+}
+
+#[tauri::command]
+fn delete_file(path: String) -> Result<(), String> {
+    let file_path = Path::new(&path);
+    if file_path.exists() {
+        fs::remove_file(file_path).map_err(|e| format!("Failed to delete file: {}", e))?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn list_json_files_in_dir(dir_path: String) -> Result<Vec<String>, String> {
+    let path = Path::new(&dir_path);
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    let mut results = Vec::new();
+    let entries = fs::read_dir(path).map_err(|e| format!("Failed to read directory: {}", e))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let file_path = entry.path();
+        if file_path.is_file() && file_path.extension().map_or(false, |ext| ext == "json") {
+            if let Ok(content) = fs::read_to_string(&file_path) {
+                results.push(content);
+            }
+        }
+    }
+    Ok(results)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -277,7 +326,11 @@ pub fn run() {
             load_preferences,
             save_preferences,
             load_diagram,
-            save_diagram
+            save_diagram,
+            save_text_file,
+            read_text_file,
+            delete_file,
+            list_json_files_in_dir
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

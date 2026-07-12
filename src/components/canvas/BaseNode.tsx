@@ -3,6 +3,7 @@ import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { Laptop, Network, Server, Database, Zap, ArrowRightLeft, Cpu, MessageSquare } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { calculateSchedules } from '../../store/scheduler';
+import { CustomSvgRenderer } from './CustomSvgRenderer';
 
 interface BaseNodeProps {
   id: string; // React Flow passes node id as id prop
@@ -123,9 +124,13 @@ export const BaseNode: React.FC<BaseNodeProps> = ({ id, data, selected }) => {
   const activeTooltipText = useAppStore((s: any) => getNodeTooltipState(s.logicalData, s.visualData, s.currentTime, id).text);
   const themeKey = useAppStore((s: any) => s.visualData.layoutNodes[id]?.theme ?? 'indigo');
   const updateNodeDimensions = useAppStore((s: any) => s.updateNodeDimensions);
+  const libraryComponents = useAppStore((s: any) => s.libraryComponents);
 
   // Resolve theme style options
   const style = themeStyles[themeKey] ?? themeStyles.indigo;
+
+  // Check if this is a custom library component
+  const customTemplate = libraryComponents.find((c: any) => c.componentId === type);
 
   return (
     <div className="relative w-full h-full font-sans">
@@ -174,14 +179,24 @@ export const BaseNode: React.FC<BaseNodeProps> = ({ id, data, selected }) => {
           className="w-2.5 h-2.5 border-2 border-white dark:border-slate-900 bg-indigo-500 dark:bg-indigo-400 hover:scale-125 transition-transform" 
         />
 
-        {/* Node Content - adapt background and border to the custom theme */}
-        <div className={`p-2 rounded-lg border ${style.bg} ${style.border}`}>
-          {getIcon(type, style.text)}
+        {/* Node Content - adapt background and border to the custom theme, render custom SVG if customTemplate exists */}
+        <div className={`p-1.5 rounded-lg border ${style.bg} ${style.border} w-10 h-10 flex items-center justify-center shrink-0 overflow-hidden`}>
+          {customTemplate ? (
+            <CustomSvgRenderer 
+              layers={customTemplate.layers} 
+              width={customTemplate.dimensions.width} 
+              height={customTemplate.dimensions.height} 
+            />
+          ) : (
+            getIcon(type, style.text)
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="font-bold text-xs truncate text-slate-800 dark:text-slate-200">{name}</div>
-          <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">{type}</div>
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+            {customTemplate ? customTemplate.category : type}
+          </div>
         </div>
 
         {/* Right Handle */}

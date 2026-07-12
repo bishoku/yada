@@ -21,6 +21,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   language: 'en',
   theme: 'dark',
   
+  // Phase 5 Component Studio Initial State
+  currentView: 'diagram',
+  activeComponent: null,
+  selectedLayerId: null,
+  libraryComponents: [],
+  
   // Phase 2 Canvas Initial State
   logicalData: { nodes: [], edges: [], sequences: [] },
   visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, timelines: {} },
@@ -59,6 +65,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         selectedSequenceId: null
       });
       await get().fetchRecentWorkspaces();
+      await get().loadLibrary();
       return ws;
     } catch (err) {
       console.error('Error creating workspace:', err);
@@ -112,6 +119,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         selectedSequenceId: null
       });
       await get().fetchRecentWorkspaces();
+      await get().loadLibrary();
       return ws;
     } catch (err) {
       console.error('Error loading workspace:', err);
@@ -508,6 +516,96 @@ export const useAppStore = create<AppState>((set, get) => ({
         isDirty: true
       };
     });
+  },
+
+  // Phase 5 Component Studio Actions
+  setView: (view) => set({ currentView: view }),
+  setActiveComponent: (comp) => set({ activeComponent: comp, selectedLayerId: null }),
+  setSelectedLayerId: (id) => set({ selectedLayerId: id }),
+  addLayer: (layer) => set((state) => {
+    if (!state.activeComponent) return {};
+    const layers = [...state.activeComponent.layers, { ...layer, zIndex: state.activeComponent.layers.length }];
+    return {
+      activeComponent: { ...state.activeComponent, layers }
+    };
+  }),
+  updateLayer: (id, updates) => set((state) => {
+    if (!state.activeComponent) return {};
+    const layers = state.activeComponent.layers.map((layer) =>
+      layer.id === id ? { 
+        ...layer, 
+        ...updates, 
+        style: { 
+          ...layer.style, 
+          ...(updates.style || {}) 
+        } 
+      } : layer
+    );
+    return {
+      activeComponent: { ...state.activeComponent, layers }
+    };
+  }),
+  deleteLayer: (id) => set((state) => {
+    if (!state.activeComponent) return {};
+    const remaining = state.activeComponent.layers.filter((layer) => layer.id !== id);
+    // Sort and re-index zIndex contiguously from 0 to N-1
+    remaining.sort((a, b) => a.zIndex - b.zIndex);
+    const layers = remaining.map((layer, idx) => ({ ...layer, zIndex: idx }));
+    return {
+      activeComponent: { ...state.activeComponent, layers },
+      selectedLayerId: state.selectedLayerId === id ? null : state.selectedLayerId
+    };
+  }),
+  reorderLayers: (sourceIndex, destinationIndex) => set((state) => {
+    if (!state.activeComponent) return {};
+    const layers = [...state.activeComponent.layers].sort((a, b) => a.zIndex - b.zIndex);
+    const [removed] = layers.splice(sourceIndex, 1);
+    layers.splice(destinationIndex, 0, removed);
+    // Re-assign contiguous zIndexes
+    layers.forEach((layer, idx) => {
+      layer.zIndex = idx;
+    });
+    return {
+      activeComponent: { ...state.activeComponent, layers }
+    };
+  }),
+  saveComponentToLibrary: async () => {
+    const state = get();
+    if (!state.activeComponent || !state.currentWorkspace) return;
+    const componentsDir = `${state.currentWorkspace.path}/components`;
+    const path = `${componentsDir}/${state.activeComponent.componentId}.json`;
+    try {
+      await invoke('save_text_file', {
+        path,
+        content: JSON.stringify(state.activeComponent, null, 2)
+      });
+      await get().loadLibrary();
+    } catch (err) {
+      console.error('Error saving component to library:', err);
+    }
+  },
+  loadLibrary: async () => {
+    const state = get();
+    if (!state.currentWorkspace) return;
+    const dirPath = `${state.currentWorkspace.path}/components`;
+    try {
+      const files: string[] = await invoke('list_json_files_in_dir', { dirPath });
+      const libraryComponents = files.map((f) => JSON.parse(f));
+      set({ libraryComponents });
+    } catch (err) {
+      console.error('Error loading library:', err);
+    }
+  },
+  deleteComponentFromLibrary: async (componentId) => {
+    const state = get();
+    if (!state.currentWorkspace) return;
+    const path = `${state.currentWorkspace.path}/components/${componentId}.json`;
+    try {
+      await invoke('delete_file', { path });
+      await get().loadLibrary();
+    } catch (err) {
+      console.error('Error deleting component from library:', err);
+    }
   }
 }));
 

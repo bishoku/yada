@@ -42,3 +42,23 @@ commands.allow = ["load_diagram"]
 identifier = "allow-save-diagram"
 description = "Allows saving diagram JSONs"
 commands.allow = ["save_diagram"]
+
+[[permission]]
+identifier = "allow-save-text-file"
+description = "Allows saving custom component config text files"
+commands.allow = ["save_text_file"]
+
+[[permission]]
+identifier = "allow-read-text-file"
+description = "Allows reading custom component JSON files"
+commands.allow = ["read_text_file"]
+
+[[permission]]
+identifier = "allow-delete-file"
+description = "Allows deleting custom component files"
+commands.allow = ["delete_file"]
+
+[[permission]]
+identifier = "allow-list-json-files-in-dir"
+description = "Allows listing component files in directory"
+commands.allow = ["list_json_files_in_dir"]
