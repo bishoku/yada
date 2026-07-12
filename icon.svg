@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Arka plan gradyanı (Koyu ve profesyonel IDE teması) -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    
+    <!-- Mantıksal (Logical) Düğüm Gradyanı (Mavi) -->
+    <linearGradient id="nodeGradLogical" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    
+    <!-- Görsel (Visual) Düğüm Gradyanı (Yeşil/Turkuaz) -->
+    <linearGradient id="nodeGradVisual" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    
+    <!-- Senkron Bağlantı Çizgisi Gradyanı -->
+    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.8"/>
+    </linearGradient>
+    
+    <!-- Simülasyon noktası (Zarf) için parlama efekti -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    
+    <!-- Düğümler için hafif gölge efekti -->
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="15" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- iOS/macOS stili yuvarlatılmış köşeli arka plan (Squircle) -->
+  <rect width="512" height="512" rx="115" fill="url(#bgGrad)" />
+
+  <!-- Canvas/Workspace Izgarası (Grid) -->
+  <g stroke="#334155" stroke-width="2" opacity="0.4">
+    <path d="M 0 128 L 512 128 M 0 256 L 512 256 M 0 384 L 512 384" />
+    <path d="M 128 0 L 128 512 M 256 0 L 256 512 M 384 0 L 384 512" />
+  </g>
+
+  <!-- Asenkron (Kesik Çizgili) Bağlantı (Faz 3) -->
+  <path d="M 176 336 C 256 336, 256 176, 336 176" fill="none" stroke="#6366f1" stroke-width="16" stroke-linecap="round" opacity="0.6" stroke-dasharray="16 16" />
+  
+  <!-- Senkron (Düz) Bağlantı Eğrisi (React Flow Bezier Curve) -->
+  <path d="M 176 176 C 256 176, 256 336, 336 336" fill="none" stroke="url(#lineGrad)" stroke-width="20" stroke-linecap="round" />
+
+  <!-- Mantıksal (Logical) Veri Düğümü - Sol Üst -->
+  <rect x="112" y="112" width="128" height="128" rx="28" fill="url(#nodeGradLogical)" filter="url(#shadow)" />
+  <!-- Düğüm içi detay: Oynatma (Play) butonu simgesi -->
+  <circle cx="176" cy="176" r="28" fill="#ffffff" opacity="0.95" />
+  <path d="M 166 162 L 192 176 L 166 190 Z" fill="#2563eb" />
+
+  <!-- Görsel (Visual) Veri Düğümü - Sağ Alt -->
+  <rect x="272" y="272" width="128" height="128" rx="28" fill="url(#nodeGradVisual)" filter="url(#shadow)" />
+  <!-- Düğüm içi detay: Layout / Component simgesi -->
+  <rect x="312" y="312" width="48" height="48" rx="12" fill="#ffffff" opacity="0.95" />
+  <rect x="322" y="322" width="10" height="10" rx="2" fill="#059669" />
+  <rect x="340" y="322" width="10" height="10" rx="2" fill="#059669" />
+  <rect x="322" y="340" width="28" height="10" rx="2" fill="#059669" />
+
+  <!-- Simülasyon/Animasyon Noktası (Zarf/Partikül) -->
+  <circle cx="256" cy="256" r="14" fill="#fde047" filter="url(#glow)" />
+  <circle cx="256" cy="256" r="8" fill="#ffffff" />
+</svg>

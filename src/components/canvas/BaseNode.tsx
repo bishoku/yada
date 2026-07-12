@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
-import { Laptop, Network, Server, Database, Zap, ArrowRightLeft, Cpu, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { calculateSchedules } from '../../store/scheduler';
 import { CustomSvgRenderer } from './CustomSvgRenderer';
+import { useNodeAnimation } from './hooks';
+import { getNodeDefinition, getDefaultIcon } from '../../registry/NodeRegistry';
 
 interface BaseNodeProps {
   id: string; // React Flow passes node id as id prop
@@ -15,23 +16,14 @@ interface BaseNodeProps {
 }
 
 const getIcon = (type: string, customColorClass?: string) => {
-  const color = customColorClass ?? 'text-indigo-500 dark:text-indigo-400';
-  switch (type) {
-    case 'client':
-      return <Laptop className={`w-5 h-5 ${customColorClass ? color : 'text-indigo-500 dark:text-indigo-400'}`} />;
-    case 'gateway':
-      return <Network className={`w-5 h-5 ${customColorClass ? color : 'text-emerald-500 dark:text-emerald-400'}`} />;
-    case 'server':
-      return <Server className={`w-5 h-5 ${customColorClass ? color : 'text-violet-500 dark:text-violet-400'}`} />;
-    case 'database':
-      return <Database className={`w-5 h-5 ${customColorClass ? color : 'text-rose-500 dark:text-rose-400'}`} />;
-    case 'cache':
-      return <Zap className={`w-5 h-5 ${customColorClass ? color : 'text-amber-500 dark:text-amber-400'}`} />;
-    case 'queue':
-      return <ArrowRightLeft className={`w-5 h-5 ${customColorClass ? color : 'text-cyan-500 dark:text-cyan-400'}`} />;
-    default:
-      return <Cpu className={`w-5 h-5 ${customColorClass ? color : 'text-slate-500 dark:text-slate-400'}`} />;
+  const def = getNodeDefinition(type);
+  if (def) {
+    const color = customColorClass ?? def.colorClass;
+    return React.cloneElement(def.icon as React.ReactElement, { 
+      className: `w-5 h-5 ${color}` 
+    } as any);
   }
+  return getDefaultIcon(customColorClass ?? 'text-slate-500');
 };
 
 const themeStyles: Record<string, { border: string; borderHover: string; ring: string; text: string; bg: string }> = {
@@ -79,112 +71,11 @@ const themeStyles: Record<string, { border: string; borderHover: string; ring: s
   },
 };
 
-/**
- * Determines a node's animation state at the current playhead time.
- * Returns:
- * - tooltipActive: true when internalProcess tooltip should show
- * - text: internalProcess text
- * - nodeActive: true when the node should be highlighted (the "ball" is at this node)
- *
- * Node highlighting rules:
- * - SOURCE node: highlighted during forward transit (the ball is departing from this node)
- * - TARGET node: highlighted from particle arrival until its work is done
- *   - RT: from halfTransit arrival to returnStart (before return transit begins)
- *   - Non-RT: from transit end to sched.end (children/internal complete)
- * - SOURCE node (RT return): highlighted during return transit (ball coming back)
- */
-const getNodeAnimState = (logicalData: any, visualData: any, currentTime: number, id: string) => {
-  let tooltipActive = false;
-  let tooltipText = '';
-  let nodeActive = false;
-
-  try {
-    const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges, logicalData.nodes);
-
-    for (const seq of logicalData.sequences) {
-      const edge = logicalData.edges.find((e: any) => e.id === seq.edgeId);
-      if (!edge) continue;
-
-      const sched = schedules[seq.id];
-      if (!sched) continue;
-      if (currentTime < sched.start || currentTime > sched.end) continue;
-
-      const srcId = seq.direction === 'reverse' ? edge.to : edge.from;
-      const tgtId = seq.direction === 'reverse' ? edge.from : edge.to;
-      const elapsed = currentTime - sched.start;
-      const timing = visualData.timelines[seq.id];
-      const stepDuration = timing?.duration ?? 1000;
-
-      if (seq.isRoundTrip) {
-        const halfTransit = stepDuration / 2;
-        const totalElapsed = sched.end - sched.start;
-        const returnStartElapsed = totalElapsed - halfTransit;
-
-        if (id === srcId) {
-          // Source highlighted during forward transit and return transit
-          if (elapsed < halfTransit || elapsed >= returnStartElapsed) {
-            nodeActive = true;
-          }
-        }
-        if (id === tgtId) {
-          // Target highlighted from arrival to return start
-          if (elapsed >= halfTransit && elapsed < returnStartElapsed) {
-            nodeActive = true;
-          }
-        }
-
-        // Tooltip (internalProcess) — same as before
-        if (id === tgtId && timing?.internalProcess) {
-          const ipDuration = timing.internalProcess.duration ?? 1000;
-          const tooltipStart = sched.end - halfTransit - ipDuration;
-          const tooltipEnd = tooltipStart + ipDuration;
-          if (currentTime >= tooltipStart && currentTime < tooltipEnd) {
-            tooltipActive = true;
-            tooltipText = timing.internalProcess.text;
-          }
-        }
-      } else {
-        // Non-round-trip
-        const transitDuration = stepDuration;
-
-        if (id === srcId) {
-          // Source highlighted during forward transit
-          if (elapsed < transitDuration) {
-            nodeActive = true;
-          }
-        }
-        if (id === tgtId) {
-          // Target highlighted from arrival until schedule ends (children/work complete)
-          if (elapsed >= transitDuration) {
-            nodeActive = true;
-          }
-        }
-
-        // Tooltip (internalProcess) for non-RT
-        if (id === tgtId && timing?.internalProcess) {
-          const tooltipStart = sched.end;
-          const tooltipEnd = sched.end + timing.internalProcess.duration;
-          if (currentTime >= tooltipStart && currentTime < tooltipEnd) {
-            tooltipActive = true;
-            tooltipText = timing.internalProcess.text;
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.error('Error calculating node anim state:', err);
-  }
-
-  return { text: tooltipText, tooltipActive, nodeActive };
-};
-
-export const BaseNode: React.FC<BaseNodeProps> = ({ id, data, selected }) => {
+export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) => {
   const name = data?.name ?? 'Node';
   const type = data?.type ?? 'server';
 
-  const isProcessing = useAppStore((s: any) => getNodeAnimState(s.logicalData, s.visualData, s.currentTime, id).tooltipActive);
-  const isNodeActive = useAppStore((s: any) => getNodeAnimState(s.logicalData, s.visualData, s.currentTime, id).nodeActive);
-  const activeTooltipText = useAppStore((s: any) => getNodeAnimState(s.logicalData, s.visualData, s.currentTime, id).text);
+  const { tooltipActive: isProcessing, nodeActive: isNodeActive, tooltipText: activeTooltipText } = useNodeAnimation(id);
   const themeKey = useAppStore((s: any) => s.visualData.layoutNodes[id]?.theme ?? 'indigo');
   const updateNodeDimensions = useAppStore((s: any) => s.updateNodeDimensions);
   const libraryComponents = useAppStore((s: any) => s.libraryComponents);
@@ -282,4 +173,4 @@ export const BaseNode: React.FC<BaseNodeProps> = ({ id, data, selected }) => {
       </div>
     </div>
   );
-};
+});

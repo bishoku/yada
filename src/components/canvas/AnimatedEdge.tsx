@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useRef, memo } from 'react';
 import { getBezierPath, EdgeProps, EdgeLabelRenderer } from '@xyflow/react';
 import { useAppStore } from '../../store/useAppStore';
-import { calculateSchedules } from '../../store/scheduler';
+import { useEdgeAnimation } from './hooks';
 
-export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
+export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const {
     id,
     sourceX,
@@ -15,7 +15,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
     markerEnd,
   } = props;
 
-  const { logicalData, visualData, currentTime, selectedSequenceId } = useAppStore();
+  const logicalData = useAppStore((s) => s.logicalData);
   const le = logicalData.edges.find((e) => e.id === id);
   const isReversed = le ? le.from !== props.source : false;
 
@@ -28,30 +28,9 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
     targetY: isReversed ? sourceY : targetY,
   });
   const pathRef = useRef<SVGPathElement>(null);
-  const [particlePos, setParticlePos] = useState<{ x: number; y: number } | null>(null);
 
-  // Find all sequences that map to this edge
-  const seqsForEdge = logicalData.sequences.filter((s) => s.edgeId === id);
-  const isSelected = seqsForEdge.some((s) => s.id === selectedSequenceId);
-
-  // Compute isAsync (dashed stroke style)
-  const isAsync = seqsForEdge.some((s) => s.isAsync);
-
-  // Calculate schedules
-  const schedules = useMemo(() => {
-    return calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges, logicalData.nodes);
-  }, [logicalData.sequences, visualData.timelines, logicalData.edges, logicalData.nodes]);
-  
-  // Find if playhead is currently animating this edge
-  let activeSeq = null;
-  for (const seq of seqsForEdge) {
-    const sched = schedules[seq.id];
-    if (sched && currentTime >= sched.start && currentTime <= sched.end) {
-      activeSeq = seq;
-      break;
-    }
-  }
-  const isAnimating = !!activeSeq;
+  // Use our custom hook to abstract animation calculation
+  const { particlePos, isAnimating, isSelected, isAsync, seqsForEdge } = useEdgeAnimation(id, pathRef);
 
   // Build step labels string, e.g. "1- [HTTP]" or "1, 2- [gRPC]"
   const stepNums = seqsForEdge
@@ -60,72 +39,6 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
     .filter((value, index, self) => self.indexOf(value) === index);
   const protocolText = le?.protocol ? `- [${le.protocol}]` : '';
   const stepLabel = stepNums.length > 0 ? `${stepNums.join(', ')}${protocolText}` : '';
-
-  useEffect(() => {
-    const pathEl = pathRef.current;
-    if (!pathEl || !isAnimating || !activeSeq) {
-      if (particlePos !== null) {
-        setParticlePos(null);
-      }
-      return;
-    }
-
-    try {
-      const sched = schedules[activeSeq.id];
-      if (!sched) {
-        if (particlePos !== null) {
-          setParticlePos(null);
-        }
-        return;
-      }
-
-      const timing = visualData.timelines[activeSeq.id];
-      const stepDuration = timing?.duration ?? 1000;
-      const elapsed = currentTime - sched.start;
-
-      let actualProgress = 0;
-
-      if (activeSeq.isRoundTrip) {
-        const transitHalf = stepDuration / 2;
-        // Return transit starts at (end - transitHalf) relative to schedule start
-        // This accounts for nested children extending the schedule beyond just forward+ip+return
-        const returnStartElapsed = (sched.end - sched.start) - transitHalf;
-
-        if (elapsed < transitHalf) {
-          // Forward transit
-          actualProgress = Math.min(Math.max(elapsed / transitHalf, 0), 1);
-        } else if (elapsed < returnStartElapsed) {
-          // Waiting at target (internal process + nested children executing)
-          actualProgress = 1.0;
-        } else {
-          // Return transit
-          const returnElapsed = elapsed - returnStartElapsed;
-          actualProgress = 1.0 - Math.min(Math.max(returnElapsed / transitHalf, 0), 1);
-        }
-      } else {
-        // Non-round-trip: particle travels over the edge's transit duration only
-        // (sched.end - sched.start may include subflow children time for section-targeting edges)
-        const transitDuration = stepDuration;
-        if (elapsed < transitDuration) {
-          const progress = Math.min(Math.max(elapsed / transitDuration, 0), 1);
-          actualProgress = activeSeq.direction === 'reverse' ? (1 - progress) : progress;
-        } else {
-          // Particle has arrived at target — hold at destination
-          actualProgress = activeSeq.direction === 'reverse' ? 0 : 1;
-        }
-      }
-      
-      const totalLength = pathEl.getTotalLength();
-      if (totalLength > 0) {
-        const point = pathEl.getPointAtLength(actualProgress * totalLength);
-        setParticlePos({ x: point.x, y: point.y });
-      }
-    } catch (err) {
-      if (particlePos !== null) {
-        setParticlePos(null);
-      }
-    }
-  }, [currentTime, isAnimating, activeSeq, logicalData.sequences, visualData.timelines, schedules, particlePos]);
 
   // Determine stroke color and style
   let strokeColor = '#94a3b8'; // Default slate-400
@@ -209,4 +122,4 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
       )}
     </>
   );
-};
+});

@@ -1,0 +1,229 @@
+import { StateCreator } from 'zustand';
+import { AppState, WorkspaceMeta } from '../../types';
+import { Language, Theme } from '../../i18n/translations';
+import { invoke } from '@tauri-apps/api/core';
+
+const applyTheme = (theme: Theme) => {
+  if (theme === 'dark') {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+};
+
+export interface WorkspaceSlice {
+  currentWorkspace: WorkspaceMeta | null;
+  recentWorkspaces: WorkspaceMeta[];
+  currentDiagram: any | null;
+  isDirty: boolean;
+  language: Language;
+  theme: Theme;
+  leftSidebarOpen: boolean;
+  rightSidebarOpen: boolean;
+  isSaving: boolean;
+
+  setWorkspace: (ws: WorkspaceMeta | null) => void;
+  setDiagram: (diagram: any | null) => void;
+  setDirty: (status: boolean) => void;
+  setRecentWorkspaces: (workspaces: WorkspaceMeta[]) => void;
+  createWorkspace: (name: string, description: string) => Promise<WorkspaceMeta>;
+  loadWorkspace: (path: string) => Promise<WorkspaceMeta>;
+  fetchRecentWorkspaces: () => Promise<void>;
+  saveWorkspaceDetails: (name: string, description: string) => Promise<void>;
+  changeLanguage: (lang: Language) => Promise<void>;
+  changeTheme: (theme: Theme) => Promise<void>;
+  loadAppPreferences: () => Promise<void>;
+  toggleLeftSidebar: () => void;
+  toggleRightSidebar: () => void;
+  manualSave: () => Promise<void>;
+}
+
+export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice> = (set, get) => ({
+  currentWorkspace: null,
+  recentWorkspaces: [],
+  currentDiagram: null,
+  isDirty: false,
+  language: 'en',
+  theme: 'dark',
+  leftSidebarOpen: true,
+  rightSidebarOpen: true,
+  isSaving: false,
+
+  setWorkspace: (ws) => set({ currentWorkspace: ws }),
+  setDiagram: (diagram) => set({ currentDiagram: diagram }),
+  setDirty: (status) => set({ isDirty: status }),
+  setRecentWorkspaces: (workspaces) => set({ recentWorkspaces: workspaces }),
+
+  createWorkspace: async (name: string, description: string) => {
+    try {
+      const resJson = await invoke<string>('create_workspace', { name, description });
+      const ws: WorkspaceMeta = JSON.parse(resJson);
+      
+      set({ 
+        currentWorkspace: ws, 
+        logicalData: { nodes: [], edges: [], sequences: [] },
+        visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, timelines: {} },
+        isDirty: false,
+        isPlaying: false,
+        currentTime: 0,
+        activeSequenceIds: [],
+        selectedSequenceId: null
+      });
+      await get().fetchRecentWorkspaces();
+      await get().loadLibrary();
+      return ws;
+    } catch (err) {
+      console.error('Error creating workspace:', err);
+      throw err;
+    }
+  },
+
+  loadWorkspace: async (path: string) => {
+    try {
+      const resJson = await invoke<string>('load_workspace', { path });
+      const ws: WorkspaceMeta = JSON.parse(resJson);
+      
+      let logicalData = { nodes: [], edges: [], sequences: [] };
+      let visualData = { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, timelines: {} };
+      try {
+        const diagJson = await invoke<string>('load_diagram', { path });
+        const diag = JSON.parse(diagJson);
+        if (diag.logical && Array.isArray(diag.logical.nodes) && Array.isArray(diag.logical.edges)) {
+          logicalData = {
+            nodes: diag.logical.nodes,
+            edges: diag.logical.edges,
+            sequences: Array.isArray(diag.logical.sequences) ? diag.logical.sequences : []
+          };
+        }
+        if (diag.visual) {
+          visualData = {
+            canvas: {
+              zoom: diag.visual.canvas?.zoom ?? 1,
+              pan: {
+                x: diag.visual.canvas?.pan?.x ?? 0,
+                y: diag.visual.canvas?.pan?.y ?? 0
+              }
+            },
+            layoutNodes: diag.visual.layoutNodes || {},
+            timelines: diag.visual.timelines || {}
+          };
+        }
+      } catch (diagErr) {
+        console.error('Error loading diagram data from disk, using empty defaults:', diagErr);
+      }
+      
+      set({ 
+        currentWorkspace: ws, 
+        logicalData,
+        visualData,
+        isDirty: false,
+        isPlaying: false,
+        currentTime: 0,
+        activeSequenceIds: [],
+        selectedSequenceId: null
+      });
+      await get().fetchRecentWorkspaces();
+      await get().loadLibrary();
+      return ws;
+    } catch (err) {
+      console.error('Error loading workspace:', err);
+      throw err;
+    }
+  },
+
+  fetchRecentWorkspaces: async () => {
+    try {
+      const resJson = await invoke<string>('get_recent_workspaces');
+      const list: WorkspaceMeta[] = JSON.parse(resJson);
+      set({ recentWorkspaces: list });
+    } catch (err) {
+      console.error('Error fetching recent workspaces:', err);
+    }
+  },
+
+  saveWorkspaceDetails: async (name: string, description: string) => {
+    const ws = get().currentWorkspace;
+    if (!ws) return;
+    const updatedWs = { ...ws, name, description, lastAccessed: new Date().toISOString() };
+    set({ currentWorkspace: updatedWs, isDirty: true });
+  },
+
+  changeLanguage: async (lang: Language) => {
+    try {
+      set({ language: lang });
+      const prefObj = { language: lang, theme: get().theme };
+      await invoke('save_preferences', { preferencesJson: JSON.stringify(prefObj) });
+    } catch (err) {
+      console.error('Error saving language preference:', err);
+    }
+  },
+
+  changeTheme: async (theme: Theme) => {
+    try {
+      set({ theme });
+      applyTheme(theme);
+      const prefObj = { language: get().language, theme };
+      await invoke('save_preferences', { preferencesJson: JSON.stringify(prefObj) });
+    } catch (err) {
+      console.error('Error saving theme preference:', err);
+    }
+  },
+
+  loadAppPreferences: async () => {
+    try {
+      const resJson = await invoke<string>('load_preferences');
+      const prefObj = JSON.parse(resJson);
+      
+      let finalLang: Language = 'en';
+      if (prefObj.language === 'system') {
+        const sysLang = navigator.language || 'en';
+        finalLang = sysLang.toLowerCase().startsWith('tr') ? 'tr' : 'en';
+      } else if (prefObj.language === 'tr' || prefObj.language === 'en') {
+        finalLang = prefObj.language;
+      }
+      
+      const finalTheme: Theme = prefObj.theme === 'light' ? 'light' : 'dark';
+      
+      set({ language: finalLang, theme: finalTheme });
+      applyTheme(finalTheme);
+      
+      await get().loadLibrary();
+    } catch (err) {
+      console.error('Error loading app preferences:', err);
+      const sysLang = navigator.language || 'en';
+      const finalLang: Language = sysLang.toLowerCase().startsWith('tr') ? 'tr' : 'en';
+      set({ language: finalLang, theme: 'dark' });
+      applyTheme('dark');
+      
+      try {
+        await get().loadLibrary();
+      } catch (_) {}
+    }
+  },
+
+  toggleLeftSidebar: () => set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
+  toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
+  
+  manualSave: async () => {
+    const state = get();
+    if (!state.currentWorkspace || !state.isDirty || state.isSaving) return;
+    
+    set({ isSaving: true });
+    try {
+      const logicalJson = JSON.stringify(state.logicalData, null, 2);
+      const visualJson = JSON.stringify(state.visualData, null, 2);
+      
+      await invoke('save_diagram', {
+        workspacePath: state.currentWorkspace.path,
+        logicalJson,
+        visualJson
+      });
+      
+      set({ isDirty: false });
+    } catch (err) {
+      console.error('Error saving diagram manually:', err);
+    } finally {
+      set({ isSaving: false });
+    }
+  }
+});

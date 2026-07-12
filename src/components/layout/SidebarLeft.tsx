@@ -1,13 +1,13 @@
 import React, { useCallback, useState } from 'react';
 import { 
-  Boxes, Laptop, Network, Server, Database, Zap, ArrowRightLeft, 
-  Plus, Download, Upload, Edit, Trash2, Search, X, SquareDashedBottom
+  Boxes, Plus, Download, Upload, Edit, Trash2, Search, X
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import { CustomComponentTemplate } from '../../types';
 import { CustomSvgRenderer } from '../canvas/CustomSvgRenderer';
+import { NodeRegistry } from '../../registry/NodeRegistry';
 
 export const SidebarLeft: React.FC = () => {
   const language = useAppStore((s) => s.language);
@@ -22,15 +22,14 @@ export const SidebarLeft: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  const libraryComponents = [
-    { type: 'client', name: language === 'tr' ? 'Kullanıcı (Client)' : 'Client', defaultName: 'Client', icon: <Laptop className="w-4 h-4 text-indigo-500" /> },
-    { type: 'load_balancer', name: language === 'tr' ? 'Yük Dengeleyici (LB)' : 'Load Balancer', defaultName: 'LB', icon: <Network className="w-4 h-4 text-emerald-500" /> },
-    { type: 'server', name: language === 'tr' ? 'Sunucu (Server)' : 'Server', defaultName: 'Server', icon: <Server className="w-4 h-4 text-amber-500" /> },
-    { type: 'database', name: language === 'tr' ? 'Veritabanı (DB)' : 'Database', defaultName: 'Database', icon: <Database className="w-4 h-4 text-rose-500" /> },
-    { type: 'cache', name: language === 'tr' ? 'Önbellek (Cache)' : 'Cache', defaultName: 'Cache', icon: <Zap className="w-4 h-4 text-cyan-500" /> },
-    { type: 'message_queue', name: language === 'tr' ? 'Kuyruk (Queue)' : 'Queue', defaultName: 'Queue', icon: <ArrowRightLeft className="w-4 h-4 text-purple-500" /> },
-    { type: 'section', name: language === 'tr' ? 'Grup (Section)' : 'Section', defaultName: 'Section', icon: <SquareDashedBottom className="w-4 h-4 text-slate-500" /> },
-  ];
+  const libraryComponents = Object.values(NodeRegistry)
+    .filter(def => def.category !== 'custom')
+    .map(def => ({
+      type: def.type,
+      name: language === 'tr' ? def.name.tr : def.name.en,
+      defaultName: def.defaultName,
+      icon: React.cloneElement(def.icon as React.ReactElement, { className: `w-4 h-4 ${def.colorClass}` } as any)
+    }));
 
   const handleMouseDown = useCallback((type: string, defaultName: string) => {
     console.log('[SidebarLeft] mouseDown → startDrag:', type, defaultName);

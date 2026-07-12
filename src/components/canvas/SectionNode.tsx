@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { useAppStore } from '../../store/useAppStore';
-import { calculateSchedules } from '../../store/scheduler';
+import { useSectionAnimation } from './hooks';
 
 interface SectionNodeProps {
   id: string;
@@ -57,36 +57,12 @@ const themeStyles: Record<string, { border: string; bg: string; label: string; g
   },
 };
 
-/**
- * Check if this section is currently active in the animation
- * (i.e., any edge targeting this section has an active sequence)
- */
-const getSectionActiveState = (logicalData: any, visualData: any, currentTime: number, sectionId: string): boolean => {
-  try {
-    const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges, logicalData.nodes);
-    // Find sequences where the target edge points to this section
-    const targetSeqs = logicalData.sequences.filter((s: any) => {
-      const edge = logicalData.edges.find((e: any) => e.id === s.edgeId);
-      return edge && edge.to === sectionId;
-    });
-    for (const seq of targetSeqs) {
-      const sched = schedules[seq.id];
-      if (sched && currentTime >= sched.start && currentTime < sched.end) {
-        return true;
-      }
-    }
-  } catch (err) {
-    // Silently handle errors
-  }
-  return false;
-};
-
-export const SectionNode: React.FC<SectionNodeProps> = ({ id, data, selected }) => {
+export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selected }) => {
   const name = data?.name ?? 'Section';
   const themeKey = useAppStore((s: any) => s.visualData.layoutNodes[id]?.theme ?? 'slate');
   const updateNodeDimensions = useAppStore((s: any) => s.updateNodeDimensions);
-  const isActive = useAppStore((s: any) => getSectionActiveState(s.logicalData, s.visualData, s.currentTime, id));
   
+  const isActive = useSectionAnimation(id);
   const style = themeStyles[themeKey] ?? themeStyles.slate;
 
   return (
@@ -151,4 +127,4 @@ export const SectionNode: React.FC<SectionNodeProps> = ({ id, data, selected }) 
       />
     </div>
   );
-};
+});

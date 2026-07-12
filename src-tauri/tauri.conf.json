@@ -15,7 +15,8 @@
         "title": "tauri-app",
         "width": 800,
         "height": 600,
-        "maximized": true
+        "maximized": true,
+        "fullscreen": true
       }
     ],
     "security": {
