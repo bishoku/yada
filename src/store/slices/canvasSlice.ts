@@ -67,14 +67,6 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
 
   addEdge: (edge) => {
     set((state) => {
-      const duplicate = state.logicalData.edges.some(
-        (e) => e.from === edge.from && 
-               e.to === edge.to && 
-               e.fromPort === edge.fromPort && 
-               e.toPort === edge.toPort
-      );
-      if (duplicate) return {};
-
       const edges = [...state.logicalData.edges, edge];
       return {
         logicalData: { ...state.logicalData, edges },

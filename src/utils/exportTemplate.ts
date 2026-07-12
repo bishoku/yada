@@ -890,7 +890,7 @@ export const generateStandaloneHtml = (
         const targetCard = document.getElementById('node-card-' + edge.to);
         if (!sourceCard || !targetCard) return;
 
-        const pathData = calculateOrthogonalPath(edge.from, edge.to, edge.fromPort, edge.toPort);
+        const pathData = calculateBezierPath(edge);
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.id = 'edge-path-' + edge.id;
         path.setAttribute('d', pathData);
@@ -968,8 +968,13 @@ export const generateStandaloneHtml = (
       });
     }
 
-    // Calculate Straight/Orthogonal coordinates between ports (uses absolute positions for child nodes)
-    function calculateOrthogonalPath(sourceId, targetId, sourcePort = 'right', targetPort = 'left') {
+    // Calculate Curved Parallel Bezier coordinates between ports (uses absolute positions for child nodes)
+    function calculateBezierPath(edge) {
+      const sourceId = edge.from;
+      const targetId = edge.to;
+      const sourcePort = edge.fromPort || 'right';
+      const targetPort = edge.toPort || 'left';
+
       const sAbs = getAbsolutePos(sourceId);
       const tAbs = getAbsolutePos(targetId);
       if (!sAbs || !tAbs) return '';
@@ -1011,14 +1016,64 @@ export const generateStandaloneHtml = (
         tY = tAbs.y + tH;
       }
 
-      // Create a clean orthogonal path
-      if (sourcePort === 'left' || sourcePort === 'right') {
-        const midX = sX + (tX - sX) / 2;
-        return 'M ' + sX + ' ' + sY + ' L ' + midX + ' ' + sY + ' L ' + midX + ' ' + tY + ' L ' + tX + ' ' + tY;
-      } else {
-        const midY = sY + (tY - sY) / 2;
-        return 'M ' + sX + ' ' + sY + ' L ' + sX + ' ' + midY + ' L ' + tX + ' ' + midY + ' L ' + tX + ' ' + tY;
+      // Find all parallel edges between the same two nodes (order-independent)
+      const siblings = initialData.logicalData.edges.filter(
+        e => (e.from === edge.from && e.to === edge.to) || (e.from === edge.to && e.to === edge.from)
+      ).sort((a, b) => {
+        const aSeqs = initialData.logicalData.sequences.filter(s => s.edgeId === a.id);
+        const bSeqs = initialData.logicalData.sequences.filter(s => s.edgeId === b.id);
+        const aMinStep = aSeqs.length > 0 ? Math.min(...aSeqs.map(s => s.stepNumber)) : 999;
+        const bMinStep = bSeqs.length > 0 ? Math.min(...bSeqs.map(s => s.stepNumber)) : 999;
+        if (aMinStep !== bMinStep) return aMinStep - bMinStep;
+        return a.id.localeCompare(b.id);
+      });
+
+      const total = siblings.length;
+      const index = siblings.findIndex(e => e.id === edge.id);
+
+      let offset = 0;
+      if (total > 1 && index >= 0) {
+        const step = 30;
+        const start = -((total - 1) * step) / 2;
+        offset = start + index * step;
       }
+
+      // Negate offset if from node ID is lexicographically greater than to node ID to align vectors physically
+      if (edge.from > edge.to) {
+        offset = -offset;
+      }
+
+      const dx = tX - sX;
+      const dy = tY - sY;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+
+      // Perpendicular unit vector
+      const nx = -dy / len;
+      const ny = dx / len;
+
+      const controlOffset = Math.max(30, len * 0.3);
+
+      let c1x = sX;
+      let c1y = sY;
+      let c2x = tX;
+      let c2y = tY;
+
+      if (sourcePort === 'left') c1x -= controlOffset;
+      else if (sourcePort === 'right') c1x += controlOffset;
+      else if (sourcePort === 'top') c1y -= controlOffset;
+      else if (sourcePort === 'bottom') c1y += controlOffset;
+
+      if (targetPort === 'left') c2x -= controlOffset;
+      else if (targetPort === 'right') c2x += controlOffset;
+      else if (targetPort === 'top') c2y -= controlOffset;
+      else if (targetPort === 'bottom') c2y += controlOffset;
+
+      c1x += nx * offset;
+      c1y += ny * offset;
+      c2x += nx * offset;
+      c2y += ny * offset;
+
+      return 'M ' + sX + ',' + sY + ' C ' + c1x + ',' + c1y + ' ' + c2x + ',' + c2y + ' ' + tX + ',' + tY;
     }
 
     // Renders list of steps in the sidebar

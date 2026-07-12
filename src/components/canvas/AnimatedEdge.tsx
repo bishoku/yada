@@ -1,7 +1,63 @@
-import React, { useRef, memo } from 'react';
-import { getBezierPath, EdgeProps, EdgeLabelRenderer } from '@xyflow/react';
+import React, { useRef, memo, useMemo } from 'react';
+import { EdgeProps, EdgeLabelRenderer } from '@xyflow/react';
 import { useAppStore } from '../../store/useAppStore';
 import { useEdgeAnimation } from './hooks';
+
+interface ParallelBezierParams {
+  sourceX: number;
+  sourceY: number;
+  sourcePosition: string;
+  targetX: number;
+  targetY: number;
+  targetPosition: string;
+  offset: number;
+}
+
+function getParallelBezierPath({
+  sourceX,
+  sourceY,
+  sourcePosition,
+  targetX,
+  targetY,
+  targetPosition,
+  offset,
+}: ParallelBezierParams): [string, number, number] {
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+
+  const nx = -dy / len;
+  const ny = dx / len;
+
+  let c1x = sourceX;
+  let c1y = sourceY;
+  let c2x = targetX;
+  let c2y = targetY;
+
+  const controlOffset = Math.max(30, len * 0.3);
+
+  if (sourcePosition === 'left') c1x -= controlOffset;
+  else if (sourcePosition === 'right') c1x += controlOffset;
+  else if (sourcePosition === 'top') c1y -= controlOffset;
+  else if (sourcePosition === 'bottom') c1y += controlOffset;
+
+  if (targetPosition === 'left') c2x -= controlOffset;
+  else if (targetPosition === 'right') c2x += controlOffset;
+  else if (targetPosition === 'top') c2y -= controlOffset;
+  else if (targetPosition === 'bottom') c2y += controlOffset;
+
+  c1x += nx * offset;
+  c1y += ny * offset;
+  c2x += nx * offset;
+  c2y += ny * offset;
+
+  const path = `M ${sourceX},${sourceY} C ${c1x},${c1y} ${c2x},${c2y} ${targetX},${targetY}`;
+
+  const labelX = 0.125 * sourceX + 0.375 * c1x + 0.375 * c2x + 0.125 * targetX;
+  const labelY = 0.125 * sourceY + 0.375 * c1y + 0.375 * c2y + 0.125 * targetY;
+
+  return [path, labelX, labelY];
+}
 
 export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const {
@@ -19,13 +75,43 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const le = logicalData.edges.find((e) => e.id === id);
   const isReversed = le ? le.from !== props.source : false;
 
-  const [edgePath, labelX, labelY] = getBezierPath({
+  const siblingEdges = useMemo(() => {
+    if (!le) return [];
+    const related = logicalData.edges.filter(
+      (e) => (e.from === le.from && e.to === le.to) || (e.from === le.to && e.to === le.from)
+    );
+    return [...related].sort((a, b) => {
+      const aSeqs = logicalData.sequences.filter(s => s.edgeId === a.id);
+      const bSeqs = logicalData.sequences.filter(s => s.edgeId === b.id);
+      const aMinStep = aSeqs.length > 0 ? Math.min(...aSeqs.map(s => s.stepNumber)) : 999;
+      const bMinStep = bSeqs.length > 0 ? Math.min(...bSeqs.map(s => s.stepNumber)) : 999;
+      if (aMinStep !== bMinStep) return aMinStep - bMinStep;
+      return a.id.localeCompare(b.id);
+    });
+  }, [logicalData.edges, logicalData.sequences, le]);
+
+  const siblingIndex = siblingEdges.findIndex((e) => e.id === id);
+  const siblingCount = siblingEdges.length;
+
+  let offset = 0;
+  if (siblingCount > 1 && siblingIndex >= 0) {
+    const step = 30;
+    const start = -((siblingCount - 1) * step) / 2;
+    offset = start + siblingIndex * step;
+  }
+
+  if (le && le.from > le.to) {
+    offset = -offset;
+  }
+
+  const [edgePath, labelX, labelY] = getParallelBezierPath({
     sourceX: isReversed ? targetX : sourceX,
     sourceY: isReversed ? targetY : sourceY,
     sourcePosition: isReversed ? targetPosition : sourcePosition,
     targetPosition: isReversed ? sourcePosition : targetPosition,
     targetX: isReversed ? sourceX : targetX,
     targetY: isReversed ? sourceY : targetY,
+    offset,
   });
   const pathRef = useRef<SVGPathElement>(null);
 
