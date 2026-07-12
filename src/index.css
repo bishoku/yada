@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@layer base {
+  @import "@xyflow/react/dist/style.css";
+}
+
+/* Define class-based dark mode variant for Tailwind CSS v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #374151; /* default dark thumb */
+  border-radius: 3px;
+}
+.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* light thumb */
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}

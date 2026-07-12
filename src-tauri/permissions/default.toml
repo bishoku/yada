@@ -1,0 +1,44 @@
+[[permission]]
+identifier = "allow-create-workspace"
+description = "Allows creating a workspace"
+commands.allow = ["create_workspace"]
+
+[[permission]]
+identifier = "allow-load-workspace"
+description = "Allows loading a workspace"
+commands.allow = ["load_workspace"]
+
+[[permission]]
+identifier = "allow-get-recent-workspaces"
+description = "Allows getting recent workspaces list"
+commands.allow = ["get_recent_workspaces"]
+
+[[permission]]
+identifier = "allow-save-recent-workspaces"
+description = "Allows saving recent workspaces list"
+commands.allow = ["save_recent_workspaces"]
+
+[[permission]]
+identifier = "allow-save-workspace"
+description = "Allows saving a workspace config"
+commands.allow = ["save_workspace"]
+
+[[permission]]
+identifier = "allow-load-preferences"
+description = "Allows loading application preferences"
+commands.allow = ["load_preferences"]
+
+[[permission]]
+identifier = "allow-save-preferences"
+description = "Allows saving application preferences"
+commands.allow = ["save_preferences"]
+
+[[permission]]
+identifier = "allow-load-diagram"
+description = "Allows loading diagram JSONs"
+commands.allow = ["load_diagram"]
+
+[[permission]]
+identifier = "allow-save-diagram"
+description = "Allows saving diagram JSONs"
+commands.allow = ["save_diagram"]
