@@ -209,6 +209,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
+  updateNodeDimensions: (id: string, width: number, height: number) => {
+    set((state) => {
+      const layoutNode = state.visualData.layoutNodes[id];
+      if (!layoutNode) return {};
+      const updatedNode = { ...layoutNode, width, height };
+      const layoutNodes = { ...state.visualData.layoutNodes, [id]: updatedNode };
+      return {
+        visualData: { ...state.visualData, layoutNodes },
+        isDirty: true
+      };
+    });
+  },
+
   addEdge: (edge: LogicalEdge) => {
     set((state) => {
       // Avoid duplicate edges (same source, target, source port, target port)
@@ -388,6 +401,30 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => {
       const sequences = state.logicalData.sequences.map((s) => 
         s.id === seqId ? { ...s, stepNumber } : s
+      );
+      return {
+        logicalData: { ...state.logicalData, sequences },
+        isDirty: true
+      };
+    });
+  },
+
+  setSequenceStepDirection: (seqId: string, direction: 'forward' | 'reverse') => {
+    set((state) => {
+      const sequences = state.logicalData.sequences.map((s) => 
+        s.id === seqId ? { ...s, direction } : s
+      );
+      return {
+        logicalData: { ...state.logicalData, sequences },
+        isDirty: true
+      };
+    });
+  },
+
+  setSequenceStepRoundTrip: (seqId: string, isRoundTrip: boolean) => {
+    set((state) => {
+      const sequences = state.logicalData.sequences.map((s) => 
+        s.id === seqId ? { ...s, isRoundTrip } : s
       );
       return {
         logicalData: { ...state.logicalData, sequences },

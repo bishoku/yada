@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { getBezierPath, EdgeProps, EdgeLabelRenderer } from '@xyflow/react';
 import { useAppStore } from '../../store/useAppStore';
 import { calculateSchedules } from '../../store/scheduler';
@@ -15,16 +15,18 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
     markerEnd,
   } = props;
 
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetPosition,
-    targetX,
-    targetY,
-  });
-
   const { logicalData, visualData, currentTime, selectedSequenceId } = useAppStore();
+  const le = logicalData.edges.find((e) => e.id === id);
+  const isReversed = le ? le.from !== props.source : false;
+
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX: isReversed ? targetX : sourceX,
+    sourceY: isReversed ? targetY : sourceY,
+    sourcePosition: isReversed ? targetPosition : sourcePosition,
+    targetPosition: isReversed ? sourcePosition : targetPosition,
+    targetX: isReversed ? sourceX : targetX,
+    targetY: isReversed ? sourceY : targetY,
+  });
   const pathRef = useRef<SVGPathElement>(null);
   const [particlePos, setParticlePos] = useState<{ x: number; y: number } | null>(null);
 
@@ -36,7 +38,9 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
   const isAsync = seqsForEdge.some((s) => s.isAsync);
 
   // Calculate schedules
-  const schedules = calculateSchedules(logicalData.sequences, visualData.timelines);
+  const schedules = useMemo(() => {
+    return calculateSchedules(logicalData.sequences, visualData.timelines);
+  }, [logicalData.sequences, visualData.timelines]);
   
   // Find if playhead is currently animating this edge
   let activeSeq = null;
@@ -58,35 +62,56 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
   useEffect(() => {
     const pathEl = pathRef.current;
     if (!pathEl || !isAnimating || !activeSeq) {
-      setParticlePos(null);
+      if (particlePos !== null) {
+        setParticlePos(null);
+      }
       return;
     }
 
     try {
       const sched = schedules[activeSeq.id];
       if (!sched) {
-        setParticlePos(null);
+        if (particlePos !== null) {
+          setParticlePos(null);
+        }
         return;
       }
 
-      const duration = sched.end - sched.start;
-      if (duration <= 0) {
-        setParticlePos(null);
-        return;
-      }
-
+      const timing = visualData.timelines[activeSeq.id];
+      const stepDuration = timing?.duration ?? 1000;
       const elapsed = currentTime - sched.start;
-      const progress = Math.min(Math.max(elapsed / duration, 0), 1);
+
+      let actualProgress = 0;
+
+      if (activeSeq.isRoundTrip) {
+        const transitHalf = stepDuration / 2;
+        const tooltipDuration = timing?.internalProcess?.duration ?? 0;
+
+        if (elapsed < transitHalf) {
+          actualProgress = Math.min(Math.max(elapsed / transitHalf, 0), 1);
+        } else if (elapsed < transitHalf + tooltipDuration) {
+          actualProgress = 1.0;
+        } else {
+          const returnElapsed = elapsed - transitHalf - tooltipDuration;
+          actualProgress = 1.0 - Math.min(Math.max(returnElapsed / transitHalf, 0), 1);
+        }
+      } else {
+        const duration = sched.end - sched.start;
+        const progress = duration > 0 ? Math.min(Math.max(elapsed / duration, 0), 1) : 1;
+        actualProgress = activeSeq.direction === 'reverse' ? (1 - progress) : progress;
+      }
       
       const totalLength = pathEl.getTotalLength();
       if (totalLength > 0) {
-        const point = pathEl.getPointAtLength(progress * totalLength);
+        const point = pathEl.getPointAtLength(actualProgress * totalLength);
         setParticlePos({ x: point.x, y: point.y });
       }
     } catch (err) {
-      setParticlePos(null);
+      if (particlePos !== null) {
+        setParticlePos(null);
+      }
     }
-  }, [currentTime, isAnimating, activeSeq, logicalData.sequences, visualData.timelines]);
+  }, [currentTime, isAnimating, activeSeq, logicalData.sequences, visualData.timelines, schedules, particlePos]);
 
   // Determine stroke color
   let strokeColor = '#94a3b8'; // Default slate-400

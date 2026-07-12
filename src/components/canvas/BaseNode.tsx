@@ -1,5 +1,5 @@
 import React from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { Laptop, Network, Server, Database, Zap, ArrowRightLeft, Cpu, MessageSquare } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { calculateSchedules } from '../../store/scheduler';
@@ -78,25 +78,11 @@ const themeStyles: Record<string, { border: string; borderHover: string; ring: s
   },
 };
 
-export const BaseNode: React.FC<BaseNodeProps> = ({ id, data, selected }) => {
-  const name = data?.name ?? 'Node';
-  const type = data?.type ?? 'server';
-
-  const { logicalData, visualData, currentTime } = useAppStore();
-
-  // Resolve theme style options
-  const themeKey = visualData.layoutNodes[id]?.theme ?? 'indigo';
-  const style = themeStyles[themeKey] ?? themeStyles.indigo;
-
-  // Find tooltips/internal processes active for this node
-  let activeTooltipText = '';
-  let isProcessing = false;
-
+const getNodeTooltipState = (logicalData: any, visualData: any, currentTime: number, id: string) => {
   try {
     const schedules = calculateSchedules(logicalData.sequences, visualData.timelines);
-    
-    const targetSeqs = logicalData.sequences.filter((s) => {
-      const edge = logicalData.edges.find((e) => e.id === s.edgeId);
+    const targetSeqs = logicalData.sequences.filter((s: any) => {
+      const edge = logicalData.edges.find((e: any) => e.id === s.edgeId);
       return edge && edge.to === id;
     });
 
@@ -105,22 +91,55 @@ export const BaseNode: React.FC<BaseNodeProps> = ({ id, data, selected }) => {
       const timing = visualData.timelines[seq.id];
       
       if (sched && timing?.internalProcess) {
-        const tooltipStart = sched.end;
-        const tooltipEnd = sched.end + timing.internalProcess.duration;
+        let tooltipStart = 0;
+        let tooltipEnd = 0;
+
+        if (seq.isRoundTrip) {
+          const transitHalf = timing.duration / 2;
+          tooltipStart = sched.start + transitHalf;
+          tooltipEnd = tooltipStart + timing.internalProcess.duration;
+        } else {
+          // Backward compatibility: show after edge animation completes
+          tooltipStart = sched.end;
+          tooltipEnd = sched.end + timing.internalProcess.duration;
+        }
         
         if (currentTime >= tooltipStart && currentTime < tooltipEnd) {
-          activeTooltipText = timing.internalProcess.text;
-          isProcessing = true;
-          break; // Show the first active one
+          return { text: timing.internalProcess.text, active: true };
         }
       }
     }
   } catch (err) {
     console.error('Error calculating tooltip state:', err);
   }
+  return { text: '', active: false };
+};
+
+export const BaseNode: React.FC<BaseNodeProps> = ({ id, data, selected }) => {
+  const name = data?.name ?? 'Node';
+  const type = data?.type ?? 'server';
+
+  const isProcessing = useAppStore((s: any) => getNodeTooltipState(s.logicalData, s.visualData, s.currentTime, id).active);
+  const activeTooltipText = useAppStore((s: any) => getNodeTooltipState(s.logicalData, s.visualData, s.currentTime, id).text);
+  const themeKey = useAppStore((s: any) => s.visualData.layoutNodes[id]?.theme ?? 'indigo');
+  const updateNodeDimensions = useAppStore((s: any) => s.updateNodeDimensions);
+
+  // Resolve theme style options
+  const style = themeStyles[themeKey] ?? themeStyles.indigo;
 
   return (
-    <div className="relative font-sans">
+    <div className="relative w-full h-full font-sans">
+      <NodeResizer 
+        minWidth={150} 
+        minHeight={48} 
+        isVisible={!!selected} 
+        lineClassName="border-indigo-500" 
+        handleClassName="w-2 h-2 bg-white border-2 border-indigo-500 rounded-full"
+        onResizeEnd={(_, params) => {
+          updateNodeDimensions(id, params.width, params.height);
+        }}
+      />
+
       {/* Absolute Tooltip Bubble */}
       {activeTooltipText && (
         <div className="absolute top-[-52px] left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-xl shadow-lg border border-indigo-500/30 whitespace-nowrap animate-bounce duration-1000">
@@ -132,7 +151,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({ id, data, selected }) => {
       )}
 
       {/* Node Card Container */}
-      <div className={`px-4 py-3 rounded-xl border-2 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex items-center gap-3 w-56 shadow-md dark:shadow-xl transition-all duration-200 ${
+      <div className={`px-4 py-3 rounded-xl border-2 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex items-center gap-3 w-full h-full shadow-md dark:shadow-xl transition-all duration-200 ${
         isProcessing
           ? 'border-emerald-500 dark:border-emerald-500 scale-[1.02] shadow-emerald-100 dark:shadow-emerald-950/40 ring-4 ring-emerald-500/20 animate-pulse'
           : selected 

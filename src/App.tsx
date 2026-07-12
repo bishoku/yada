@@ -4,7 +4,8 @@ import { WelcomeScreen } from './components/welcome/WelcomeScreen';
 import { MainLayout } from './components/layout/MainLayout';
 
 function App() {
-  const { currentWorkspace, loadAppPreferences } = useAppStore();
+  const currentWorkspace = useAppStore((state) => state.currentWorkspace);
+  const loadAppPreferences = useAppStore((state) => state.loadAppPreferences);
 
   useEffect(() => {
     // Load app preferences (language and theme) on startup

@@ -5,16 +5,14 @@ import { FolderPlus, FolderOpen, History, Info, AlertCircle, Compass, HardDrive,
 import { translations } from '../../i18n/translations';
 
 export const WelcomeScreen: React.FC = () => {
-  const { 
-    recentWorkspaces, 
-    createWorkspace, 
-    loadWorkspace, 
-    fetchRecentWorkspaces, 
-    language, 
-    theme, 
-    changeLanguage, 
-    changeTheme 
-  } = useAppStore();
+  const recentWorkspaces = useAppStore((s) => s.recentWorkspaces);
+  const createWorkspace = useAppStore((s) => s.createWorkspace);
+  const loadWorkspace = useAppStore((s) => s.loadWorkspace);
+  const fetchRecentWorkspaces = useAppStore((s) => s.fetchRecentWorkspaces);
+  const language = useAppStore((s) => s.language);
+  const theme = useAppStore((s) => s.theme);
+  const changeLanguage = useAppStore((s) => s.changeLanguage);
+  const changeTheme = useAppStore((s) => s.changeTheme);
   
   const t = translations[language];
 

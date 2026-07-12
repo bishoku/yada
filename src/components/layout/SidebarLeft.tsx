@@ -4,7 +4,11 @@ import { useAppStore } from '../../store/useAppStore';
 import { translations } from '../../i18n/translations';
 
 export const SidebarLeft: React.FC = () => {
-  const { currentWorkspace, language, startDrag, pendingDrop, leftSidebarOpen } = useAppStore();
+  const currentWorkspace = useAppStore((s) => s.currentWorkspace);
+  const language = useAppStore((s) => s.language);
+  const startDrag = useAppStore((s) => s.startDrag);
+  const pendingDrop = useAppStore((s) => s.pendingDrop);
+  const leftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
   const t = translations[language];
 
   // List of drag-and-drop template components

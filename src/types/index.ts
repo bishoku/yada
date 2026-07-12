@@ -23,6 +23,8 @@ export interface SequenceStep {
   stepNumber: number; // Step execution order group (1, 2, 3...)
   edgeId: string; // Foreign Key pointing to LogicalEdge.id
   isAsync: boolean; // True = fire and forget, don't block subsequent stepNumbers
+  direction?: 'forward' | 'reverse'; // Animating particle direction (forward or reverse)
+  isRoundTrip?: boolean; // True = round-trip A -> B -> A for sync responses
 }
 
 export interface LogicalDiagram {
@@ -124,6 +126,7 @@ export interface AppState {
   // Phase 2 Canvas Actions
   addNode: (logical: LogicalNode, visual: VisualNode) => void;
   updateNodePosition: (id: string, x: number, y: number) => void;
+  updateNodeDimensions: (id: string, width: number, height: number) => void;
   addEdge: (edge: LogicalEdge) => void;
   deleteNode: (id: string) => void;
   deleteEdge: (id: string) => void;
@@ -144,6 +147,8 @@ export interface AppState {
   updateSequenceProcess: (seqId: string, text: string, duration: number) => void;
   deleteSequenceStep: (seqId: string) => void;
   setSequenceStepOrder: (seqId: string, stepNumber: number) => void;
+  setSequenceStepDirection: (seqId: string, direction: 'forward' | 'reverse') => void;
+  setSequenceStepRoundTrip: (seqId: string, isRoundTrip: boolean) => void;
   toggleSequenceAsync: (seqId: string) => void;
   clearCanvas: () => void;
   updateNodeDetails: (id: string, name: string, type: string, theme?: string) => void;

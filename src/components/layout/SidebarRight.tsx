@@ -1,18 +1,16 @@
 import React, { useEffect, useRef } from 'react';
-import { Terminal, Activity, ArrowRight, CornerDownRight } from 'lucide-react';
+import { Terminal, Activity, ArrowRight, ArrowLeft, ArrowRightLeft, CornerDownRight } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { calculateSchedules } from '../../store/scheduler';
 
 export const SidebarRight: React.FC = () => {
-  const { 
-    logicalData, 
-    visualData, 
-    language, 
-    rightSidebarOpen,
-    activeSequenceIds,
-    selectedSequenceId,
-    setSelectedSequenceId
-  } = useAppStore();
+  const logicalData = useAppStore((s) => s.logicalData);
+  const visualData = useAppStore((s) => s.visualData);
+  const language = useAppStore((s) => s.language);
+  const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
+  const activeSequenceIds = useAppStore((s) => s.activeSequenceIds);
+  const selectedSequenceId = useAppStore((s) => s.selectedSequenceId);
+  const setSelectedSequenceId = useAppStore((s) => s.setSelectedSequenceId);
 
   const activeRowRef = useRef<HTMLDivElement>(null);
 
@@ -28,6 +26,7 @@ export const SidebarRight: React.FC = () => {
   const schedules = calculateSchedules(logicalData.sequences, visualData.timelines);
 
   // Auto-scroll active sequence into view
+  const activeIdsString = activeSequenceIds.join(',');
   useEffect(() => {
     if (activeSequenceIds.length > 0 && activeRowRef.current) {
       activeRowRef.current.scrollIntoView({
@@ -35,7 +34,7 @@ export const SidebarRight: React.FC = () => {
         block: 'nearest',
       });
     }
-  }, [activeSequenceIds]);
+  }, [activeIdsString]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <aside className={`border-l border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/40 backdrop-blur-md flex flex-col h-full select-none shrink-0 z-20 transition-all duration-300 ease-in-out overflow-hidden ${
@@ -115,12 +114,18 @@ export const SidebarRight: React.FC = () => {
 
                 {/* Main edge mapping text */}
                 <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200">
-                  <span className="truncate max-w-[90px]">{src}</span>
+                  <span className="truncate max-w-[90px]">{seq.direction === 'reverse' ? dst : src}</span>
                   <div className="flex flex-col items-center flex-1 min-w-[30px]">
-                    <span className="text-[8px] font-mono text-slate-450 dark:text-slate-500 leading-none">({protocol})</span>
-                    <ArrowRight className={`w-3.5 h-3.5 ${isRowActive ? 'text-emerald-500' : 'text-slate-450'}`} />
+                    <span className="text-[8px] font-mono text-slate-400 dark:text-slate-500 leading-none">({protocol})</span>
+                    {seq.isRoundTrip ? (
+                      <ArrowRightLeft className={`w-3.5 h-3.5 ${isRowActive ? 'text-emerald-500' : 'text-slate-450'}`} />
+                    ) : seq.direction === 'reverse' ? (
+                      <ArrowLeft className={`w-3.5 h-3.5 ${isRowActive ? 'text-emerald-500' : 'text-slate-450'}`} />
+                    ) : (
+                      <ArrowRight className={`w-3.5 h-3.5 ${isRowActive ? 'text-emerald-500' : 'text-slate-450'}`} />
+                    )}
                   </div>
-                  <span className="truncate max-w-[90px] text-right">{dst}</span>
+                  <span className="truncate max-w-[90px] text-right">{seq.direction === 'reverse' ? src : dst}</span>
                 </div>
 
                 {/* Sub-process bubble detail if exists */}

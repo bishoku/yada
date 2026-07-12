@@ -8,7 +8,9 @@ import { DiagramCanvas } from '../canvas/DiagramCanvas';
 import { TimelinePanel } from './TimelinePanel';
 
 export const MainLayout: React.FC = () => {
-  const { timelineHeight, setTimelineHeight, language } = useAppStore();
+  const timelineHeight = useAppStore((s) => s.timelineHeight);
+  const setTimelineHeight = useAppStore((s) => s.setTimelineHeight);
+  const language = useAppStore((s) => s.language);
   const [isResizing, setIsResizing] = useState(false);
   const resizerRef = useRef<HTMLDivElement>(null);
 

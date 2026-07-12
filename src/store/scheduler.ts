@@ -26,7 +26,12 @@ export const calculateSchedules = (
     groupSeqs.forEach((seq) => {
       const timing = timelines[seq.id] || { sequenceId: seq.id, duration: 1000, delay: 0 };
       const start = groupStartTime + (timing.delay ?? 0);
-      const end = start + (timing.duration ?? 1000);
+      
+      let stepDuration = timing.duration ?? 1000;
+      if (seq.isRoundTrip && timing.internalProcess) {
+        stepDuration += timing.internalProcess.duration;
+      }
+      const end = start + stepDuration;
       
       schedules[seq.id] = { start, end };
       

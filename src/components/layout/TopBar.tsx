@@ -4,30 +4,32 @@ import { LogOut, Settings, Database, Cpu, Check, Globe, Moon, Sun, PanelLeft, Pa
 import { translations } from '../../i18n/translations';
 import { calculateSchedules } from '../../store/scheduler';
 
+const TimeReadout: React.FC<{ maxTime: number }> = ({ maxTime }) => {
+  const currentTime = useAppStore((state) => state.currentTime);
+  return <>{currentTime.toFixed(0)}ms / {maxTime}ms</>;
+};
+
 export const TopBar: React.FC = () => {
-  const { 
-    currentWorkspace, 
-    isDirty, 
-    setWorkspace, 
-    language, 
-    theme, 
-    changeLanguage, 
-    changeTheme,
-    saveWorkspaceDetails,
-    leftSidebarOpen,
-    rightSidebarOpen,
-    toggleLeftSidebar,
-    toggleRightSidebar,
-    isPlaying,
-    currentTime,
-    playbackRate,
-    startPlayback,
-    pausePlayback,
-    stopPlayback,
-    setPlaybackRate,
-    logicalData,
-    visualData
-  } = useAppStore();
+  const currentWorkspace = useAppStore((s) => s.currentWorkspace);
+  const isDirty = useAppStore((s) => s.isDirty);
+  const setWorkspace = useAppStore((s) => s.setWorkspace);
+  const language = useAppStore((s) => s.language);
+  const theme = useAppStore((s) => s.theme);
+  const changeLanguage = useAppStore((s) => s.changeLanguage);
+  const changeTheme = useAppStore((s) => s.changeTheme);
+  const saveWorkspaceDetails = useAppStore((s) => s.saveWorkspaceDetails);
+  const leftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
+  const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
+  const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
+  const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
+  const isPlaying = useAppStore((s) => s.isPlaying);
+  const playbackRate = useAppStore((s) => s.playbackRate);
+  const startPlayback = useAppStore((s) => s.startPlayback);
+  const pausePlayback = useAppStore((s) => s.pausePlayback);
+  const stopPlayback = useAppStore((s) => s.stopPlayback);
+  const setPlaybackRate = useAppStore((s) => s.setPlaybackRate);
+  const logicalData = useAppStore((s) => s.logicalData);
+  const visualData = useAppStore((s) => s.visualData);
 
   const t = translations[language];
 
@@ -174,7 +176,7 @@ export const TopBar: React.FC = () => {
           <span 
             className="text-[10px] font-mono text-slate-500 dark:text-slate-400 min-w-[85px] text-center bg-slate-50 dark:bg-slate-900/80 px-2 py-1 rounded border border-slate-200/50 dark:border-slate-800/50"
           >
-            {currentTime.toFixed(0)}ms / {maxTime}ms
+            <TimeReadout maxTime={maxTime} />
           </span>
 
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded border border-slate-200/50 dark:border-slate-800/50">
