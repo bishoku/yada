@@ -44,7 +44,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   currentDiagram: null,
   isDirty: false,
   language: 'en',
-  theme: 'dark',
+  theme: 'light',
   leftSidebarOpen: true,
   rightSidebarOpen: true,
   isSaving: false,
@@ -193,7 +193,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         finalLang = prefObj.language;
       }
       
-      const finalTheme: Theme = prefObj.theme === 'light' ? 'light' : 'dark';
+      const finalTheme: Theme = prefObj.theme === 'dark' ? 'dark' : 'light';
       
       set({ language: finalLang, theme: finalTheme });
       applyTheme(finalTheme);
@@ -203,8 +203,8 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       console.error('Error loading app preferences:', err);
       const sysLang = navigator.language || 'en';
       const finalLang: Language = sysLang.toLowerCase().startsWith('tr') ? 'tr' : 'en';
-      set({ language: finalLang, theme: 'dark' });
-      applyTheme('dark');
+      set({ language: finalLang, theme: 'light' });
+      applyTheme('light');
       
       try {
         await get().loadLibrary();
