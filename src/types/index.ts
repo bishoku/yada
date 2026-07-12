@@ -3,8 +3,9 @@ import { Language, Theme } from '../i18n/translations';
 // --- LOGICAL DATA (Logical Flow - AI Readable) ---
 export interface LogicalNode {
   id: string; // E.g., 'node-client-1'
-  type: string; // E.g., 'client', 'gateway', 'server', 'database', 'cache', 'queue'
+  type: string; // E.g., 'client', 'gateway', 'server', 'database', 'cache', 'queue', 'section'
   name: string; // User-defined name
+  parentId?: string; // Section parent reference (for grouped nodes)
 }
 
 export interface LogicalEdge {
@@ -16,6 +17,7 @@ export interface LogicalEdge {
   toPort: 'top' | 'right' | 'bottom' | 'left';
   isAsync: boolean;
   protocol?: string; // E.g., 'HTTP', 'gRPC', 'WebSocket' (Phase 4)
+  description?: string; // Description shown only in logs
 }
 
 export interface SequenceStep {
@@ -41,6 +43,7 @@ export interface VisualNode {
   width?: number;
   height?: number;
   theme?: string; // Optional future color palettes
+  zIndex?: number; // Render order (sections use -1 to appear behind children)
 }
 
 export interface TimelineTiming {
@@ -202,7 +205,7 @@ export interface AppState {
   toggleSequenceAsync: (seqId: string) => void;
   clearCanvas: () => void;
   updateNodeDetails: (id: string, name: string, type: string, theme?: string) => void;
-  updateEdgeDetails: (edgeId: string, protocol: string, isAsync: boolean, duration: number, delay: number, tooltipText?: string, tooltipDuration?: number) => void;
+  updateEdgeDetails: (edgeId: string, protocol: string, isAsync: boolean, duration: number, delay: number, tooltipText?: string, tooltipDuration?: number, description?: string) => void;
 
   // Layout Actions
   toggleLeftSidebar: () => void;
@@ -227,4 +230,13 @@ export interface AppState {
   pushToHistory: () => void;
   undo: () => void;
   redo: () => void;
+
+  // Phase 7 Section Actions
+  setNodeParent: (nodeId: string, parentId: string | null) => void;
+  autoResizeSection: (sectionId: string) => void;
+  deleteSectionWithChoice: (sectionId: string, deleteChildren: boolean) => void;
+
+  // Save Actions
+  isSaving: boolean;
+  manualSave: () => Promise<void>;
 }

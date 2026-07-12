@@ -51,6 +51,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   timelineOpen: true,
   timelineHeight: 250,
 
+  // Save State
+  isSaving: false,
+
   setWorkspace: (ws) => set({ currentWorkspace: ws }),
   setDiagram: (diagram) => set({ currentDiagram: diagram }),
   setDirty: (status) => set({ isDirty: status }),
@@ -372,7 +375,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   stopPlayback: () => set({ isPlaying: false, currentTime: 0, activeSequenceIds: [] }),
   setCurrentTime: (time) => {
     set((state) => {
-      const schedules = calculateSchedules(state.logicalData.sequences, state.visualData.timelines, state.logicalData.edges);
+      const schedules = calculateSchedules(state.logicalData.sequences, state.visualData.timelines, state.logicalData.edges, state.logicalData.nodes);
       const activeSequenceIds: string[] = [];
       
       Object.entries(schedules).forEach(([seqId, sched]) => {
@@ -532,10 +535,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  updateEdgeDetails: (edgeId, protocol, isAsync, duration, delay, tooltipText, tooltipDuration) => {
+  updateEdgeDetails: (edgeId, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description) => {
     set((state) => {
       const edges = state.logicalData.edges.map((e) => 
-        e.id === edgeId ? { ...e, protocol, isAsync } : e
+        e.id === edgeId ? { ...e, protocol, isAsync, description } : e
       );
       const sequences = state.logicalData.sequences.map((s) => 
         s.edgeId === edgeId ? { ...s, isAsync } : s
@@ -716,6 +719,140 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
+  // ── Phase 7: Section Actions ────────────────────────────────────────────
+  setNodeParent: (nodeId: string, parentId: string | null) => {
+    get().pushToHistory();
+    set((state) => {
+      const nodes = state.logicalData.nodes.map((n) =>
+        n.id === nodeId ? { ...n, parentId: parentId ?? undefined } : n
+      );
+      return {
+        logicalData: { ...state.logicalData, nodes },
+        isDirty: true
+      };
+    });
+  },
+
+  autoResizeSection: (sectionId: string) => {
+    const state = get();
+    const children = state.logicalData.nodes.filter(n => n.parentId === sectionId);
+    if (children.length === 0) return;
+
+    const sectionVisual = state.visualData.layoutNodes[sectionId];
+    if (!sectionVisual) return;
+
+    const PADDING = 40;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    children.forEach(child => {
+      const cv = state.visualData.layoutNodes[child.id];
+      if (!cv) return;
+      const cw = cv.width ?? 224;
+      const ch = cv.height ?? 52;
+      minX = Math.min(minX, cv.x);
+      minY = Math.min(minY, cv.y);
+      maxX = Math.max(maxX, cv.x + cw);
+      maxY = Math.max(maxY, cv.y + ch);
+    });
+
+    if (minX === Infinity) return;
+
+    const neededW = maxX + PADDING;
+    const neededH = maxY + PADDING;
+    const currentW = sectionVisual.width ?? 400;
+    const currentH = sectionVisual.height ?? 300;
+
+    // Only grow, never shrink below current manual size or child needs
+    const newW = Math.max(currentW, neededW);
+    const newH = Math.max(currentH, neededH);
+
+    if (newW !== currentW || newH !== currentH) {
+      set((state) => ({
+        visualData: {
+          ...state.visualData,
+          layoutNodes: {
+            ...state.visualData.layoutNodes,
+            [sectionId]: { ...state.visualData.layoutNodes[sectionId], width: newW, height: newH }
+          }
+        },
+        isDirty: true
+      }));
+    }
+  },
+
+  deleteSectionWithChoice: (sectionId: string, deleteChildren: boolean) => {
+    get().pushToHistory();
+    set((state) => {
+      const sectionVisual = state.visualData.layoutNodes[sectionId];
+
+      let nodes: typeof state.logicalData.nodes;
+      const layoutNodes = { ...state.visualData.layoutNodes };
+      const timelines = { ...state.visualData.timelines };
+
+      if (deleteChildren) {
+        // Delete section + all children
+        const childIds = state.logicalData.nodes.filter(n => n.parentId === sectionId).map(n => n.id);
+        const allDeleteIds = new Set([sectionId, ...childIds]);
+        nodes = state.logicalData.nodes.filter(n => !allDeleteIds.has(n.id));
+
+        // Remove edges connected to deleted nodes
+        const deletedEdgeIds = state.logicalData.edges
+          .filter(e => allDeleteIds.has(e.from) || allDeleteIds.has(e.to))
+          .map(e => e.id);
+        const edges = state.logicalData.edges.filter(e => !allDeleteIds.has(e.from) && !allDeleteIds.has(e.to));
+        const sequences = state.logicalData.sequences.filter(s => !deletedEdgeIds.includes(s.edgeId));
+
+        allDeleteIds.forEach(id => delete layoutNodes[id]);
+        state.logicalData.sequences.forEach(s => {
+          if (deletedEdgeIds.includes(s.edgeId)) delete timelines[s.id];
+        });
+
+        return {
+          logicalData: { nodes, edges, sequences },
+          visualData: { ...state.visualData, layoutNodes, timelines },
+          isDirty: true
+        };
+      } else {
+        // Delete section only, unparent children (convert to absolute positions)
+        nodes = state.logicalData.nodes
+          .filter(n => n.id !== sectionId)
+          .map(n => {
+            if (n.parentId === sectionId && sectionVisual) {
+              // Convert child's relative position to absolute
+              const childVisual = state.visualData.layoutNodes[n.id];
+              if (childVisual) {
+                layoutNodes[n.id] = {
+                  ...childVisual,
+                  x: childVisual.x + sectionVisual.x,
+                  y: childVisual.y + sectionVisual.y,
+                };
+              }
+              return { ...n, parentId: undefined };
+            }
+            return n;
+          });
+
+        // Remove edges connected to the section itself
+        const deletedEdgeIds = state.logicalData.edges
+          .filter(e => e.from === sectionId || e.to === sectionId)
+          .map(e => e.id);
+        const edges = state.logicalData.edges.filter(e => e.from !== sectionId && e.to !== sectionId);
+        const sequences = state.logicalData.sequences.filter(s => !deletedEdgeIds.includes(s.edgeId));
+
+        delete layoutNodes[sectionId];
+        state.logicalData.sequences.forEach(s => {
+          if (deletedEdgeIds.includes(s.edgeId)) delete timelines[s.id];
+        });
+
+        return {
+          logicalData: { nodes, edges, sequences },
+          visualData: { ...state.visualData, layoutNodes, timelines },
+          isDirty: true
+        };
+      }
+    });
+  },
+
   applyAutoLayout: (direction) => {
     get().pushToHistory();
     const state = get();
@@ -755,36 +892,72 @@ export const useAppStore = create<AppState>((set, get) => ({
       layoutVersion: state.layoutVersion + 1,
       isDirty: true
     });
-  }
+  },
+
+  // ── Save Action ────────────────────────────────────────────────────────
+  manualSave: async () => {
+    const state = useAppStore.getState();
+    if (!state.currentWorkspace || state.isSaving) return;
+    await performSave();
+  },
 }));
 
-// Throttled Auto-Save Loop
+// ── Shared Save Logic ─────────────────────────────────────────────────────
+let isSavingLock = false;
+
+const performSave = async (): Promise<boolean> => {
+  if (isSavingLock) return false; // Prevent reentrant saves
+  
+  const state = useAppStore.getState();
+  if (!state.currentWorkspace) return false;
+
+  isSavingLock = true;
+  useAppStore.setState({ isSaving: true });
+
+  try {
+    const path = state.currentWorkspace.path;
+
+    // Take a FRESH snapshot right before saving
+    const freshState = useAppStore.getState();
+    
+    // 1. Save workspace.json
+    await invoke('save_workspace', { metaJson: JSON.stringify(freshState.currentWorkspace) });
+    
+    // 2. Save logical.json and visual.json
+    await invoke('save_diagram', { 
+      path,
+      logicalJson: JSON.stringify(freshState.logicalData),
+      visualJson: JSON.stringify(freshState.visualData)
+    });
+    
+    // Only clear dirty flag if no new changes happened during save
+    const afterSaveState = useAppStore.getState();
+    if (afterSaveState.logicalData === freshState.logicalData && 
+        afterSaveState.visualData === freshState.visualData) {
+      useAppStore.setState({ isDirty: false });
+    }
+    
+    console.log('[Save] Saved successfully.');
+    return true;
+  } catch (err) {
+    console.error('[Save] Save failed:', err);
+    return false;
+  } finally {
+    isSavingLock = false;
+    useAppStore.setState({ isSaving: false });
+  }
+};
+
+// ── Auto-Save Loop ────────────────────────────────────────────────────────
 let autoSaveInterval: any = null;
 
 export const startAutoSave = () => {
   if (autoSaveInterval) return;
   autoSaveInterval = setInterval(async () => {
     const state = useAppStore.getState();
-    if (state.isDirty && state.currentWorkspace) {
-      console.log('[AutoSave] Saving workspace config and diagrams...');
-      try {
-        const path = state.currentWorkspace.path;
-        
-        // 1. Save workspace.json
-        await invoke('save_workspace', { metaJson: JSON.stringify(state.currentWorkspace) });
-        
-        // 2. Save logical.json and visual.json
-        await invoke('save_diagram', { 
-          path,
-          logicalJson: JSON.stringify(state.logicalData),
-          visualJson: JSON.stringify(state.visualData)
-        });
-        
-        state.setDirty(false);
-        console.log('[AutoSave] Saved successfully.');
-      } catch (err) {
-        console.error('[AutoSave] Save failed:', err);
-      }
+    if (state.isDirty && state.currentWorkspace && !isSavingLock) {
+      console.log('[AutoSave] Triggering save...');
+      await performSave();
     }
   }, 5000);
 };

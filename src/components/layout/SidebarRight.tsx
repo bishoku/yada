@@ -23,7 +23,7 @@ export const SidebarRight: React.FC = () => {
   });
 
   // Calculate schedules
-  const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges);
+  const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges, logicalData.nodes);
 
   // Auto-scroll active sequence into view
   const activeIdsString = activeSequenceIds.join(',');
@@ -135,6 +135,13 @@ export const SidebarRight: React.FC = () => {
                     <span className="truncate">
                       Process: {timing.internalProcess?.text} ({timing.internalProcess?.duration}ms)
                     </span>
+                  </div>
+                )}
+
+                {/* Edge Description if exists */}
+                {edge.description && (
+                  <div className="text-[10px] text-slate-550 dark:text-slate-400 pl-1 border-l border-slate-250 dark:border-slate-800 mt-1 leading-normal font-sans break-words whitespace-pre-wrap">
+                    {edge.description}
                   </div>
                 )}
               </div>

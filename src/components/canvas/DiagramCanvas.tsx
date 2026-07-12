@@ -20,6 +20,7 @@ import {
 } from '@xyflow/react';
 import { BaseNode } from './BaseNode';
 import { AnimatedEdge } from './AnimatedEdge';
+import { SectionNode } from './SectionNode';
 import { useAppStore } from '../../store/useAppStore';
 import { Trash2 } from 'lucide-react';
 
@@ -30,8 +31,24 @@ import { EdgePropertiesPopover } from './EdgePropertiesPopover';
 import { ClearCanvasModal } from './ClearCanvasModal';
 import { ConnectionConfirmModal } from './ConnectionConfirmModal';
 
-const nodeTypes = { customNode: BaseNode };
+const nodeTypes = { customNode: BaseNode, sectionNode: SectionNode };
 const edgeTypes = { customEdge: AnimatedEdge };
+
+// Helper to map a LogicalNode to a ReactFlow Node
+const toRfNode = (ln: any, vn: any): Node => {
+  const isSection = ln.type === 'section';
+  return {
+    id: ln.id,
+    type: isSection ? 'sectionNode' : 'customNode',
+    position: { x: vn.x ?? 0, y: vn.y ?? 0 },
+    data: { name: ln.name, type: ln.type },
+    width: vn.width ?? (isSection ? 400 : 224),
+    height: vn.height ?? (isSection ? 300 : 52),
+    ...(ln.parentId ? { parentId: ln.parentId, extent: 'parent' as const } : {}),
+    ...(vn.zIndex != null ? { zIndex: vn.zIndex } : isSection ? { zIndex: -1 } : {}),
+    style: isSection ? { width: vn.width ?? 400, height: vn.height ?? 300 } : undefined,
+  };
+};
 
 const FlowWrapper: React.FC = () => {
   const logicalData = useAppStore((s) => s.logicalData);
@@ -63,6 +80,8 @@ const FlowWrapper: React.FC = () => {
   const undo = useAppStore((s) => s.undo);
   const redo = useAppStore((s) => s.redo);
   const layoutVersion = useAppStore((s) => s.layoutVersion);
+  const setNodeParent = useAppStore((s: any) => s.setNodeParent);
+  const autoResizeSection = useAppStore((s: any) => s.autoResizeSection);
 
   const { screenToFlowPosition, setCenter } = useReactFlow();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -109,6 +128,7 @@ const FlowWrapper: React.FC = () => {
     delay: number;
     tooltipText: string;
     tooltipDuration: number;
+    description?: string;
   } | null>(null);
 
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -153,6 +173,7 @@ const FlowWrapper: React.FC = () => {
         delay: timing?.delay ?? 0,
         tooltipText: timing?.internalProcess?.text ?? '',
         tooltipDuration: timing?.internalProcess?.duration ?? 1000,
+        description: le.description ?? '',
       });
     }
   }, [logicalData.edges, logicalData.sequences, closeMenu]);
@@ -166,16 +187,15 @@ const FlowWrapper: React.FC = () => {
   useEffect(() => {
     if (initialised.current) return;
     initialised.current = true;
-    const nodes: Node[] = logicalData.nodes.map((ln) => {
+    // Sort: sections first so ReactFlow can resolve parentId references
+    const sortedLogical = [...logicalData.nodes].sort((a, b) => {
+      const aS = a.type === 'section' ? 0 : 1;
+      const bS = b.type === 'section' ? 0 : 1;
+      return aS - bS;
+    });
+    const nodes: Node[] = sortedLogical.map((ln) => {
       const vn = useAppStore.getState().visualData.layoutNodes[ln.id] ?? { x: 0, y: 0 };
-      return {
-        id: ln.id,
-        type: 'customNode',
-        position: { x: vn.x, y: vn.y },
-        data: { name: ln.name, type: ln.type },
-        width: vn.width ?? 224,
-        height: vn.height ?? 52,
-      };
+      return toRfNode(ln, vn);
     });
     const edges: Edge[] = logicalData.edges.map((le) => ({
       id: le.id,
@@ -193,16 +213,17 @@ const FlowWrapper: React.FC = () => {
   // ── Sync node positions on Layout Recalculation / Undo / Redo ──────────────
   useEffect(() => {
     if (layoutVersion === 0) return;
-    setRfNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        const vn = visualDataRef.current.layoutNodes[node.id];
-        if (vn) {
-          return {
-            ...node,
-            position: { x: vn.x, y: vn.y },
-          };
-        }
-        return node;
+    const state = useAppStore.getState();
+    // Sort: sections first
+    const sortedLogical = [...state.logicalData.nodes].sort((a, b) => {
+      const aS = a.type === 'section' ? 0 : 1;
+      const bS = b.type === 'section' ? 0 : 1;
+      return aS - bS;
+    });
+    setRfNodes(() =>
+      sortedLogical.map((ln) => {
+        const vn = visualDataRef.current.layoutNodes[ln.id] ?? { x: 0, y: 0 };
+        return toRfNode(ln, vn);
       })
     );
   }, [layoutVersion, setRfNodes]);
@@ -215,22 +236,35 @@ const FlowWrapper: React.FC = () => {
         logicalData.nodes.some((ln) => ln.id === cn.id)
       );
 
-      // 2. Add newly created nodes
-      const newNodes = logicalData.nodes
-        .filter((ln) => !currentNodes.some((cn) => cn.id === ln.id))
-        .map((ln) => {
-          const vn = visualDataRef.current.layoutNodes[ln.id] ?? { x: 0, y: 0 };
-          return {
-            id: ln.id,
-            type: 'customNode',
-            position: { x: vn.x, y: vn.y },
-            data: { name: ln.name, type: ln.type },
-            width: vn.width ?? 224,
-            height: vn.height ?? 52,
-          };
-        });
+      // 2. Update existing nodes (parentId, data changes)
+      const updatedRemaining = remainingNodes.map((cn) => {
+        const ln = logicalData.nodes.find((l) => l.id === cn.id);
+        if (!ln) return cn;
+        const vn = visualDataRef.current.layoutNodes[ln.id] ?? { x: 0, y: 0 };
+        return toRfNode(ln, vn);
+      });
 
-      return [...remainingNodes, ...newNodes];
+      // 3. Add newly created nodes (sections first for parentId resolution)
+      const newLogical = logicalData.nodes
+        .filter((ln) => !currentNodes.some((cn) => cn.id === ln.id))
+        .sort((a, b) => {
+          const aS = a.type === 'section' ? 0 : 1;
+          const bS = b.type === 'section' ? 0 : 1;
+          return aS - bS;
+        });
+      const newNodes = newLogical.map((ln) => {
+        const vn = visualDataRef.current.layoutNodes[ln.id] ?? { x: 0, y: 0 };
+        return toRfNode(ln, vn);
+      });
+
+      // Sort: sections first in the final array
+      const all = [...updatedRemaining, ...newNodes];
+      all.sort((a, b) => {
+        const aS = a.type === 'sectionNode' ? 0 : 1;
+        const bS = b.type === 'sectionNode' ? 0 : 1;
+        return aS - bS;
+      });
+      return all;
     });
 
     setRfEdges(() =>
@@ -285,25 +319,20 @@ const FlowWrapper: React.FC = () => {
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
       const nodeId = `node-${type}-${Date.now()}`;
 
-      const width = 224;
-      const height = 52;
+      const isSection = type === 'section';
+      const width = isSection ? 400 : 224;
+      const height = isSection ? 300 : 52;
 
       const x = position.x - width / 2;
       const y = position.y - height / 2;
 
       console.log(`[Canvas] Placing "${name}" at flow (${x.toFixed(0)}, ${y.toFixed(0)})`);
 
-      const newNode: Node = {
-        id: nodeId,
-        type: 'customNode',
-        position: { x, y },
-        data: { name, type },
-        width,
-        height,
-      };
+      const visualNode = { id: nodeId, x, y, width, height, ...(isSection ? { zIndex: -1 } : {}) };
+      const newNode: Node = toRfNode({ id: nodeId, type, name }, visualNode);
 
-      setRfNodes((nds) => [...nds, newNode]);
-      addNode({ id: nodeId, type, name }, { id: nodeId, x, y, width, height });
+      setRfNodes((nds) => isSection ? [newNode, ...nds] : [...nds, newNode]);
+      addNode({ id: nodeId, type, name }, visualNode);
       cancelDrag();
     };
 
@@ -341,6 +370,91 @@ const FlowWrapper: React.FC = () => {
     pushToHistory();
   }, [pushToHistory]);
 
+  // ── Drag-into-Section Detection ─────────────────────────────────────────
+  const onNodeDragStop = useCallback(
+    (_event: any, draggedNode: Node) => {
+      // Don't parent sections to other sections
+      if (draggedNode.type === 'sectionNode') return;
+
+      const state = useAppStore.getState();
+      const sections = state.logicalData.nodes.filter(n => n.type === 'section');
+      const draggedLogical = state.logicalData.nodes.find(n => n.id === draggedNode.id);
+      if (!draggedLogical) return;
+
+      // Get dragged node absolute position
+      const dragX = draggedNode.position.x;
+      const dragY = draggedNode.position.y;
+      const dragW = draggedNode.width ?? 224;
+      const dragH = draggedNode.height ?? 52;
+      const dragCX = dragX + dragW / 2;
+      const dragCY = dragY + dragH / 2;
+
+      // If node already has a parent, the position is relative — convert to absolute for comparison
+      let absDragCX = dragCX;
+      let absDragCY = dragCY;
+      if (draggedLogical.parentId) {
+        const parentVisual = state.visualData.layoutNodes[draggedLogical.parentId];
+        if (parentVisual) {
+          absDragCX = dragCX + parentVisual.x;
+          absDragCY = dragCY + parentVisual.y;
+        }
+      }
+
+      // Find containing section (center of dragged node must be inside section bounds)
+      let targetSection: string | null = null;
+      for (const sec of sections) {
+        if (sec.id === draggedLogical.parentId) {
+          // Already a child — check if still inside
+          const sv = state.visualData.layoutNodes[sec.id];
+          if (sv) {
+            const sw = sv.width ?? 400;
+            const sh = sv.height ?? 300;
+            if (absDragCX >= sv.x && absDragCX <= sv.x + sw && absDragCY >= sv.y && absDragCY <= sv.y + sh) {
+              targetSection = sec.id;
+              break;
+            }
+          }
+          continue;
+        }
+        const sv = state.visualData.layoutNodes[sec.id];
+        if (!sv) continue;
+        const sw = sv.width ?? 400;
+        const sh = sv.height ?? 300;
+        if (absDragCX >= sv.x && absDragCX <= sv.x + sw && absDragCY >= sv.y && absDragCY <= sv.y + sh) {
+          targetSection = sec.id;
+          break;
+        }
+      }
+
+      const currentParent = draggedLogical.parentId ?? null;
+
+      if (targetSection && targetSection !== currentParent) {
+        // Entering a new section — convert absolute position to relative
+        const sv = state.visualData.layoutNodes[targetSection];
+        if (sv) {
+          const relX = absDragCX - dragW / 2 - sv.x;
+          const relY = absDragCY - dragH / 2 - sv.y;
+          updateNodePosition(draggedNode.id, relX, relY);
+        }
+        setNodeParent(draggedNode.id, targetSection);
+        autoResizeSection(targetSection);
+      } else if (!targetSection && currentParent) {
+        // Leaving section — convert relative position to absolute
+        const sv = state.visualData.layoutNodes[currentParent];
+        if (sv) {
+          const absX = dragX + sv.x;
+          const absY = dragY + sv.y;
+          updateNodePosition(draggedNode.id, absX, absY);
+        }
+        setNodeParent(draggedNode.id, null);
+      } else if (targetSection && targetSection === currentParent) {
+        // Still inside same section — auto-resize
+        autoResizeSection(targetSection);
+      }
+    },
+    [updateNodePosition, setNodeParent, autoResizeSection]
+  );
+
   // ── Node changes ──────────────────────────────────────────────────────────
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -349,6 +463,14 @@ const FlowWrapper: React.FC = () => {
         if (change.type === 'position' && change.position) {
           updateNodePosition(change.id, change.position.x, change.position.y);
         } else if (change.type === 'remove') {
+          // For section nodes, use deleteSectionWithChoice (handled in context menu)
+          // Regular deleteNode for non-section nodes
+          const state = useAppStore.getState();
+          const node = state.logicalData.nodes.find(n => n.id === change.id);
+          if (node?.type === 'section') {
+            // Don't delete via keyboard for sections — force context menu
+            return;
+          }
           deleteNode(change.id);
         }
       });
@@ -607,7 +729,7 @@ const FlowWrapper: React.FC = () => {
         onNodeDoubleClick={handleNodeDoubleClick}
         onEdgeDoubleClick={handleEdgeDoubleClick}
         onNodeDragStart={onNodeDragStart}
-        deleteKeyCode="Delete"
+        onNodeDragStop={onNodeDragStop}
         className="w-full h-full"
         proOptions={{ hideAttribution: true }}
       >

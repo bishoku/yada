@@ -4,7 +4,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { 
   LogOut, Settings, Database, Cpu, Check, Globe, Moon, Sun, 
   PanelLeft, PanelRight, PanelBottom, 
-  Undo, Redo, FileDown, Copy, Grid, ChevronDown
+  Undo, Redo, FileDown, Copy, Grid, ChevronDown, Save, Loader2
 } from 'lucide-react';
 import { translations } from '../../i18n/translations';
 import { calculateSchedules } from '../../store/scheduler';
@@ -15,6 +15,8 @@ import { invoke } from '@tauri-apps/api/core';
 export const TopBar: React.FC = () => {
   const currentWorkspace = useAppStore((s) => s.currentWorkspace);
   const isDirty = useAppStore((s) => s.isDirty);
+  const isSaving = useAppStore((s: any) => s.isSaving);
+  const manualSave = useAppStore((s: any) => s.manualSave);
   const setWorkspace = useAppStore((s) => s.setWorkspace);
   const language = useAppStore((s) => s.language);
   const theme = useAppStore((s) => s.theme);
@@ -98,7 +100,7 @@ export const TopBar: React.FC = () => {
     if (logicalData.sequences.length > 0) {
       text += `\n**${language === 'tr' ? 'Etkileşim Akışı (Zaman Tüneli)' : 'Interaction Flow (Timeline)'}:**\n`;
       
-      const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges);
+      const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges, logicalData.nodes);
       const sortedSchedules = Object.entries(schedules)
         .map(([id, range]) => ({ id, start: range.start, end: range.end }))
         .sort((a, b) => a.start - b.start);
@@ -168,10 +170,24 @@ export const TopBar: React.FC = () => {
 
           {/* Auto-Save Indicator Badge */}
           <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100/80 dark:bg-slate-900/50 rounded-full border border-slate-200 dark:border-slate-800 select-none shrink-0">
-            {isDirty ? (
+            {isSaving ? (
+              <>
+                <Loader2 className="w-3 h-3 text-indigo-500 animate-spin" />
+                <span className="text-[10px] text-slate-600 dark:text-slate-400 font-semibold">
+                  {language === 'tr' ? 'Kaydediliyor...' : 'Saving...'}
+                </span>
+              </>
+            ) : isDirty ? (
               <>
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                 <span className="text-[10px] text-slate-600 dark:text-slate-400 font-semibold">{t.unsavedChanges}</span>
+                <button
+                  onClick={() => manualSave()}
+                  className="ml-0.5 p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                  title={language === 'tr' ? 'Şimdi kaydet' : 'Save now'}
+                >
+                  <Save className="w-3 h-3" />
+                </button>
               </>
             ) : (
               <>

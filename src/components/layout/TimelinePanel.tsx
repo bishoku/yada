@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { 
-  Plus, Settings, ArrowRightLeft, Trash2, Clock, X, Save,
+  Settings, ArrowRightLeft, Trash2, Clock, X, Save,
   Play, Pause, Square
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { calculateSchedules } from '../../store/scheduler';
-import { SequenceStep, TimelineTiming } from '../../types';
 import { usePlayheadScrub } from '../timeline/usePlayheadScrub';
 import { useTimingBarDrag } from '../timeline/useTimingBarDrag';
 import { TimelineRuler } from '../timeline/TimelineRuler';
@@ -27,10 +26,11 @@ export const TimelinePanel: React.FC = () => {
   const isPlaying = useAppStore((s) => s.isPlaying);
   const selectedSequenceId = useAppStore((s) => s.selectedSequenceId);
   const theme = useAppStore((s) => s.theme);
+  const timelineOpen = useAppStore((s: any) => s.timelineOpen);
+  const currentTime = useAppStore((s) => s.currentTime);
 
   const setCurrentTime = useAppStore((s) => s.setCurrentTime);
   const setSelectedSequenceId = useAppStore((s) => s.setSelectedSequenceId);
-  const addSequenceStep = useAppStore((s) => s.addSequenceStep);
   const updateSequenceTiming = useAppStore((s) => s.updateSequenceTiming);
   const updateSequenceProcess = useAppStore((s) => s.updateSequenceProcess);
   const deleteSequenceStep = useAppStore((s) => s.deleteSequenceStep);
@@ -46,13 +46,12 @@ export const TimelinePanel: React.FC = () => {
   const [showTooltipModal, setShowTooltipModal] = useState<string | null>(null);
   const [tooltipText, setTooltipText] = useState('');
   const [tooltipDuration, setTooltipDuration] = useState(1000);
-  const [showAddStepDropdown, setShowAddStepDropdown] = useState(false);
 
   const trackAreaRef = useRef<HTMLDivElement>(null);
   const playheadRef = useRef<HTMLDivElement>(null);
 
   // Calculate schedules
-  const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges);
+  const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges, logicalData.nodes);
 
   // Find max simulation time
   const maxTime = Math.max(
@@ -119,27 +118,7 @@ export const TimelinePanel: React.FC = () => {
     };
   }, [isPlaying, maxTime]);
 
-  // Add a step manually for a specific edge
-  const handleAddStep = (edgeId: string) => {
-    const nextStepNum = logicalData.sequences.length > 0 
-      ? Math.max(...logicalData.sequences.map(s => s.stepNumber)) + 1 
-      : 1;
 
-    const seqId = `seq-${Date.now()}`;
-    const newStep: SequenceStep = {
-      id: seqId,
-      stepNumber: nextStepNum,
-      edgeId,
-      isAsync: false,
-    };
-    const newTiming: TimelineTiming = {
-      sequenceId: seqId,
-      duration: 1000,
-      delay: 0,
-    };
-    addSequenceStep(newStep, newTiming);
-    setShowAddStepDropdown(false);
-  };
 
   // Open the tooltip configuration modal
   const openTooltipModal = (seqId: string) => {
@@ -234,243 +213,236 @@ export const TimelinePanel: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Add Buttons */}
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <button
-              onClick={() => setShowAddStepDropdown(!showAddStepDropdown)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 text-indigo-650 dark:text-indigo-400 text-xs font-semibold hover:bg-indigo-500/15 active:scale-95 transition-all cursor-pointer animate-none"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>{theme === 'dark' ? 'Adım Ekle' : 'Add Step'}</span>
-            </button>
-            
-            {showAddStepDropdown && (
-              <div className="absolute right-0 bottom-10 z-50 min-w-[220px] max-h-[200px] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-1 flex flex-col gap-0.5 animate-in fade-in slide-in-from-bottom-2 duration-150">
-                {logicalData.edges.length === 0 ? (
-                  <div className="p-3 text-[11px] text-slate-500 italic text-center">
-                    {theme === 'dark' ? 'Bağlantı bulunamadı.' : 'No connections available.'}
-                  </div>
-                ) : (
-                  logicalData.edges.map((edge) => {
-                    const src = logicalData.nodes.find((n) => n.id === edge.from)?.name ?? edge.from;
-                    const dst = logicalData.nodes.find((n) => n.id === edge.to)?.name ?? edge.to;
-                    return (
-                      <button
-                        key={edge.id}
-                        onClick={() => handleAddStep(edge.id)}
-                        className="text-left w-full text-xs px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors truncate cursor-pointer animate-none"
-                      >
-                        {src} → {dst}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+
       </div>
 
       {/* Main Unified Scrollable Timeline Workspace */}
-      <div 
-        ref={trackAreaRef}
-        onMouseDown={handleTrackMouseDown}
-        className="flex-1 overflow-auto min-h-0 relative bg-slate-50/20 dark:bg-slate-900/10"
-      >
+      {timelineOpen && (
         <div 
-          className="flex min-h-full relative" 
-          style={{ width: maxTime * PX_PER_MS + 280 }}
+          ref={trackAreaRef}
+          onMouseDown={handleTrackMouseDown}
+          className="flex-1 overflow-auto min-h-0 relative bg-slate-50/20 dark:bg-slate-900/10"
         >
-          
-          {/* Left Side: Step labels column - Pinned Sticky to Left */}
           <div 
-            className="w-[280px] sticky left-0 z-30 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-850 flex flex-col shrink-0"
-            onMouseDown={(e) => e.stopPropagation()} // Prevent setting playhead when clicking left panel
+            className="flex min-h-full relative" 
+            style={{ width: maxTime * PX_PER_MS + 280 }}
           >
-            {/* Header Spacer Row */}
-            <div className="h-6 shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center px-3 text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-              {theme === 'dark' ? 'Akış Adımları' : 'Flow Steps'}
-            </div>
-
-            {sortedSequences.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-                <Clock className="w-8 h-8 text-slate-350 dark:text-slate-650 stroke-[1.5] mb-2" />
-                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-450">
-                  {theme === 'dark' ? 'Akış Adımı Yok' : 'No Animation Steps'}
-                </span>
-                <p className="text-[9px] text-slate-400 dark:text-slate-550 max-w-[200px] mt-1 leading-normal">
-                  {theme === 'dark' 
-                    ? 'Canvas üzerinde bağlantı çizerek otomatik olarak akış oluşturabilirsiniz.' 
-                    : 'Draw connection line on canvas to auto-create step.'}
-                </p>
+            
+            {/* Left Side: Step labels column - Pinned Sticky to Left */}
+            <div 
+              className="w-[280px] sticky left-0 z-30 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-850 flex flex-col shrink-0"
+              onMouseDown={(e) => e.stopPropagation()} // Prevent setting playhead when clicking left panel
+            >
+              {/* Header Spacer Row */}
+              <div className="h-6 shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center px-3 text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                {theme === 'dark' ? 'Akış Adımları' : 'Flow Steps'}
               </div>
-            ) : (
-              sortedSequences.map((seq) => {
-                const edge = logicalData.edges.find((e) => e.id === seq.edgeId);
-                const src = edge ? logicalData.nodes.find((n) => n.id === edge.from)?.name ?? edge.from : '?';
-                const dst = edge ? logicalData.nodes.find((n) => n.id === edge.to)?.name ?? edge.to : '?';
-                
-                const isSelected = selectedSequenceId === seq.id;
-                const timing = visualData.timelines[seq.id];
-                const hasProcess = !!timing?.internalProcess;
 
-                return (
-                  <div
-                    key={seq.id}
-                    onClick={() => setSelectedSequenceId(seq.id)}
-                    className={`h-12 px-3 border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between cursor-pointer group transition-colors duration-150 ${
-                      isSelected 
-                        ? 'bg-indigo-500/5 dark:bg-indigo-500/10 border-l-4 border-l-indigo-600' 
-                        : 'hover:bg-slate-100/50 dark:hover:bg-slate-900/30'
-                    }`}
-                  >
-                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-bold bg-indigo-500/10 dark:bg-indigo-500/25 text-indigo-600 dark:text-indigo-400 px-1 py-0.5 rounded">
-                          S{seq.stepNumber}
-                        </span>
-                        <span className="text-xs font-bold truncate text-slate-700 dark:text-slate-200">
-                          {src} → {dst}
-                        </span>
-                      </div>
-                      {hasProcess && (
-                        <span className="text-[9px] font-medium text-emerald-600 dark:text-emerald-500 truncate pl-1">
-                          ↳ Process: {timing?.internalProcess?.text}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* Row Actions */}
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <select
-                        value={seq.stepNumber}
-                        onChange={(e) => setSequenceStepOrder(seq.id, Number(e.target.value))}
-                        className="text-[9px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-1 py-0.5 font-bold cursor-pointer focus:outline-none"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-                          <option key={n} value={n}>Step {n}</option>
-                        ))}
-                      </select>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleSequenceAsync(seq.id);
-                        }}
-                        title={seq.isAsync ? "Asynchronous flow" : "Synchronous flow"}
-                        className={`p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer animate-none ${
-                          seq.isAsync ? 'text-emerald-500' : 'text-slate-400'
-                        }`}
-                      >
-                        <ArrowRightLeft className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openTooltipModal(seq.id);
-                        }}
-                        className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-500 transition-colors cursor-pointer animate-none"
-                        title="Configure tooltip"
-                      >
-                        <Settings className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteSequenceStep(seq.id);
-                        }}
-                        className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer animate-none"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-          
-          {/* Right Side: Track Grid Canvas area */}
-          <div className="flex-1 flex flex-col relative h-full">
-            {/* Ruler Header Spacer Row */}
-            <TimelineRuler maxTime={maxTime} pxPerMs={PX_PER_MS} />
-
-            {/* Tracks Container */}
-            <div className="flex-1 relative">
-              {/* Timeline Grid Background (Vertical lines stretching down) */}
-              <TimelineGrid maxTime={maxTime} pxPerMs={PX_PER_MS} />
-
-              {/* Row Timing Tracks */}
-              <div className="flex flex-col relative z-20" style={{ width: maxTime * PX_PER_MS }}>
-                {sortedSequences.map((seq) => {
-                  const timing = visualData.timelines[seq.id] || { sequenceId: seq.id, duration: 1000, delay: 0 };
-                  const sched = schedules[seq.id];
-                  if (!sched) return null;
-
-                  const left = sched.start * PX_PER_MS;
-                  const width = (timing.duration ?? 1000) * PX_PER_MS;
+              {sortedSequences.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+                  <Clock className="w-8 h-8 text-slate-350 dark:text-slate-650 stroke-[1.5] mb-2" />
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-450">
+                    {theme === 'dark' ? 'Akış Adımı Yok' : 'No Animation Steps'}
+                  </span>
+                  <p className="text-[9px] text-slate-400 dark:text-slate-550 max-w-[200px] mt-1 leading-normal">
+                    {theme === 'dark' 
+                      ? 'Canvas üzerinde bağlantı çizerek otomatik olarak akış oluşturabilirsiniz.' 
+                      : 'Draw connection line on canvas to auto-create step.'}
+                  </p>
+                </div>
+              ) : (
+                sortedSequences.map((seq) => {
+                  const edge = logicalData.edges.find((e) => e.id === seq.edgeId);
+                  const src = edge ? logicalData.nodes.find((n) => n.id === edge.from)?.name ?? edge.from : '?';
+                  const dst = edge ? logicalData.nodes.find((n) => n.id === edge.to)?.name ?? edge.to : '?';
+                  
                   const isSelected = selectedSequenceId === seq.id;
+                  const timing = visualData.timelines[seq.id];
+                  const hasProcess = !!timing?.internalProcess;
 
                   return (
-                    <div 
-                      key={seq.id} 
-                      className="h-12 border-b border-slate-200/50 dark:border-slate-800/20 relative flex items-center"
-                      style={{ width: '100%' }}
+                    <div
+                      key={seq.id}
+                      onClick={() => setSelectedSequenceId(seq.id)}
+                      className={`min-h-[48px] py-1.5 px-3 border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between cursor-pointer group transition-colors duration-150 ${
+                        isSelected 
+                          ? 'bg-indigo-500/5 dark:bg-indigo-500/10 border-l-4 border-l-indigo-600' 
+                          : 'hover:bg-slate-100/50 dark:hover:bg-slate-900/30'
+                      }`}
                     >
-                      {/* Interactive Drag Bar */}
-                      <div
-                        onMouseDown={(e) => {
-                          setSelectedSequenceId(seq.id);
-                          handleBarMouseDown(e, seq.id, timing.delay ?? 0, timing.duration ?? 1000);
-                        }}
-                        onDoubleClick={() => openTooltipModal(seq.id)}
-                        className={`h-6 rounded-lg absolute cursor-grab active:cursor-grabbing transition-shadow flex items-center justify-between px-2 text-[10px] font-bold text-white group border ${
-                          isSelected 
-                            ? 'ring-2 ring-indigo-500/40 shadow-lg shadow-indigo-600/10' 
-                            : 'shadow-sm'
-                        } ${
-                          seq.isAsync 
-                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 border-emerald-400/30' 
-                            : 'bg-gradient-to-r from-indigo-500 to-indigo-600 border-indigo-400/30'
-                        }`}
-                        style={{
-                          left,
-                          width,
-                        }}
-                      >
-                        <span className="truncate pr-4 pointer-events-none select-none">
-                          {timing.duration}ms
-                        </span>
+                      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-bold bg-indigo-500/10 dark:bg-indigo-500/25 text-indigo-600 dark:text-indigo-400 px-1 py-0.5 rounded">
+                            S{seq.stepNumber}
+                          </span>
+                          <span className="text-xs font-bold truncate text-slate-700 dark:text-slate-200">
+                            {src} → {dst}
+                          </span>
+                        </div>
+                        {hasProcess && (
+                          <span className="text-[9px] font-medium text-emerald-600 dark:text-emerald-500 truncate pl-1">
+                            ↳ Process: {timing?.internalProcess?.text}
+                          </span>
+                        )}
+                        {edge?.description && (
+                          <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 pl-1 leading-normal break-words">
+                            ↳ {edge.description}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Row Actions */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <select
+                          value={seq.stepNumber}
+                          onChange={(e) => setSequenceStepOrder(seq.id, Number(e.target.value))}
+                          className="text-[9px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-1 py-0.5 font-bold cursor-pointer focus:outline-none"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                            <option key={n} value={n}>Step {n}</option>
+                          ))}
+                        </select>
 
-                        {/* Resize handle on right */}
-                        <div
-                          onMouseDown={(e) => {
-                            handleResizeMouseDown(e, seq.id, timing.delay ?? 0, timing.duration ?? 1000);
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSequenceAsync(seq.id);
                           }}
-                          className="absolute right-0 top-0 bottom-0 w-2 hover:w-3 cursor-ew-resize hover:bg-white/20 rounded-r-lg flex items-center justify-center transition-all"
-                        />
+                          title={seq.isAsync ? "Asynchronous flow" : "Synchronous flow"}
+                          className={`p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer animate-none ${
+                            seq.isAsync ? 'text-emerald-500' : 'text-slate-400'
+                          }`}
+                        >
+                          <ArrowRightLeft className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openTooltipModal(seq.id);
+                          }}
+                          className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-500 transition-colors cursor-pointer animate-none"
+                          title="Configure tooltip"
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteSequenceStep(seq.id);
+                          }}
+                          className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer animate-none"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   );
-                })}
-              </div>
-
-              {/* Time playhead line (Subscribed directly to high-frequency currentTime) */}
-              <ScrubLine 
-                pxPerMs={PX_PER_MS} 
-                isPlaying={isPlaying} 
-                isScrubbing={isScrubbing} 
-                playheadRef={playheadRef} 
-              />
+                })
+              )}
             </div>
-          </div>
+            
+            {/* Right Side: Track Grid Canvas area */}
+            <div className="flex-1 flex flex-col relative h-full">
+              {/* Ruler Header Spacer Row */}
+              <TimelineRuler maxTime={maxTime} pxPerMs={PX_PER_MS} />
 
+              {/* Tracks Container */}
+              <div className="flex-1 relative">
+                {/* Timeline Grid Background (Vertical lines stretching down) */}
+                <TimelineGrid maxTime={maxTime} pxPerMs={PX_PER_MS} />
+
+                {/* Row Timing Tracks */}
+                <div className="flex flex-col relative z-20" style={{ width: maxTime * PX_PER_MS }}>
+                  {sortedSequences.map((seq) => {
+                    const timing = visualData.timelines[seq.id] || { sequenceId: seq.id, duration: 1000, delay: 0 };
+                    const sched = schedules[seq.id];
+                    if (!sched) return null;
+
+                    const left = sched.start * PX_PER_MS;
+                    const width = (timing.duration ?? 1000) * PX_PER_MS;
+                    const isSelected = selectedSequenceId === seq.id;
+
+                    return (
+                      <div 
+                        key={seq.id} 
+                        className="h-12 border-b border-slate-200/50 dark:border-slate-800/20 relative flex items-center"
+                        style={{ width: '100%' }}
+                      >
+                        {/* Interactive Drag Bar */}
+                        <div
+                          onMouseDown={(e) => {
+                            setSelectedSequenceId(seq.id);
+                            handleBarMouseDown(e, seq.id, timing.delay ?? 0, timing.duration ?? 1000);
+                          }}
+                          onDoubleClick={() => openTooltipModal(seq.id)}
+                          className={`h-6 rounded-lg absolute cursor-grab active:cursor-grabbing transition-shadow flex items-center justify-between px-2 text-[10px] font-bold text-white group border ${
+                            isSelected 
+                              ? 'ring-2 ring-indigo-500/40 shadow-lg shadow-indigo-600/10' 
+                              : 'shadow-sm'
+                          } ${
+                            seq.isAsync 
+                              ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 border-emerald-400/30' 
+                              : 'bg-gradient-to-r from-indigo-500 to-indigo-600 border-indigo-400/30'
+                          }`}
+                          style={{
+                            left,
+                            width,
+                          }}
+                        >
+                          <span className="truncate pr-4 pointer-events-none select-none">
+                            {timing.duration}ms
+                          </span>
+
+                          {/* Resize handle on right */}
+                          <div
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              handleResizeMouseDown(e, seq.id, timing.delay ?? 0, timing.duration ?? 1000);
+                            }}
+                            className="w-1.5 h-full hover:bg-white/20 cursor-ew-resize rounded-r-lg"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Vertical Playhead Scrub Line Indicator */}
+                <ScrubLine 
+                  pxPerMs={PX_PER_MS} 
+                  isPlaying={isPlaying} 
+                  isScrubbing={isScrubbing} 
+                  playheadRef={playheadRef} 
+                />
+              </div>
+            </div>
+
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Video Slider when timeline tracks are closed */}
+      {!timelineOpen && (
+        <div className="px-4 py-1.5 flex items-center gap-3 bg-slate-50/30 dark:bg-slate-900/40 border-t border-slate-150 dark:border-slate-850">
+          <span className="text-[10px] font-mono text-slate-550 dark:text-slate-400">
+            {currentTime.toFixed(0)}ms
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={maxTime}
+            value={currentTime}
+            onChange={(e) => setCurrentTime(Number(e.target.value))}
+            className="flex-1 h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600 dark:accent-indigo-500"
+          />
+          <span className="text-[10px] font-mono text-slate-550 dark:text-slate-400">
+            {maxTime}ms
+          </span>
+        </div>
+      )}
 
       {/* Tooltip Internal Process Modal */}
       {showTooltipModal && createPortal(

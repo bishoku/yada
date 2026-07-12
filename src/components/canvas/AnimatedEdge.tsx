@@ -39,8 +39,8 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
 
   // Calculate schedules
   const schedules = useMemo(() => {
-    return calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges);
-  }, [logicalData.sequences, visualData.timelines, logicalData.edges]);
+    return calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges, logicalData.nodes);
+  }, [logicalData.sequences, visualData.timelines, logicalData.edges, logicalData.nodes]);
   
   // Find if playhead is currently animating this edge
   let activeSeq = null;
@@ -103,9 +103,16 @@ export const AnimatedEdge: React.FC<EdgeProps> = (props) => {
           actualProgress = 1.0 - Math.min(Math.max(returnElapsed / transitHalf, 0), 1);
         }
       } else {
-        const duration = sched.end - sched.start;
-        const progress = duration > 0 ? Math.min(Math.max(elapsed / duration, 0), 1) : 1;
-        actualProgress = activeSeq.direction === 'reverse' ? (1 - progress) : progress;
+        // Non-round-trip: particle travels over the edge's transit duration only
+        // (sched.end - sched.start may include subflow children time for section-targeting edges)
+        const transitDuration = stepDuration;
+        if (elapsed < transitDuration) {
+          const progress = Math.min(Math.max(elapsed / transitDuration, 0), 1);
+          actualProgress = activeSeq.direction === 'reverse' ? (1 - progress) : progress;
+        } else {
+          // Particle has arrived at target — hold at destination
+          actualProgress = activeSeq.direction === 'reverse' ? 0 : 1;
+        }
       }
       
       const totalLength = pathEl.getTotalLength();

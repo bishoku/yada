@@ -77,14 +77,12 @@ export const MainLayout: React.FC = () => {
           )}
 
           {/* Timeline Animation Panel */}
-          {timelineOpen && (
-            <div 
-              style={{ height: timelineHeight }}
-              className="border-t border-slate-200 dark:border-slate-800 z-10 shrink-0 select-none overflow-hidden"
-            >
-              <TimelinePanel />
-            </div>
-          )}
+          <div 
+            style={{ height: timelineOpen ? timelineHeight : 'auto' }}
+            className="border-t border-slate-200 dark:border-slate-800 z-10 shrink-0 select-none overflow-hidden"
+          >
+            <TimelinePanel />
+          </div>
           
         </main>
 

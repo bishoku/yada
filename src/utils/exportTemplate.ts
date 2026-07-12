@@ -149,6 +149,11 @@ export const generateStandaloneHtml = (
       box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
       transform: scale(1.02);
     }
+    .node-card.node-active {
+      border-color: #6366f1;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.25);
+      transform: scale(1.02);
+    }
     .node-icon-box {
       width: 38px;
       height: 38px;
@@ -184,6 +189,37 @@ export const generateStandaloneHtml = (
       font-weight: 700;
       letter-spacing: 0.5px;
       margin-top: 2px;
+    }
+
+    /* Section Container Node */
+    .section-card {
+      position: absolute;
+      border: 2px dashed rgba(148, 163, 184, 0.4);
+      border-radius: 12px;
+      background-color: rgba(15, 23, 42, 0.15);
+      backdrop-filter: blur(1px);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .section-card.processing {
+      border-color: rgba(16, 185, 129, 0.5);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+    }
+    .section-label {
+      position: absolute;
+      top: -22px;
+      left: 12px;
+      padding: 2px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      background-color: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(71, 85, 105, 0.5);
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      white-space: nowrap;
+      pointer-events: none;
     }
 
     /* Node tooltip overlay bubbles */
@@ -402,6 +438,14 @@ export const generateStandaloneHtml = (
     .step-item.active .step-flow {
       color: #818cf8;
     }
+    .step-description {
+      font-size: 9px;
+      color: #94a3b8;
+      margin-top: 2px;
+      font-style: italic;
+      line-height: 1.3;
+      word-break: break-all;
+    }
   </style>
 </head>
 <body>
@@ -493,6 +537,18 @@ export const generateStandaloneHtml = (
       queue: '<svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24"><path d="m3 16 4 4 4-4M21 8l-4-4-4 4M3 16h18M21 8H3"/></svg>'
     };
 
+    // Helper: resolve absolute position for a node (handles child nodes with parentId)
+    function getAbsolutePos(nodeId) {
+      const layout = initialData.visualData.layoutNodes;
+      const node = initialData.logicalData.nodes.find(n => n.id === nodeId);
+      const vis = layout[nodeId] || { x: 0, y: 0, width: 224, height: 52 };
+      if (node && node.parentId) {
+        const parentVis = layout[node.parentId] || { x: 0, y: 0 };
+        return { x: vis.x + parentVis.x, y: vis.y + parentVis.y, width: vis.width || 224, height: vis.height || 52 };
+      }
+      return { x: vis.x, y: vis.y, width: vis.width || 224, height: vis.height || 52 };
+    }
+
     // Helper: compile custom SVG layers
     function renderCustomSvg(layers, width, height) {
       const sorted = [...layers].sort((a, b) => a.zIndex - b.zIndex);
@@ -518,13 +574,20 @@ export const generateStandaloneHtml = (
       return \`<svg width="100%" height="100%" viewBox="0 0 \${width} \${height}" xmlns="http://www.w3.org/2000/svg">\${svgContent}</svg>\`;
     }
 
-    // Schedule Math Calculations (Recursive nesting tree with round-trip return waiting)
+    // Schedule Math Calculations (Recursive nesting tree with round-trip and section support)
     function calculateSchedules(logicalData, timelines) {
       const sortedSeqs = [...logicalData.sequences].sort((a, b) => a.stepNumber - b.stepNumber);
       const schedules = [];
       
       const edgeMap = {};
       logicalData.edges.forEach(e => { edgeMap[e.id] = e; });
+
+      const nodeMap = {};
+      (logicalData.nodes || []).forEach(n => { nodeMap[n.id] = n; });
+
+      // Identify section nodes
+      const sectionIds = {};
+      (logicalData.nodes || []).forEach(n => { if (n.type === 'section') sectionIds[n.id] = true; });
 
       // Resolve source/target for each step
       const seqNodes = {};
@@ -540,6 +603,7 @@ export const generateStandaloneHtml = (
       const nested = {};
       const activeRTTargets = {};
 
+      // Phase 1: RT nesting
       sortedSeqs.forEach(seq => {
         const src = seqNodes[seq.id].src;
         const parentId = src ? activeRTTargets[src] : undefined;
@@ -556,12 +620,40 @@ export const generateStandaloneHtml = (
         }
       });
 
+      // Phase 2: Section nesting
+      const sectionEntrySteps = {};
+      sortedSeqs.forEach(seq => {
+        if (nested[seq.id]) return;
+        const tgt = seqNodes[seq.id].tgt;
+        if (tgt && sectionIds[tgt]) {
+          sectionEntrySteps[tgt] = seq.id;
+        }
+      });
+
+      sortedSeqs.forEach(seq => {
+        if (nested[seq.id]) return;
+        const edge = edgeMap[seq.edgeId];
+        if (!edge) return;
+        const fromNode = nodeMap[edge.from];
+        if (!fromNode) return;
+        if (fromNode.parentId && sectionIds[fromNode.parentId]) {
+          const parentStepId = sectionEntrySteps[fromNode.parentId];
+          if (parentStepId && parentStepId !== seq.id) {
+            nested[seq.id] = true;
+            if (!childrenOf[parentStepId]) childrenOf[parentStepId] = [];
+            childrenOf[parentStepId].push(seq);
+          }
+        }
+      });
+
       // Recursive: process a step and its nested children
       function processStep(seq, startTime) {
         const tConf = timelines[seq.id] || { duration: 1000, delay: 0 };
         const duration = tConf.duration ?? 1000;
+        const children = childrenOf[seq.id] || [];
 
-        if (!seq.isRoundTrip) {
+        // Case 1: Simple step (no children, not round-trip)
+        if (!seq.isRoundTrip && children.length === 0) {
           const internalProcess = tConf.internalProcess ? {
             text: tConf.internalProcess.text,
             start: startTime + duration,
@@ -579,13 +671,48 @@ export const generateStandaloneHtml = (
           return startTime + duration;
         }
 
-        // Round-trip
+        // Case 2: Section-targeting step (has children, not round-trip)
+        if (!seq.isRoundTrip && children.length > 0) {
+          const arrivalTime = startTime + duration;
+          const childGroups = {};
+          children.forEach(c => {
+            if (!childGroups[c.stepNumber]) childGroups[c.stepNumber] = [];
+            childGroups[c.stepNumber].push(c);
+          });
+
+          let childReadyTime = arrivalTime;
+          let latestSyncEnd = arrivalTime;
+
+          Object.keys(childGroups).map(Number).sort((a, b) => a - b).forEach(gn => {
+            const group = childGroups[gn];
+            const snapshot = childReadyTime;
+            group.forEach(child => {
+              const childTiming = timelines[child.id] || { duration: 1000, delay: 0 };
+              const childDelay = childTiming.delay ?? 0;
+              const childStart = snapshot + childDelay;
+              const childEnd = processStep(child, childStart);
+              if (!child.isAsync) {
+                if (childEnd > childReadyTime) childReadyTime = childEnd;
+                if (childEnd > latestSyncEnd) latestSyncEnd = childEnd;
+              }
+            });
+          });
+
+          schedules.push({
+            id: seq.id, stepNumber: seq.stepNumber, edgeId: seq.edgeId,
+            direction: seq.direction || 'forward', isRoundTrip: false,
+            isAsync: seq.isAsync || false, start: startTime,
+            mainEnd: startTime + duration, end: latestSyncEnd,
+            duration: duration, internalProcess: null
+          });
+          return seq.isAsync ? arrivalTime : latestSyncEnd;
+        }
+
+        // Case 3: Round-trip
         const halfTransit = duration / 2;
         const forwardReach = startTime + halfTransit;
         const ipDur = tConf.internalProcess ? (tConf.internalProcess.duration ?? 1000) : 0;
 
-        // Process children grouped by stepNumber
-        const children = childrenOf[seq.id] || [];
         const childGroups = {};
         children.forEach(c => {
           if (!childGroups[c.stepNumber]) childGroups[c.stepNumber] = [];
@@ -677,17 +804,51 @@ export const generateStandaloneHtml = (
       const nodesLayer = document.getElementById('nodes-layer');
       nodesLayer.innerHTML = '';
       
-      initialData.logicalData.nodes.forEach(node => {
-        const visual = initialData.visualData.layoutNodes[node.id] || { x: 100, y: 100, width: 224, height: 52 };
+      // Render sections first (they go behind regular nodes)
+      initialData.logicalData.nodes.filter(n => n.type === 'section').forEach(node => {
+        const visual = initialData.visualData.layoutNodes[node.id] || { x: 100, y: 100, width: 400, height: 300 };
+        
+        const section = document.createElement('div');
+        section.id = 'node-card-' + node.id;
+        section.className = 'section-card';
+        section.style.left = visual.x + 'px';
+        section.style.top = visual.y + 'px';
+        section.style.width = (visual.width || 400) + 'px';
+        section.style.height = (visual.height || 300) + 'px';
+        section.style.zIndex = '-1';
+        section.style.pointerEvents = 'auto';
+
+        const label = document.createElement('div');
+        label.className = 'section-label';
+        label.textContent = node.name;
+        section.appendChild(label);
+
+        // Tooltip slot for sections too
+        const tooltipSlot = document.createElement('div');
+        tooltipSlot.id = 'tooltip-slot-' + node.id;
+        tooltipSlot.style.position = 'absolute';
+        tooltipSlot.style.top = '0';
+        tooltipSlot.style.left = '0';
+        tooltipSlot.style.width = '100%';
+        tooltipSlot.style.height = '100%';
+        tooltipSlot.style.pointerEvents = 'none';
+        section.appendChild(tooltipSlot);
+
+        nodesLayer.appendChild(section);
+      });
+
+      // Render regular nodes (using absolute positions for child nodes)
+      initialData.logicalData.nodes.filter(n => n.type !== 'section').forEach(node => {
+        const absPos = getAbsolutePos(node.id);
         const customTemplate = initialData.libraryComponents.find(c => c.componentId === node.type);
         
         const card = document.createElement('div');
         card.id = 'node-card-' + node.id;
         card.className = 'node-card';
-        card.style.left = visual.x + 'px';
-        card.style.top = visual.y + 'px';
-        card.style.width = (visual.width || 224) + 'px';
-        card.style.height = (visual.height || 52) + 'px';
+        card.style.left = absPos.x + 'px';
+        card.style.top = absPos.y + 'px';
+        card.style.width = absPos.width + 'px';
+        card.style.height = absPos.height + 'px';
 
         // Render standard card contents
         const iconDiv = document.createElement('div');
@@ -756,12 +917,12 @@ export const generateStandaloneHtml = (
               throw new Error('Fallback coordinates');
             }
           } catch(e) {
-            const sVis = initialData.visualData.layoutNodes[edge.from];
-            const tVis = initialData.visualData.layoutNodes[edge.to];
-            if (sVis && tVis) {
+            const sAbs = getAbsolutePos(edge.from);
+            const tAbs = getAbsolutePos(edge.to);
+            if (sAbs && tAbs) {
               midPt = {
-                x: (sVis.x + tVis.x) / 2 + 112,
-                y: (sVis.y + tVis.y) / 2 + 26
+                x: (sAbs.x + tAbs.x) / 2 + 112,
+                y: (sAbs.y + tAbs.y) / 2 + 26
               };
             }
           }
@@ -808,47 +969,47 @@ export const generateStandaloneHtml = (
       });
     }
 
-    // Calculate Straight/Orthogonal coordinates between ports
+    // Calculate Straight/Orthogonal coordinates between ports (uses absolute positions for child nodes)
     function calculateOrthogonalPath(sourceId, targetId, sourcePort = 'right', targetPort = 'left') {
-      const sVis = initialData.visualData.layoutNodes[sourceId];
-      const tVis = initialData.visualData.layoutNodes[targetId];
-      if (!sVis || !tVis) return '';
+      const sAbs = getAbsolutePos(sourceId);
+      const tAbs = getAbsolutePos(targetId);
+      if (!sAbs || !tAbs) return '';
 
-      const sW = sVis.width || 224;
-      const sH = sVis.height || 52;
-      const tW = tVis.width || 224;
-      const tH = tVis.height || 52;
+      const sW = sAbs.width;
+      const sH = sAbs.height;
+      const tW = tAbs.width;
+      const tH = tAbs.height;
 
       // Source Port coordinate
       let sX, sY;
       if (sourcePort === 'left') {
-        sX = sVis.x;
-        sY = sVis.y + sH / 2;
+        sX = sAbs.x;
+        sY = sAbs.y + sH / 2;
       } else if (sourcePort === 'right') {
-        sX = sVis.x + sW;
-        sY = sVis.y + sH / 2;
+        sX = sAbs.x + sW;
+        sY = sAbs.y + sH / 2;
       } else if (sourcePort === 'top') {
-        sX = sVis.x + sW / 2;
-        sY = sVis.y;
+        sX = sAbs.x + sW / 2;
+        sY = sAbs.y;
       } else { // bottom
-        sX = sVis.x + sW / 2;
-        sY = sVis.y + sH;
+        sX = sAbs.x + sW / 2;
+        sY = sAbs.y + sH;
       }
 
       // Target Port coordinate
       let tX, tY;
       if (targetPort === 'left') {
-        tX = tVis.x;
-        tY = tVis.y + tH / 2;
+        tX = tAbs.x;
+        tY = tAbs.y + tH / 2;
       } else if (targetPort === 'right') {
-        tX = tVis.x + tW;
-        tY = tVis.y + tH / 2;
+        tX = tAbs.x + tW;
+        tY = tAbs.y + tH / 2;
       } else if (targetPort === 'top') {
-        tX = tVis.x + tW / 2;
-        tY = tVis.y;
+        tX = tAbs.x + tW / 2;
+        tY = tAbs.y;
       } else { // bottom
-        tX = tVis.x + tW / 2;
-        tY = tVis.y + tH;
+        tX = tAbs.x + tW / 2;
+        tY = tAbs.y + tH;
       }
 
       // Create a clean orthogonal path
@@ -880,12 +1041,14 @@ export const generateStandaloneHtml = (
         item.id = 'step-item-' + s.id;
         item.className = 'step-item';
         
+        const descHtml = edge.description ? \`<div class="step-description">↳ \${edge.description}</div>\` : '';
         item.innerHTML = \`<div class="step-header">
             <span class="step-order">Step \${s.stepNumber}</span>
             <span style="font-size: 9px; font-weight:600; color:#64748b;">\${(s.start/1000).toFixed(1)}s - \${(s.end/1000).toFixed(1)}s</span>
           </div>
           <div class="step-label">\${seq.protocol || 'JSON'} Call</div>
-          <div class="step-flow">\${srcName} → \${dstName}</div>\`;
+          <div class="step-flow">\${srcName} → \${dstName}</div>
+          \${descHtml}\`;
 
         // Click to jump playhead to the start of this step
         item.addEventListener('click', () => {
@@ -921,6 +1084,7 @@ export const generateStandaloneHtml = (
         const card = document.getElementById('node-card-' + n.id);
         if (card) {
           card.classList.remove('processing');
+          card.classList.remove('node-active');
         }
         const tooltipSlot = document.getElementById('tooltip-slot-' + n.id);
         if (tooltipSlot) tooltipSlot.innerHTML = '';
@@ -994,9 +1158,16 @@ export const generateStandaloneHtml = (
               showParticle = true;
             }
           } else {
-            const duration = s.end - s.start;
-            actualProgress = duration > 0 ? Math.min(Math.max(elapsed / duration, 0), 1) : 1;
-            showParticle = (time <= s.end);
+            // Non-round-trip: particle travels over edge transit duration only
+            // (s.end - s.start may include subflow children time for section-targeting edges)
+            const transitDuration = s.duration;
+            if (elapsed < transitDuration) {
+              actualProgress = Math.min(Math.max(elapsed / transitDuration, 0), 1);
+            } else {
+              // Particle arrived — hold at destination
+              actualProgress = 1.0;
+            }
+            showParticle = true;
           }
 
           if (showParticle && pathEl) {
@@ -1029,6 +1200,50 @@ export const generateStandaloneHtml = (
               tip.className = 'node-tooltip';
               tip.innerHTML = '<span>' + s.internalProcess.text + '</span><div class="node-tooltip-arrow"></div>';
               tooltipSlot.appendChild(tip);
+            }
+          }
+
+          // Activate section processing glow when particle has arrived at a section
+          const targetNodeId2 = s.direction === 'reverse' ? edge.from : edge.to;
+          const targetNode = initialData.logicalData.nodes.find(n => n.id === targetNodeId2);
+          if (targetNode && targetNode.type === 'section') {
+            const transitDone = s.isRoundTrip ? (elapsed >= s.duration / 2) : (elapsed >= s.duration);
+            if (transitDone) {
+              const sectionCard = document.getElementById('node-card-' + targetNodeId2);
+              if (sectionCard) sectionCard.classList.add('processing');
+            }
+          }
+
+          // Node highlighting: light up nodes when the 'ball' is at them
+          const srcNodeId = s.direction === 'reverse' ? edge.to : edge.from;
+          const tgtNodeId = s.direction === 'reverse' ? edge.from : edge.to;
+
+          if (s.isRoundTrip) {
+            const halfT = s.duration / 2;
+            const totalEl = s.end - s.start;
+            const returnEl = totalEl - halfT;
+
+            // Source: forward transit & return transit
+            if (elapsed < halfT || elapsed >= returnEl) {
+              const sc = document.getElementById('node-card-' + srcNodeId);
+              if (sc) sc.classList.add('node-active');
+            }
+            // Target: from arrival to return start
+            if (elapsed >= halfT && elapsed < returnEl) {
+              const tc = document.getElementById('node-card-' + tgtNodeId);
+              if (tc) tc.classList.add('node-active');
+            }
+          } else {
+            const transit = s.duration;
+            // Source: during forward transit
+            if (elapsed < transit) {
+              const sc = document.getElementById('node-card-' + srcNodeId);
+              if (sc) sc.classList.add('node-active');
+            }
+            // Target: from arrival until schedule ends
+            if (elapsed >= transit) {
+              const tc = document.getElementById('node-card-' + tgtNodeId);
+              if (tc) tc.classList.add('node-active');
             }
           }
         }
@@ -1102,15 +1317,14 @@ export const generateStandaloneHtml = (
       const nodes = initialData.logicalData.nodes;
       if (nodes.length === 0) return;
 
-      const layout = initialData.visualData.layoutNodes;
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
       nodes.forEach(n => {
-        const pos = layout[n.id] || { x: 100, y: 100, width: 224, height: 52 };
-        minX = Math.min(minX, pos.x);
-        minY = Math.min(minY, pos.y);
-        maxX = Math.max(maxX, pos.x + (pos.width || 224));
-        maxY = Math.max(maxY, pos.y + (pos.height || 52));
+        const absPos = getAbsolutePos(n.id);
+        minX = Math.min(minX, absPos.x);
+        minY = Math.min(minY, absPos.y);
+        maxX = Math.max(maxX, absPos.x + absPos.width);
+        maxY = Math.max(maxY, absPos.y + absPos.height);
       });
 
       const width = maxX - minX + 200;

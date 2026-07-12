@@ -79,52 +79,112 @@ const themeStyles: Record<string, { border: string; borderHover: string; ring: s
   },
 };
 
-const getNodeTooltipState = (logicalData: any, visualData: any, currentTime: number, id: string) => {
+/**
+ * Determines a node's animation state at the current playhead time.
+ * Returns:
+ * - tooltipActive: true when internalProcess tooltip should show
+ * - text: internalProcess text
+ * - nodeActive: true when the node should be highlighted (the "ball" is at this node)
+ *
+ * Node highlighting rules:
+ * - SOURCE node: highlighted during forward transit (the ball is departing from this node)
+ * - TARGET node: highlighted from particle arrival until its work is done
+ *   - RT: from halfTransit arrival to returnStart (before return transit begins)
+ *   - Non-RT: from transit end to sched.end (children/internal complete)
+ * - SOURCE node (RT return): highlighted during return transit (ball coming back)
+ */
+const getNodeAnimState = (logicalData: any, visualData: any, currentTime: number, id: string) => {
+  let tooltipActive = false;
+  let tooltipText = '';
+  let nodeActive = false;
+
   try {
-    const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges);
-    const targetSeqs = logicalData.sequences.filter((s: any) => {
-      const edge = logicalData.edges.find((e: any) => e.id === s.edgeId);
-      return edge && edge.to === id;
-    });
+    const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges, logicalData.nodes);
 
-    for (const seq of targetSeqs) {
+    for (const seq of logicalData.sequences) {
+      const edge = logicalData.edges.find((e: any) => e.id === seq.edgeId);
+      if (!edge) continue;
+
       const sched = schedules[seq.id];
-      const timing = visualData.timelines[seq.id];
-      
-      if (sched && timing?.internalProcess) {
-        let tooltipStart = 0;
-        let tooltipEnd = 0;
+      if (!sched) continue;
+      if (currentTime < sched.start || currentTime > sched.end) continue;
 
-        if (seq.isRoundTrip) {
-          const transitHalf = timing.duration / 2;
-          // Internal process starts after forward transit + nested children complete
-          // which is: end - transitHalf(return) - ipDuration
-          const ipDuration = timing.internalProcess.duration ?? 1000;
-          tooltipStart = sched.end - transitHalf - ipDuration;
-          tooltipEnd = tooltipStart + ipDuration;
-        } else {
-          // Backward compatibility: show after edge animation completes
-          tooltipStart = sched.end;
-          tooltipEnd = sched.end + timing.internalProcess.duration;
+      const srcId = seq.direction === 'reverse' ? edge.to : edge.from;
+      const tgtId = seq.direction === 'reverse' ? edge.from : edge.to;
+      const elapsed = currentTime - sched.start;
+      const timing = visualData.timelines[seq.id];
+      const stepDuration = timing?.duration ?? 1000;
+
+      if (seq.isRoundTrip) {
+        const halfTransit = stepDuration / 2;
+        const totalElapsed = sched.end - sched.start;
+        const returnStartElapsed = totalElapsed - halfTransit;
+
+        if (id === srcId) {
+          // Source highlighted during forward transit and return transit
+          if (elapsed < halfTransit || elapsed >= returnStartElapsed) {
+            nodeActive = true;
+          }
         }
-        
-        if (currentTime >= tooltipStart && currentTime < tooltipEnd) {
-          return { text: timing.internalProcess.text, active: true };
+        if (id === tgtId) {
+          // Target highlighted from arrival to return start
+          if (elapsed >= halfTransit && elapsed < returnStartElapsed) {
+            nodeActive = true;
+          }
+        }
+
+        // Tooltip (internalProcess) — same as before
+        if (id === tgtId && timing?.internalProcess) {
+          const ipDuration = timing.internalProcess.duration ?? 1000;
+          const tooltipStart = sched.end - halfTransit - ipDuration;
+          const tooltipEnd = tooltipStart + ipDuration;
+          if (currentTime >= tooltipStart && currentTime < tooltipEnd) {
+            tooltipActive = true;
+            tooltipText = timing.internalProcess.text;
+          }
+        }
+      } else {
+        // Non-round-trip
+        const transitDuration = stepDuration;
+
+        if (id === srcId) {
+          // Source highlighted during forward transit
+          if (elapsed < transitDuration) {
+            nodeActive = true;
+          }
+        }
+        if (id === tgtId) {
+          // Target highlighted from arrival until schedule ends (children/work complete)
+          if (elapsed >= transitDuration) {
+            nodeActive = true;
+          }
+        }
+
+        // Tooltip (internalProcess) for non-RT
+        if (id === tgtId && timing?.internalProcess) {
+          const tooltipStart = sched.end;
+          const tooltipEnd = sched.end + timing.internalProcess.duration;
+          if (currentTime >= tooltipStart && currentTime < tooltipEnd) {
+            tooltipActive = true;
+            tooltipText = timing.internalProcess.text;
+          }
         }
       }
     }
   } catch (err) {
-    console.error('Error calculating tooltip state:', err);
+    console.error('Error calculating node anim state:', err);
   }
-  return { text: '', active: false };
+
+  return { text: tooltipText, tooltipActive, nodeActive };
 };
 
 export const BaseNode: React.FC<BaseNodeProps> = ({ id, data, selected }) => {
   const name = data?.name ?? 'Node';
   const type = data?.type ?? 'server';
 
-  const isProcessing = useAppStore((s: any) => getNodeTooltipState(s.logicalData, s.visualData, s.currentTime, id).active);
-  const activeTooltipText = useAppStore((s: any) => getNodeTooltipState(s.logicalData, s.visualData, s.currentTime, id).text);
+  const isProcessing = useAppStore((s: any) => getNodeAnimState(s.logicalData, s.visualData, s.currentTime, id).tooltipActive);
+  const isNodeActive = useAppStore((s: any) => getNodeAnimState(s.logicalData, s.visualData, s.currentTime, id).nodeActive);
+  const activeTooltipText = useAppStore((s: any) => getNodeAnimState(s.logicalData, s.visualData, s.currentTime, id).text);
   const themeKey = useAppStore((s: any) => s.visualData.layoutNodes[id]?.theme ?? 'indigo');
   const updateNodeDimensions = useAppStore((s: any) => s.updateNodeDimensions);
   const libraryComponents = useAppStore((s: any) => s.libraryComponents);
@@ -162,6 +222,8 @@ export const BaseNode: React.FC<BaseNodeProps> = ({ id, data, selected }) => {
       <div className={`px-4 py-3 rounded-xl border-2 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex items-center gap-3 w-full h-full shadow-md dark:shadow-xl transition-all duration-200 ${
         isProcessing
           ? 'border-emerald-500 dark:border-emerald-500 scale-[1.02] shadow-emerald-100 dark:shadow-emerald-950/40 ring-4 ring-emerald-500/20 animate-pulse'
+          : isNodeActive
+          ? 'border-indigo-500 dark:border-indigo-400 scale-[1.02] shadow-indigo-100 dark:shadow-indigo-950/40 ring-4 ring-indigo-500/20'
           : selected 
           ? `${style.border} scale-[1.02] ${style.ring} ring-4 ring-indigo-500/10` 
           : `${style.border} ${style.borderHover}`

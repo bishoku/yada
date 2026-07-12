@@ -14,6 +14,7 @@ interface EdgePropertiesPopoverProps {
     delay: number;
     tooltipText: string;
     tooltipDuration: number;
+    description?: string;
   } | null;
   onClose: () => void;
 }
@@ -40,6 +41,7 @@ export const EdgePropertiesPopover: React.FC<EdgePropertiesPopoverProps> = ({
   const [tooltipDuration, setTooltipDuration] = useState(1000);
   const [formDirection, setFormDirection] = useState<'forward' | 'reverse'>('forward');
   const [formRoundTrip, setFormRoundTrip] = useState(false);
+  const [description, setDescription] = useState('');
 
   useEffect(() => {
     if (properties) {
@@ -50,6 +52,7 @@ export const EdgePropertiesPopover: React.FC<EdgePropertiesPopoverProps> = ({
       setDelay(properties.delay);
       setTooltipText(properties.tooltipText);
       setTooltipDuration(properties.tooltipDuration);
+      setDescription(properties.description ?? '');
 
       const seq = logicalData.sequences.find((s) => s.edgeId === properties.id);
       setFormDirection(seq?.direction ?? 'forward');
@@ -67,7 +70,8 @@ export const EdgePropertiesPopover: React.FC<EdgePropertiesPopoverProps> = ({
       duration,
       delay,
       tooltipText,
-      tooltipDuration
+      tooltipDuration,
+      description
     );
 
     const seq = logicalData.sequences.find((s) => s.edgeId === properties.id);
@@ -242,6 +246,20 @@ export const EdgePropertiesPopover: React.FC<EdgePropertiesPopoverProps> = ({
             value={tooltipDuration}
             onChange={(e) => setTooltipDuration(Math.max(100, Number(e.target.value)))}
             className="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 font-sans"
+          />
+        </div>
+
+        {/* Step Description */}
+        <div className="flex flex-col gap-1 border-t border-slate-100 dark:border-slate-800/80 pt-2 mt-1">
+          <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider font-sans">
+            {theme === 'dark' ? 'Akış Açıklaması' : 'Flow Description'}
+          </label>
+          <textarea
+            rows={3}
+            placeholder={theme === 'dark' ? 'Bu adımda gerçekleşen işlem açıklaması...' : 'Step description...'}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 resize-none font-sans"
           />
         </div>
       </div>

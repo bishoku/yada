@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { 
   Boxes, Laptop, Network, Server, Database, Zap, ArrowRightLeft, 
-  Plus, Download, Upload, Edit, Trash2, Search, X
+  Plus, Download, Upload, Edit, Trash2, Search, X, SquareDashedBottom
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -29,6 +29,7 @@ export const SidebarLeft: React.FC = () => {
     { type: 'database', name: language === 'tr' ? 'Veritabanı (DB)' : 'Database', defaultName: 'Database', icon: <Database className="w-4 h-4 text-rose-500" /> },
     { type: 'cache', name: language === 'tr' ? 'Önbellek (Cache)' : 'Cache', defaultName: 'Cache', icon: <Zap className="w-4 h-4 text-cyan-500" /> },
     { type: 'message_queue', name: language === 'tr' ? 'Kuyruk (Queue)' : 'Queue', defaultName: 'Queue', icon: <ArrowRightLeft className="w-4 h-4 text-purple-500" /> },
+    { type: 'section', name: language === 'tr' ? 'Grup (Section)' : 'Section', defaultName: 'Section', icon: <SquareDashedBottom className="w-4 h-4 text-slate-500" /> },
   ];
 
   const handleMouseDown = useCallback((type: string, defaultName: string) => {
