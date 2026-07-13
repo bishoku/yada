@@ -22,6 +22,8 @@
     "allow-read-text-file",
     "allow-delete-file",
     "allow-list-json-files-in-dir",
-    "allow-get-global-components-dir"
+    "allow-get-global-components-dir",
+    "fs:default",
+    "fs:allow-write-file"
   ]
 }

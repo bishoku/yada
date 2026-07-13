@@ -55,7 +55,7 @@ const FlowWrapper: React.FC = () => {
   const updateNodeDetails = useAppStore((s) => s.updateNodeDetails);
   const pushToHistory = useAppStore((s) => s.pushToHistory);
 
-  const { screenToFlowPosition, setCenter } = useReactFlow();
+  const { screenToFlowPosition, setCenter, fitView } = useReactFlow();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // ── Local React Flow state ─────────────────────────────────────────────────
@@ -169,6 +169,16 @@ const FlowWrapper: React.FC = () => {
       });
     }
   }, [closeMenu, visualDataRef]);
+
+  // ── Listen for Export Trigger ───────────────
+  useEffect(() => {
+    const handleExportFitView = () => {
+      // Saniyesinde tam sığdırma yapar ki export işlemi tam canvası çekebilsin
+      fitView({ padding: 0.1, duration: 0 });
+    };
+    window.addEventListener('export:fitview', handleExportFitView);
+    return () => window.removeEventListener('export:fitview', handleExportFitView);
+  }, [fitView]);
 
   // ── Bi-directional Zoom/Center Focus on active Sequence/Edge ───────────────
   useEffect(() => {

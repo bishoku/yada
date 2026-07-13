@@ -3,6 +3,7 @@ import GIF from 'gif.js';
 import workerUrl from 'gif.js/dist/gif.worker.js?url';
 import { useAppStore } from '../store/useAppStore';
 import { save } from '@tauri-apps/plugin-dialog';
+import { writeFile } from '@tauri-apps/plugin-fs';
 import { isTauri } from '../services/storage';
 
 export const exportToPng = async (
@@ -41,10 +42,14 @@ export const exportToPng = async (
 
       if (!selectedPath) return;
 
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = defaultName;
-      a.click();
+      const base64Data = dataUrl.split(',')[1];
+      const binaryString = window.atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      await writeFile(selectedPath, bytes);
     } else {
       const a = document.createElement('a');
       a.href = dataUrl;
@@ -61,6 +66,8 @@ export const exportToGif = async (
   maxDuration: number,
   defaultName: string,
   language: 'tr' | 'en',
+  fps: number,
+  quality: number,
   onProgress: (percent: number) => void
 ): Promise<void> => {
   const node = document.querySelector(containerSelector) as HTMLElement;
@@ -77,10 +84,6 @@ export const exportToGif = async (
   }
 
   try {
-    // Performans Optimizasyonları:
-    // - FPS'i 30'dan 15'e düşürerek hem oluşturma süresini yarı yarıya azaltıyoruz
-    // - Hem de dosya boyutunu %50 civarında küçültüyoruz. (GIF için 15 FPS oldukça akıcıdır)
-    const fps = 15;
     const stepMs = 1000 / fps;
     const totalFrames = Math.max(1, Math.ceil(maxDuration / stepMs));
     
@@ -90,7 +93,7 @@ export const exportToGif = async (
     // Create GIF encoder
     const gif = new GIF({
       workers: 2,
-      quality: 15, // Default 10. Daha yüksek değer (örn: 15-20) daha hızlı şifreler, dosya boyutunu biraz düşürür
+      quality: quality, // Passed from user selection
       workerScript: workerUrl,
       background: bgColor, // Matches canvas background
       transparent: null,
@@ -145,12 +148,9 @@ export const exportToGif = async (
             });
 
             if (selectedPath) {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = defaultName;
-                a.click();
-                URL.revokeObjectURL(url);
+                const buffer = await blob.arrayBuffer();
+                const bytes = new Uint8Array(buffer);
+                await writeFile(selectedPath, bytes);
             }
           } else {
             const url = URL.createObjectURL(blob);

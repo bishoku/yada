@@ -60,6 +60,11 @@ export const TopBar: React.FC = () => {
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportProgress, setExportProgress] = useState<number | null>(null);
+  
+  // GIF Config State
+  const [showGifConfig, setShowGifConfig] = useState(false);
+  const [gifFps, setGifFps] = useState(15);
+  const [gifQuality, setGifQuality] = useState(80); // 1 to 100
 
   const handleBackToWelcome = () => {
     setWorkspace(null);
@@ -107,7 +112,9 @@ export const TopBar: React.FC = () => {
   const handleExportPng = async () => {
     try {
       const defaultName = `${currentWorkspace?.name || 'diagram'}.png`;
-      await exportToPng('.react-flow__viewport', defaultName, language);
+      window.dispatchEvent(new CustomEvent('export:fitview'));
+      await new Promise(r => setTimeout(r, 150)); // Wait for React Flow to fit the view
+      await exportToPng('.react-flow', defaultName, language);
     } catch (err) {
       console.error('Error exporting PNG:', err);
       alert(language === 'tr' ? `PNG dışa aktarma hatası: ${err}` : `PNG Export error: ${err}`);
@@ -115,6 +122,7 @@ export const TopBar: React.FC = () => {
   };
 
   const handleExportGif = async () => {
+    setShowGifConfig(false);
     try {
       setExportProgress(0);
       const defaultName = `${currentWorkspace?.name || 'diagram'}.gif`;
@@ -122,7 +130,13 @@ export const TopBar: React.FC = () => {
       const schedValues = Object.values(schedules);
       const maxDuration = schedValues.length > 0 ? Math.max(...schedValues.map(s => s.end)) + 500 : 2000;
 
-      await exportToGif('.react-flow', maxDuration, defaultName, language, (progress) => {
+      // Map 1-100 to 30-1 for gif.js (1 is best quality, 30 is worst)
+      const mappedQuality = Math.max(1, 31 - Math.round(gifQuality * 0.3));
+
+      window.dispatchEvent(new CustomEvent('export:fitview'));
+      await new Promise(r => setTimeout(r, 150)); // Wait for React Flow to fit the view
+
+      await exportToGif('.react-flow', maxDuration, defaultName, language, gifFps, mappedQuality, (progress) => {
         setExportProgress(progress);
       });
     } catch (err) {
@@ -382,7 +396,7 @@ export const TopBar: React.FC = () => {
                   </button>
                   <button
                     onClick={() => {
-                      handleExportGif();
+                      setShowGifConfig(true);
                       setShowExportMenu(false);
                     }}
                     className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center justify-between"
@@ -598,6 +612,82 @@ export const TopBar: React.FC = () => {
             </div>
             <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
               {exportProgress}%
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* GIF Export Settings Modal */}
+      {showGifConfig && createPortal(
+        <div className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[99999]">
+          <div className="bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl transition-all">
+            
+            <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+              <FileDown className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+              {language === 'tr' ? 'GIF Dışa Aktarma Ayarları' : 'GIF Export Settings'}
+            </h3>
+            
+            <div className="space-y-5">
+              <div>
+                <label className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                  <span>{language === 'tr' ? 'Kare Hızı (FPS)' : 'Framerate (FPS)'}</span>
+                  <span className="text-indigo-500">{gifFps} FPS</span>
+                </label>
+                <input
+                  type="range"
+                  min="5"
+                  max="30"
+                  step="1"
+                  value={gifFps}
+                  onChange={(e) => setGifFps(Number(e.target.value))}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  {language === 'tr' 
+                    ? 'Düşük FPS hızlı oluşturulur ve dosya boyutu küçüktür. Yüksek FPS daha akıcıdır.' 
+                    : 'Lower FPS exports faster with smaller size. Higher FPS is smoother.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                  <span>{language === 'tr' ? 'Kalite' : 'Quality'}</span>
+                  <span className="text-indigo-500">%{gifQuality}</span>
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="100"
+                  step="1"
+                  value={gifQuality}
+                  onChange={(e) => setGifQuality(Number(e.target.value))}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  {language === 'tr' 
+                    ? 'Yüksek kalite renkleri daha iyi korur ancak işlem süresini uzatır.' 
+                    : 'Higher quality preserves colors better but takes longer to encode.'}
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowGifConfig(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs cursor-pointer transition-colors"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportGif}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-slate-100 font-semibold rounded-xl text-xs cursor-pointer flex items-center gap-1 transition-colors"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  {language === 'tr' ? 'Oluştur' : 'Generate'}
+                </button>
+              </div>
             </div>
           </div>
         </div>,
