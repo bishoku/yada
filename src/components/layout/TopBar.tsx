@@ -7,7 +7,6 @@ import {
   Undo, Redo, FileDown, Copy, Grid, ChevronDown, Save, Loader2
 } from 'lucide-react';
 import { translations } from '../../i18n/translations';
-import { calculateSchedules } from '../../store/scheduler';
 import { generateStandaloneHtml } from '../../utils/exportTemplate';
 import { exportToPng, exportToGif } from '../../utils/exportMedia';
 import { save } from '@tauri-apps/plugin-dialog';
@@ -126,7 +125,7 @@ export const TopBar: React.FC = () => {
     try {
       setExportProgress(0);
       const defaultName = `${currentWorkspace?.name || 'diagram'}.gif`;
-      const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges, logicalData.nodes) as Record<string, { start: number, end: number }>;
+      const schedules = useAppStore.getState().schedules as Record<string, { start: number, end: number }>;
       const schedValues = Object.values(schedules);
       const maxDuration = schedValues.length > 0 ? Math.max(...schedValues.map(s => s.end)) + 500 : 2000;
 
@@ -169,7 +168,7 @@ export const TopBar: React.FC = () => {
     if (logicalData.sequences.length > 0) {
       text += `\n**${language === 'tr' ? 'Etkileşim Akışı (Zaman Tüneli)' : 'Interaction Flow (Timeline)'}:**\n`;
       
-      const schedules = calculateSchedules(logicalData.sequences, visualData.timelines, logicalData.edges, logicalData.nodes);
+      const schedules = useAppStore.getState().schedules;
       const sortedSchedules = Object.entries(schedules)
         .map(([id, range]) => ({ id, start: range.start, end: range.end }))
         .sort((a, b) => a.start - b.start);

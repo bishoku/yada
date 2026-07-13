@@ -157,6 +157,7 @@ export interface AppState {
   // Phase 2 Canvas State
   logicalData: LogicalDiagram;
   visualData: VisualDiagram;
+  focusedNodeId: string | null; // Focused node ID to trigger canvas centering
   
   // Custom Drag State (WKWebView doesn't support HTML5 drop)
   pendingDrop: { type: string; name: string } | null;
@@ -168,6 +169,7 @@ export interface AppState {
   activeSequenceIds: string[]; // Active animating sequence IDs
   schedules: Record<string, { start: number; end: number }>; // Pre-calculated schedules
   selectedSequenceId: string | null; // Selected/focused sequence ID
+  loopPlayback: boolean; // Loop playback when timeline reaches the end
 
   // Dynamic Layout State (Splitters & Toggle Sidebars)
   leftSidebarOpen: boolean;
@@ -211,6 +213,7 @@ export interface AppState {
   updateCanvasViewport: (zoom: number, pan: { x: number; y: number }) => void;
   startDrag: (type: string, name: string) => void;
   cancelDrag: () => void;
+  setFocusedNodeId: (id: string | null) => void;
 
   // Phase 3 Actions
   startPlayback: () => void;
@@ -219,6 +222,7 @@ export interface AppState {
   setCurrentTime: (time: number) => void;
   setPlaybackRate: (rate: number) => void;
   setSelectedSequenceId: (id: string | null) => void;
+  toggleLoopPlayback: () => void;
 
   addSequenceStep: (step: SequenceStep, timing: TimelineTiming) => void;
   updateSequenceTiming: (seqId: string, duration: number, delay: number) => void;

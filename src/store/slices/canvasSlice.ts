@@ -17,15 +17,29 @@ export interface CanvasSlice {
   clearCanvas: () => void;
   updateNodeDetails: (id: string, name: string, type: string, theme?: string, handles?: HandleConfig[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any) => void;
   updateNodeHandles: (nodeId: string, handles: HandleConfig[]) => void;
-  updateEdgeDetails: (edgeId: string, protocol: string, isAsync: boolean, duration: number, delay: number, tooltipText?: string, tooltipDuration?: number, description?: string) => void;
+  updateEdgeDetails: (
+    edgeId: string,
+    protocol: string,
+    isAsync: boolean,
+    duration: number,
+    delay: number,
+    tooltipText?: string,
+    tooltipDuration?: number,
+    description?: string,
+    particleType?: 'circle' | 'arrow' | 'envelope'
+  ) => void;
   setNodeParent: (nodeId: string, parentId: string | null) => void;
   autoResizeSection: (sectionId: string) => void;
   deleteSectionWithChoice: (sectionId: string, deleteChildren: boolean) => void;
   applyAutoLayout: (direction: 'TB' | 'LR') => void;
+  focusedNodeId: string | null;
+  setFocusedNodeId: (id: string | null) => void;
 }
 
 export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (set, get) => ({
   pendingDrop: null,
+  focusedNodeId: null,
+  setFocusedNodeId: (id) => set({ focusedNodeId: id }),
 
   addNode: (logical, visual) => {
     get().pushToHistory();
@@ -225,7 +239,17 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     });
   },
 
-  updateEdgeDetails: (id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description, particleType) => {
+  updateEdgeDetails: (
+    id: string,
+    protocol: string,
+    isAsync: boolean,
+    duration: number,
+    delay: number,
+    tooltipText?: string,
+    tooltipDuration?: number,
+    description?: string,
+    particleType?: 'circle' | 'arrow' | 'envelope'
+  ) => {
     set((state) => {
       const edges = state.logicalData.edges.map((e) =>
         e.id === id ? { ...e, protocol, isAsync, description, particleType } : e

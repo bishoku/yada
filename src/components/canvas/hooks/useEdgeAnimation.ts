@@ -16,7 +16,7 @@ export const useEdgeAnimation = (edgeId: string, pathRef: RefObject<SVGPathEleme
     const unsub = useAppStore.subscribe((state, prevState) => {
       const currentTime = state.currentTime;
       // Skip redundant checks if time hasn't changed and data hasn't changed
-      if (currentTime === 0 && prevState.currentTime === 0 && 
+      if (currentTime === prevState.currentTime && 
           state.logicalData === prevState.logicalData && 
           state.visualData === prevState.visualData) {
         return;

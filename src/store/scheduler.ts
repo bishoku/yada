@@ -81,17 +81,7 @@ export const calculateSchedules = (
     }
   });
 
-  // DEBUG: log nesting tree
-  console.group('[Scheduler] Nesting Tree');
-  sortedSeqs.forEach(seq => {
-    const snodes = seqNodes.get(seq.id)!;
-    const isRoot = !nested.has(seq.id);
-    const children = childrenOf.get(seq.id) || [];
-    console.log(
-      `S${seq.stepNumber} (${seq.id.slice(0,6)}) ${snodes.src}→${snodes.tgt} RT=${seq.isRoundTrip} async=${seq.isAsync} | ${isRoot ? 'ROOT' : 'NESTED'} | children: [${children.map(c => 'S'+c.stepNumber).join(', ')}]`
-    );
-  });
-  console.groupEnd();
+
 
   // Recursive: process a step and all its nested children, return total end time
   function processStep(seq: SequenceStep, startTime: number): number {
@@ -213,13 +203,7 @@ export const calculateSchedules = (
     groupStartTime = maxSyncEnd;
   });
 
-  // DEBUG: log final schedules
-  console.group('[Scheduler] Final Schedules');
-  sortedSeqs.forEach(seq => {
-    const s = schedules[seq.id];
-    if (s) console.log(`S${seq.stepNumber}: start=${s.start} end=${s.end} (duration=${s.end - s.start})`);
-  });
-  console.groupEnd();
+
 
   return schedules;
 };

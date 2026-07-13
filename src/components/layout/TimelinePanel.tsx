@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Settings, ArrowRightLeft, Trash2, Clock, X, Save,
-  Play, Pause, Square
+  Play, Pause, Square, Repeat
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { usePlayheadScrub } from '../timeline/usePlayheadScrub';
@@ -10,8 +10,6 @@ import { useTimingBarDrag } from '../timeline/useTimingBarDrag';
 import { TimelineRuler } from '../timeline/TimelineRuler';
 import { TimelineGrid } from '../timeline/TimelineGrid';
 import { ScrubLine } from '../timeline/ScrubLine';
-
-const PX_PER_MS = 0.2; // 1000ms = 200px
 
 const TimeReadout: React.FC<{ maxTime: number }> = ({ maxTime }) => {
   const currentTime = useAppStore((state) => state.currentTime);
@@ -51,6 +49,8 @@ export const TimelinePanel: React.FC = () => {
   const timelineOpen = useAppStore((s: any) => s.timelineOpen);
   const schedules = useAppStore((s) => s.schedules);
   const maxSteps = useAppStore((s) => s.maxSteps);
+  const loopPlayback = useAppStore((s) => s.loopPlayback);
+  const toggleLoopPlayback = useAppStore((s) => s.toggleLoopPlayback);
 
   const setCurrentTime = useAppStore((s) => s.setCurrentTime);
   const setSelectedSequenceId = useAppStore((s) => s.setSelectedSequenceId);
@@ -72,6 +72,21 @@ export const TimelinePanel: React.FC = () => {
 
   const trackAreaRef = useRef<HTMLDivElement>(null);
   const playheadRef = useRef<HTMLDivElement>(null);
+  const rightPanelRef = useRef<HTMLDivElement>(null);
+
+  const [rightPanelWidth, setRightPanelWidth] = useState(600);
+
+  // ResizeObserver to dynamically track the available width for scaling
+  useEffect(() => {
+    if (!rightPanelRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setRightPanelWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(rightPanelRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   // Find max simulation time
   const maxTime = Math.max(
@@ -84,16 +99,21 @@ export const TimelinePanel: React.FC = () => {
     })
   );
 
+  // Calculate dynamic scale (px per ms) based on available panel width (with 24px right padding)
+  const pxPerMs = Math.max(0.0001, (rightPanelWidth - 24) / maxTime);
+
   // Custom Hooks mapping layout interactions
   const { isScrubbing, handleTrackMouseDown } = usePlayheadScrub(
-    trackAreaRef,
+    rightPanelRef,
     playheadRef,
     maxTime,
+    pxPerMs,
     setCurrentTime
   );
 
   const { handleBarMouseDown, handleResizeMouseDown } = useTimingBarDrag(
-    updateSequenceTiming
+    updateSequenceTiming,
+    pxPerMs
   );
 
   // Playback Animation Loop (Updates playhead directly in the store)
@@ -117,8 +137,12 @@ export const TimelinePanel: React.FC = () => {
         const nextTime = state.currentTime + delta * state.playbackRate;
 
         if (nextTime >= maxTime) {
-          state.setCurrentTime(0);
-          previousTime = timestamp;
+          if (state.loopPlayback) {
+            state.setCurrentTime(0);
+            previousTime = timestamp;
+          } else {
+            state.stopPlayback();
+          }
         } else {
           state.setCurrentTime(nextTime);
         }
@@ -137,8 +161,6 @@ export const TimelinePanel: React.FC = () => {
       }
     };
   }, [isPlaying, maxTime]);
-
-
 
   // Open the tooltip configuration modal
   const openTooltipModal = (seqId: string) => {
@@ -209,8 +231,20 @@ export const TimelinePanel: React.FC = () => {
               <Square className="w-3.5 h-3.5 fill-current" />
             </button>
 
+            <button 
+              onClick={toggleLoopPlayback}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                loopPlayback 
+                  ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20' 
+                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-805 text-slate-400'
+              }`}
+              title={theme === 'dark' ? 'Dön' : 'Loop Playback'}
+            >
+              <Repeat className="w-3.5 h-3.5" />
+            </button>
+
             <span 
-              className="text-[10px] font-mono text-slate-500 dark:text-slate-400 min-w-[85px] text-center bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-800/50"
+              className="text-[10px] font-mono text-slate-550 dark:text-slate-400 min-w-[85px] text-center bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-800/50"
             >
               <TimeReadout maxTime={maxTime} />
             </span>
@@ -223,7 +257,7 @@ export const TimelinePanel: React.FC = () => {
                   className={`text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition-all duration-155 ${
                     playbackRate === rate 
                       ? 'bg-indigo-600 text-white shadow-sm' 
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-350'
+                      : 'text-slate-550 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-350'
                   }`}
                 >
                   {rate}x
@@ -232,25 +266,19 @@ export const TimelinePanel: React.FC = () => {
             </div>
           </div>
         </div>
-
-
       </div>
 
       {/* Main Unified Scrollable Timeline Workspace */}
       {timelineOpen && (
         <div 
           ref={trackAreaRef}
-          onMouseDown={handleTrackMouseDown}
-          className="flex-1 overflow-auto min-h-0 relative bg-slate-50/20 dark:bg-slate-900/10"
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 relative bg-slate-50/20 dark:bg-slate-900/10"
         >
-          <div 
-            className="flex min-h-full relative" 
-            style={{ width: maxTime * PX_PER_MS + 280 }}
-          >
+          <div className="flex min-h-full w-full relative">
             
-            {/* Left Side: Step labels column - Pinned Sticky to Left */}
+            {/* Left Side: Step labels column - Fixed Width, no horizontal scroll */}
             <div 
-              className="w-[280px] sticky left-0 z-30 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-850 flex flex-col shrink-0"
+              className="w-[340px] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-850 flex flex-col shrink-0"
               onMouseDown={(e) => e.stopPropagation()} // Prevent setting playhead when clicking left panel
             >
               {/* Header Spacer Row */}
@@ -283,11 +311,16 @@ export const TimelinePanel: React.FC = () => {
                   return (
                     <div
                       key={seq.id}
-                      onClick={() => setSelectedSequenceId(seq.id)}
-                      className={`min-h-[48px] py-1.5 px-3 border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between cursor-pointer group transition-colors duration-150 ${
+                      onClick={() => {
+                        if (isPlaying) return;
+                        setSelectedSequenceId(seq.id);
+                      }}
+                      className={`min-h-[48px] py-1.5 px-3 border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between transition-colors duration-150 group ${
+                        isPlaying ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                      } ${
                         isSelected 
                           ? 'bg-indigo-500/5 dark:bg-indigo-500/10 border-l-4 border-l-indigo-600' 
-                          : 'hover:bg-slate-100/50 dark:hover:bg-slate-900/30'
+                          : isPlaying ? '' : 'hover:bg-slate-100/50 dark:hover:bg-slate-900/30'
                       }`}
                     >
                       <div className="flex flex-col gap-0.5 min-w-0 flex-1">
@@ -305,7 +338,7 @@ export const TimelinePanel: React.FC = () => {
                           </span>
                         )}
                         {edge?.description && (
-                          <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 pl-1 leading-normal break-words">
+                          <span className="text-[9px] font-medium text-slate-550 dark:text-slate-400 pl-1 leading-normal break-words">
                             ↳ {edge.description}
                           </span>
                         )}
@@ -353,7 +386,7 @@ export const TimelinePanel: React.FC = () => {
                             e.stopPropagation();
                             deleteSequenceStep(seq.id);
                           }}
-                          className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer animate-none"
+                          className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-505 transition-colors cursor-pointer animate-none"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -364,32 +397,35 @@ export const TimelinePanel: React.FC = () => {
               )}
             </div>
             
-            {/* Right Side: Track Grid Canvas area */}
-            <div className="flex-1 flex flex-col relative h-full">
+            {/* Right Side: Track Grid area - Dynamic auto-scale width */}
+            <div 
+              ref={rightPanelRef}
+              className="flex-1 flex flex-col relative h-full min-w-0"
+              onMouseDown={handleTrackMouseDown}
+            >
               {/* Ruler Header Spacer Row */}
-              <TimelineRuler maxTime={maxTime} pxPerMs={PX_PER_MS} />
+              <TimelineRuler maxTime={maxTime} pxPerMs={pxPerMs} />
 
               {/* Tracks Container */}
-              <div className="flex-1 relative">
-                {/* Timeline Grid Background (Vertical lines stretching down) */}
-                <TimelineGrid maxTime={maxTime} pxPerMs={PX_PER_MS} />
+              <div className="flex-1 relative w-full">
+                {/* Timeline Grid Background */}
+                <TimelineGrid maxTime={maxTime} pxPerMs={pxPerMs} />
 
                 {/* Row Timing Tracks */}
-                <div className="flex flex-col relative z-20" style={{ width: maxTime * PX_PER_MS }}>
+                <div className="flex flex-col relative z-20 w-full">
                   {sortedSequences.map((seq) => {
                     const timing = visualData.timelines[seq.id] || { sequenceId: seq.id, duration: 1000, delay: 0 };
                     const sched = schedules[seq.id];
                     if (!sched) return null;
 
-                    const left = sched.start * PX_PER_MS;
-                    const width = (timing.duration ?? 1000) * PX_PER_MS;
+                    const left = sched.start * pxPerMs;
+                    const width = (timing.duration ?? 1000) * pxPerMs;
                     const isSelected = selectedSequenceId === seq.id;
 
                     return (
                       <div 
                         key={seq.id} 
-                        className="h-12 border-b border-slate-200/50 dark:border-slate-800/20 relative flex items-center"
-                        style={{ width: '100%' }}
+                        className="h-12 border-b border-slate-200/50 dark:border-slate-800/20 relative flex items-center w-full"
                       >
                         {/* Interactive Drag Bar */}
                         <div
@@ -400,7 +436,7 @@ export const TimelinePanel: React.FC = () => {
                           onDoubleClick={() => openTooltipModal(seq.id)}
                           className={`h-6 rounded-lg absolute cursor-grab active:cursor-grabbing transition-shadow flex items-center justify-between px-2 text-[10px] font-bold text-white group border ${
                             isSelected 
-                              ? 'ring-2 ring-indigo-500/40 shadow-lg shadow-indigo-600/10' 
+                              ? 'ring-2 ring-indigo-500/40 shadow-lg shadow-indigo-655/10' 
                               : 'shadow-sm'
                           } ${
                             seq.isAsync 
@@ -432,7 +468,7 @@ export const TimelinePanel: React.FC = () => {
 
                 {/* Vertical Playhead Scrub Line Indicator */}
                 <ScrubLine 
-                  pxPerMs={PX_PER_MS} 
+                  pxPerMs={pxPerMs} 
                   isPlaying={isPlaying} 
                   isScrubbing={isScrubbing} 
                   playheadRef={playheadRef} 

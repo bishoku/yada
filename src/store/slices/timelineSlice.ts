@@ -1,6 +1,5 @@
 import { StateCreator } from 'zustand';
 import { AppState, SequenceStep, TimelineTiming } from '../../types';
-import { calculateSchedules } from '../scheduler';
 
 export interface TimelineSlice {
   isPlaying: boolean;
@@ -10,6 +9,7 @@ export interface TimelineSlice {
   selectedSequenceId: string | null;
   timelineOpen: boolean;
   timelineHeight: number;
+  loopPlayback: boolean;
 
   startPlayback: () => void;
   pausePlayback: () => void;
@@ -17,6 +17,7 @@ export interface TimelineSlice {
   setCurrentTime: (time: number) => void;
   setPlaybackRate: (rate: number) => void;
   setSelectedSequenceId: (id: string | null) => void;
+  toggleLoopPlayback: () => void;
   addSequenceStep: (step: SequenceStep, timing: TimelineTiming) => void;
   updateSequenceTiming: (seqId: string, duration: number, delay: number) => void;
   updateSequenceProcess: (seqId: string, text: string, duration: number) => void;
@@ -37,14 +38,16 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   selectedSequenceId: null,
   timelineOpen: true,
   timelineHeight: 250,
+  loopPlayback: true,
 
-  startPlayback: () => set({ isPlaying: true }),
+  startPlayback: () => set({ isPlaying: true, selectedSequenceId: null }),
   pausePlayback: () => set({ isPlaying: false }),
   stopPlayback: () => set({ isPlaying: false, currentTime: 0, activeSequenceIds: [] }),
+  toggleLoopPlayback: () => set((state) => ({ loopPlayback: !state.loopPlayback })),
   
   setCurrentTime: (time) => {
     set((state) => {
-      const schedules = calculateSchedules(state.logicalData.sequences, state.visualData.timelines, state.logicalData.edges, state.logicalData.nodes);
+      const schedules = state.schedules;
       const activeSequenceIds: string[] = [];
       
       Object.entries(schedules).forEach(([seqId, sched]) => {

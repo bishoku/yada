@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Settings, X, Save, Plus, Trash2, ArrowRight, ArrowLeft, ArrowRightLeft } from 'lucide-react';
+import { Settings, X, Save, Plus, Trash2 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { HandleConfig, PortSide } from '../../types';
 import { resolveHandles, MAX_HANDLES_PER_SIDE, MAX_HANDLES_PER_NODE } from '../../utils/portUtils';

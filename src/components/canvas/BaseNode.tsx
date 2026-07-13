@@ -1,6 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { Handle, Position, NodeResizer, useConnection } from '@xyflow/react';
 import { MessageSquare } from 'lucide-react';
+import { useShallow } from 'zustand/shallow';
 import { useAppStore } from '../../store/useAppStore';
 import { CustomSvgRenderer } from './CustomSvgRenderer';
 import { useNodeAnimation } from './hooks';
@@ -66,15 +67,18 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
     return ln?.handles;
   });
 
-  const logicalData     = useAppStore((s: any) => s.logicalData);
-  const connectedHandles = useMemo(() => {
-    const connected = new Set<string>();
-    logicalData.edges.forEach((e: any) => {
-      if (e.from === id) connected.add(e.fromPort);
-      if (e.to === id) connected.add(e.toPort);
-    });
-    return connected;
-  }, [logicalData.edges, id]);
+  const connectedHandlesArray = useAppStore(
+    useShallow((s: any) => {
+      const ports = new Set<string>();
+      s.logicalData.edges.forEach((e: any) => {
+        if (e.from === id) ports.add(e.fromPort);
+        if (e.to === id) ports.add(e.toPort);
+      });
+      return Array.from(ports).sort();
+    })
+  );
+
+  const connectedHandles = useMemo(() => new Set(connectedHandlesArray), [connectedHandlesArray]);
 
   const handles         = useMemo(() => resolveHandles(nodeHandles), [nodeHandles]);
   const style           = themeStyles[themeKey] ?? themeStyles.indigo;

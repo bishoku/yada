@@ -1,4 +1,5 @@
 import React from 'react';
+import { getOptimalTickInterval } from './utils';
 
 interface TimelineGridProps {
   maxTime: number;
@@ -6,7 +7,8 @@ interface TimelineGridProps {
 }
 
 export const TimelineGrid: React.FC<TimelineGridProps> = ({ maxTime, pxPerMs }) => {
-  const steps = Math.ceil(maxTime / 200);
+  const tickInterval = getOptimalTickInterval(pxPerMs);
+  const steps = Math.ceil(maxTime / tickInterval);
   return (
     <div 
       className="absolute inset-y-0 left-0 flex pointer-events-none z-10"
@@ -16,7 +18,7 @@ export const TimelineGrid: React.FC<TimelineGridProps> = ({ maxTime, pxPerMs }) 
         <div 
           key={i} 
           className="h-full border-r border-slate-200/30 dark:border-slate-800/5"
-          style={{ width: 200 * pxPerMs }}
+          style={{ width: tickInterval * pxPerMs }}
         />
       ))}
     </div>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
-import { calculateSchedules } from '../../../store/scheduler';
 
 export const useSectionAnimation = (sectionId: string) => {
   const [isActive, setIsActive] = useState(false);
@@ -8,7 +7,7 @@ export const useSectionAnimation = (sectionId: string) => {
   useEffect(() => {
     const unsub = useAppStore.subscribe((state, prevState) => {
       const currentTime = state.currentTime;
-      if (currentTime === 0 && prevState.currentTime === 0 && 
+      if (currentTime === prevState.currentTime && 
           state.logicalData === prevState.logicalData && 
           state.visualData === prevState.visualData) {
         return;
@@ -16,12 +15,7 @@ export const useSectionAnimation = (sectionId: string) => {
 
       let active = false;
       try {
-        const schedules = calculateSchedules(
-          state.logicalData.sequences, 
-          state.visualData.timelines, 
-          state.logicalData.edges, 
-          state.logicalData.nodes
-        );
+        const schedules = state.schedules;
         
         const targetSeqs = state.logicalData.sequences.filter((s: any) => {
           const edge = state.logicalData.edges.find((e: any) => e.id === s.edgeId);

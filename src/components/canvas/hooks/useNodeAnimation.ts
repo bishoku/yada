@@ -14,7 +14,7 @@ export const useNodeAnimation = (nodeId: string) => {
       // If we're not playing and the time hasn't changed, we don't necessarily need to recalculate every tick
       // However, if logicalData changes we should recalculate if time > 0.
       const currentTime = state.currentTime;
-      if (currentTime === 0 && prevState.currentTime === 0 && 
+      if (currentTime === prevState.currentTime && 
           state.logicalData === prevState.logicalData && 
           state.visualData === prevState.visualData) {
         return;

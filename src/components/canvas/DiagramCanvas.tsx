@@ -56,6 +56,9 @@ const FlowWrapper: React.FC = () => {
   const clearCanvas = useAppStore((s) => s.clearCanvas);
   const updateNodeDetails = useAppStore((s) => s.updateNodeDetails);
   const pushToHistory = useAppStore((s) => s.pushToHistory);
+  const focusedNodeId = useAppStore((s) => s.focusedNodeId);
+  const setFocusedNodeId = useAppStore((s) => s.setFocusedNodeId);
+  const isPlaying = useAppStore((s) => s.isPlaying);
 
   const { screenToFlowPosition, setCenter, fitView } = useReactFlow();
   const { x: viewportX, y: viewportY, zoom } = useViewport();
@@ -108,7 +111,7 @@ const FlowWrapper: React.FC = () => {
     tooltipDuration: number;
     description?: string;
     isNew?: boolean;
-    particleType?: string;
+    particleType?: 'circle' | 'arrow' | 'envelope';
   } | null>(null);
 
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -130,10 +133,62 @@ const FlowWrapper: React.FC = () => {
   const { visualDataRef } = useCanvasSync(setRfNodes, setRfEdges);
   useCanvasDrop(wrapperRef, screenToFlowPosition, setRfNodes);
   useCanvasShortcuts(closeMenu, handleCancelActiveEdge);
+  
+  // Focus on node from external triggers (e.g., SidebarRight)
+  useEffect(() => {
+    if (focusedNodeId) {
+      const vn = useAppStore.getState().visualData.layoutNodes[focusedNodeId];
+      if (vn) {
+        const logicalNodes = useAppStore.getState().logicalData.nodes;
+        const layoutNodes = useAppStore.getState().visualData.layoutNodes;
+
+        // Recursive helper to resolve absolute position of nested children
+        const getAbsolutePos = (id: string): { x: number; y: number } => {
+          const v = layoutNodes[id];
+          if (!v) return { x: 0, y: 0 };
+          const l = logicalNodes.find((n) => n.id === id);
+          if (l?.parentId) {
+            const parentPos = getAbsolutePos(l.parentId);
+            return { x: v.x + parentPos.x, y: v.y + parentPos.y };
+          }
+          return { x: v.x, y: v.y };
+        };
+
+        const absPos = getAbsolutePos(focusedNodeId);
+        const x = absPos.x + (vn.width ?? 120) / 2;
+        const y = absPos.y + (vn.height ?? 80) / 2;
+        setCenter(x, y, { zoom: 1.2, duration: 800 });
+
+        setSelectedSequenceId(null);
+        setActiveEdgeProperties(null);
+        setRfEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
+
+        setRfNodes((nds) =>
+          nds.map((n) => ({
+            ...n,
+            selected: n.id === focusedNodeId,
+          }))
+        );
+      }
+      setFocusedNodeId(null);
+    }
+  }, [focusedNodeId, setCenter, setRfNodes, setFocusedNodeId, setSelectedSequenceId, setRfEdges]);
+
+  // Clear selected states and property panels when simulation starts playing
+  useEffect(() => {
+    if (isPlaying) {
+      setRfNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
+      setRfEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
+      setActiveNodeProperties(null);
+      setActiveEdgeProperties(null);
+    }
+  }, [isPlaying, setRfNodes, setRfEdges]);
+
   const { onNodeDragStop } = useSectionDrag();
 
   // ── View Interactions ─────────────────────────────────────────────────────
   const handleNodeClick = useCallback((e: React.MouseEvent, node: Node) => {
+    if (isPlaying) return;
     e.stopPropagation();
     closeMenu();
     setActiveEdgeProperties(null);
@@ -158,6 +213,7 @@ const FlowWrapper: React.FC = () => {
   }, [closeMenu, visualDataRef]);
 
   const handleEdgeClick = useCallback((e: React.MouseEvent, edge: Edge) => {
+    if (isPlaying) return;
     e.stopPropagation();
     closeMenu();
     setActiveNodeProperties(null);
@@ -202,7 +258,10 @@ const FlowWrapper: React.FC = () => {
     return () => window.removeEventListener('export:fitview', handleExportFitView);
   }, [fitView]);
   useEffect(() => {
-    if (!selectedSequenceId) return;
+    if (!selectedSequenceId) {
+      setRfEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
+      return;
+    }
     const logicalData = useAppStore.getState().logicalData;
     const seq = logicalData.sequences.find((s) => s.id === selectedSequenceId);
     if (!seq) return;
@@ -214,10 +273,49 @@ const FlowWrapper: React.FC = () => {
     const targetNode = visualDataRef.current.layoutNodes[edge.to];
     if (!sourceNode || !targetNode) return;
 
-    const centerX = (sourceNode.x + targetNode.x) / 2 + 112;
-    const centerY = (sourceNode.y + targetNode.y) / 2 + 24;
+    const logicalNodes = logicalData.nodes;
+    const layoutNodes = visualDataRef.current.layoutNodes;
+
+    // Helper to calculate absolute node position recursively
+    const getAbsolutePos = (id: string): { x: number; y: number } => {
+      const v = layoutNodes[id];
+      if (!v) return { x: 0, y: 0 };
+      const l = logicalNodes.find((n) => n.id === id);
+      if (l?.parentId) {
+        const parentPos = getAbsolutePos(l.parentId);
+        return { x: v.x + parentPos.x, y: v.y + parentPos.y };
+      }
+      return { x: v.x, y: v.y };
+    };
+
+    const sourcePos = getAbsolutePos(edge.from);
+    const targetPos = getAbsolutePos(edge.to);
+
+    const sourceW = sourceNode.width ?? 120;
+    const sourceH = sourceNode.height ?? 80;
+    const targetW = targetNode.width ?? 120;
+    const targetH = targetNode.height ?? 80;
+
+    const sourceCenterX = sourcePos.x + sourceW / 2;
+    const sourceCenterY = sourcePos.y + sourceH / 2;
+    const targetCenterX = targetPos.x + targetW / 2;
+    const targetCenterY = targetPos.y + targetH / 2;
+
+    const centerX = (sourceCenterX + targetCenterX) / 2;
+    const centerY = (sourceCenterY + targetCenterY) / 2;
+    
     setCenter(centerX, centerY, { zoom: 1.3, duration: 800 });
-  }, [selectedSequenceId, setCenter, visualDataRef]);
+
+    setRfNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
+    setActiveNodeProperties(null);
+
+    setRfEdges((eds) =>
+      eds.map((e) => ({
+        ...e,
+        selected: e.id === edge.id,
+      }))
+    );
+  }, [selectedSequenceId, setCenter, setRfEdges, setRfNodes, visualDataRef]);
 
   useEffect(() => {
     window.addEventListener('click', closeMenu);
@@ -231,6 +329,15 @@ const FlowWrapper: React.FC = () => {
   // ── Node changes ──────────────────────────────────────────────────────────
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
+      if (isPlaying) return;
+
+      const hasNodeSelection = changes.some((c) => c.type === 'select' && c.selected);
+      if (hasNodeSelection) {
+        setSelectedSequenceId(null);
+        setActiveEdgeProperties(null);
+        setRfEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
+      }
+
       // Smart Alignment Snapping implementation
       const positionChanges = changes.filter(c => c.type === 'position' && c.position) as any[];
       if (positionChanges.length === 1 && positionChanges[0].dragging) {
@@ -343,23 +450,32 @@ const FlowWrapper: React.FC = () => {
         }
       });
     },
-    [setRfNodes, updateNodePosition, deleteNode]
+    [setRfNodes, updateNodePosition, deleteNode, isPlaying, setSelectedSequenceId, setRfEdges]
   );
 
   // ── Edge changes ──────────────────────────────────────────────────────────
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
+      if (isPlaying) return;
+
+      const hasEdgeSelection = changes.some((c) => c.type === 'select' && c.selected);
+      if (hasEdgeSelection) {
+        setActiveNodeProperties(null);
+        setRfNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
+      }
+
       setRfEdges((eds) => applyEdgeChanges(changes, eds));
       changes.forEach((change) => {
         if (change.type === 'remove') deleteEdge(change.id);
       });
     },
-    [setRfEdges, deleteEdge]
+    [setRfEdges, deleteEdge, isPlaying, setRfNodes]
   );
 
   // ── Handle Connection ──────────────────────────────────────────────────────
   const onConnectStart = useCallback(
     (_event: any, params: { nodeId: string | null; handleId: string | null }) => {
+      if (isPlaying) return;
       // Dismiss open panels so they don't cover the new edge properties panel
       setActiveNodeProperties(null);
       setActiveEdgeProperties(null);
@@ -458,6 +574,7 @@ const FlowWrapper: React.FC = () => {
 
   const onReconnect = useCallback(
     (oldEdge: Edge, newConnection: Connection) => {
+      if (isPlaying) return;
       if (!newConnection.source || !newConnection.target) return;
       setRfEdges((els) => reconnectEdge(oldEdge, newConnection, els));
       const fromPort = (newConnection.sourceHandle ?? 'right:50').split('-')[0];
@@ -669,6 +786,8 @@ const FlowWrapper: React.FC = () => {
       <ReactFlow
         nodes={rfNodes}
         edges={rfEdges}
+        nodesDraggable={!isPlaying}
+        nodesConnectable={!isPlaying}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}

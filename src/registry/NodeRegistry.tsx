@@ -1,5 +1,5 @@
 import React from 'react';
-import { Laptop, Network, Server, Database, Zap, ArrowRightLeft, Cpu, SquareDashedBottom, Route, Rows, Shield } from 'lucide-react';
+import { Laptop, Network, Server, Database, Zap, Cpu, SquareDashedBottom, Route, Rows, Shield } from 'lucide-react';
 
 export type ComponentCategory = 'standard' | 'section' | 'custom';
 

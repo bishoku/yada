@@ -1,17 +1,17 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
-const PX_PER_MS = 0.2;
-const MS_PER_PX = 1 / PX_PER_MS;
-
 export const usePlayheadScrub = (
   trackAreaRef: React.RefObject<HTMLDivElement | null>,
   playheadRef: React.RefObject<HTMLDivElement | null>,
   maxTime: number,
+  pxPerMs: number,
   setCurrentTime: (time: number) => void
 ) => {
   const [isScrubbing, setIsScrubbing] = useState(false);
   const scrubTimeRef = useRef<number | null>(null);
   const lastDispatchedTimeRef = useRef<number>(0);
+
+  const msPerPx = 1 / pxPerMs;
 
   // High-Performance Scrubbing Frame-Throttle Loop
   useEffect(() => {
@@ -38,31 +38,27 @@ export const usePlayheadScrub = (
     
     const rect = trackAreaRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    if (x <= 280) return; // Do not seek if clicking left label sidebar
 
     setIsScrubbing(true);
-    const scrollLeft = trackAreaRef.current.scrollLeft;
-    const trackX = x - 280 + scrollLeft;
-    const time = Math.min(Math.max(0, trackX * MS_PER_PX), maxTime);
+    const time = Math.min(Math.max(0, x * msPerPx), maxTime);
     
     scrubTimeRef.current = time;
     setCurrentTime(time);
-  }, [trackAreaRef, maxTime, setCurrentTime]);
+  }, [trackAreaRef, maxTime, setCurrentTime, msPerPx]);
 
   const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
     if (!isScrubbing || !trackAreaRef.current) return;
 
     const rect = trackAreaRef.current.getBoundingClientRect();
-    const scrollLeft = trackAreaRef.current.scrollLeft;
-    const x = e.clientX - rect.left - 280 + scrollLeft;
-    const time = Math.min(Math.max(0, x * MS_PER_PX), maxTime);
+    const x = e.clientX - rect.left;
+    const time = Math.min(Math.max(0, x * msPerPx), maxTime);
 
     scrubTimeRef.current = time;
 
     if (playheadRef.current) {
-      playheadRef.current.style.left = `${time * PX_PER_MS}px`;
+      playheadRef.current.style.left = `${time * pxPerMs}px`;
     }
-  }, [isScrubbing, trackAreaRef, maxTime, playheadRef]);
+  }, [isScrubbing, trackAreaRef, maxTime, playheadRef, pxPerMs, msPerPx]);
 
   const handleGlobalMouseUp = useCallback(() => {
     if (!isScrubbing) return;

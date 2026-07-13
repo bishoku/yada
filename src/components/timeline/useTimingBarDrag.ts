@@ -1,10 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 
-const PX_PER_MS = 0.2;
-const MS_PER_PX = 1 / PX_PER_MS;
-
 export const useTimingBarDrag = (
-  updateSequenceTiming: (seqId: string, duration: number, delay: number) => void
+  updateSequenceTiming: (seqId: string, duration: number, delay: number) => void,
+  pxPerMs: number
 ) => {
   const [activeDrag, setActiveDrag] = useState<{
     id: string;
@@ -13,6 +11,8 @@ export const useTimingBarDrag = (
     initialDelay: number;
     initialDuration: number;
   } | null>(null);
+
+  const msPerPx = 1 / pxPerMs;
 
   const handleBarMouseDown = useCallback((
     e: React.MouseEvent,
@@ -51,7 +51,7 @@ export const useTimingBarDrag = (
 
     const deltaX = e.clientX - activeDrag.startX;
     // Snap to 50ms grid ticks
-    const deltaMs = Math.round((deltaX * MS_PER_PX) / 50) * 50;
+    const deltaMs = Math.round((deltaX * msPerPx) / 50) * 50;
 
     if (activeDrag.type === 'drag') {
       const newDelay = Math.max(0, activeDrag.initialDelay + deltaMs);
@@ -60,7 +60,7 @@ export const useTimingBarDrag = (
       const newDuration = Math.max(100, activeDrag.initialDuration + deltaMs);
       updateSequenceTiming(activeDrag.id, newDuration, activeDrag.initialDelay);
     }
-  }, [activeDrag, updateSequenceTiming]);
+  }, [activeDrag, updateSequenceTiming, msPerPx]);
 
   const handleGlobalMouseUp = useCallback(() => {
     if (activeDrag) {

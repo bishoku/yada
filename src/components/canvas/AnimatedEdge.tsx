@@ -130,11 +130,9 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   let strokeColor = '#94a3b8'; // Default slate-400
   let isEdgeActive = false;
 
-  if (isAnimating) {
-    strokeColor = '#6366f1'; // Active animating indigo-500
+  if (isAnimating || isSelected) {
+    strokeColor = '#6366f1'; // Indigo-500 for active or selected
     isEdgeActive = true;
-  } else if (isSelected) {
-    strokeColor = '#6366f1'; // Selected indigo-500
   }
 
   const particleType = le?.particleType ?? 'circle';
@@ -156,12 +154,14 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
         ref={pathRef}
         d={edgePath}
         fill="none"
-        stroke={strokeColor}
-        strokeWidth={isEdgeActive ? 3.5 : (isSelected ? 3 : 2)}
         strokeDasharray={isAsync ? '5,5' : undefined}
         markerEnd={markerEnd}
         className="react-flow__edge-path transition-all duration-150"
-        style={isEdgeActive ? { filter: 'drop-shadow(0 0 3px rgba(99, 102, 241, 0.6))' } : undefined}
+        style={{
+          stroke: strokeColor,
+          strokeWidth: isEdgeActive ? 4 : 2,
+          filter: isEdgeActive ? 'drop-shadow(0 0 6px rgba(99, 102, 241, 0.95))' : undefined,
+        }}
       />
       
       {/* Playback particle */}
