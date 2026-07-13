@@ -80,6 +80,16 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
   const connection = useConnection();
   const isConnecting = !!connection.inProgress;
 
+  const logicalData = useAppStore((s: any) => s.logicalData);
+  const connectedHandles = useMemo(() => {
+    const connected = new Set<string>();
+    logicalData.edges.forEach((e: any) => {
+      if (e.from === id) connected.add(e.fromPort);
+      if (e.to === id) connected.add(e.toPort);
+    });
+    return connected;
+  }, [logicalData.edges, id]);
+
   const handles = useMemo(() => resolveHandles(nodeHandles), [nodeHandles]);
   const isActive = useSectionAnimation(id);
   const style = themeStyles[themeKey] ?? themeStyles.slate;
@@ -120,6 +130,9 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
       {handles.map((h) => {
         const pos = sideToPosition(h.side);
         const posStyle = getHandleStyle(h.side, h.offset);
+        const isConnected = connectedHandles.has(h.id);
+        const handleClass = isConnected ? 'handle-connected' : 'handle-idle';
+
         return (
           <React.Fragment key={h.id}>
             <Handle 
@@ -127,14 +140,14 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
               position={pos} 
               id={`${h.id}-target`}
               style={posStyle}
-              className="!w-3.5 !h-3.5 !border-2 !border-white dark:!border-slate-900 !bg-slate-400 dark:!bg-slate-500 hover:!bg-indigo-500 hover:!scale-125 !transition-all !rounded-full" 
+              className={`!w-3.5 !h-3.5 !border-2 !border-white dark:!border-slate-900 !bg-slate-400 dark:!bg-slate-500 hover:!bg-indigo-500 hover:!scale-125 !transition-all !rounded-full ${handleClass}`}
             />
             <Handle 
               type="source" 
               position={pos} 
               id={`${h.id}-source`}
               style={{ ...posStyle, pointerEvents: isConnecting ? 'none' : 'auto' }}
-              className="!w-3.5 !h-3.5 !border-2 !border-white dark:!border-slate-900 !bg-slate-400 dark:!bg-slate-500 hover:!bg-indigo-500 hover:!scale-125 !transition-all !rounded-full" 
+              className={`!w-3.5 !h-3.5 !border-2 !border-white dark:!border-slate-900 !bg-slate-400 dark:!bg-slate-500 hover:!bg-indigo-500 hover:!scale-125 !transition-all !rounded-full ${handleClass}`}
             />
           </React.Fragment>
         );

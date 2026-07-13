@@ -16,6 +16,7 @@ import {
   applyNodeChanges,
   applyEdgeChanges,
   reconnectEdge,
+  useViewport,
 } from '@xyflow/react';
 import { BaseNode } from './BaseNode';
 import { AnimatedEdge } from './AnimatedEdge';
@@ -24,8 +25,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { Trash2 } from 'lucide-react';
 
 import { ContextMenu } from './ContextMenu';
-import { NodePropertiesPopover } from './NodePropertiesPopover';
-import { EdgePropertiesPopover } from './EdgePropertiesPopover';
+import { PropertiesPanel } from './PropertiesPanel';
 import { ClearCanvasModal } from './ClearCanvasModal';
 import { getDefaultHandles } from '../../utils/portUtils';
 
@@ -38,6 +38,8 @@ import {
 
 const nodeTypes = { customNode: BaseNode, sectionNode: SectionNode };
 const edgeTypes = { customEdge: AnimatedEdge };
+
+
 
 const FlowWrapper: React.FC = () => {
   const updateNodePosition = useAppStore((s) => s.updateNodePosition);
@@ -56,11 +58,15 @@ const FlowWrapper: React.FC = () => {
   const pushToHistory = useAppStore((s) => s.pushToHistory);
 
   const { screenToFlowPosition, setCenter, fitView } = useReactFlow();
+  const { x: viewportX, y: viewportY, zoom } = useViewport();
   const wrapperRef = useRef<HTMLDivElement>(null);
+  
+
 
   // ── Local React Flow state ─────────────────────────────────────────────────
   const [rfNodes, setRfNodes] = useNodesState<Node>([]);
   const [rfEdges, setRfEdges] = useEdgesState<Edge>([]);
+  const [alignmentLines, setAlignmentLines] = useState<{ type: 'horizontal' | 'vertical', pos: number, start: number, end: number }[]>([]);
 
   // ── Context Menu State ─────────────────────────────────────────────────────
   const [menu, setMenu] = useState<{
@@ -84,6 +90,9 @@ const FlowWrapper: React.FC = () => {
     type: string;
     theme: string;
     handles?: any[];
+    displayMode?: 'default' | 'icon-only';
+    rotation?: number;
+    customStyles?: any;
   } | null>(null);
 
   const [activeEdgeProperties, setActiveEdgeProperties] = useState<{
@@ -99,6 +108,7 @@ const FlowWrapper: React.FC = () => {
     tooltipDuration: number;
     description?: string;
     isNew?: boolean;
+    particleType?: string;
   } | null>(null);
 
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -113,7 +123,8 @@ const FlowWrapper: React.FC = () => {
       }
       return null;
     });
-  }, [deleteEdge, setRfEdges]);
+    setActiveNodeProperties(null);
+  }, [deleteEdge, setRfEdges, pushToHistory]);
 
   // ── Custom Hooks ──────────────────────────────────────────────────────────
   const { visualDataRef } = useCanvasSync(setRfNodes, setRfEdges);
@@ -122,7 +133,7 @@ const FlowWrapper: React.FC = () => {
   const { onNodeDragStop } = useSectionDrag();
 
   // ── View Interactions ─────────────────────────────────────────────────────
-  const handleNodeDoubleClick = useCallback((e: React.MouseEvent, node: Node) => {
+  const handleNodeClick = useCallback((e: React.MouseEvent, node: Node) => {
     e.stopPropagation();
     closeMenu();
     setActiveEdgeProperties(null);
@@ -139,19 +150,29 @@ const FlowWrapper: React.FC = () => {
         type: ln.type,
         theme: vn?.theme ?? 'indigo',
         handles: ln.handles,
+        displayMode: vn?.displayMode ?? 'default',
+        rotation: vn?.rotation ?? 0,
+        customStyles: vn?.customStyles ?? {},
       });
     }
   }, [closeMenu, visualDataRef]);
 
-  const handleEdgeDoubleClick = useCallback((e: React.MouseEvent, edge: Edge) => {
+  const handleEdgeClick = useCallback((e: React.MouseEvent, edge: Edge) => {
     e.stopPropagation();
     closeMenu();
     setActiveNodeProperties(null);
 
     const logicalData = useAppStore.getState().logicalData;
     const le = logicalData.edges.find(e => e.id === edge.id);
+    const seq = logicalData.sequences.find(s => s.edgeId === edge.id);
+    
+    if (seq) {
+      setSelectedSequenceId(seq.id);
+    } else {
+      setSelectedSequenceId(null);
+    }
+
     if (le) {
-      const seq = logicalData.sequences.find(s => s.edgeId === edge.id);
       const timing = seq ? visualDataRef.current.timelines[seq.id] : null;
 
       setActiveEdgeProperties({
@@ -166,9 +187,10 @@ const FlowWrapper: React.FC = () => {
         tooltipText: timing?.internalProcess?.text ?? '',
         tooltipDuration: timing?.internalProcess?.duration ?? 1000,
         description: le.description ?? '',
+        particleType: le.particleType ?? 'circle',
       });
     }
-  }, [closeMenu, visualDataRef]);
+  }, [closeMenu, visualDataRef, setSelectedSequenceId]);
 
   // ── Listen for Export Trigger ───────────────
   useEffect(() => {
@@ -179,8 +201,6 @@ const FlowWrapper: React.FC = () => {
     window.addEventListener('export:fitview', handleExportFitView);
     return () => window.removeEventListener('export:fitview', handleExportFitView);
   }, [fitView]);
-
-  // ── Bi-directional Zoom/Center Focus on active Sequence/Edge ───────────────
   useEffect(() => {
     if (!selectedSequenceId) return;
     const logicalData = useAppStore.getState().logicalData;
@@ -211,6 +231,104 @@ const FlowWrapper: React.FC = () => {
   // ── Node changes ──────────────────────────────────────────────────────────
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
+      // Smart Alignment Snapping implementation
+      const positionChanges = changes.filter(c => c.type === 'position' && c.position) as any[];
+      if (positionChanges.length === 1 && positionChanges[0].dragging) {
+        const change = positionChanges[0];
+        const state = useAppStore.getState();
+        const otherNodes = state.logicalData.nodes.filter(n => n.id !== change.id);
+        
+        const vnDrag = state.visualData.layoutNodes[change.id] ?? { x: 0, y: 0 };
+        const dragW = vnDrag.width ?? 150;
+        const dragH = vnDrag.height ?? 48;
+
+        let snappedX = change.position.x;
+        let snappedY = change.position.y;
+        const threshold = 15;
+        const lines: { type: 'horizontal' | 'vertical', pos: number, start: number, end: number }[] = [];
+        
+        otherNodes.forEach(n => {
+           const vn = state.visualData.layoutNodes[n.id];
+           if (!vn) return;
+           const otherW = vn.width ?? 150;
+           const otherH = vn.height ?? 48;
+
+           // snap x (vertical alignment line)
+           // 1. Left-to-Left
+           if (Math.abs(vn.x - change.position.x) < threshold) {
+             snappedX = vn.x;
+             lines.push({ 
+               type: 'vertical', 
+               pos: vn.x, 
+               start: Math.min(vn.y, change.position.y), 
+               end: Math.max(vn.y + otherH, change.position.y + dragH) 
+             });
+           }
+           // 2. Center-to-Center X
+           else if (Math.abs((vn.x + otherW / 2) - (change.position.x + dragW / 2)) < threshold) {
+             snappedX = vn.x + otherW / 2 - dragW / 2;
+             lines.push({ 
+               type: 'vertical', 
+               pos: vn.x + otherW / 2, 
+               start: Math.min(vn.y, change.position.y), 
+               end: Math.max(vn.y + otherH, change.position.y + dragH) 
+             });
+           }
+           // 3. Right-to-Right
+           else if (Math.abs((vn.x + otherW) - (change.position.x + dragW)) < threshold) {
+             snappedX = vn.x + otherW - dragW;
+             lines.push({ 
+               type: 'vertical', 
+               pos: vn.x + otherW, 
+               start: Math.min(vn.y, change.position.y), 
+               end: Math.max(vn.y + otherH, change.position.y + dragH) 
+             });
+           }
+
+           // snap y (horizontal alignment line)
+           // 1. Top-to-Top
+           if (Math.abs(vn.y - change.position.y) < threshold) {
+             snappedY = vn.y;
+             lines.push({ 
+               type: 'horizontal', 
+               pos: vn.y, 
+               start: Math.min(vn.x, change.position.x), 
+               end: Math.max(vn.x + otherW, change.position.x + dragW) 
+             });
+           }
+           // 2. Center-to-Center Y
+           else if (Math.abs((vn.y + otherH / 2) - (change.position.y + dragH / 2)) < threshold) {
+             snappedY = vn.y + otherH / 2 - dragH / 2;
+             lines.push({ 
+               type: 'horizontal', 
+               pos: vn.y + otherH / 2, 
+               start: Math.min(vn.x, change.position.x), 
+               end: Math.max(vn.x + otherW, change.position.x + dragW) 
+             });
+           }
+           // 3. Bottom-to-Bottom
+           else if (Math.abs((vn.y + otherH) - (change.position.y + dragH)) < threshold) {
+             snappedY = vn.y + otherH - dragH;
+             lines.push({ 
+               type: 'horizontal', 
+               pos: vn.y + otherH, 
+               start: Math.min(vn.x, change.position.x), 
+               end: Math.max(vn.x + otherW, change.position.x + dragW) 
+             });
+           }
+        });
+        
+        change.position.x = snappedX;
+        change.position.y = snappedY;
+        if (change.positionAbsolute) {
+          change.positionAbsolute.x = snappedX;
+          change.positionAbsolute.y = snappedY;
+        }
+        setAlignmentLines(lines);
+      } else if (!changes.some(c => c.type === 'position' && c.dragging)) {
+        setAlignmentLines([]);
+      }
+
       setRfNodes((nds) => applyNodeChanges(changes, nds));
       changes.forEach((change) => {
         if (change.type === 'position' && change.position) {
@@ -242,12 +360,23 @@ const FlowWrapper: React.FC = () => {
   // ── Handle Connection ──────────────────────────────────────────────────────
   const onConnectStart = useCallback(
     (_event: any, params: { nodeId: string | null; handleId: string | null }) => {
+      // Dismiss open panels so they don't cover the new edge properties panel
+      setActiveNodeProperties(null);
+      setActiveEdgeProperties(null);
+      // Signal to CSS that a connection is being dragged (reveals all handles)
+      wrapperRef.current?.classList.add('react-flow--connecting');
       if (params.nodeId && params.handleId) {
         dragStartRef.current = { nodeId: params.nodeId, handleId: params.handleId };
       }
     },
     []
   );
+
+  const onConnectEnd = useCallback(() => {
+    // Remove the connecting class so handles go back to their default visibility
+    wrapperRef.current?.classList.remove('react-flow--connecting');
+    dragStartRef.current = null;
+  }, []);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -397,16 +526,7 @@ const FlowWrapper: React.FC = () => {
     closeMenu();
   }, [menu, setRfNodes, setRfEdges, deleteNode, deleteEdge, closeMenu]);
 
-  // Two-way binding: select sequence when connection edge is clicked in canvas
-  const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
-    const logicalData = useAppStore.getState().logicalData;
-    const seq = logicalData.sequences.find(s => s.edgeId === edge.id);
-    if (seq) {
-      setSelectedSequenceId(seq.id);
-    } else {
-      setSelectedSequenceId(null);
-    }
-  }, [setSelectedSequenceId]);
+
 
   const onPaneClick = useCallback(() => {
     closeMenu();
@@ -418,7 +538,7 @@ const FlowWrapper: React.FC = () => {
 
 
   // Callback from Node properties to update local React Flow view state immediately
-  const handleApplyNodeProperties = useCallback((id: string, name: string, type: string, themeColor: string, handles?: any[]) => {
+  const handleApplyNodeProperties = useCallback((id: string, name: string, type: string, themeColor: string, handles?: any[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any) => {
     pushToHistory();
     
     let handlesToSave: any[] | undefined = undefined;
@@ -516,7 +636,7 @@ const FlowWrapper: React.FC = () => {
       }));
     }
     
-    updateNodeDetails(id, name, type, themeColor, handlesToSave);
+    updateNodeDetails(id, name, type, themeColor, handlesToSave, displayMode, rotation, customStyles);
     setRfNodes((nds) =>
       nds.map((n) =>
         n.id === id
@@ -540,9 +660,12 @@ const FlowWrapper: React.FC = () => {
       style={{
         width: '100%',
         height: '100%',
+        position: 'relative',
         cursor: pendingDrop ? 'crosshair' : undefined,
       }}
     >
+
+
       <ReactFlow
         nodes={rfNodes}
         edges={rfEdges}
@@ -552,19 +675,19 @@ const FlowWrapper: React.FC = () => {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd}
         onReconnect={onReconnect}
         onMoveEnd={onMoveEnd}
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
-        onEdgeClick={onEdgeClick}
+        onEdgeClick={handleEdgeClick}
         onPaneClick={onPaneClick}
         onMoveStart={() => {
           closeMenu();
           setActiveNodeProperties(null);
           setActiveEdgeProperties(null);
         }}
-        onNodeDoubleClick={handleNodeDoubleClick}
-        onEdgeDoubleClick={handleEdgeDoubleClick}
+        onNodeClick={handleNodeClick}
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
         className="w-full h-full"
@@ -576,6 +699,43 @@ const FlowWrapper: React.FC = () => {
         />
         <Controls className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-md font-sans" />
       </ReactFlow>
+
+      {/* Alignment Guides Overlay */}
+      {alignmentLines.length > 0 && (
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
+          {alignmentLines.map((line, idx) => {
+            if (line.type === 'vertical') {
+              return (
+                <div 
+                  key={idx} 
+                  style={{ 
+                    position: 'absolute', 
+                    left: line.pos * zoom + viewportX, 
+                    top: line.start * zoom + viewportY, 
+                    height: (line.end - line.start) * zoom, 
+                    width: 1, 
+                    backgroundColor: '#ec4899' // pink-500
+                  }} 
+                />
+              );
+            } else {
+              return (
+                <div 
+                  key={idx} 
+                  style={{ 
+                    position: 'absolute', 
+                    left: line.start * zoom + viewportX, 
+                    top: line.pos * zoom + viewportY, 
+                    width: (line.end - line.start) * zoom, 
+                    height: 1, 
+                    backgroundColor: '#ec4899' 
+                  }} 
+                />
+              );
+            }
+          })}
+        </div>
+      )}
 
       {/* Floating Clear Canvas Button (Bottom Right) */}
       <div className="absolute bottom-4 right-14 z-40 flex items-center">
@@ -589,18 +749,29 @@ const FlowWrapper: React.FC = () => {
         </button>
       </div>
 
-      {/* Floating Properties Panel: Düğüm (Node) */}
-      <NodePropertiesPopover
-        properties={activeNodeProperties}
-        onClose={() => setActiveNodeProperties(null)}
-        onApply={handleApplyNodeProperties}
-      />
+      <PropertiesPanel
+        activeNode={activeNodeProperties}
+        activeEdge={activeEdgeProperties}
+        onCloseNode={() => setActiveNodeProperties(null)}
+        onApplyNode={handleApplyNodeProperties}
+        onCloseEdge={() => setActiveEdgeProperties(null)}
+        onApplyEdge={(id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description, particleType, stepNumber, direction, isRoundTrip) => {
+          const { logicalData, updateEdgeDetails, setSequenceStepOrder, setSequenceStepDirection, setSequenceStepRoundTrip } = useAppStore.getState();
+          updateEdgeDetails(id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description, particleType);
+          
+          const seq = logicalData.sequences.find((s) => s.edgeId === id);
+          if (seq) {
+            if (seq.stepNumber !== stepNumber) {
+              setSequenceStepOrder(seq.id, stepNumber);
+            }
+            setSequenceStepDirection(seq.id, direction);
+            setSequenceStepRoundTrip(seq.id, isRoundTrip);
+          }
 
-      {/* Floating Properties Panel: Bağlantı (Edge) */}
-      <EdgePropertiesPopover
-        properties={activeEdgeProperties}
-        onClose={() => setActiveEdgeProperties(null)}
-        onCancel={handleCancelActiveEdge}
+          // Clear the isNew flag so that closing with X no longer deletes the edge
+          setActiveEdgeProperties((current) => current ? { ...current, isNew: false } : null);
+        }}
+        onCancelEdge={handleCancelActiveEdge}
       />
 
       {/* Clear Canvas Confirmation Modal */}

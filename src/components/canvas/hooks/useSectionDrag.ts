@@ -83,9 +83,12 @@ export const useSectionDrag = () => {
           updateNodePosition(draggedNode.id, absX, absY);
         }
         setNodeParent(draggedNode.id, null);
-      } else if (targetSection && targetSection === currentParent) {
-        // Still inside same section — auto-resize
-        autoResizeSection(targetSection);
+      } else {
+        // Simple position update inside the same parent or root canvas
+        updateNodePosition(draggedNode.id, draggedNode.position.x, draggedNode.position.y);
+        if (targetSection) {
+          autoResizeSection(targetSection);
+        }
       }
     },
     [updateNodePosition, setNodeParent, autoResizeSection]

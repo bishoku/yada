@@ -47,10 +47,10 @@ export const ComponentStudio: React.FC = () => {
   const handleAddShape = (type: ShapeType) => {
     const layerCount = activeComponent.layers.length;
     const defaultStyles: Record<ShapeType, any> = {
-      rectangle: { fill: '#6366f1', stroke: '#4f46e5', strokeWidth: 2, opacity: 1, rx: 8 },
-      circle: { fill: '#10b981', stroke: '#059669', strokeWidth: 2, opacity: 1 },
-      text: { fill: '#1e293b', opacity: 1 },
-      image: { opacity: 1 },
+      rectangle: { fill: '#6366f1', stroke: '#4f46e5', strokeWidth: 2, opacity: 1, rx: 8, rotation: 0 },
+      circle: { fill: '#10b981', stroke: '#059669', strokeWidth: 2, opacity: 1, rotation: 0 },
+      text: { fill: '#1e293b', opacity: 1, rotation: 0 },
+      image: { opacity: 1, rotation: 0 },
     };
 
     const newLayer: ShapeLayer = {
@@ -248,6 +248,8 @@ export const ComponentStudio: React.FC = () => {
 
   // Layers list displays topmost layer first (Index descending)
   const layersListDescending = [...activeComponent.layers].sort((a: ShapeLayer, b: ShapeLayer) => b.zIndex - a.zIndex);
+
+
 
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans">
@@ -511,7 +513,7 @@ export const ComponentStudio: React.FC = () => {
                 };
 
                 return (
-                  <g key={id}>
+                  <g key={id} transform={`rotate(${style.rotation ?? 0} ${x + w / 2} ${y + h / 2})`}>
                     {renderShape()}
 
                     {/* Resize handle overlays */}
@@ -735,6 +737,20 @@ export const ComponentStudio: React.FC = () => {
                       type="number"
                       value={selectedLayer.height}
                       onChange={(e) => updateLayer(selectedLayer.id, { height: Math.max(1, Number(e.target.value)) })}
+                      className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 col-span-2">
+                    <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                      {theme === 'dark' ? 'Döndürme (Derece)' : 'Rotation (Deg)'}
+                    </label>
+                    <input
+                      type="number"
+                      value={selectedLayer.style.rotation ?? 0}
+                      onChange={(e) => updateLayer(selectedLayer.id, {
+                        style: { ...selectedLayer.style, rotation: Number(e.target.value) % 360 }
+                      })}
                       className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
                     />
                   </div>

@@ -29,6 +29,7 @@ export interface LogicalEdge {
   isAsync: boolean;
   protocol?: string; // E.g., 'HTTP', 'gRPC', 'WebSocket' (Phase 4)
   description?: string; // Description shown only in logs
+  particleType?: 'circle' | 'arrow' | 'envelope';
 }
 
 export interface SequenceStep {
@@ -55,6 +56,14 @@ export interface VisualNode {
   height?: number;
   theme?: string; // Optional future color palettes
   zIndex?: number; // Render order (sections use -1 to appear behind children)
+  displayMode?: 'default' | 'icon-only'; // Phase 7: Sadece ikon
+  rotation?: number; // Phase 7: Döndürme
+  customStyles?: {
+    backgroundColor?: string;
+    borderColor?: string;
+    borderStyle?: 'solid' | 'dashed' | 'dotted';
+    borderRadius?: number;
+  };
 }
 
 export interface TimelineTiming {
@@ -109,6 +118,7 @@ export interface ShapeLayer {
     strokeWidth?: number;
     opacity?: number;
     rx?: number;
+    rotation?: number;
   };
   content?: string;
 }
@@ -219,9 +229,9 @@ export interface AppState {
   setSequenceStepRoundTrip: (seqId: string, isRoundTrip: boolean) => void;
   toggleSequenceAsync: (seqId: string) => void;
   clearCanvas: () => void;
-  updateNodeDetails: (id: string, name: string, type: string, theme?: string, handles?: HandleConfig[]) => void;
+  updateNodeDetails: (id: string, name: string, type: string, theme?: string, handles?: HandleConfig[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any) => void;
   updateNodeHandles: (nodeId: string, handles: HandleConfig[]) => void;
-  updateEdgeDetails: (edgeId: string, protocol: string, isAsync: boolean, duration: number, delay: number, tooltipText?: string, tooltipDuration?: number, description?: string) => void;
+  updateEdgeDetails: (edgeId: string, protocol: string, isAsync: boolean, duration: number, delay: number, tooltipText?: string, tooltipDuration?: number, description?: string, particleType?: 'circle' | 'arrow' | 'envelope') => void;
 
   // Layout Actions
   toggleLeftSidebar: () => void;

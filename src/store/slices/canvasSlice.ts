@@ -15,7 +15,7 @@ export interface CanvasSlice {
   startDrag: (type: string, name: string) => void;
   cancelDrag: () => void;
   clearCanvas: () => void;
-  updateNodeDetails: (id: string, name: string, type: string, theme?: string, handles?: HandleConfig[]) => void;
+  updateNodeDetails: (id: string, name: string, type: string, theme?: string, handles?: HandleConfig[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any) => void;
   updateNodeHandles: (nodeId: string, handles: HandleConfig[]) => void;
   updateEdgeDetails: (edgeId: string, protocol: string, isAsync: boolean, duration: number, delay: number, tooltipText?: string, tooltipDuration?: number, description?: string) => void;
   setNodeParent: (nodeId: string, parentId: string | null) => void;
@@ -173,15 +173,35 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     selectedSequenceId: null
   })),
 
-  updateNodeDetails: (id, name, type, theme, handles) => {
+  updateNodeDetails: (id, name, type, theme, handles, displayMode, rotation, customStyles) => {
     set((state) => {
       const nodes = state.logicalData.nodes.map((n) => 
         n.id === id ? { ...n, name, type, ...(handles !== undefined ? { handles } : {}) } : n
       );
       const existingVisual = state.visualData.layoutNodes[id] ?? { id, x: 0, y: 0 };
+
+      // When orientation changes (horizontal=0 ↔ vertical=90) swap stored
+      // width and height so the bounding box instantly matches the new layout.
+      // No CSS transforms are involved — stored w/h IS the bounding box.
+      const prevRotation = existingVisual.rotation ?? 0;
+      const nextRotation = rotation ?? 0;
+      const orientationChanged =
+        (prevRotation === 0 && nextRotation === 90) ||
+        (prevRotation === 90 && nextRotation === 0);
+
+      const prevW = existingVisual.width  ?? 224;
+      const prevH = existingVisual.height ?? 52;
+
       const layoutNodes = {
         ...state.visualData.layoutNodes,
-        [id]: { ...existingVisual, theme }
+        [id]: {
+          ...existingVisual,
+          theme,
+          displayMode,
+          rotation: nextRotation,
+          customStyles,
+          ...(orientationChanged ? { width: prevH, height: prevW } : {}),
+        }
       };
       return {
         logicalData: { ...state.logicalData, nodes },
@@ -190,6 +210,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
       };
     });
   },
+
 
   updateNodeHandles: (nodeId, handles) => {
     get().pushToHistory();
@@ -204,28 +225,27 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     });
   },
 
-  updateEdgeDetails: (edgeId, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description) => {
+  updateEdgeDetails: (id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description, particleType) => {
     set((state) => {
-      const edges = state.logicalData.edges.map((e) => 
-        e.id === edgeId ? { ...e, protocol, isAsync, description } : e
+      const edges = state.logicalData.edges.map((e) =>
+        e.id === id ? { ...e, protocol, isAsync, description, particleType } : e
       );
+
+      const seqs = state.logicalData.sequences.filter((s) => s.edgeId === id);
       const sequences = state.logicalData.sequences.map((s) => 
-        s.edgeId === edgeId ? { ...s, isAsync } : s
+        s.edgeId === id ? { ...s, isAsync } : s
       );
       const timelines = { ...state.visualData.timelines };
-      state.logicalData.sequences
-        .filter((s) => s.edgeId === edgeId)
-        .forEach((seq) => {
-          const existing = timelines[seq.id] ?? { sequenceId: seq.id, duration: 1000, delay: 0 };
-          timelines[seq.id] = {
-            ...existing,
-            duration,
-            delay,
-            internalProcess: tooltipText 
-              ? { text: tooltipText, duration: tooltipDuration ?? 1000 }
-              : undefined
-          };
-        });
+      seqs.forEach((seq) => {
+        const existing = timelines[seq.id] || { duration: 1000, delay: 0 };
+        timelines[seq.id] = {
+          ...existing,
+          duration,
+          delay,
+          internalProcess: tooltipText ? { text: tooltipText, duration: tooltipDuration || 1000 } : undefined
+        };
+      });
+
       return {
         logicalData: { ...state.logicalData, edges, sequences },
         visualData: { ...state.visualData, timelines },

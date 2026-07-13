@@ -1,5 +1,5 @@
 import React from 'react';
-import { Laptop, Network, Server, Database, Zap, ArrowRightLeft, Cpu, SquareDashedBottom } from 'lucide-react';
+import { Laptop, Network, Server, Database, Zap, ArrowRightLeft, Cpu, SquareDashedBottom, Route, Rows, Shield } from 'lucide-react';
 
 export type ComponentCategory = 'standard' | 'section' | 'custom';
 
@@ -33,7 +33,7 @@ export const NodeRegistry: Record<string, NodeDefinition> = {
     type: 'gateway',
     name: { en: 'API Gateway', tr: 'API Ağ Geçidi' },
     defaultName: 'Gateway',
-    icon: <Network className="w-4 h-4" />,
+    icon: <Route className="w-4 h-4" />,
     colorClass: 'text-emerald-500',
     category: 'standard'
   },
@@ -63,11 +63,19 @@ export const NodeRegistry: Record<string, NodeDefinition> = {
   },
 
   queue: {
-    type: 'queue', // BaseNode used queue
-    name: { en: 'Queue', tr: 'Kuyruk (Queue)' },
+    type: 'queue',
+    name: { en: 'Message Queue', tr: 'Mesaj Kuyruğu' },
     defaultName: 'Queue',
-    icon: <ArrowRightLeft className="w-4 h-4" />,
+    icon: <Rows className="w-4 h-4" />,
     colorClass: 'text-purple-500',
+    category: 'standard'
+  },
+  firewall: {
+    type: 'firewall',
+    name: { en: 'Firewall / WAF', tr: 'Güvenlik Duvarı' },
+    defaultName: 'Firewall',
+    icon: <Shield className="w-4 h-4" />,
+    colorClass: 'text-rose-600',
     category: 'standard'
   },
   section: {

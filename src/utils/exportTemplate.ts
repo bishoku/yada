@@ -14,7 +14,7 @@ export const generateStandaloneHtml = (
   const libraryJson = JSON.stringify(libraryComponents);
 
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,9 +28,42 @@ export const generateStandaloneHtml = (
       margin: 0;
       padding: 0;
     }
+
+    /* ===== Theme Variables ===== */
+    :root {
+      --bg-body: #020617;
+      --bg-surface: #0f172a;
+      --bg-canvas: #0b0f19;
+      --bg-canvas-dot: #1e293b;
+      --color-text: #f8fafc;
+      --color-text-muted: #64748b;
+      --color-border: #1e293b;
+      --color-border-subtle: #334155;
+      --bg-node-card: #0f172a;
+      --node-name-color: #f8fafc;
+      --bg-steps-panel: rgba(15, 23, 42, 0.9);
+      --bg-zoom-btn: rgba(15, 23, 42, 0.85);
+      --shadow-node: 0 10px 15px -3px rgba(0,0,0,0.3);
+    }
+    html.light {
+      --bg-body: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-canvas: #f1f5f9;
+      --bg-canvas-dot: #cbd5e1;
+      --color-text: #0f172a;
+      --color-text-muted: #64748b;
+      --color-border: #e2e8f0;
+      --color-border-subtle: #e2e8f0;
+      --bg-node-card: #ffffff;
+      --node-name-color: #0f172a;
+      --bg-steps-panel: rgba(255,255,255,0.92);
+      --bg-zoom-btn: rgba(255,255,255,0.9);
+      --shadow-node: 0 4px 12px -2px rgba(0,0,0,0.1);
+    }
+
     body {
-      background-color: #020617;
-      color: #f8fafc;
+      background-color: var(--bg-body);
+      color: var(--color-text);
       font-family: 'Outfit', sans-serif;
       overflow: hidden;
       height: 100vh;
@@ -42,8 +75,8 @@ export const generateStandaloneHtml = (
     /* Top Navigation bar */
     header {
       height: 60px;
-      background-color: #0f172a;
-      border-b: 1px solid #1e293b;
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--color-border);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -77,8 +110,8 @@ export const generateStandaloneHtml = (
       flex: 1;
       position: relative;
       overflow: hidden;
-      background-color: #0b0f19;
-      background-image: radial-gradient(#1e293b 1px, transparent 1px);
+      background-color: var(--bg-canvas);
+      background-image: radial-gradient(var(--bg-canvas-dot) 1px, transparent 1px);
       background-size: 20px 20px;
       user-select: none;
       cursor: grab;
@@ -109,10 +142,10 @@ export const generateStandaloneHtml = (
       width: 36px;
       height: 36px;
       border-radius: 10px;
-      background-color: rgba(15, 23, 42, 0.85);
+      background-color: var(--bg-zoom-btn);
       backdrop-filter: blur(8px);
-      border: 1px solid #1e293b;
-      color: #e2e8f0;
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
       font-size: 16px;
       font-weight: bold;
       display: flex;
@@ -133,26 +166,47 @@ export const generateStandaloneHtml = (
     /* Nodes styles */
     .node-card {
       position: absolute;
-      background-color: #0f172a;
-      border: 2px solid #1e293b;
+      background-color: var(--bg-node-card);
+      border: 2px solid var(--color-border);
       border-radius: 12px;
       padding: 12px 16px;
       display: flex;
       align-items: center;
       gap: 12px;
-      color: #e2e8f0;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+      color: var(--color-text);
+      box-shadow: var(--shadow-node);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      transform-origin: center center;
+      overflow: visible;
     }
     .node-card.processing {
       border-color: #10b981;
       box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
-      transform: scale(1.02);
+      scale: 1.02;
     }
     .node-card.node-active {
       border-color: #6366f1;
       box-shadow: 0 0 15px rgba(99, 102, 241, 0.25);
-      transform: scale(1.02);
+      scale: 1.02;
+    }
+    /* Icon-only mode: no background, just the icon */
+    .node-card.icon-only {
+      background: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      padding: 0;
+      justify-content: center;
+    }
+    .node-card.icon-only .node-icon-box {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      border-radius: 0;
+    }
+    .node-card.icon-only .node-icon-box svg {
+      width: 70%;
+      height: 70%;
     }
     .node-icon-box {
       width: 38px;
@@ -177,26 +231,45 @@ export const generateStandaloneHtml = (
     .node-name {
       font-weight: 600;
       font-size: 13px;
-      color: #f8fafc;
+      color: var(--node-name-color);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .node-type {
       font-size: 9px;
-      color: #64748b;
+      color: var(--color-text-muted);
       text-transform: uppercase;
       font-weight: 700;
       letter-spacing: 0.5px;
       margin-top: 2px;
     }
+    /* Vertical orientation: flex-col layout, text reads bottom-to-top */
+    .node-card.vertical {
+      flex-direction: column;
+      padding: 16px 8px;
+      justify-content: center;
+      align-items: center;
+    }
+    .node-card.vertical .node-info {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      overflow: hidden;
+      flex: 1;
+    }
+    .node-card.vertical .node-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     /* Section Container Node */
     .section-card {
       position: absolute;
-      border: 2px dashed rgba(148, 163, 184, 0.4);
+      border: 2px dashed var(--color-border);
       border-radius: 12px;
-      background-color: rgba(15, 23, 42, 0.15);
+      background-color: rgba(99, 102, 241, 0.03);
       backdrop-filter: blur(1px);
       transition: border-color 0.3s, box-shadow 0.3s;
     }
@@ -213,9 +286,9 @@ export const generateStandaloneHtml = (
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: #94a3b8;
-      background-color: rgba(30, 41, 59, 0.85);
-      border: 1px solid rgba(71, 85, 105, 0.5);
+      color: var(--color-text-muted);
+      background-color: var(--bg-surface);
+      border: 1px solid var(--color-border);
       border-bottom: none;
       border-radius: 8px 8px 0 0;
       white-space: nowrap;
@@ -258,7 +331,7 @@ export const generateStandaloneHtml = (
     /* Flow connection paths */
     .edge-path {
       fill: none;
-      stroke: #1e293b;
+      stroke: var(--color-border);
       stroke-width: 2;
       transition: stroke 0.25s, stroke-width 0.25s;
     }
@@ -274,8 +347,8 @@ export const generateStandaloneHtml = (
     /* Playback Control Bar */
     #control-bar {
       height: 80px;
-      background-color: #0f172a;
-      border-top: 1px solid #1e293b;
+      background-color: var(--bg-surface);
+      border-top: 1px solid var(--color-border);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -288,9 +361,9 @@ export const generateStandaloneHtml = (
       gap: 16px;
     }
     .btn {
-      background-color: #1e293b;
-      border: 1px solid #334155;
-      color: #e2e8f0;
+      background-color: var(--color-border);
+      border: 1px solid var(--color-border-subtle);
+      color: var(--color-text);
       width: 36px;
       height: 36px;
       border-radius: 50%;
@@ -301,8 +374,8 @@ export const generateStandaloneHtml = (
       transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
     }
     .btn:hover {
-      background-color: #334155;
-      color: #ffffff;
+      background-color: var(--color-border-subtle);
+      color: var(--color-text);
       transform: scale(1.05);
     }
     .btn:active {
@@ -330,7 +403,7 @@ export const generateStandaloneHtml = (
     .time-label {
       font-size: 11px;
       font-weight: 600;
-      color: #64748b;
+      color: var(--color-text-muted);
       font-family: monospace;
       width: 60px;
     }
@@ -340,7 +413,7 @@ export const generateStandaloneHtml = (
       appearance: none;
       height: 5px;
       border-radius: 3px;
-      background: #1e293b;
+      background: var(--color-border);
       outline: none;
       cursor: pointer;
     }
@@ -360,9 +433,9 @@ export const generateStandaloneHtml = (
     }
 
     .speed-select {
-      background-color: #1e293b;
-      border: 1px solid #334155;
-      color: #e2e8f0;
+      background-color: var(--color-border);
+      border: 1px solid var(--color-border-subtle);
+      color: var(--color-text);
       padding: 6px 12px;
       border-radius: 12px;
       font-size: 11px;
@@ -378,19 +451,37 @@ export const generateStandaloneHtml = (
       right: 24px;
       width: 280px;
       max-height: calc(100vh - 180px);
-      background-color: rgba(15, 23, 42, 0.85);
+      background-color: var(--bg-steps-panel);
       backdrop-filter: blur(10px);
-      border: 1px solid #1e293b;
+      border: 1px solid var(--color-border);
       border-radius: 16px;
       padding: 16px;
       overflow-y: auto;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
       z-index: 5;
+    }
+    /* Theme toggle button */
+    #theme-toggle {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid var(--color-border);
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s;
+    }
+    #theme-toggle:hover {
+      background-color: var(--color-border);
+      color: var(--color-text);
     }
     .steps-title {
       font-size: 10px;
       font-weight: 700;
-      color: #64748b;
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-bottom: 12px;
@@ -417,8 +508,8 @@ export const generateStandaloneHtml = (
     .step-order {
       font-size: 9px;
       font-weight: 700;
-      background-color: #1e293b;
-      color: #94a3b8;
+      background-color: var(--color-border);
+      color: var(--color-text-muted);
       padding: 2px 6px;
       border-radius: 6px;
     }
@@ -429,18 +520,18 @@ export const generateStandaloneHtml = (
     .step-label {
       font-weight: 600;
       font-size: 11px;
-      color: #e2e8f0;
+      color: var(--color-text);
     }
     .step-flow {
       font-size: 10px;
-      color: #64748b;
+      color: var(--color-text-muted);
     }
     .step-item.active .step-flow {
       color: #818cf8;
     }
     .step-description {
       font-size: 9px;
-      color: #94a3b8;
+      color: var(--color-text-muted);
       margin-top: 2px;
       font-style: italic;
       line-height: 1.3;
@@ -455,7 +546,14 @@ export const generateStandaloneHtml = (
       <div class="logo-dot"></div>
       <div class="logo-text">Architecture Simulation</div>
     </div>
-    <div style="font-size: 11px; color: #64748b; font-weight: 600;" id="diag-name">Diagram View</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 600;" id="diag-name">Diagram View</div>
+      <button id="theme-toggle" title="Toggle Light/Dark">
+        <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+    </div>
   </header>
 
   <div id="canvas-container">
@@ -526,6 +624,7 @@ export const generateStandaloneHtml = (
     let zoomScale = 1.0;
     let panX = 0;
     let panY = 0;
+
 
     // Resolve built-in icons
     const iconsMap = {
@@ -803,6 +902,11 @@ export const generateStandaloneHtml = (
       const nodesLayer = document.getElementById('nodes-layer');
       nodesLayer.innerHTML = '';
       
+      const themeColorMap = {
+        indigo: '#6366f1', emerald: '#10b981', rose: '#f43f5e',
+        amber: '#f59e0b', violet: '#8b5cf6', cyan: '#06b6d4'
+      };
+
       // Render sections first (they go behind regular nodes)
       initialData.logicalData.nodes.filter(n => n.type === 'section').forEach(node => {
         const visual = initialData.visualData.layoutNodes[node.id] || { x: 100, y: 100, width: 400, height: 300 };
@@ -839,15 +943,28 @@ export const generateStandaloneHtml = (
       // Render regular nodes (using absolute positions for child nodes)
       initialData.logicalData.nodes.filter(n => n.type !== 'section').forEach(node => {
         const absPos = getAbsolutePos(node.id);
+        const visual = initialData.visualData.layoutNodes[node.id] || {};
         const customTemplate = initialData.libraryComponents.find(c => c.componentId === node.type);
+        const displayMode = visual.displayMode || 'default';
+        const rotation = visual.rotation || 0;
+        const theme = visual.theme || 'indigo';
+        const themeColor = themeColorMap[theme] || '#6366f1';
         
         const card = document.createElement('div');
         card.id = 'node-card-' + node.id;
-        card.className = 'node-card';
+        // Orientation: rotation===90 means vertical layout (flex-col + writing-mode)
+        // No CSS transform — stored w/h IS the bounding box, exactly as in the canvas.
+        const isVertical = rotation === 90;
+        card.className = 'node-card'
+          + (displayMode === 'icon-only' ? ' icon-only' : '')
+          + (isVertical && displayMode !== 'icon-only' ? ' vertical' : '');
         card.style.left = absPos.x + 'px';
         card.style.top = absPos.y + 'px';
         card.style.width = absPos.width + 'px';
         card.style.height = absPos.height + 'px';
+        if (displayMode !== 'icon-only') {
+          card.style.borderColor = themeColor + '99'; // themed border with opacity
+        }
 
         // Render standard card contents
         const iconDiv = document.createElement('div');
@@ -855,13 +972,23 @@ export const generateStandaloneHtml = (
         if (customTemplate) {
           iconDiv.innerHTML = renderCustomSvg(customTemplate.layers, customTemplate.dimensions.width, customTemplate.dimensions.height);
         } else {
-          iconDiv.innerHTML = iconsMap[node.type] || iconsMap.client;
+          const iconSvg = iconsMap[node.type] || iconsMap.client;
+          iconDiv.innerHTML = iconSvg;
+          // Apply theme color to svg stroke
+          const svgEl = iconDiv.querySelector('svg');
+          if (svgEl) svgEl.style.color = themeColor;
         }
 
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'node-info';
-        infoDiv.innerHTML = \`<div class="node-name">\${node.name}</div>
-          <div class="node-type">\${customTemplate ? customTemplate.category : node.type}</div>\`;
+        card.appendChild(iconDiv);
+
+        // Only show label in default mode
+        if (displayMode !== 'icon-only') {
+          const infoDiv = document.createElement('div');
+          infoDiv.className = 'node-info';
+          infoDiv.innerHTML = \`<div class="node-name">\${node.name}</div>
+            <div class="node-type">\${customTemplate ? customTemplate.category : node.type}</div>\`;
+          card.appendChild(infoDiv);
+        }
 
         // Tooltip slot
         const tooltipSlot = document.createElement('div');
@@ -873,8 +1000,6 @@ export const generateStandaloneHtml = (
         tooltipSlot.style.height = '100%';
         tooltipSlot.style.pointerEvents = 'none';
 
-        card.appendChild(iconDiv);
-        card.appendChild(infoDiv);
         card.appendChild(tooltipSlot);
         nodesLayer.appendChild(card);
       });
@@ -1522,7 +1647,18 @@ export const generateStandaloneHtml = (
     // Startup Init
     window.addEventListener('resize', adjustViewZoom);
     document.getElementById('diag-name').textContent = initialData.logicalData.name || 'Standalone System Diagram';
-    
+
+    // Theme toggle
+    const moonSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    const sunSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const html = document.documentElement;
+      html.classList.toggle('light');
+      html.classList.toggle('dark');
+      const isDark = html.classList.contains('dark');
+      document.getElementById('theme-toggle').innerHTML = isDark ? moonSvg : sunSvg;
+    });
+
     renderNodes();
     renderEdges();
     renderStepsList();

@@ -4,7 +4,7 @@ export const useEdgeAnimation = (edgeId: string, pathRef: RefObject<SVGPathEleme
   const logicalData = useAppStore((s) => s.logicalData);
   const selectedSequenceId = useAppStore((s) => s.selectedSequenceId);
 
-  const [particlePos, setParticlePos] = useState<{ x: number; y: number } | null>(null);
+  const [particlePos, setParticlePos] = useState<{ x: number; y: number; rotation: number } | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [activeStepNumber, setActiveStepNumber] = useState<number | null>(null);
 
@@ -86,7 +86,13 @@ export const useEdgeAnimation = (edgeId: string, pathRef: RefObject<SVGPathEleme
         const totalLength = pathEl.getTotalLength();
         if (totalLength > 0) {
           const point = pathEl.getPointAtLength(actualProgress * totalLength);
-          setParticlePos({ x: point.x, y: point.y });
+          
+          // Calculate rotation
+          const p1 = pathEl.getPointAtLength(Math.max(0, actualProgress * totalLength - 1));
+          const p2 = pathEl.getPointAtLength(Math.min(totalLength, actualProgress * totalLength + 1));
+          const rotation = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+
+          setParticlePos({ x: point.x, y: point.y, rotation });
         }
       } catch (err) {
         setParticlePos((prev) => (prev !== null ? null : prev));

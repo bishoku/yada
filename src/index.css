@@ -42,3 +42,39 @@ html, body, #root {
 .react-flow__node:not(.dragging) {
   transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+/* ── Handle Visibility ─────────────────────────────────────────────────── */
+
+/* Idle handles are invisible by default */
+.react-flow__handle.handle-idle {
+  opacity: 0 !important;
+  transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out, width 0.1s, height 0.1s !important;
+  pointer-events: none !important;
+}
+
+/* Connected handles always show */
+.react-flow__handle.handle-connected {
+  opacity: 1 !important;
+}
+
+/* Show idle handles when node is selected */
+.react-flow__node.selected .react-flow__handle.handle-idle {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* When ANY connection is in progress: show ALL nodes' idle handles immediately.
+   React Flow adds .connectionindicator to handles when connectable & a connection
+   is being dragged, and .connectingfrom to the source handle's node.
+   We piggyback on the existence of any connectingfrom node in the flow to reveal
+   handles on all other nodes too — using a JS-driven class on the wrapper. */
+.react-flow--connecting .react-flow__handle.handle-idle,
+.react-flow__node.connecting-target .react-flow__handle.handle-idle {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Subtle glow on handle hover for easier targeting — no scale */
+.react-flow__handle:hover {
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.35) !important;
+}
