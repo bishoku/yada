@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Handle, Position, NodeResizer } from '@xyflow/react';
+import { Handle, Position, NodeResizer, useConnection } from '@xyflow/react';
 import { useAppStore } from '../../store/useAppStore';
 import { useSectionAnimation } from './hooks';
 
@@ -62,6 +62,9 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
   const themeKey = useAppStore((s: any) => s.visualData.layoutNodes[id]?.theme ?? 'slate');
   const updateNodeDimensions = useAppStore((s: any) => s.updateNodeDimensions);
   
+  const connection = useConnection();
+  const isConnecting = !!connection.inProgress;
+
   const isActive = useSectionAnimation(id);
   const style = themeStyles[themeKey] ?? themeStyles.slate;
 
@@ -98,32 +101,64 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
       </div>
 
       {/* Connection Handles */}
+      {/* Top Handles */}
       <Handle 
         type="target" 
         position={Position.Top} 
-        id="top" 
-        className="w-3 h-3 border-2 border-white dark:border-slate-900 bg-slate-400 dark:bg-slate-500 hover:bg-indigo-500 hover:scale-125 transition-all rounded-full" 
+        id="top-target" 
+        className="w-3.5 h-3.5 border-2 border-white dark:border-slate-900 bg-slate-400 dark:bg-slate-500 hover:bg-indigo-500 hover:scale-125 transition-all rounded-full" 
+      />
+      <Handle 
+        type="source" 
+        position={Position.Top} 
+        id="top-source" 
+        className="w-3.5 h-3.5 border-2 border-white dark:border-slate-900 bg-slate-400 dark:bg-slate-500 hover:bg-indigo-500 hover:scale-125 transition-all rounded-full" 
+        style={{ pointerEvents: isConnecting ? 'none' : 'auto' }}
       />
       
+      {/* Left Handles */}
       <Handle 
         type="target" 
         position={Position.Left} 
-        id="left" 
-        className="w-3 h-3 border-2 border-white dark:border-slate-900 bg-slate-400 dark:bg-slate-500 hover:bg-indigo-500 hover:scale-125 transition-all rounded-full" 
+        id="left-target" 
+        className="w-3.5 h-3.5 border-2 border-white dark:border-slate-900 bg-slate-400 dark:bg-slate-500 hover:bg-indigo-500 hover:scale-125 transition-all rounded-full" 
+      />
+      <Handle 
+        type="source" 
+        position={Position.Left} 
+        id="left-source" 
+        className="w-3.5 h-3.5 border-2 border-white dark:border-slate-900 bg-slate-400 dark:bg-slate-500 hover:bg-indigo-500 hover:scale-125 transition-all rounded-full" 
+        style={{ pointerEvents: isConnecting ? 'none' : 'auto' }}
       />
 
+      {/* Right Handles */}
+      <Handle 
+        type="target" 
+        position={Position.Right} 
+        id="right-target" 
+        className="w-3.5 h-3.5 border-2 border-white dark:border-slate-900 bg-slate-400 dark:bg-slate-500 hover:bg-indigo-500 hover:scale-125 transition-all rounded-full" 
+      />
       <Handle 
         type="source" 
         position={Position.Right} 
-        id="right" 
-        className="w-3 h-3 border-2 border-white dark:border-slate-900 bg-slate-400 dark:bg-slate-500 hover:bg-indigo-500 hover:scale-125 transition-all rounded-full" 
+        id="right-source" 
+        className="w-3.5 h-3.5 border-2 border-white dark:border-slate-900 bg-slate-400 dark:bg-slate-500 hover:bg-indigo-500 hover:scale-125 transition-all rounded-full" 
+        style={{ pointerEvents: isConnecting ? 'none' : 'auto' }}
       />
       
+      {/* Bottom Handles */}
+      <Handle 
+        type="target" 
+        position={Position.Bottom} 
+        id="bottom-target" 
+        className="w-3.5 h-3.5 border-2 border-white dark:border-slate-900 bg-slate-400 dark:bg-slate-500 hover:bg-indigo-500 hover:scale-125 transition-all rounded-full" 
+      />
       <Handle 
         type="source" 
         position={Position.Bottom} 
-        id="bottom" 
-        className="w-3 h-3 border-2 border-white dark:border-slate-900 bg-slate-400 dark:bg-slate-500 hover:bg-indigo-500 hover:scale-125 transition-all rounded-full" 
+        id="bottom-source" 
+        className="w-3.5 h-3.5 border-2 border-white dark:border-slate-900 bg-slate-400 dark:bg-slate-500 hover:bg-indigo-500 hover:scale-125 transition-all rounded-full" 
+        style={{ pointerEvents: isConnecting ? 'none' : 'auto' }}
       />
     </div>
   );

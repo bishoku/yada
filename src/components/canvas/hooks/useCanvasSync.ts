@@ -68,8 +68,8 @@ export const useCanvasSync = (
               type: 'customEdge',
               source: le.from,
               target: le.to,
-              sourceHandle: le.fromPort,
-              targetHandle: le.toPort,
+              sourceHandle: `${le.fromPort}-source`,
+              targetHandle: `${le.toPort}-target`,
               reconnectable: true,
             }))
           );
@@ -106,8 +106,8 @@ export const useCanvasSync = (
       type: 'customEdge',
       source: le.from,
       target: le.to,
-      sourceHandle: le.fromPort,
-      targetHandle: le.toPort,
+      sourceHandle: `${le.fromPort}-source`,
+      targetHandle: `${le.toPort}-target`,
       reconnectable: true,
     }));
     

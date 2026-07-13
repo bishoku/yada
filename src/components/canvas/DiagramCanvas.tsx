@@ -247,15 +247,15 @@ const FlowWrapper: React.FC = () => {
         
       let logicalFrom = connection.source;
       let logicalTo = connection.target;
-      let logicalFromPort = connection.sourceHandle ?? 'right';
-      let logicalToPort = connection.targetHandle ?? 'left';
+      let logicalFromPort = (connection.sourceHandle ?? 'right').split('-')[0];
+      let logicalToPort = (connection.targetHandle ?? 'left').split('-')[0];
 
       if (dragStartRef.current) {
         if (dragStartRef.current.nodeId === connection.target) {
           logicalFrom = connection.target;
           logicalTo = connection.source;
-          logicalFromPort = connection.targetHandle ?? 'left';
-          logicalToPort = connection.sourceHandle ?? 'right';
+          logicalFromPort = (connection.targetHandle ?? 'left').split('-')[0];
+          logicalToPort = (connection.sourceHandle ?? 'right').split('-')[0];
         }
       }
 
@@ -318,8 +318,8 @@ const FlowWrapper: React.FC = () => {
     (oldEdge: Edge, newConnection: Connection) => {
       if (!newConnection.source || !newConnection.target) return;
       setRfEdges((els) => reconnectEdge(oldEdge, newConnection, els));
-      const fromPort = (newConnection.sourceHandle ?? 'right') as 'top' | 'right' | 'bottom' | 'left';
-      const toPort = (newConnection.targetHandle ?? 'left') as 'top' | 'right' | 'bottom' | 'left';
+      const fromPort = (newConnection.sourceHandle ?? 'right').split('-')[0] as 'top' | 'right' | 'bottom' | 'left';
+      const toPort = (newConnection.targetHandle ?? 'left').split('-')[0] as 'top' | 'right' | 'bottom' | 'left';
       zustandReconnectEdge(oldEdge.id, newConnection.source, newConnection.target, fromPort, toPort);
     },
     [setRfEdges, zustandReconnectEdge]
