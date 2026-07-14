@@ -7,6 +7,9 @@ export interface HistorySlice {
   layoutVersion: number;
 
   pushToHistory: () => void;
+  /** Saves an explicit snapshot to history without changing current state.
+   *  Used by live-preview apply to record the pre-preview state as the undo point. */
+  pushStateToHistory: (logicalData: LogicalDiagram, visualData: VisualDiagram) => void;
   undo: () => void;
   redo: () => void;
 }
@@ -30,6 +33,17 @@ export const createHistorySlice: StateCreator<AppState, [], [], HistorySlice> = 
       pastStates,
       futureStates: [],
     });
+  },
+
+  pushStateToHistory: (logicalData, visualData) => {
+    const state = get();
+    const snapshot = {
+      logicalData: JSON.parse(JSON.stringify(logicalData)),
+      visualData: JSON.parse(JSON.stringify(visualData)),
+    };
+    const pastStates = [...state.pastStates, snapshot];
+    if (pastStates.length > 30) pastStates.shift();
+    set({ pastStates, futureStates: [] });
   },
 
   undo: () => {

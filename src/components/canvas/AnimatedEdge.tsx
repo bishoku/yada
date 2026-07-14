@@ -2,6 +2,8 @@ import React, { useRef, memo, useMemo } from 'react';
 import { EdgeProps, EdgeLabelRenderer } from '@xyflow/react';
 import { useAppStore } from '../../store/useAppStore';
 import { useEdgeAnimation } from './hooks';
+import { AnimationParticle } from './ParticleSvg';
+import { resolveParticleType } from '../../config/particles';
 
 interface ParallelBezierParams {
   sourceX: number;
@@ -135,7 +137,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
     isEdgeActive = true;
   }
 
-  const particleType = le?.particleType ?? 'circle';
+  const particleType = resolveParticleType(le?.particleType);
 
   return (
     <>
@@ -166,42 +168,15 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
       
       {/* Playback particle */}
       {particlePos && (
-        <g transform={`translate(${particlePos.x}, ${particlePos.y}) rotate(${particlePos.rotation})`} style={{ pointerEvents: 'none' }}>
-          {particleType === 'circle' && (
-            <g transform={`rotate(${-particlePos.rotation})`}>
-              <circle r={16} fill="#818cf8" style={{ opacity: 0.3 }} />
-              <circle r={11} fill="#4f46e5" />
-              {activeStepNumber !== null && (
-                <>
-                  <circle r={6.5} fill="#ffffff" />
-                  <text textAnchor="middle" dominantBaseline="central" fill="#1e293b" style={{ fontSize: '8.5px', fontWeight: 900, fontFamily: 'sans-serif', userSelect: 'none' }}>
-                    {activeStepNumber}
-                  </text>
-                </>
-              )}
-            </g>
-          )}
-          {particleType === 'arrow' && (
-            <g>
-              <path d="M -12 -10 L 12 0 L -12 10 Z" fill="#4f46e5" stroke="#ffffff" strokeWidth="1" strokeLinejoin="round" />
-              {activeStepNumber !== null && (
-                <text x="-4" y="0" textAnchor="middle" dominantBaseline="central" fill="#ffffff" transform={`rotate(${-particlePos.rotation}, -4, 0)`} style={{ fontSize: '9px', fontWeight: 900, fontFamily: 'sans-serif', userSelect: 'none' }}>
-                  {activeStepNumber}
-                </text>
-              )}
-            </g>
-          )}
-          {particleType === 'envelope' && (
-            <g>
-              <rect x="-14" y="-10" width="28" height="20" rx="3" fill="#4f46e5" stroke="#ffffff" strokeWidth="1" />
-              <path d="M -14 -10 L 0 0 L 14 -10" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              {activeStepNumber !== null && (
-                <text x="0" y="4" textAnchor="middle" dominantBaseline="central" fill="#ffffff" transform={`rotate(${-particlePos.rotation}, 0, 4)`} style={{ fontSize: '8px', fontWeight: 900, fontFamily: 'sans-serif', userSelect: 'none' }}>
-                  {activeStepNumber}
-                </text>
-              )}
-            </g>
-          )}
+        <g
+          transform={`translate(${particlePos.x}, ${particlePos.y}) rotate(${particlePos.rotation})`}
+          style={{ pointerEvents: 'none' }}
+        >
+          <AnimationParticle
+            type={particleType}
+            rotation={particlePos.rotation}
+            stepNumber={activeStepNumber}
+          />
         </g>
       )}
 

@@ -209,7 +209,7 @@ const FlowWrapper: React.FC = () => {
         tooltipText: timing?.internalProcess?.text ?? '',
         tooltipDuration: timing?.internalProcess?.duration ?? 1000,
         description: le.description ?? '',
-        particleType: le.particleType ?? 'circle',
+        particleType: le.particleType ?? 'dot',
       });
       setActiveNodeProperties(null);
       openRightSidebar();
@@ -622,8 +622,8 @@ const FlowWrapper: React.FC = () => {
 
 
   // Callback from Node properties to update local React Flow view state immediately
-  const handleApplyNodeProperties = useCallback((id: string, name: string, type: string, themeColor: string, handles?: any[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any) => {
-    pushToHistory();
+  const handleApplyNodeProperties = useCallback((id: string, name: string, type: string, themeColor: string, handles?: any[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any, skipHistory?: boolean) => {
+    if (!skipHistory) pushToHistory();
     
     let handlesToSave: any[] | undefined = undefined;
     
@@ -744,8 +744,8 @@ const FlowWrapper: React.FC = () => {
   // only available inside this FlowWrapper component.
   useEffect(() => {
     const handleApplyFromSidebar = (e: Event) => {
-      const { id, name, type, theme, handles, displayMode, rotation, customStyles } = (e as CustomEvent).detail;
-      handleApplyNodeProperties(id, name, type, theme, handles, displayMode, rotation, customStyles);
+      const { id, name, type, theme, handles, displayMode, rotation, customStyles, skipHistory } = (e as CustomEvent).detail;
+      handleApplyNodeProperties(id, name, type, theme, handles, displayMode, rotation, customStyles, skipHistory);
     };
     window.addEventListener('canvas:applyNodeProperties', handleApplyFromSidebar);
     return () => window.removeEventListener('canvas:applyNodeProperties', handleApplyFromSidebar);

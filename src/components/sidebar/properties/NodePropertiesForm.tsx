@@ -4,7 +4,7 @@ import { resolveHandles } from '../../../utils/portUtils';
 import { ConnectionPointsEditor } from './ConnectionPointsEditor';
 import { ActiveNodeProperties } from '../../../types';
 
-export type NodePropertiesFormRef = { submit: () => void };
+export type NodePropertiesFormRef = { submit: () => void; cancel: () => void };
 
 interface NodePropertiesFormProps {
   activeNode: ActiveNodeProperties;
@@ -14,6 +14,11 @@ interface NodePropertiesFormProps {
     id: string, name: string, type: string, theme: string,
     handles?: HandleConfig[], displayMode?: 'default' | 'icon-only',
     rotation?: number, customStyles?: any
+  ) => void;
+  /** Called immediately on every non-handle field change for live canvas preview */
+  onPreview: (
+    id: string, name: string, type: string, theme: string,
+    displayMode: 'default' | 'icon-only', rotation: number, customStyles: any
   ) => void;
 }
 
@@ -64,6 +69,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
   language: lang,
   connectedHandleIds,
   onSubmit,
+  onPreview,
 }, ref) => {
   const [name, setName] = useState(activeNode.name);
   const [type, setType] = useState(activeNode.type);
@@ -73,19 +79,51 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
   const [rotation, setRotation] = useState(activeNode.rotation ?? 0);
   const [customStyles, setCustomStyles] = useState<any>(activeNode.customStyles ?? {});
 
-  // Sync when active node changes
+  // Snapshot of original values — used to reset on cancel
+  const [origName, setOrigName] = useState(activeNode.name);
+  const [origType, setOrigType] = useState(activeNode.type);
+  const [origTheme, setOrigTheme] = useState(activeNode.theme);
+  const [origHandles, setOrigHandles] = useState<HandleConfig[]>([]);
+  const [origDisplayMode, setOrigDisplayMode] = useState<'default' | 'icon-only'>(activeNode.displayMode ?? 'default');
+  const [origRotation, setOrigRotation] = useState(activeNode.rotation ?? 0);
+  const [origCustomStyles, setOrigCustomStyles] = useState<any>(activeNode.customStyles ?? {});
+
+  // Sync when active node changes (new selection)
   useEffect(() => {
-    setName(activeNode.name);
-    setType(activeNode.type);
-    setTheme(activeNode.theme);
-    setHandles(resolveHandles(activeNode.handles).map((h) => ({ ...h, originalId: h.originalId || h.id })));
-    setDisplayMode(activeNode.displayMode ?? 'default');
-    setRotation(activeNode.rotation ?? 0);
-    setCustomStyles(activeNode.customStyles ?? {});
+    const resolved = resolveHandles(activeNode.handles).map((h) => ({ ...h, originalId: h.originalId || h.id }));
+    setName(activeNode.name); setOrigName(activeNode.name);
+    setType(activeNode.type); setOrigType(activeNode.type);
+    setTheme(activeNode.theme); setOrigTheme(activeNode.theme);
+    setHandles(resolved); setOrigHandles(resolved);
+    setDisplayMode(activeNode.displayMode ?? 'default'); setOrigDisplayMode(activeNode.displayMode ?? 'default');
+    setRotation(activeNode.rotation ?? 0); setOrigRotation(activeNode.rotation ?? 0);
+    setCustomStyles(activeNode.customStyles ?? {}); setOrigCustomStyles(activeNode.customStyles ?? {});
   }, [activeNode]);
+
+  // Convenience: preview the current field values (except handles)
+  const preview = (overrides?: Partial<{ n: string; t: string; th: string; dm: 'default' | 'icon-only'; r: number; cs: any }>) =>
+    onPreview(
+      activeNode.id,
+      overrides?.n ?? name,
+      overrides?.t ?? type,
+      overrides?.th ?? theme,
+      overrides?.dm ?? displayMode,
+      overrides?.r ?? rotation,
+      overrides?.cs ?? customStyles,
+    );
+
   useImperativeHandle(ref, () => ({
     submit: () => onSubmit(activeNode.id, name, type, theme, handles, displayMode, rotation, customStyles),
-  }), [activeNode.id, name, type, theme, handles, displayMode, rotation, customStyles, onSubmit]);
+    cancel: () => {
+      setName(origName); setType(origType); setTheme(origTheme);
+      setHandles(origHandles); setDisplayMode(origDisplayMode);
+      setRotation(origRotation); setCustomStyles(origCustomStyles);
+      // Revert preview to original values
+      onPreview(activeNode.id, origName, origType, origTheme, origDisplayMode, origRotation, origCustomStyles);
+    },
+  }), [activeNode.id, name, type, theme, handles, displayMode, rotation, customStyles,
+       origName, origType, origTheme, origHandles, origDisplayMode, origRotation, origCustomStyles,
+       onSubmit, onPreview]);
 
   const isSection = activeNode.type === 'section';
   const tr = (t: string, e: string) => lang === 'tr' ? t : e;
@@ -96,14 +134,17 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
       {/* Name */}
       <div className="flex flex-col gap-1">
         <Label>{tr('Ad', 'Name')}</Label>
-        <CompactInput value={name} onChange={(e) => setName(e.target.value)} />
+        <CompactInput
+          value={name}
+          onChange={(e) => { setName(e.target.value); preview({ n: e.target.value }); }}
+        />
       </div>
 
       {/* Type (not for sections) */}
       {!isSection && (
         <div className="flex flex-col gap-1">
           <Label>{tr('Tip', 'Type')}</Label>
-          <CompactSelect value={type} onChange={(e) => setType(e.target.value)}>
+          <CompactSelect value={type} onChange={(e) => { setType(e.target.value); preview({ t: e.target.value }); }}>
             <option value="client">{tr('İstemci (Client)', 'Client')}</option>
             <option value="load_balancer">{tr('Yük Dengeleyici', 'Load Balancer')}</option>
             <option value="gateway">API Gateway</option>
@@ -124,7 +165,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
             {THEME_COLORS.map((c) => (
               <button
                 key={c}
-                onClick={() => setTheme(c)}
+                onClick={() => { setTheme(c); preview({ th: c }); }}
                 className={`w-5 h-5 rounded-full ${BG[c]} hover:scale-110 active:scale-90 transition-transform cursor-pointer ${
                   theme === c ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900' : ''
                 }`}
@@ -147,7 +188,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
               {(['default', 'icon-only'] as const).map((mode) => (
                 <button
                   key={mode}
-                  onClick={() => setDisplayMode(mode)}
+                  onClick={() => { setDisplayMode(mode); preview({ dm: mode }); }}
                   className={`flex-1 py-1 text-[10px] rounded-md font-semibold transition-colors leading-none ${
                     displayMode === mode
                       ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
@@ -167,7 +208,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
               {([0, 90] as const).map((deg) => (
                 <button
                   key={deg}
-                  onClick={() => setRotation(deg)}
+                  onClick={() => { setRotation(deg); preview({ r: deg }); }}
                   className={`flex-1 flex items-center justify-center gap-1 py-1 text-[10px] rounded-md font-semibold transition-colors leading-none ${
                     rotation === deg
                       ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
@@ -204,12 +245,21 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                 <input
                   type="color"
                   value={(customStyles as any)[key] || def}
-                  onChange={(e) => setCustomStyles({ ...customStyles, [key]: e.target.value })}
+                  onChange={(e) => {
+                    const s = { ...customStyles, [key]: e.target.value };
+                    setCustomStyles(s);
+                    preview({ cs: s });
+                  }}
                   className="w-5 h-5 rounded cursor-pointer border-0 p-0 shrink-0"
                 />
                 <span className="text-[9px] text-slate-500 dark:text-slate-400 flex-1 truncate">{label}</span>
                 <button
-                  onClick={() => { const s = { ...customStyles }; delete (s as any)[key]; setCustomStyles(s); }}
+                  onClick={() => {
+                    const s = { ...customStyles };
+                    delete (s as any)[key];
+                    setCustomStyles(s);
+                    preview({ cs: s });
+                  }}
                   className="text-[9px] text-rose-400 hover:text-rose-600 cursor-pointer shrink-0 leading-none"
                 >
                   ✕

@@ -1,4 +1,7 @@
 import { Language, Theme } from '../i18n/translations';
+import { ParticleType } from '../config/particles';
+export type { ParticleType };
+
 
 // --- PORT / HANDLE SYSTEM ---
 export type PortSide = 'top' | 'right' | 'bottom' | 'left';
@@ -29,7 +32,7 @@ export interface LogicalEdge {
   isAsync: boolean;
   protocol?: string; // E.g., 'HTTP', 'gRPC', 'WebSocket' (Phase 4)
   description?: string; // Description shown only in logs
-  particleType?: 'circle' | 'arrow' | 'envelope';
+  particleType?: ParticleType;
 }
 
 export interface SequenceStep {
@@ -128,7 +131,7 @@ export interface ActiveEdgeProperties {
   tooltipText: string;
   tooltipDuration: number;
   description?: string;
-  particleType?: 'circle' | 'arrow' | 'envelope';
+  particleType?: ParticleType;
   isNew?: boolean;
 }
 
@@ -271,7 +274,7 @@ export interface AppState {
   clearCanvas: () => void;
   updateNodeDetails: (id: string, name: string, type: string, theme?: string, handles?: HandleConfig[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any) => void;
   updateNodeHandles: (nodeId: string, handles: HandleConfig[]) => void;
-  updateEdgeDetails: (edgeId: string, protocol: string, isAsync: boolean, duration: number, delay: number, tooltipText?: string, tooltipDuration?: number, description?: string, particleType?: 'circle' | 'arrow' | 'envelope') => void;
+  updateEdgeDetails: (edgeId: string, protocol: string, isAsync: boolean, duration: number, delay: number, tooltipText?: string, tooltipDuration?: number, description?: string, particleType?: ParticleType) => void;
 
   // Active Selection Actions
   setActiveNodeProperties: (props: ActiveNodeProperties | null) => void;
@@ -300,6 +303,7 @@ export interface AppState {
   // Phase 6 Actions
   applyAutoLayout: (direction: 'TB' | 'LR') => void;
   pushToHistory: () => void;
+  pushStateToHistory: (logicalData: LogicalDiagram, visualData: VisualDiagram) => void;
   undo: () => void;
   redo: () => void;
 

@@ -1,5 +1,6 @@
 import { StateCreator } from 'zustand';
 import { AppState, LogicalNode, VisualNode, LogicalEdge, HandleConfig, ActiveNodeProperties, ActiveEdgeProperties } from '../../types';
+import { ParticleType } from '../../config/particles';
 import { getLayoutedElements } from '../../utils/layout';
 
 export interface CanvasSlice {
@@ -28,7 +29,7 @@ export interface CanvasSlice {
     tooltipText?: string,
     tooltipDuration?: number,
     description?: string,
-    particleType?: 'circle' | 'arrow' | 'envelope'
+    particleType?: ParticleType
   ) => void;
   setNodeParent: (nodeId: string, parentId: string | null) => void;
   autoResizeSection: (sectionId: string) => void;
@@ -258,7 +259,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     tooltipText?: string,
     tooltipDuration?: number,
     description?: string,
-    particleType?: 'circle' | 'arrow' | 'envelope'
+    particleType?: ParticleType
   ) => {
     set((state) => {
       const edges = state.logicalData.edges.map((e) =>

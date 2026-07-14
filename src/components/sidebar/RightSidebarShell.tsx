@@ -3,6 +3,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { SimulationPanel } from './SimulationPanel';
 import { PropertiesView } from './PropertiesView';
 import { HandleConfig } from '../../types';
+import { ParticleType } from '../../config/particles';
 
 /**
  * RightSidebarShell
@@ -38,9 +39,10 @@ export const RightSidebarShell: React.FC = () => {
     handles?: HandleConfig[], displayMode?: 'default' | 'icon-only',
     rotation?: number, customStyles?: any,
   ) => {
-    // Dispatch to DiagramCanvas which owns React Flow local state (setRfNodes/setRfEdges)
+    // skipHistory: true because PropertiesView already pushed the pre-preview
+    // snapshot to history via pushStateToHistory before calling submit().
     window.dispatchEvent(new CustomEvent('canvas:applyNodeProperties', {
-      detail: { id, name, type, theme, handles, displayMode, rotation, customStyles }
+      detail: { id, name, type, theme, handles, displayMode, rotation, customStyles, skipHistory: true }
     }));
     clearActiveProperties();
   }, [clearActiveProperties]);
@@ -48,7 +50,7 @@ export const RightSidebarShell: React.FC = () => {
   const handleApplyEdge = useCallback((
     id: string, protocol: string, isAsync: boolean, duration: number, delay: number,
     tooltipText: string, tooltipDuration: number, description: string,
-    particleType: 'circle' | 'arrow' | 'envelope' | undefined,
+    particleType: ParticleType | undefined,
     stepNumber: number, direction: 'forward' | 'reverse', isRoundTrip: boolean,
   ) => {
     updateEdgeDetails(id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description, particleType);
