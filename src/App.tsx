@@ -21,6 +21,24 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    // Periodically check for Service Worker updates every 30 minutes.
+    // When a new SW is activated, autoUpdate in vite-plugin-pwa triggers page reload.
+    if ('serviceWorker' in navigator) {
+      const interval = setInterval(() => {
+        navigator.serviceWorker.ready
+          .then((registration) => {
+            registration.update();
+          })
+          .catch((err) => {
+            console.error('Service Worker update check failed:', err);
+          });
+      }, 30 * 60 * 1000); // 30 minutes
+
+      return () => clearInterval(interval);
+    }
+  }, []);
+
   if (!currentWorkspace) {
     return <WelcomeScreen />;
   }

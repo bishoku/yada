@@ -38,6 +38,7 @@ export interface WorkspaceSlice {
   loadAppPreferences: () => Promise<void>;
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
+  openRightSidebar: () => void;
   manualSave: () => Promise<void>;
   deleteWorkspace: (path: string) => Promise<void>;
 }
@@ -230,7 +231,8 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
 
   toggleLeftSidebar: () => set((state) => ({ leftSidebarOpen: !state.leftSidebarOpen })),
   toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
-  
+  openRightSidebar: () => set({ rightSidebarOpen: true }),
+
   manualSave: async () => {
     const state = get();
     if (!state.currentWorkspace || !state.isDirty || state.isSaving) return;

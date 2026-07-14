@@ -25,8 +25,8 @@ import { useAppStore } from '../../store/useAppStore';
 import { Trash2 } from 'lucide-react';
 
 import { ContextMenu } from './ContextMenu';
-import { PropertiesPanel } from './PropertiesPanel';
 import { ClearCanvasModal } from './ClearCanvasModal';
+import { DragGhost } from './DragGhost';
 import { getDefaultHandles } from '../../utils/portUtils';
 
 import {
@@ -59,6 +59,10 @@ const FlowWrapper: React.FC = () => {
   const focusedNodeId = useAppStore((s) => s.focusedNodeId);
   const setFocusedNodeId = useAppStore((s) => s.setFocusedNodeId);
   const isPlaying = useAppStore((s) => s.isPlaying);
+  const setActiveNodeProperties = useAppStore((s) => s.setActiveNodeProperties);
+  const setActiveEdgeProperties = useAppStore((s) => s.setActiveEdgeProperties);
+  const clearActiveProperties = useAppStore((s) => s.clearActiveProperties);
+  const openRightSidebar = useAppStore((s) => s.openRightSidebar);
 
   const { screenToFlowPosition, setCenter, fitView } = useReactFlow();
   const { x: viewportX, y: viewportY, zoom } = useViewport();
@@ -84,50 +88,16 @@ const FlowWrapper: React.FC = () => {
   const dragStartRef = useRef<{ nodeId: string; handleId: string } | null>(null);
   const [showClearModal, setShowClearModal] = useState(false);
 
-  // ── Floating Properties Modal States ───────────────────────────────────────
-  const [activeNodeProperties, setActiveNodeProperties] = useState<{
-    id: string;
-    x: number;
-    y: number;
-    name: string;
-    type: string;
-    theme: string;
-    handles?: any[];
-    displayMode?: 'default' | 'icon-only';
-    rotation?: number;
-    customStyles?: any;
-  } | null>(null);
-
-  const [activeEdgeProperties, setActiveEdgeProperties] = useState<{
-    id: string;
-    x: number;
-    y: number;
-    protocol: string;
-    isAsync: boolean;
-    stepNumber: number;
-    duration: number;
-    delay: number;
-    tooltipText: string;
-    tooltipDuration: number;
-    description?: string;
-    isNew?: boolean;
-    particleType?: 'circle' | 'arrow' | 'envelope';
-  } | null>(null);
-
   const closeMenu = useCallback(() => setMenu(null), []);
 
   const handleCancelActiveEdge = useCallback(() => {
-    setActiveEdgeProperties((current) => {
-      if (current) {
-        if (current.isNew) {
-          deleteEdge(current.id);
-          setRfEdges((eds) => eds.filter((e) => e.id !== current.id));
-        }
-      }
-      return null;
-    });
-    setActiveNodeProperties(null);
-  }, [deleteEdge, setRfEdges, pushToHistory]);
+    const current = useAppStore.getState().activeEdgeProperties;
+    if (current?.isNew) {
+      deleteEdge(current.id);
+      setRfEdges((eds) => eds.filter((e) => e.id !== current.id));
+    }
+    clearActiveProperties();
+  }, [deleteEdge, setRfEdges, clearActiveProperties]);
 
   // ── Custom Hooks ──────────────────────────────────────────────────────────
   const { visualDataRef } = useCanvasSync(setRfNodes, setRfEdges);
@@ -160,7 +130,7 @@ const FlowWrapper: React.FC = () => {
         setCenter(x, y, { zoom: 1.2, duration: 800 });
 
         setSelectedSequenceId(null);
-        setActiveEdgeProperties(null);
+        clearActiveProperties();
         setRfEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
 
         setRfNodes((nds) =>
@@ -179,10 +149,9 @@ const FlowWrapper: React.FC = () => {
     if (isPlaying) {
       setRfNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
       setRfEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
-      setActiveNodeProperties(null);
-      setActiveEdgeProperties(null);
+      clearActiveProperties();
     }
-  }, [isPlaying, setRfNodes, setRfEdges]);
+  }, [isPlaying, setRfNodes, setRfEdges, clearActiveProperties]);
 
   const { onNodeDragStop } = useSectionDrag();
 
@@ -199,8 +168,6 @@ const FlowWrapper: React.FC = () => {
     if (ln) {
       setActiveNodeProperties({
         id: node.id,
-        x: e.clientX,
-        y: e.clientY,
         name: ln.name,
         type: ln.type,
         theme: vn?.theme ?? 'indigo',
@@ -209,8 +176,10 @@ const FlowWrapper: React.FC = () => {
         rotation: vn?.rotation ?? 0,
         customStyles: vn?.customStyles ?? {},
       });
+      setActiveEdgeProperties(null);
+      openRightSidebar();
     }
-  }, [closeMenu, visualDataRef]);
+  }, [closeMenu, visualDataRef, setActiveNodeProperties, setActiveEdgeProperties, openRightSidebar]);
 
   const handleEdgeClick = useCallback((e: React.MouseEvent, edge: Edge) => {
     if (isPlaying) return;
@@ -230,11 +199,8 @@ const FlowWrapper: React.FC = () => {
 
     if (le) {
       const timing = seq ? visualDataRef.current.timelines[seq.id] : null;
-
       setActiveEdgeProperties({
         id: edge.id,
-        x: e.clientX,
-        y: e.clientY,
         protocol: le.protocol ?? 'Call',
         isAsync: le.isAsync,
         stepNumber: seq?.stepNumber ?? 1,
@@ -245,8 +211,10 @@ const FlowWrapper: React.FC = () => {
         description: le.description ?? '',
         particleType: le.particleType ?? 'circle',
       });
+      setActiveNodeProperties(null);
+      openRightSidebar();
     }
-  }, [closeMenu, visualDataRef, setSelectedSequenceId]);
+  }, [closeMenu, visualDataRef, setSelectedSequenceId, setActiveEdgeProperties, setActiveNodeProperties, openRightSidebar]);
 
   // ── Listen for Export Trigger ───────────────
   useEffect(() => {
@@ -257,6 +225,7 @@ const FlowWrapper: React.FC = () => {
     window.addEventListener('export:fitview', handleExportFitView);
     return () => window.removeEventListener('export:fitview', handleExportFitView);
   }, [fitView]);
+
   useEffect(() => {
     if (!selectedSequenceId) {
       setRfEdges((eds) => eds.map((e) => ({ ...e, selected: false })));
@@ -553,11 +522,9 @@ const FlowWrapper: React.FC = () => {
         }
       );
 
-      // Open the EdgePropertiesPopover immediately in the center of the screen
+      // Open PropertiesView in the sidebar immediately for the new edge
       setActiveEdgeProperties({
         id: edgeId,
-        x: window.innerWidth / 2 - 160,
-        y: window.innerHeight / 2 - 210,
         protocol: '',
         isAsync: false,
         stepNumber: nextStepNum,
@@ -568,6 +535,7 @@ const FlowWrapper: React.FC = () => {
         description: '',
         isNew: true
       });
+      openRightSidebar();
     },
     [setRfEdges, zustandAddEdge, addSequenceStep]
   );
@@ -648,9 +616,8 @@ const FlowWrapper: React.FC = () => {
   const onPaneClick = useCallback(() => {
     closeMenu();
     setSelectedSequenceId(null);
-    setActiveNodeProperties(null);
-    setActiveEdgeProperties(null);
-  }, [closeMenu, setSelectedSequenceId]);
+    clearActiveProperties();
+  }, [closeMenu, setSelectedSequenceId, clearActiveProperties]);
 
 
 
@@ -768,8 +735,21 @@ const FlowWrapper: React.FC = () => {
           : n
       )
     );
-    setActiveNodeProperties(null);
-  }, [updateNodeDetails, setRfNodes, setRfEdges, deleteEdge, pushToHistory]);
+    clearActiveProperties();
+  }, [updateNodeDetails, setRfNodes, setRfEdges, deleteEdge, pushToHistory, clearActiveProperties]);
+
+  // ── Listen for node property apply from RightSidebarShell ───────────────
+  // RightSidebarShell dispatches this event because handleApplyNodeProperties
+  // needs access to React Flow local state (setRfNodes, setRfEdges) which is
+  // only available inside this FlowWrapper component.
+  useEffect(() => {
+    const handleApplyFromSidebar = (e: Event) => {
+      const { id, name, type, theme, handles, displayMode, rotation, customStyles } = (e as CustomEvent).detail;
+      handleApplyNodeProperties(id, name, type, theme, handles, displayMode, rotation, customStyles);
+    };
+    window.addEventListener('canvas:applyNodeProperties', handleApplyFromSidebar);
+    return () => window.removeEventListener('canvas:applyNodeProperties', handleApplyFromSidebar);
+  }, [handleApplyNodeProperties]);
 
   return (
     <div
@@ -788,6 +768,8 @@ const FlowWrapper: React.FC = () => {
         edges={rfEdges}
         nodesDraggable={!isPlaying}
         nodesConnectable={!isPlaying}
+        minZoom={0.05}
+        maxZoom={3}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
@@ -803,8 +785,6 @@ const FlowWrapper: React.FC = () => {
         onPaneClick={onPaneClick}
         onMoveStart={() => {
           closeMenu();
-          setActiveNodeProperties(null);
-          setActiveEdgeProperties(null);
         }}
         onNodeClick={handleNodeClick}
         onNodeDragStart={onNodeDragStart}
@@ -818,6 +798,9 @@ const FlowWrapper: React.FC = () => {
         />
         <Controls className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-md font-sans" />
       </ReactFlow>
+
+      {/* Drag Ghost — shows drop position preview while dragging from sidebar */}
+      <DragGhost canvasRef={wrapperRef} />
 
       {/* Alignment Guides Overlay */}
       {alignmentLines.length > 0 && (
@@ -867,31 +850,6 @@ const FlowWrapper: React.FC = () => {
           <span>{theme === 'dark' ? 'Temizle' : 'Clear All'}</span>
         </button>
       </div>
-
-      <PropertiesPanel
-        activeNode={activeNodeProperties}
-        activeEdge={activeEdgeProperties}
-        onCloseNode={() => setActiveNodeProperties(null)}
-        onApplyNode={handleApplyNodeProperties}
-        onCloseEdge={() => setActiveEdgeProperties(null)}
-        onApplyEdge={(id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description, particleType, stepNumber, direction, isRoundTrip) => {
-          const { logicalData, updateEdgeDetails, setSequenceStepOrder, setSequenceStepDirection, setSequenceStepRoundTrip } = useAppStore.getState();
-          updateEdgeDetails(id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description, particleType);
-          
-          const seq = logicalData.sequences.find((s) => s.edgeId === id);
-          if (seq) {
-            if (seq.stepNumber !== stepNumber) {
-              setSequenceStepOrder(seq.id, stepNumber);
-            }
-            setSequenceStepDirection(seq.id, direction);
-            setSequenceStepRoundTrip(seq.id, isRoundTrip);
-          }
-
-          // Clear the isNew flag so that closing with X no longer deletes the edge
-          setActiveEdgeProperties((current) => current ? { ...current, isNew: false } : null);
-        }}
-        onCancelEdge={handleCancelActiveEdge}
-      />
 
       {/* Clear Canvas Confirmation Modal */}
       <ClearCanvasModal

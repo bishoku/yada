@@ -1,9 +1,11 @@
 import { StateCreator } from 'zustand';
-import { AppState, LogicalNode, VisualNode, LogicalEdge, HandleConfig } from '../../types';
+import { AppState, LogicalNode, VisualNode, LogicalEdge, HandleConfig, ActiveNodeProperties, ActiveEdgeProperties } from '../../types';
 import { getLayoutedElements } from '../../utils/layout';
 
 export interface CanvasSlice {
   pendingDrop: { type: string; name: string } | null;
+  activeNodeProperties: ActiveNodeProperties | null;
+  activeEdgeProperties: ActiveEdgeProperties | null;
   addNode: (logical: LogicalNode, visual: VisualNode) => void;
   updateNodePosition: (id: string, x: number, y: number) => void;
   updateNodeDimensions: (id: string, width: number, height: number) => void;
@@ -34,12 +36,20 @@ export interface CanvasSlice {
   applyAutoLayout: (direction: 'TB' | 'LR') => void;
   focusedNodeId: string | null;
   setFocusedNodeId: (id: string | null) => void;
+  setActiveNodeProperties: (props: ActiveNodeProperties | null) => void;
+  setActiveEdgeProperties: (props: ActiveEdgeProperties | null) => void;
+  clearActiveProperties: () => void;
 }
 
 export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (set, get) => ({
   pendingDrop: null,
+  activeNodeProperties: null,
+  activeEdgeProperties: null,
   focusedNodeId: null,
   setFocusedNodeId: (id) => set({ focusedNodeId: id }),
+  setActiveNodeProperties: (props) => set({ activeNodeProperties: props }),
+  setActiveEdgeProperties: (props) => set({ activeEdgeProperties: props }),
+  clearActiveProperties: () => set({ activeNodeProperties: null, activeEdgeProperties: null }),
 
   addNode: (logical, visual) => {
     get().pushToHistory();

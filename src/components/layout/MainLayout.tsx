@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TopBar } from './TopBar';
 import { SidebarLeft } from './SidebarLeft';
-import { SidebarRight } from './SidebarRight';
+import { RightSidebarShell } from '../sidebar/RightSidebarShell';
 import { useAppStore } from '../../store/useAppStore';
 
 import { DiagramCanvas } from '../canvas/DiagramCanvas';
@@ -86,8 +86,8 @@ export const MainLayout: React.FC = () => {
           
         </main>
 
-        {/* Right Sidebar: Logs & Text Stream */}
-        <SidebarRight />
+        {/* Right Sidebar: Simulation Panel / Properties Panel */}
+        <RightSidebarShell />
 
       </div>
     </div>

@@ -100,6 +100,38 @@ export interface DiagramMeta {
   updatedAt: string;
 }
 
+// --- ACTIVE SELECTION (Properties Panel) ---
+export interface ActiveNodeProperties {
+  id: string;
+  name: string;
+  type: string;
+  theme: string;
+  handles?: HandleConfig[];
+  displayMode?: 'default' | 'icon-only';
+  rotation?: number;
+  customStyles?: {
+    backgroundColor?: string;
+    borderColor?: string;
+    borderStyle?: 'solid' | 'dashed' | 'dotted';
+    borderRadius?: number;
+  };
+  isNew?: boolean;
+}
+
+export interface ActiveEdgeProperties {
+  id: string;
+  protocol: string;
+  isAsync: boolean;
+  stepNumber: number;
+  duration: number;
+  delay: number;
+  tooltipText: string;
+  tooltipDuration: number;
+  description?: string;
+  particleType?: 'circle' | 'arrow' | 'envelope';
+  isNew?: boolean;
+}
+
 // --- CUSTOM COMPONENT STUDIO DATA ---
 export type ShapeType = 'rectangle' | 'circle' | 'text' | 'image';
 
@@ -161,6 +193,10 @@ export interface AppState {
   
   // Custom Drag State (WKWebView doesn't support HTML5 drop)
   pendingDrop: { type: string; name: string } | null;
+
+  // Active Selection State (drives the context-sensitive Properties panel)
+  activeNodeProperties: ActiveNodeProperties | null;
+  activeEdgeProperties: ActiveEdgeProperties | null;
 
   // Phase 3 Playback State
   isPlaying: boolean;
@@ -237,9 +273,15 @@ export interface AppState {
   updateNodeHandles: (nodeId: string, handles: HandleConfig[]) => void;
   updateEdgeDetails: (edgeId: string, protocol: string, isAsync: boolean, duration: number, delay: number, tooltipText?: string, tooltipDuration?: number, description?: string, particleType?: 'circle' | 'arrow' | 'envelope') => void;
 
+  // Active Selection Actions
+  setActiveNodeProperties: (props: ActiveNodeProperties | null) => void;
+  setActiveEdgeProperties: (props: ActiveEdgeProperties | null) => void;
+  clearActiveProperties: () => void;
+
   // Layout Actions
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
+  openRightSidebar: () => void;
   toggleTimeline: () => void;
   setTimelineHeight: (height: number) => void;
 
