@@ -208,7 +208,7 @@ export const TopBar: React.FC = () => {
           className="flex items-center gap-1.5 cursor-pointer" 
           title={language === 'tr' ? 'Giriş ekranına dön' : 'Go back to welcome screen'}
         >
-          <Cpu className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          <img src="/pwa-icon.png" className={"h-6"}/>
           <span className="font-bold text-sm tracking-wide bg-gradient-to-r from-indigo-600 to-indigo-400 dark:from-indigo-200 dark:to-slate-200 bg-clip-text text-transparent">
             {t.welcomeTitle}
           </span>

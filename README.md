@@ -1,7 +1,7 @@
 <div align="center">
-  <!-- PLACEHOLDER: Logo/Banner Image -->
-  <img src="https://via.placeholder.com/800x200/0f172a/ffffff?text=YADA+Banner+Placeholder" alt="YADA Banner" />
-
+  
+![banner.webp](assets/banner.webp)
+ 
   # YADA (Yet Another Diagram App) 🚀
 
   **An open-source, interactive architecture diagramming and simulation tool.**
@@ -21,14 +21,12 @@ Unlike static diagramming tools, YADA allows you to define sequence steps on you
 ## 📸 Sneak Peek
 
 <div align="center">
-  <!-- PLACEHOLDER: App Screenshot -->
-  <img src="https://via.placeholder.com/800x450/1e293b/94a3b8?text=Placeholder:+App+Screenshot" alt="YADA Screenshot" />
-  
-  <br />
-  <br />
 
-  <!-- PLACEHOLDER: App GIF Demo -->
-  <img src="https://via.placeholder.com/800x450/1e293b/94a3b8?text=Placeholder:+App+Demo+GIF" alt="YADA GIF Demo" />
+
+![img.png](assets/img.png)
+
+![test_flow.gif](assets/test.gif)
+
 </div>
 
 ## ✨ Key Features

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readFile } from '@tauri-apps/plugin-fs';
-import { FolderPlus, FolderOpen, History, Info, AlertCircle, Compass, HardDrive, Settings, Globe, Moon, Sun, Check, Download, Trash2, Upload, Edit } from 'lucide-react';
+import { FolderPlus, FolderOpen, History, Info, AlertCircle, HardDrive, Settings, Globe, Moon, Sun, Check, Download, Trash2, Upload, Edit } from 'lucide-react';
 import { translations } from '../../i18n/translations';
 import { isTauri, StorageService } from '../../services/storage';
 import { exportWorkspace, importWorkspace, ImportConflict, ConflictResolution } from '../../utils/workspaceZip';
@@ -235,13 +235,11 @@ export const WelcomeScreen: React.FC = () => {
         <div className="w-full md:w-1/2 p-8 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-6">
-              <Compass className="w-8 h-8 text-indigo-500 dark:text-indigo-400 animate-pulse" />
+              <img src="/pwa-icon.png" className={"h-12"}/>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-400 dark:from-indigo-200 dark:via-indigo-100 dark:to-slate-200 bg-clip-text text-transparent">
                 {t.welcomeTitle}
               </h1>
-              <span className="px-2 py-0.5 text-[10px] font-semibold bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 rounded border border-indigo-500/20 dark:border-indigo-500/30">
-                Faz 1
-              </span>
+
             </div>
             
             <div className="flex items-center justify-between mb-4">
@@ -403,9 +401,7 @@ export const WelcomeScreen: React.FC = () => {
             </form>
           </div>
           
-          <div className="text-slate-400 dark:text-slate-600 text-[10px] mt-6 text-center">
-            YADA v0.1.0 • Faz 1 {language === 'tr' ? 'Tercihler' : 'Preferences'}
-          </div>
+
         </div>
 
       </div>
