@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppStore } from '../../store/useAppStore';
-import { 
-  LogOut, Settings, Database, Cpu, Check, Globe, Moon, Sun, 
-  PanelLeft, PanelRight, PanelBottom, 
+import {
+  LogOut, Settings, Database, Check, Globe, Moon, Sun,
+  PanelLeft, PanelRight, PanelBottom,
   Undo, Redo, FileDown, Copy, Grid, ChevronDown, Save, Loader2
 } from 'lucide-react';
 import { translations } from '../../i18n/translations';
@@ -59,7 +59,7 @@ export const TopBar: React.FC = () => {
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportProgress, setExportProgress] = useState<number | null>(null);
-  
+
   // GIF Config State
   const [showGifConfig, setShowGifConfig] = useState(false);
   const [gifFps, setGifFps] = useState(15);
@@ -147,8 +147,8 @@ export const TopBar: React.FC = () => {
   };
 
   const handleCopyForAi = async () => {
-    let text = `${language === 'tr' 
-      ? 'Aşağıdaki sistem mimarisi için altyapı kodlarını (Terraform/Pulumi/Docker Compose) üret veya mimariyi analiz et:' 
+    let text = `${language === 'tr'
+      ? 'Aşağıdaki sistem mimarisi için altyapı kodlarını (Terraform/Pulumi/Docker Compose) üret veya mimariyi analiz et:'
       : 'Generate infrastructure code (Terraform/Pulumi/Docker Compose) or analyze the following system architecture:'}\n\n`;
 
     text += `**${language === 'tr' ? 'Bileşenler' : 'Components'}:**\n`;
@@ -167,12 +167,12 @@ export const TopBar: React.FC = () => {
 
     if (logicalData.sequences.length > 0) {
       text += `\n**${language === 'tr' ? 'Etkileşim Akışı (Zaman Tüneli)' : 'Interaction Flow (Timeline)'}:**\n`;
-      
+
       const schedules = useAppStore.getState().schedules;
       const sortedSchedules = Object.entries(schedules)
         .map(([id, range]) => ({ id, start: range.start, end: range.end }))
         .sort((a, b) => a.start - b.start);
-      
+
       sortedSchedules.forEach(s => {
         const seq = logicalData.sequences.find(q => q.id === s.id);
         const edge = logicalData.edges.find(e => e.id === seq?.edgeId);
@@ -181,11 +181,11 @@ export const TopBar: React.FC = () => {
         const syncType = seq.isAsync ? (language === 'tr' ? 'Asenkron' : 'Asynchronous') : (language === 'tr' ? 'Senkron' : 'Synchronous');
         const directionStr = `\`${edge.sourceId}\` → \`${edge.targetId}\`` + (seq.isRoundTrip ? ' ↔' : '');
 
-        text += `${seq.stepNumber}. [${syncType}] ${directionStr} (Protocol: ${edge.protocol || 'Call'}, Timing: ${(s.start/1000).toFixed(2)}s - ${(s.end/1000).toFixed(2)}s)\n`;
-        
+        text += `${seq.stepNumber}. [${syncType}] ${directionStr} (Protocol: ${edge.protocol || 'Call'}, Timing: ${(s.start / 1000).toFixed(2)}s - ${(s.end / 1000).toFixed(2)}s)\n`;
+
         const timing = visualData.timelines[s.id];
         if (timing?.internalProcess?.text) {
-          text += `   - Node \`${edge.targetId}\` internal process: "${timing.internalProcess.text}" (${(timing.internalProcess.duration/1000).toFixed(2)}s)\n`;
+          text += `   - Node \`${edge.targetId}\` internal process: "${timing.internalProcess.text}" (${(timing.internalProcess.duration / 1000).toFixed(2)}s)\n`;
         }
       });
     }
@@ -200,28 +200,28 @@ export const TopBar: React.FC = () => {
 
   return (
     <header className="h-14 border-b border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900 flex items-center justify-between px-4 z-25 select-none shrink-0 relative transition-colors duration-300">
-      
+
       {/* Left Section: Branding & Workspace Name */}
       <div className="flex items-center gap-4">
-        <div 
-          onClick={handleBackToWelcome} 
-          className="flex items-center gap-1.5 cursor-pointer" 
+        <div
+          onClick={handleBackToWelcome}
+          className="flex items-center gap-1.5 cursor-pointer"
           title={language === 'tr' ? 'Giriş ekranına dön' : 'Go back to welcome screen'}
         >
-          <img src="/pwa-icon.png" className={"h-6"}/>
+          <img src="/pwa-icon.png" className={"h-6"} />
           <span className="font-bold text-sm tracking-wide bg-gradient-to-r from-indigo-600 to-indigo-400 dark:from-indigo-200 dark:to-slate-200 bg-clip-text text-transparent">
             {t.welcomeTitle}
           </span>
         </div>
-        
+
         <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
-        
+
         <div className="flex items-center gap-2">
           <Database className="w-4 h-4 text-slate-400 dark:text-slate-500" />
           <span className="text-xs font-semibold text-slate-800 dark:text-slate-300">
             {currentWorkspace?.name}
           </span>
-          
+
           <button
             onClick={() => {
               setEditName(currentWorkspace?.name || '');
@@ -269,11 +269,10 @@ export const TopBar: React.FC = () => {
         <div className="flex items-center gap-1">
           <button
             onClick={toggleLeftSidebar}
-            className={`p-1.5 rounded cursor-pointer transition-colors ${
-              leftSidebarOpen 
-                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10' 
+            className={`p-1.5 rounded cursor-pointer transition-colors ${leftSidebarOpen
+                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10'
                 : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
-            }`}
+              }`}
             title={language === 'tr' ? 'Sol paneli gizle/göster' : 'Toggle left sidebar'}
           >
             <PanelLeft className="w-4 h-4" />
@@ -281,23 +280,21 @@ export const TopBar: React.FC = () => {
 
           <button
             onClick={toggleTimeline}
-            className={`p-1.5 rounded cursor-pointer transition-colors ${
-              timelineOpen 
-                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10' 
+            className={`p-1.5 rounded cursor-pointer transition-colors ${timelineOpen
+                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10'
                 : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
-            }`}
+              }`}
             title={language === 'tr' ? 'Zaman çizelgesini gizle/göster' : 'Toggle timeline'}
           >
             <PanelBottom className="w-4 h-4" />
           </button>
-          
+
           <button
             onClick={toggleRightSidebar}
-            className={`p-1.5 rounded cursor-pointer transition-colors ${
-              rightSidebarOpen 
-                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10' 
+            className={`p-1.5 rounded cursor-pointer transition-colors ${rightSidebarOpen
+                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10'
                 : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
-            }`}
+              }`}
             title={language === 'tr' ? 'Sağ paneli gizle/göster' : 'Toggle right sidebar'}
           >
             <PanelRight className="w-4 h-4" />
@@ -430,7 +427,7 @@ export const TopBar: React.FC = () => {
         <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono hidden sm:block truncate max-w-[200px]" title={currentWorkspace?.path}>
           {currentWorkspace?.path}
         </div>
-        
+
         <button
           onClick={handleBackToWelcome}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-semibold rounded-lg text-xs cursor-pointer transition-colors"
@@ -444,12 +441,12 @@ export const TopBar: React.FC = () => {
       {showSettings && createPortal(
         <div className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[9999]">
           <div className="bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl transition-all">
-            
+
             <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
               <Settings className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
               {t.editWorkspaceDetails}
             </h3>
-            
+
             <form onSubmit={handleSaveSettings} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
@@ -464,7 +461,7 @@ export const TopBar: React.FC = () => {
                   required
                 />
               </div>
-              
+
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                   {t.description}
@@ -483,7 +480,7 @@ export const TopBar: React.FC = () => {
                 <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   {t.appPrefTitle}
                 </h4>
-                
+
                 {/* Language Select */}
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
@@ -494,22 +491,20 @@ export const TopBar: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => changeLanguage('tr')}
-                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border cursor-pointer transition-all ${
-                        language === 'tr'
+                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border cursor-pointer transition-all ${language === 'tr'
                           ? 'bg-indigo-600 border-indigo-600 text-white'
                           : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
+                        }`}
                     >
                       {t.langTr}
                     </button>
                     <button
                       type="button"
                       onClick={() => changeLanguage('en')}
-                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border cursor-pointer transition-all ${
-                        language === 'en'
+                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border cursor-pointer transition-all ${language === 'en'
                           ? 'bg-indigo-600 border-indigo-600 text-white'
                           : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
+                        }`}
                     >
                       {t.langEn}
                     </button>
@@ -526,22 +521,20 @@ export const TopBar: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => changeTheme('dark')}
-                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border cursor-pointer transition-all ${
-                        theme === 'dark'
+                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border cursor-pointer transition-all ${theme === 'dark'
                           ? 'bg-indigo-600 border-indigo-600 text-white'
                           : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
+                        }`}
                     >
                       {t.themeDark}
                     </button>
                     <button
                       type="button"
                       onClick={() => changeTheme('light')}
-                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border cursor-pointer transition-all ${
-                        theme === 'light'
+                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border cursor-pointer transition-all ${theme === 'light'
                           ? 'bg-indigo-600 border-indigo-600 text-white'
                           : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
+                        }`}
                     >
                       {t.themeLight}
                     </button>
@@ -596,13 +589,13 @@ export const TopBar: React.FC = () => {
               {language === 'tr' ? 'GIF Oluşturuluyor...' : 'Generating GIF...'}
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center">
-              {language === 'tr' 
+              {language === 'tr'
                 ? 'Lütfen bekleyin, kareler oluşturulup birleştiriliyor. Bu işlem bilgisayarınızın performansına göre birkaç saniye sürebilir.'
                 : 'Please wait, frames are being rendered and encoded. This may take a few seconds depending on your computer performance.'}
             </p>
-            
+
             <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 mb-2 overflow-hidden border border-slate-200 dark:border-slate-700">
-              <div 
+              <div
                 className="bg-indigo-500 h-3 rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${exportProgress}%` }}
               />
@@ -619,12 +612,12 @@ export const TopBar: React.FC = () => {
       {showGifConfig && createPortal(
         <div className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[99999]">
           <div className="bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl transition-all">
-            
+
             <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
               <FileDown className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
               {language === 'tr' ? 'GIF Dışa Aktarma Ayarları' : 'GIF Export Settings'}
             </h3>
-            
+
             <div className="space-y-5">
               <div>
                 <label className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
@@ -641,8 +634,8 @@ export const TopBar: React.FC = () => {
                   className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
-                  {language === 'tr' 
-                    ? 'Düşük FPS hızlı oluşturulur ve dosya boyutu küçüktür. Yüksek FPS daha akıcıdır.' 
+                  {language === 'tr'
+                    ? 'Düşük FPS hızlı oluşturulur ve dosya boyutu küçüktür. Yüksek FPS daha akıcıdır.'
                     : 'Lower FPS exports faster with smaller size. Higher FPS is smoother.'}
                 </p>
               </div>
@@ -662,8 +655,8 @@ export const TopBar: React.FC = () => {
                   className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
-                  {language === 'tr' 
-                    ? 'Yüksek kalite renkleri daha iyi korur ancak işlem süresini uzatır.' 
+                  {language === 'tr'
+                    ? 'Yüksek kalite renkleri daha iyi korur ancak işlem süresini uzatır.'
                     : 'Higher quality preserves colors better but takes longer to encode.'}
                 </p>
               </div>
