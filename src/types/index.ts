@@ -3,6 +3,15 @@ import { ParticleType } from '../config/particles';
 export type { ParticleType };
 
 
+// --- GOOGLE SYNC ---
+export interface GoogleUser {
+  email: string;
+  name: string;
+  avatar: string;
+  accessToken: string;
+  expiresAt: number;
+}
+
 // --- PORT / HANDLE SYSTEM ---
 export type PortSide = 'top' | 'right' | 'bottom' | 'left';
 
@@ -355,4 +364,16 @@ export interface AppState {
   // Save Actions
   isSaving: boolean;
   manualSave: () => Promise<void>;
+
+  // Google Drive Sync State
+  googleUser: GoogleUser | null;
+  syncState: 'idle' | 'syncing' | 'error' | 'conflict';
+  lastSyncedAt: number | null;
+  hasUnsyncedChanges: boolean;
+
+  // Google Drive Sync Actions
+  setGoogleUser: (user: GoogleUser | null) => void;
+  setSyncState: (state: 'idle' | 'syncing' | 'error' | 'conflict') => void;
+  setLastSyncedAt: (timestamp: number | null) => void;
+  setHasUnsyncedChanges: (hasUnsynced: boolean) => void;
 }

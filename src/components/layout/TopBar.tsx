@@ -5,7 +5,8 @@ import {
   LogOut, Settings, Database,
   PanelLeft, PanelRight, PanelBottom,
   Undo, Redo, FileDown, Copy, ChevronDown, Save, Loader2,
-  ListOrdered, LayoutDashboard, Grid
+  ListOrdered, LayoutDashboard, Grid,
+  Cloud, CloudUpload, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { translations } from '../../i18n/translations';
 import { generateStandaloneHtml } from '../../utils/exportTemplate';
@@ -13,6 +14,7 @@ import { generateSequenceHtml } from '../../utils/exportSequenceTemplate';
 import { exportToPng, exportToGif } from '../../utils/exportMedia';
 import { save } from '@tauri-apps/plugin-dialog';
 import { StorageService, isTauri } from '../../services/storage';
+import { GoogleDriveService } from '../../services/googleDriveAPI';
 
 // SOLID Subcomponents
 import { SettingsModal } from './topbar/SettingsModal';
@@ -45,6 +47,11 @@ export const TopBar: React.FC = () => {
   const toggleTimeline = useAppStore((s) => s.toggleTimeline);
   const viewMode = useAppStore((s) => s.viewMode);
   const toggleViewMode = useAppStore((s) => s.toggleViewMode);
+
+  // Google Sync State
+  const googleUser = useAppStore((s) => s.googleUser);
+  const syncState = useAppStore((s) => s.syncState);
+  const hasUnsyncedChanges = useAppStore((s) => s.hasUnsyncedChanges);
 
   const t = translations[language];
 
@@ -203,239 +210,224 @@ export const TopBar: React.FC = () => {
   };
 
   return (
-    <header className="h-14 border-b border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900 flex items-center justify-between px-4 z-25 select-none shrink-0 relative transition-colors duration-300">
+    <header className="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center px-3 z-25 select-none shrink-0 transition-colors duration-300 font-sans gap-2">
 
-      {/* Left Section: Branding & Workspace Name */}
-      <div className="flex items-center gap-4">
+      {/* ── Left Section ── */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Logo */}
         <div
           onClick={handleBackToWelcome}
-          className="flex items-center gap-1.5 cursor-pointer"
+          className="flex items-center gap-1.5 cursor-pointer group shrink-0"
           title={language === 'tr' ? 'Giriş ekranına dön' : 'Go back to welcome screen'}
         >
-          <img src="pwa-icon.png" className={"h-6"} />
-          <span className="font-bold text-sm tracking-wide bg-gradient-to-r from-indigo-600 to-indigo-400 dark:from-indigo-200 dark:to-slate-200 bg-clip-text text-transparent">
+          <img src="pwa-icon.png" className="h-6 w-6 transition-transform group-hover:scale-105" />
+          <span className="font-bold text-sm tracking-wide bg-gradient-to-r from-indigo-600 to-indigo-400 dark:from-indigo-400 dark:to-indigo-200 bg-clip-text text-transparent hidden lg:inline">
             {t.welcomeTitle}
           </span>
         </div>
 
-        <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
+        <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
 
-        <div className="flex items-center gap-2">
-          <Database className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-          <span className="text-xs font-semibold text-slate-800 dark:text-slate-300">
+        {/* Workspace pill */}
+        <div
+          className="hidden sm:flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group cursor-pointer"
+          title={currentWorkspace?.path}
+          onClick={() => setShowSettings(true)}
+        >
+          <Database className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" />
+          <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 max-w-[80px] truncate hidden md:inline">
             {currentWorkspace?.name}
           </span>
-
-          <button
-            onClick={() => {
-              setShowSettings(true);
-            }}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:text-slate-550 dark:hover:text-slate-300 rounded cursor-pointer transition-colors mr-1"
-            title={t.settings}
-          >
-            <Settings className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Auto-Save Indicator Badge */}
-          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100/80 dark:bg-slate-900/50 rounded-full border border-slate-200 dark:border-slate-800 select-none shrink-0">
-            {isSaving ? (
-              <>
-                <Loader2 className="w-3 h-3 text-indigo-500 animate-spin" />
-                <span className="text-[10px] text-slate-600 dark:text-slate-400 font-semibold">
-                  {language === 'tr' ? 'Kaydediliyor...' : 'Saving...'}
-                </span>
-              </>
-            ) : isDirty ? (
-              <>
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-[10px] text-slate-600 dark:text-slate-400 font-semibold">{t.unsavedChanges}</span>
-                <button
-                  onClick={() => manualSave()}
-                  className="ml-0.5 p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-                  title={language === 'tr' ? 'Şimdi kaydet' : 'Save now'}
-                >
-                  <Save className="w-3 h-3" />
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="text-[10px] text-slate-650 dark:text-slate-400 font-semibold">{t.saved}</span>
-              </>
-            )}
-          </div>
+          <Settings className="w-3 h-3 text-slate-400 group-hover:rotate-45 transition-transform duration-300 shrink-0" />
         </div>
 
-        <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
-
-        <div className="flex items-center gap-1">
-          <button
-            onClick={toggleLeftSidebar}
-            className={`p-1.5 rounded cursor-pointer transition-colors ${leftSidebarOpen
-              ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10'
-              : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
-              }`}
-            title={language === 'tr' ? 'Sol paneli gizle/göster' : 'Toggle left sidebar'}
-          >
-            <PanelLeft className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={toggleTimeline}
-            className={`p-1.5 rounded cursor-pointer transition-colors ${timelineOpen
-              ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10'
-              : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
-              }`}
-            title={language === 'tr' ? 'Zaman çizelgesini gizle/göster' : 'Toggle timeline'}
-          >
-            <PanelBottom className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={toggleRightSidebar}
-            className={`p-1.5 rounded cursor-pointer transition-colors ${rightSidebarOpen
-              ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10'
-              : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
-              }`}
-            title={language === 'tr' ? 'Sağ paneli gizle/göster' : 'Toggle right sidebar'}
-          >
-            <PanelRight className="w-4 h-4" />
-          </button>
-
-          {currentView === 'diagram' && <CanvasBgSelector />}
+        {/* Save status – tiny dot only on small, full pill on md+ */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isSaving ? (
+            <Loader2 className="w-3 h-3 text-indigo-500 animate-spin" />
+          ) : isDirty ? (
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold hidden md:inline">
+                {language === 'tr' ? 'Kaydedilmedi' : 'Unsaved'}
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); manualSave(); }}
+                className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-500 transition-colors cursor-pointer"
+                title={language === 'tr' ? 'Şimdi kaydet' : 'Save now'}
+              >
+                <Save className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold hidden md:inline">
+                {language === 'tr' ? 'Kaydedildi' : 'Saved'}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
+      {/* ── Center Section: View Switcher ── */}
+      <div className="flex-1 flex justify-center min-w-0">
+        <div className="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-0.5 rounded-lg select-none">
+          <button
+            onClick={() => viewMode !== 'freeform' && toggleViewMode()}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              viewMode === 'freeform'
+                ? 'bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+            }`}
+            title={language === 'tr' ? 'Serbest Stil Görünümü' : 'Free Style View'}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden md:inline whitespace-nowrap">{language === 'tr' ? 'Serbest Stil' : 'Free Style'}</span>
+          </button>
+          <button
+            onClick={() => viewMode !== 'sequence' && toggleViewMode()}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              viewMode === 'sequence'
+                ? 'bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+            }`}
+            title={language === 'tr' ? 'Sequence Diagram Görünümü' : 'Sequence Diagram View'}
+          >
+            <ListOrdered className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden md:inline whitespace-nowrap">{language === 'tr' ? 'Sequence' : 'Sequence'}</span>
+          </button>
+        </div>
+      </div>
 
+      {/* ── Right Section ── */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {/* Panel toggles */}
+        <div className="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5">
+          <button
+            onClick={toggleLeftSidebar}
+            className={`p-1.5 rounded-md cursor-pointer transition-colors ${leftSidebarOpen
+              ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-950 shadow-sm'
+              : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+            }`}
+            title={language === 'tr' ? 'Sol panel' : 'Left panel'}
+          >
+            <PanelLeft className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={toggleTimeline}
+            className={`p-1.5 rounded-md cursor-pointer transition-colors ${timelineOpen
+              ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-950 shadow-sm'
+              : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+            }`}
+            title={language === 'tr' ? 'Zaman çizelgesi' : 'Timeline'}
+          >
+            <PanelBottom className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={toggleRightSidebar}
+            className={`p-1.5 rounded-md cursor-pointer transition-colors ${rightSidebarOpen
+              ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-950 shadow-sm'
+              : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+            }`}
+            title={language === 'tr' ? 'Sağ panel' : 'Right panel'}
+          >
+            <PanelRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
-      {/* Right Section: Actions */}
-      <div className="flex items-center gap-3">
-        {/* Phase 6 Actions (Only visible in Diagram view) */}
+        {/* Freeform-only controls */}
         {currentView === 'diagram' && (
-          <div className="flex items-center gap-2 border-r border-slate-200 dark:border-slate-800 pr-3 mr-2 relative">
-            {/* Undo/Redo Buttons */}
-            <button
-              onClick={undo}
-              disabled={pastStates.length === 0}
-              className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              title={language === 'tr' ? 'Geri Al (Ctrl+Z)' : 'Undo (Ctrl+Z)'}
-            >
-              <Undo className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={redo}
-              disabled={futureStates.length === 0}
-              className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              title={language === 'tr' ? 'İleri Al (Ctrl+Y)' : 'Redo (Ctrl+Y)'}
-            >
-              <Redo className="w-3.5 h-3.5" />
-            </button>
+          <>
+            <CanvasBgSelector />
 
-            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800/80 mx-0.5" />
+            {/* Undo / Redo */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5">
+              <button
+                onClick={undo}
+                disabled={pastStates.length === 0}
+                className="p-1.5 rounded-md text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                title={language === 'tr' ? 'Geri Al (Ctrl+Z)' : 'Undo (Ctrl+Z)'}
+              >
+                <Undo className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={redo}
+                disabled={futureStates.length === 0}
+                className="p-1.5 rounded-md text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                title={language === 'tr' ? 'İleri Al (Ctrl+Y)' : 'Redo (Ctrl+Y)'}
+              >
+                <Redo className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
-            {/* View Mode Toggle: Seq Diagram / Free Style */}
-            <button
-              onClick={toggleViewMode}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-lg text-xs cursor-pointer font-semibold transition-all ${
-                viewMode === 'sequence'
-                  ? 'bg-violet-600/10 hover:bg-violet-600/20 text-violet-600 dark:text-violet-400 border-violet-500/20'
-                  : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 border-slate-200 dark:border-slate-850'
-              }`}
-              title={viewMode === 'freeform' 
-                ? (language === 'tr' ? 'Sequence Diagram Görünümü' : 'Sequence Diagram View')
-                : (language === 'tr' ? 'Serbest Stil Görünümü' : 'Free Style View')
-              }
-            >
-              {viewMode === 'freeform' ? (
-                <>
-                  <ListOrdered className="w-3.5 h-3.5 text-violet-500" />
-                  <span>{language === 'tr' ? 'Seq Diagram' : 'Seq Diagram'}</span>
-                </>
-              ) : (
-                <>
-                  <LayoutDashboard className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>{language === 'tr' ? 'Serbest Stil' : 'Free Style'}</span>
-                </>
-              )}
-            </button>
-
-            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800/80 mx-0.5" />
-
-            {/* Auto-Layout Dropdown Button */}
+            {/* Layout dropdown */}
             <div className="relative">
               <button
                 onClick={() => setShowLayoutMenu(!showLayoutMenu)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-850 rounded-lg text-xs cursor-pointer font-semibold transition-all"
-                title={language === 'tr' ? 'Otomatik Düzenle (Dagre)' : 'Auto-Layout (Dagre)'}
+                className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer transition-colors"
+                title={language === 'tr' ? 'Otomatik Düzenle' : 'Auto-Layout'}
               >
-                <Grid className="w-3.5 h-3.5 text-indigo-500" />
-                <span>{language === 'tr' ? 'Düzenle' : 'Layout'}</span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
+                <Grid className="w-3.5 h-3.5" />
               </button>
 
               {showLayoutMenu && (
-                <div className="absolute right-0 mt-1.5 w-36 bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1 overflow-hidden">
+                <div className="absolute right-0 mt-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1 overflow-hidden">
                   <button
-                    onClick={() => {
-                      applyAutoLayout('TB');
-                      setShowLayoutMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
+                    onClick={() => { applyAutoLayout('TB'); setShowLayoutMenu(false); }}
+                    className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
                   >
-                    {language === 'tr' ? 'Yukarıdan Aşağıya (TB)' : 'Top to Bottom (TB)'}
+                    {language === 'tr' ? 'Yukarıdan Aşağıya' : 'Top to Bottom'}
                   </button>
                   <button
-                    onClick={() => {
-                      applyAutoLayout('LR');
-                      setShowLayoutMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
+                    onClick={() => { applyAutoLayout('LR'); setShowLayoutMenu(false); }}
+                    className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
                   >
-                    {language === 'tr' ? 'Soldan Sağa (LR)' : 'Left to Right (LR)'}
+                    {language === 'tr' ? 'Soldan Sağa' : 'Left to Right'}
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Export Dropdown Menu */}
+            {/* Copy for AI */}
+            <button
+              onClick={handleCopyForAi}
+              className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer transition-colors"
+              title={language === 'tr' ? 'AI İçin Kopyala' : 'Copy for AI'}
+            >
+              <Copy className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Export */}
             <div className="relative">
               <button
                 onClick={() => setShowExportMenu(!showExportMenu)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 rounded-lg text-xs cursor-pointer font-semibold transition-colors"
+                className="flex items-center gap-1 px-2 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs cursor-pointer font-semibold transition-all"
                 title={language === 'tr' ? 'Dışa Aktar' : 'Export'}
               >
                 <FileDown className="w-3.5 h-3.5" />
-                <span>{language === 'tr' ? 'Dışa Aktar' : 'Export'}</span>
-                <ChevronDown className="w-3 h-3 opacity-70" />
+                <span className="hidden lg:inline">{language === 'tr' ? 'Dışa Aktar' : 'Export'}</span>
+                <ChevronDown className="w-3 h-3 opacity-80" />
               </button>
 
               {showExportMenu && (
-                <div className="absolute right-0 mt-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1 overflow-hidden">
+                <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1 overflow-hidden">
                   <button
-                    onClick={() => {
-                      handleExportPng();
-                      setShowExportMenu(false);
-                    }}
+                    onClick={() => { handleExportPng(); setShowExportMenu(false); }}
                     className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
                   >
                     {language === 'tr' ? 'Görüntü (PNG)' : 'Image (PNG)'}
                   </button>
                   <button
-                    onClick={() => {
-                      setShowGifConfig(true);
-                      setShowExportMenu(false);
-                    }}
+                    onClick={() => { setShowGifConfig(true); setShowExportMenu(false); }}
                     className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center justify-between"
                   >
                     {language === 'tr' ? 'Animasyon (GIF)' : 'Animation (GIF)'}
-                    <span className="text-[9px] bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded-md">New</span>
+                    <span className="text-[9px] bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 px-1.5 py-0.5 rounded-md font-bold">New</span>
                   </button>
                   <div className="h-px bg-slate-200 dark:bg-slate-800 my-1" />
                   <button
-                    onClick={() => {
-                      handleExportHtml();
-                      setShowExportMenu(false);
-                    }}
+                    onClick={() => { handleExportHtml(); setShowExportMenu(false); }}
                     className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
                   >
                     {language === 'tr' ? 'Etkileşimli Oynatıcı (HTML)' : 'Interactive Player (HTML)'}
@@ -443,29 +435,67 @@ export const TopBar: React.FC = () => {
                 </div>
               )}
             </div>
-
-            {/* Copy Logical data for AI */}
-            <button
-              onClick={handleCopyForAi}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-850 rounded-lg text-xs cursor-pointer font-semibold transition-colors"
-              title={language === 'tr' ? 'Mantıksal Akışı AI İçin Kopyala' : 'Copy Logical for AI'}
-            >
-              <Copy className="w-3.5 h-3.5 text-indigo-500" />
-              <span>{language === 'tr' ? 'AI Kopyala' : 'Copy for AI'}</span>
-            </button>
-          </div>
+          </>
         )}
 
-        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono hidden sm:block truncate max-w-[200px]" title={currentWorkspace?.path}>
-          {currentWorkspace?.path}
-        </div>
+        <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
 
+        {/* Google Drive */}
+        {import.meta.env.VITE_ENABLE_GOOGLE_SYNC === 'true' && (
+          !googleUser ? (
+            <button
+              onClick={() => GoogleDriveService.signIn()}
+              className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer transition-colors"
+              title={language === 'tr' ? 'Google ile giriş yap' : 'Login with Google'}
+            >
+              <Cloud className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <button
+              onClick={() => GoogleDriveService.uploadToDrive()}
+              disabled={syncState === 'syncing' || (!hasUnsyncedChanges && syncState !== 'error')}
+              className={`flex items-center gap-1 px-1.5 py-1 rounded-lg text-xs cursor-pointer font-semibold transition-colors border ${
+                syncState === 'syncing'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 cursor-not-allowed'
+                  : syncState === 'error'
+                  ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/50'
+                  : hasUnsyncedChanges
+                  ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-800/50'
+                  : 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50 cursor-default opacity-80'
+              }`}
+              title={
+                syncState === 'syncing' ? 'Syncing...' :
+                syncState === 'error' ? 'Click to retry' :
+                hasUnsyncedChanges ? 'Push to Drive' :
+                'Synced to Drive'
+              }
+            >
+              {syncState === 'syncing' ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : syncState === 'error' ? (
+                <AlertCircle className="w-3 h-3" />
+              ) : hasUnsyncedChanges ? (
+                <CloudUpload className="w-3 h-3" />
+              ) : (
+                <CheckCircle2 className="w-3 h-3" />
+              )}
+              <span className="hidden xl:inline">
+                {syncState === 'syncing' ? 'Syncing...' :
+                 syncState === 'error' ? 'Retry' :
+                 hasUnsyncedChanges ? 'Push' :
+                 'Synced'}
+              </span>
+            </button>
+          )
+        )}
+
+        {/* Close */}
         <button
           onClick={handleBackToWelcome}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-semibold rounded-lg text-xs cursor-pointer transition-colors"
+          className="p-1.5 text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg cursor-pointer transition-colors"
+          title={t.close}
         >
           <LogOut className="w-3.5 h-3.5" />
-          <span>{t.close}</span>
         </button>
       </div>
 

@@ -175,3 +175,66 @@ h1, h2, h3, h4, h5, h6 {
 .react-flow__handle:hover {
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.35) !important;
 }
+
+/* ── React Flow Controls Theming ───────────────────────────────────────── */
+.react-flow__controls {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 2px !important;
+}
+
+.react-flow__controls-button {
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 8px !important;
+  color: #475569 !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 6px !important;
+  margin: 1px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background-color 0.2s, color 0.2s !important;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor !important;
+  width: 12px !important;
+  height: 12px !important;
+}
+
+/* Dark and custom themes overrides */
+.dark .react-flow__controls,
+.theme-nord .react-flow__controls,
+.theme-dracula .react-flow__controls,
+.theme-synthwave .react-flow__controls {
+  background-color: var(--color-slate-900) !important;
+  border: 1px solid var(--color-slate-800) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25) !important;
+}
+
+.dark .react-flow__controls-button,
+.theme-nord .react-flow__controls-button,
+.theme-dracula .react-flow__controls-button,
+.theme-synthwave .react-flow__controls-button {
+  color: var(--color-slate-400) !important;
+}
+
+.dark .react-flow__controls-button:hover,
+.theme-nord .react-flow__controls-button:hover,
+.theme-dracula .react-flow__controls-button:hover,
+.theme-synthwave .react-flow__controls-button:hover {
+  background-color: var(--color-slate-800) !important;
+  color: var(--color-indigo-400) !important;
+}

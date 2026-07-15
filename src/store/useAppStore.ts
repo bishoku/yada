@@ -10,6 +10,20 @@ import { createHistorySlice } from './slices/historySlice';
 
 import { calculateSchedules } from './scheduler';
 
+// Try to load persisted Google User
+const savedGoogleUserStr = localStorage.getItem('diagramer_google_user');
+let savedGoogleUser = null;
+if (savedGoogleUserStr) {
+  try {
+    const parsed = JSON.parse(savedGoogleUserStr);
+    if (parsed.expiresAt > Date.now()) {
+      savedGoogleUser = parsed;
+    } else {
+      localStorage.removeItem('diagramer_google_user');
+    }
+  } catch (e) {}
+}
+
 export const useAppStore = create<AppState>()((set, get, store) => {
   const wrappedSet: typeof set = (partial, replace) => {
     set((state) => {
@@ -46,7 +60,25 @@ export const useAppStore = create<AppState>()((set, get, store) => {
     // Phase 2 Canvas Initial State
     logicalData: { schemaVersion: 1, nodes: [], edges: [], sequences: [] },
     visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} },
-    schedules: {}
+    schedules: {},
+    
+    // Google Drive Sync Initial State
+    googleUser: savedGoogleUser,
+    syncState: 'idle',
+    lastSyncedAt: null,
+    hasUnsyncedChanges: false,
+    
+    setGoogleUser: (user) => {
+      if (user) {
+        localStorage.setItem('diagramer_google_user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('diagramer_google_user');
+      }
+      wrappedSet({ googleUser: user });
+    },
+    setSyncState: (state) => wrappedSet({ syncState: state }),
+    setLastSyncedAt: (timestamp) => wrappedSet({ lastSyncedAt: timestamp }),
+    setHasUnsyncedChanges: (hasUnsynced) => wrappedSet({ hasUnsyncedChanges: hasUnsynced }),
   };
 });
 
@@ -85,6 +117,11 @@ const performSave = async (): Promise<boolean> => {
     if (afterSaveState.logicalData === freshState.logicalData && 
         afterSaveState.visualData === freshState.visualData) {
       useAppStore.setState({ isDirty: false });
+    }
+    
+    // Mark as unsynced if the user is logged in
+    if (afterSaveState.googleUser) {
+      useAppStore.setState({ hasUnsyncedChanges: true });
     }
     
     console.log('[Save] Saved successfully.');

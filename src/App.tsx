@@ -3,6 +3,7 @@ import { useAppStore, startAutoSave, stopAutoSave } from './store/useAppStore';
 import { WelcomeScreen } from './components/welcome/WelcomeScreen';
 import { MainLayout } from './components/layout/MainLayout';
 import { ComponentStudio } from './components/studio/ComponentStudio';
+import { GoogleDriveService } from './services/googleDriveAPI';
 
 function App() {
   const currentWorkspace = useAppStore((state) => state.currentWorkspace);
@@ -13,8 +14,23 @@ function App() {
     // Load app preferences (language and theme) on startup
     loadAppPreferences();
 
+    // Google Drive Sync Feature Flag Check
+    const isGoogleSyncEnabled = import.meta.env.VITE_ENABLE_GOOGLE_SYNC === 'true';
+
+    if (isGoogleSyncEnabled) {
+      // Initialize Google Drive Auth
+      GoogleDriveService.initAuth();
+
+      // If we have a persisted user, try to sync on startup
+      const currentUser = useAppStore.getState().googleUser;
+      if (currentUser) {
+        GoogleDriveService.downloadFromDrive().catch(console.error);
+      }
+    }
+
     // Start auto-save background loop on app initialization
     startAutoSave();
+
     return () => {
       // Clean up on component unmount
       stopAutoSave();
@@ -43,11 +59,11 @@ function App() {
     return <WelcomeScreen />;
   }
 
-  if (currentView === 'studio') {
-    return <ComponentStudio />;
-  }
-
-  return <MainLayout />;
+  return (
+    <>
+      {currentView === 'studio' ? <ComponentStudio /> : <MainLayout />}
+    </>
+  );
 }
 
 export default App;

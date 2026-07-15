@@ -24,6 +24,8 @@
     "allow-list-json-files-in-dir",
     "allow-get-global-components-dir",
     "fs:default",
-    "fs:allow-write-file"
+    "fs:allow-write-file",
+    "oauth:default",
+    "oauth:allow-start"
   ]
 }
