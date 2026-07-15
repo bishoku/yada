@@ -17,6 +17,8 @@ export interface CanvasSlice {
   deleteNode: (id: string) => void;
   deleteEdge: (id: string) => void;
   updateCanvasViewport: (zoom: number, pan: { x: number; y: number }) => void;
+  setGridVisible: (visible: boolean) => void;
+  setCanvasBgColor: (color: string | null) => void;
   startDrag: (type: string, name: string) => void;
   cancelDrag: () => void;
   clearCanvas: () => void;
@@ -79,10 +81,22 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
 
       const cloneId = `${originalLogicalNode.id}-clone-${Date.now()}`;
       
+      const baseClonedName = `${originalLogicalNode.name} (Copy)`;
+      let clonedName = baseClonedName;
+      const existingNames = state.logicalData.nodes.map((n) => n.name);
+      if (existingNames.includes(clonedName)) {
+        let index = 1;
+        clonedName = `${baseClonedName} ${index}`;
+        while (existingNames.includes(clonedName)) {
+          index++;
+          clonedName = `${baseClonedName} ${index}`;
+        }
+      }
+
       const clonedLogicalNode: LogicalNode = {
         ...originalLogicalNode,
         id: cloneId,
-        name: `${originalLogicalNode.name} (Copy)`,
+        name: clonedName,
       };
 
       const clonedVisualNode: VisualNode = {
@@ -260,11 +274,41 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
       return {
         visualData: {
           ...state.visualData,
-          canvas: { zoom, pan }
+          canvas: {
+            ...state.visualData.canvas,
+            zoom,
+            pan
+          }
         },
         isDirty: true
       };
     });
+  },
+
+  setGridVisible: (visible) => {
+    set((state) => ({
+      visualData: {
+        ...state.visualData,
+        canvas: {
+          ...state.visualData.canvas,
+          gridVisible: visible
+        }
+      },
+      isDirty: true
+    }));
+  },
+
+  setCanvasBgColor: (color) => {
+    set((state) => ({
+      visualData: {
+        ...state.visualData,
+        canvas: {
+          ...state.visualData.canvas,
+          bgColor: color ?? undefined
+        }
+      },
+      isDirty: true
+    }));
   },
 
   startDrag: (type, name) => set({ pendingDrop: { type, name } }),

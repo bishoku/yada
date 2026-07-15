@@ -33,10 +33,20 @@ export const useCanvasDrop = (
       console.log(`[Canvas] Placing "${name}" at flow (${x.toFixed(0)}, ${y.toFixed(0)})`);
 
       const visualNode = { id: nodeId, x, y, width, height, ...(isSection ? { zIndex: -1 } : {}) };
-      const newNode: Node = toRfNode({ id: nodeId, type, name }, visualNode);
+      
+      // Calculate unique name with index
+      const existingNames = useAppStore.getState().logicalData.nodes.map(n => n.name);
+      let index = 1;
+      let uniqueName = `${name} ${index}`;
+      while (existingNames.includes(uniqueName)) {
+        index++;
+        uniqueName = `${name} ${index}`;
+      }
+
+      const newNode: Node = toRfNode({ id: nodeId, type, name: uniqueName }, visualNode);
 
       setRfNodes((nds) => isSection ? [newNode, ...nds] : [...nds, newNode]);
-      addNode({ id: nodeId, type, name }, visualNode);
+      addNode({ id: nodeId, type, name: uniqueName }, visualNode);
       cancelDrag();
     };
 

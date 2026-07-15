@@ -39,7 +39,21 @@ import {
 const nodeTypes = { customNode: BaseNode, sectionNode: SectionNode };
 const edgeTypes = { customEdge: AnimatedEdge };
 
-
+function isColorDark(color: string): boolean {
+  const hex = color.replace('#', '');
+  if (hex.length === 3) {
+    const r = parseInt(hex[0] + hex[0], 16);
+    const g = parseInt(hex[1] + hex[1], 16);
+    const b = parseInt(hex[2] + hex[2], 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  } else if (hex.length === 6) {
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  }
+  return true;
+}
 
 const FlowWrapper: React.FC = () => {
   const updateNodePosition = useAppStore((s) => s.updateNodePosition);
@@ -64,6 +78,10 @@ const FlowWrapper: React.FC = () => {
   const setActiveEdgeProperties = useAppStore((s) => s.setActiveEdgeProperties);
   const clearActiveProperties = useAppStore((s) => s.clearActiveProperties);
   const openRightSidebar = useAppStore((s) => s.openRightSidebar);
+  const gridVisible = useAppStore((s) => s.visualData.canvas.gridVisible !== false);
+  const bgColor = useAppStore((s) => s.visualData.canvas.bgColor);
+  const isBgDark = bgColor ? isColorDark(bgColor) : theme === 'dark';
+  const dotColor = isBgDark ? '#334155' : '#cbd5e1';
 
   const { screenToFlowPosition, setCenter, fitView } = useReactFlow();
   const { x: viewportX, y: viewportY, zoom } = useViewport();
@@ -819,12 +837,15 @@ const FlowWrapper: React.FC = () => {
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
         className="w-full h-full"
+        style={{ backgroundColor: bgColor || undefined }}
         proOptions={{ hideAttribution: true }}
       >
-        <Background
-          color={theme === 'dark' ? '#334155' : '#cbd5e1'}
-          gap={16}
-        />
+        {gridVisible && (
+          <Background
+            color={dotColor}
+            gap={16}
+          />
+        )}
         <Controls className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-md font-sans" />
       </ReactFlow>
 

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppStore } from '../../store/useAppStore';
 import {
-  LogOut, Settings, Database, Check, Globe, Moon, Sun,
+  LogOut, Settings, Database,
   PanelLeft, PanelRight, PanelBottom,
-  Undo, Redo, FileDown, Copy, Grid, ChevronDown, Save, Loader2,
-  ListOrdered, LayoutDashboard
+  Undo, Redo, FileDown, Copy, ChevronDown, Save, Loader2,
+  ListOrdered, LayoutDashboard, Grid
 } from 'lucide-react';
 import { translations } from '../../i18n/translations';
 import { generateStandaloneHtml } from '../../utils/exportTemplate';
@@ -13,6 +13,12 @@ import { generateSequenceHtml } from '../../utils/exportSequenceTemplate';
 import { exportToPng, exportToGif } from '../../utils/exportMedia';
 import { save } from '@tauri-apps/plugin-dialog';
 import { StorageService, isTauri } from '../../services/storage';
+
+// SOLID Subcomponents
+import { SettingsModal } from './topbar/SettingsModal';
+import { GifExportModal } from './topbar/GifExportModal';
+import { AiCopyModal } from './topbar/AiCopyModal';
+import { CanvasBgSelector } from './topbar/CanvasBgSelector';
 
 export const TopBar: React.FC = () => {
   const currentWorkspace = useAppStore((s) => s.currentWorkspace);
@@ -22,11 +28,6 @@ export const TopBar: React.FC = () => {
   const setWorkspace = useAppStore((s) => s.setWorkspace);
   const language = useAppStore((s) => s.language);
   const theme = useAppStore((s) => s.theme);
-  const maxSteps = useAppStore((s) => s.maxSteps);
-  const changeLanguage = useAppStore((s) => s.changeLanguage);
-  const changeTheme = useAppStore((s) => s.changeTheme);
-  const changeMaxSteps = useAppStore((s: any) => s.changeMaxSteps);
-  const saveWorkspaceDetails = useAppStore((s) => s.saveWorkspaceDetails);
   const leftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
   const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
   const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
@@ -48,37 +49,19 @@ export const TopBar: React.FC = () => {
   const t = translations[language];
 
   const [showSettings, setShowSettings] = useState(false);
-  const [editName, setEditName] = useState(currentWorkspace?.name || '');
-  const [editDesc, setEditDesc] = useState(currentWorkspace?.description || '');
-  const [editMaxSteps, setEditMaxSteps] = useState(maxSteps);
-
-  useEffect(() => {
-    if (showSettings) {
-      setEditName(currentWorkspace?.name || '');
-      setEditDesc(currentWorkspace?.description || '');
-      setEditMaxSteps(maxSteps);
-    }
-  }, [showSettings, currentWorkspace, maxSteps]);
-
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportProgress, setExportProgress] = useState<number | null>(null);
 
   // GIF Config State
   const [showGifConfig, setShowGifConfig] = useState(false);
-  const [gifFps, setGifFps] = useState(15);
-  const [gifQuality, setGifQuality] = useState(80); // 1 to 100
+
+  // AI Copy Modal State
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiText, setAiText] = useState('');
 
   const handleBackToWelcome = () => {
     setWorkspace(null);
-  };
-
-  const handleSaveSettings = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editName.trim()) return;
-    saveWorkspaceDetails(editName.trim(), editDesc.trim());
-    changeMaxSteps(Number(editMaxSteps) || 30);
-    setShowSettings(false);
   };
 
   const handleExportHtml = async () => {
@@ -127,8 +110,7 @@ export const TopBar: React.FC = () => {
     }
   };
 
-  const handleExportGif = async () => {
-    setShowGifConfig(false);
+  const handleExportGif = async (fps: number, quality: number) => {
     try {
       setExportProgress(0);
       const defaultName = `${currentWorkspace?.name || 'diagram'}.gif`;
@@ -137,12 +119,12 @@ export const TopBar: React.FC = () => {
       const maxDuration = schedValues.length > 0 ? Math.max(...schedValues.map(s => s.end)) + 500 : 2000;
 
       // Map 1-100 to 30-1 for gif.js (1 is best quality, 30 is worst)
-      const mappedQuality = Math.max(1, 31 - Math.round(gifQuality * 0.3));
+      const mappedQuality = Math.max(1, 31 - Math.round(quality * 0.3));
 
       window.dispatchEvent(new CustomEvent('export:fitview'));
       await new Promise(r => setTimeout(r, 150)); // Wait for React Flow to fit the view
 
-      await exportToGif('.react-flow', maxDuration, defaultName, language, gifFps, mappedQuality, (progress) => {
+      await exportToGif('.react-flow', maxDuration, defaultName, language, fps, mappedQuality, (progress) => {
         setExportProgress(progress);
       });
     } catch (err) {
@@ -155,54 +137,69 @@ export const TopBar: React.FC = () => {
 
   const handleCopyForAi = async () => {
     let text = `${language === 'tr'
-      ? 'Aşağıdaki sistem mimarisi için altyapı kodlarını (Terraform/Pulumi/Docker Compose) üret veya mimariyi analiz et:'
-      : 'Generate infrastructure code (Terraform/Pulumi/Docker Compose) or analyze the following system architecture:'}\n\n`;
+      ? 'Aşağıdaki sistem mimarisini incele ve analiz et:'
+      : 'Analyze and explain the following system architecture:'}\n\n`;
 
     text += `**${language === 'tr' ? 'Bileşenler' : 'Components'}:**\n`;
     logicalData.nodes.forEach(node => {
       const customTemplate = libraryComponents.find(c => c.componentId === node.type);
       const category = customTemplate ? customTemplate.category : node.type;
       text += `- \`${node.name}\` (Type: ${category})\n`;
+      if (node.properties && Object.keys(node.properties).length > 0) {
+        text += `  - Metadata: ${JSON.stringify(node.properties)}\n`;
+      }
     });
 
     if (logicalData.edges.length > 0) {
       text += `\n**${language === 'tr' ? 'Bağlantılar' : 'Connections'}:**\n`;
       logicalData.edges.forEach(edge => {
-        text += `- \`${edge.sourceId}\` → \`${edge.targetId}\` (Protocol: ${edge.protocol || 'Call'})\n`;
-      });
-    }
+        const sourceNode = logicalData.nodes.find(n => n.id === edge.sourceId);
+        const targetNode = logicalData.nodes.find(n => n.id === edge.targetId);
+        const sourceName = sourceNode ? sourceNode.name : edge.sourceId;
+        const targetName = targetNode ? targetNode.name : edge.targetId;
 
-    if (logicalData.sequences.length > 0) {
-      text += `\n**${language === 'tr' ? 'Etkileşim Akışı (Zaman Tüneli)' : 'Interaction Flow (Timeline)'}:**\n`;
-
-      const schedules = useAppStore.getState().schedules;
-      const sortedSchedules = Object.entries(schedules)
-        .map(([id, range]) => ({ id, start: range.start, end: range.end }))
-        .sort((a, b) => a.start - b.start);
-
-      sortedSchedules.forEach(s => {
-        const seq = logicalData.sequences.find(q => q.id === s.id);
-        const edge = logicalData.edges.find(e => e.id === seq?.edgeId);
-        if (!seq || !edge) return;
-
-        const syncType = seq.isAsync ? (language === 'tr' ? 'Asenkron' : 'Asynchronous') : (language === 'tr' ? 'Senkron' : 'Synchronous');
-        const directionStr = `\`${edge.sourceId}\` → \`${edge.targetId}\`` + (seq.isRoundTrip ? ' ↔' : '');
-
-        text += `${seq.stepNumber}. [${syncType}] ${directionStr} (Protocol: ${edge.protocol || 'Call'}, Timing: ${(s.start / 1000).toFixed(2)}s - ${(s.end / 1000).toFixed(2)}s)\n`;
-
-        const timing = visualData.timelines[s.id];
-        if (timing?.internalProcess?.text) {
-          text += `   - Node \`${edge.targetId}\` internal process: "${timing.internalProcess.text}" (${(timing.internalProcess.duration / 1000).toFixed(2)}s)\n`;
+        text += `- \`${sourceName}\` → \`${targetName}\` (Protocol: ${edge.protocol || 'Call'})\n`;
+        if (edge.description) {
+          text += `  - Description: ${edge.description}\n`;
+        }
+        if (edge.properties && Object.keys(edge.properties).length > 0) {
+          text += `  - Metadata: ${JSON.stringify(edge.properties)}\n`;
         }
       });
     }
 
-    try {
-      await navigator.clipboard.writeText(text);
-      alert(language === 'tr' ? 'Mimari verisi AI için kopyalandı!' : 'Architecture data copied to clipboard for AI!');
-    } catch (err) {
-      console.error('Clipboard copy failed:', err);
+    if (logicalData.sequences.length > 0) {
+      text += `\n**${language === 'tr' ? 'Etkileşim Akışı' : 'Interaction Flow'}:**\n`;
+
+      const sortedSeqs = [...logicalData.sequences].sort((a, b) => a.stepNumber - b.stepNumber);
+
+      sortedSeqs.forEach(seq => {
+        const edge = logicalData.edges.find(e => e.id === seq.edgeId);
+        if (!edge) return;
+
+        const sourceNode = logicalData.nodes.find(n => n.id === edge.sourceId);
+        const targetNode = logicalData.nodes.find(n => n.id === edge.targetId);
+        const sourceName = sourceNode ? sourceNode.name : edge.sourceId;
+        const targetName = targetNode ? targetNode.name : edge.targetId;
+
+        const syncType = seq.isAsync ? (language === 'tr' ? 'Asenkron' : 'Asynchronous') : (language === 'tr' ? 'Senkron' : 'Synchronous');
+        const directionStr = `\`${sourceName}\` → \`${targetName}\`` + (seq.isRoundTrip ? ' ↔' : '');
+
+        text += `${seq.stepNumber}. [${syncType}] ${directionStr} (Protocol: ${edge.protocol || 'Call'})\n`;
+        
+        if (edge.description) {
+          text += `   - Description: ${edge.description}\n`;
+        }
+
+        const timing = visualData.timelines?.[seq.id];
+        if (timing?.internalProcess?.text) {
+          text += `   - Node \`${targetName}\` internal process: "${timing.internalProcess.text}"\n`;
+        }
+      });
     }
+
+    setAiText(text);
+    setShowAiModal(true);
   };
 
   return (
@@ -231,11 +228,9 @@ export const TopBar: React.FC = () => {
 
           <button
             onClick={() => {
-              setEditName(currentWorkspace?.name || '');
-              setEditDesc(currentWorkspace?.description || '');
               setShowSettings(true);
             }}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300 rounded cursor-pointer transition-colors mr-1"
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:text-slate-550 dark:hover:text-slate-300 rounded cursor-pointer transition-colors mr-1"
             title={t.settings}
           >
             <Settings className="w-3.5 h-3.5" />
@@ -306,6 +301,8 @@ export const TopBar: React.FC = () => {
           >
             <PanelRight className="w-4 h-4" />
           </button>
+
+          {currentView === 'diagram' && <CanvasBgSelector />}
         </div>
       </div>
 
@@ -472,148 +469,11 @@ export const TopBar: React.FC = () => {
         </button>
       </div>
 
-      {/* Settings Modal (Includes Workspace and App Preferences) */}
-      {showSettings && createPortal(
-        <div className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[9999]">
-          <div className="bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl transition-all">
-
-            <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
-              <Settings className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
-              {t.editWorkspaceDetails}
-            </h3>
-
-            <form onSubmit={handleSaveSettings} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                  {t.workspaceName}
-                </label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full bg-slate-55 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl px-4 py-2 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80"
-                  maxLength={50}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                  {t.description}
-                </label>
-                <textarea
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  rows={2}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl px-4 py-2 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-indigo-500/80 resize-none"
-                  maxLength={200}
-                />
-              </div>
-
-              {/* Application Preferences Section inside Modal */}
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
-                <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  {t.appPrefTitle}
-                </h4>
-
-                {/* Language Select */}
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                    <Globe className="w-3.5 h-3.5" />
-                    {t.language}:
-                  </span>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => changeLanguage('tr')}
-                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border cursor-pointer transition-all ${language === 'tr'
-                        ? 'bg-indigo-600 border-indigo-600 text-white'
-                        : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                        }`}
-                    >
-                      {t.langTr}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => changeLanguage('en')}
-                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border cursor-pointer transition-all ${language === 'en'
-                        ? 'bg-indigo-600 border-indigo-600 text-white'
-                        : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                        }`}
-                    >
-                      {t.langEn}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Theme Select */}
-                <div className="flex items-center justify-between text-xs mt-2">
-                  <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                    {theme === 'dark' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
-                    {t.theme}:
-                  </span>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => changeTheme('dark')}
-                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border cursor-pointer transition-all ${theme === 'dark'
-                        ? 'bg-indigo-600 border-indigo-600 text-white'
-                        : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                        }`}
-                    >
-                      {t.themeDark}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => changeTheme('light')}
-                      className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border cursor-pointer transition-all ${theme === 'light'
-                        ? 'bg-indigo-600 border-indigo-600 text-white'
-                        : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                        }`}
-                    >
-                      {t.themeLight}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Max Steps Config */}
-                <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/40">
-                  <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                    <Grid className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                    {t.maxStepsSetting}:
-                  </span>
-                  <input
-                    type="number"
-                    min={5}
-                    max={100}
-                    value={editMaxSteps}
-                    onChange={(e) => setEditMaxSteps(Math.max(5, Math.min(100, Number(e.target.value) || 5)))}
-                    className="w-16 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-slate-800 dark:text-slate-200 text-xs font-bold text-center focus:outline-none focus:border-indigo-500/80"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setShowSettings(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs cursor-pointer"
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-slate-100 font-semibold rounded-xl text-xs cursor-pointer flex items-center gap-1"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  {t.save}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
 
       {/* Export Progress Modal */}
       {exportProgress !== null && createPortal(
@@ -644,80 +504,19 @@ export const TopBar: React.FC = () => {
       )}
 
       {/* GIF Export Settings Modal */}
-      {showGifConfig && createPortal(
-        <div className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[99999]">
-          <div className="bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl transition-all">
+      <GifExportModal
+        isOpen={showGifConfig}
+        onClose={() => setShowGifConfig(false)}
+        onExport={handleExportGif}
+      />
 
-            <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
-              <FileDown className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
-              {language === 'tr' ? 'GIF Dışa Aktarma Ayarları' : 'GIF Export Settings'}
-            </h3>
-
-            <div className="space-y-5">
-              <div>
-                <label className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                  <span>{language === 'tr' ? 'Kare Hızı (FPS)' : 'Framerate (FPS)'}</span>
-                  <span className="text-indigo-500">{gifFps} FPS</span>
-                </label>
-                <input
-                  type="range"
-                  min="5"
-                  max="30"
-                  step="1"
-                  value={gifFps}
-                  onChange={(e) => setGifFps(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  {language === 'tr'
-                    ? 'Düşük FPS hızlı oluşturulur ve dosya boyutu küçüktür. Yüksek FPS daha akıcıdır.'
-                    : 'Lower FPS exports faster with smaller size. Higher FPS is smoother.'}
-                </p>
-              </div>
-
-              <div>
-                <label className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                  <span>{language === 'tr' ? 'Kalite' : 'Quality'}</span>
-                  <span className="text-indigo-500">%{gifQuality}</span>
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="100"
-                  step="1"
-                  value={gifQuality}
-                  onChange={(e) => setGifQuality(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  {language === 'tr'
-                    ? 'Yüksek kalite renkleri daha iyi korur ancak işlem süresini uzatır.'
-                    : 'Higher quality preserves colors better but takes longer to encode.'}
-                </p>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setShowGifConfig(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs cursor-pointer transition-colors"
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExportGif}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-slate-100 font-semibold rounded-xl text-xs cursor-pointer flex items-center gap-1 transition-colors"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  {language === 'tr' ? 'Oluştur' : 'Generate'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* AI Copy Modal */}
+      <AiCopyModal
+        isOpen={showAiModal}
+        onClose={() => setShowAiModal(false)}
+        aiText={aiText}
+        setAiText={setAiText}
+      />
     </header>
   );
 };

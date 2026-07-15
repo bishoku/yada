@@ -70,12 +70,14 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
         visualData: JSON.parse(JSON.stringify(visualData)),
       });
       setIsDirty(false);
+      setIsNameInvalid(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeNode?.id, activeEdge?.id]);
 
   // ── Dirty tracking ───────────────────────────────────────────────────────
   const [isDirty, setIsDirty] = useState(false);
+  const [isNameInvalid, setIsNameInvalid] = useState(false);
 
   // ── Derived data ─────────────────────────────────────────────────────────
   const connectedHandleIds = useMemo(() => {
@@ -209,6 +211,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
             connectedHandleIds={connectedHandleIds}
             onPreview={handlePreviewNode}
             onSubmit={onApplyNode}
+            onValidationError={setIsNameInvalid}
           />
         )}
 
@@ -254,8 +257,11 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
           {/* Apply — commits to history */}
           <button
             onClick={handleApply}
+            disabled={activeNode ? isNameInvalid : false}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-              isDirty
+              (activeNode ? isNameInvalid : false)
+                ? 'bg-slate-350 dark:bg-slate-800 text-slate-500 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-800'
+                : isDirty
                 ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-500/30'
                 : 'bg-indigo-500/80 text-white/90 hover:bg-indigo-600'
             }`}

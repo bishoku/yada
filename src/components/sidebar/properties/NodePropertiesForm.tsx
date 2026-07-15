@@ -1,8 +1,9 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { HandleConfig } from '../../../types';
 import { resolveHandles } from '../../../utils/portUtils';
 import { ConnectionPointsEditor } from './ConnectionPointsEditor';
 import { ActiveNodeProperties } from '../../../types';
+import { useAppStore } from '../../../store/useAppStore';
 
 export type NodePropertiesFormRef = { submit: () => void; cancel: () => void };
 
@@ -20,6 +21,7 @@ interface NodePropertiesFormProps {
     id: string, name: string, type: string, theme: string,
     displayMode: 'default' | 'icon-only', rotation: number, customStyles: any
   ) => void;
+  onValidationError?: (hasError: boolean) => void;
 }
 
 const THEME_COLORS = ['indigo', 'emerald', 'rose', 'amber', 'violet', 'cyan'] as const;
@@ -70,6 +72,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
   connectedHandleIds,
   onSubmit,
   onPreview,
+  onValidationError,
 }, ref) => {
   const [name, setName] = useState(activeNode.name);
   const [type, setType] = useState(activeNode.type);
@@ -78,6 +81,15 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
   const [displayMode, setDisplayMode] = useState<'default' | 'icon-only'>(activeNode.displayMode ?? 'default');
   const [rotation, setRotation] = useState(activeNode.rotation ?? 0);
   const [customStyles, setCustomStyles] = useState<any>(activeNode.customStyles ?? {});
+
+  const nodes = useAppStore((s) => s.logicalData.nodes);
+  const nameExists = useMemo(() => {
+    return nodes.some(n => n.id !== activeNode.id && n.name.trim().toLowerCase() === name.trim().toLowerCase());
+  }, [nodes, activeNode.id, name]);
+
+  useEffect(() => {
+    onValidationError?.(nameExists);
+  }, [nameExists, onValidationError]);
 
   // Snapshot of original values — used to reset on cancel
   const [origName, setOrigName] = useState(activeNode.name);
@@ -101,19 +113,29 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
   }, [activeNode]);
 
   // Convenience: preview the current field values (except handles)
-  const preview = (overrides?: Partial<{ n: string; t: string; th: string; dm: 'default' | 'icon-only'; r: number; cs: any }>) =>
+  const preview = (overrides?: Partial<{ n: string; t: string; th: string; dm: 'default' | 'icon-only'; r: number; cs: any }>) => {
+    const nextName = overrides?.n ?? name;
+    // Check if nextName already exists in another node
+    const isDup = nodes.some(n => n.id !== activeNode.id && n.name.trim().toLowerCase() === nextName.trim().toLowerCase());
+    // If it's a duplicate, preview with origName so the canvas doesn't reflect the duplicate name
+    const previewName = isDup ? origName : nextName;
+
     onPreview(
       activeNode.id,
-      overrides?.n ?? name,
+      previewName,
       overrides?.t ?? type,
       overrides?.th ?? theme,
       overrides?.dm ?? displayMode,
       overrides?.r ?? rotation,
       overrides?.cs ?? customStyles,
     );
+  };
 
   useImperativeHandle(ref, () => ({
-    submit: () => onSubmit(activeNode.id, name, type, theme, handles, displayMode, rotation, customStyles),
+    submit: () => {
+      if (nameExists) return;
+      onSubmit(activeNode.id, name, type, theme, handles, displayMode, rotation, customStyles);
+    },
     cancel: () => {
       setName(origName); setType(origType); setTheme(origTheme);
       setHandles(origHandles); setDisplayMode(origDisplayMode);
@@ -123,7 +145,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
     },
   }), [activeNode.id, name, type, theme, handles, displayMode, rotation, customStyles,
        origName, origType, origTheme, origHandles, origDisplayMode, origRotation, origCustomStyles,
-       onSubmit, onPreview]);
+       onSubmit, onPreview, nameExists]);
 
   const isSection = activeNode.type === 'section';
   const tr = (t: string, e: string) => lang === 'tr' ? t : e;
@@ -138,6 +160,11 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
           value={name}
           onChange={(e) => { setName(e.target.value); preview({ n: e.target.value }); }}
         />
+        {nameExists && (
+          <span className="text-[10px] text-rose-500 font-semibold mt-0.5">
+            {tr('Geçersiz - bu isim zaten mevcut', 'Invalid - name already exists')}
+          </span>
+        )}
       </div>
 
       {/* Type (not for sections) */}

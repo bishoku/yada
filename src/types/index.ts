@@ -95,6 +95,8 @@ export interface VisualDiagram {
   canvas: {
     zoom: number;
     pan: { x: number; y: number };
+    gridVisible?: boolean;
+    bgColor?: string;
   };
   layoutNodes: Record<string, VisualNode>;      // Quick record access by Node ID
   layoutEdges: Record<string, VisualEdge>;      // NEW: Visual edge data by Edge ID
@@ -270,6 +272,8 @@ export interface AppState {
   deleteNode: (id: string) => void;
   deleteEdge: (id: string) => void;
   updateCanvasViewport: (zoom: number, pan: { x: number; y: number }) => void;
+  setGridVisible: (visible: boolean) => void;
+  setCanvasBgColor: (color: string | null) => void;
   startDrag: (type: string, name: string) => void;
   cancelDrag: () => void;
   setFocusedNodeId: (id: string | null) => void;

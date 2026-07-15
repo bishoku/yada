@@ -21,8 +21,9 @@ export const exportToPng = async (
     const elementsToHide = document.querySelectorAll('.react-flow__controls, .react-flow__panel, .react-flow__minimap');
     elementsToHide.forEach((el) => ((el as HTMLElement).style.display = 'none'));
 
+    const customBg = useAppStore.getState().visualData?.canvas?.bgColor;
     const isDark = document.documentElement.classList.contains('dark');
-    const bgColor = isDark ? '#0f172a' : '#f8fafc';
+    const bgColor = customBg || (isDark ? '#0f172a' : '#f8fafc');
 
     const dataUrl = await toPng(node, {
       quality: 1,
@@ -87,8 +88,9 @@ export const exportToGif = async (
     const stepMs = 1000 / fps;
     const totalFrames = Math.max(1, Math.ceil(maxDuration / stepMs));
     
+    const customBg = useAppStore.getState().visualData?.canvas?.bgColor;
     const isDark = document.documentElement.classList.contains('dark');
-    const bgColor = isDark ? '#0f172a' : '#f8fafc';
+    const bgColor = customBg || (isDark ? '#0f172a' : '#f8fafc');
 
     // Create GIF encoder
     const gif = new GIF({

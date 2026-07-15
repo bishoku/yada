@@ -25,9 +25,27 @@ const edgeTypes: EdgeTypes = {
   seqMessage: SeqMessageEdge,
 };
 
+function isColorDark(color: string): boolean {
+  const hex = color.replace('#', '');
+  if (hex.length === 3) {
+    const r = parseInt(hex[0] + hex[0], 16);
+    const g = parseInt(hex[1] + hex[1], 16);
+    const b = parseInt(hex[2] + hex[2], 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  } else if (hex.length === 6) {
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  }
+  return true;
+}
+
 // ── Inner wrapper (must be inside ReactFlowProvider) ────────────────────────
 function SeqFlowWrapper() {
   const theme = useAppStore((s) => s.theme);
+  const gridVisible = useAppStore((s) => s.visualData.canvas.gridVisible !== false);
+  const bgColor = useAppStore((s) => s.visualData.canvas.bgColor);
   const { rfNodes, rfEdges } = useSequenceLayout();
   const { fitView } = useReactFlow();
 
@@ -42,7 +60,9 @@ function SeqFlowWrapper() {
     };
   }, [fitView]);
 
+  const isBgDark = bgColor ? isColorDark(bgColor) : theme === 'dark';
   const isDark = theme === 'dark';
+  const dotColor = isBgDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(100, 116, 139, 0.25)';
 
   const proOptions = useMemo(() => ({ hideAttribution: true }), []);
   const fitViewOptions = useMemo(() => ({ padding: 0.2 }), []);
@@ -60,11 +80,11 @@ function SeqFlowWrapper() {
           justifyContent: 'center',
           fontFamily:
             'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-          color: isDark ? 'rgba(148, 163, 184, 0.7)' : 'rgba(100, 116, 139, 0.7)',
+          color: isBgDark ? 'rgba(148, 163, 184, 0.7)' : 'rgba(100, 116, 139, 0.7)',
           fontSize: '14px',
-          background: isDark
+          background: bgColor || (isDark
             ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
-            : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'),
         }}
       >
         <div style={{ textAlign: 'center' }}>
@@ -97,9 +117,9 @@ function SeqFlowWrapper() {
       style={{
         width: '100%',
         height: '100%',
-        background: isDark
+        background: bgColor || (isDark
           ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
-          : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)'),
       }}
     >
       <ReactFlow
@@ -116,12 +136,14 @@ function SeqFlowWrapper() {
         minZoom={0.1}
         maxZoom={2}
       >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1}
-          color={isDark ? 'rgba(148, 163, 184, 0.08)' : 'rgba(100, 116, 139, 0.1)'}
-        />
+        {gridVisible && (
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={20}
+            size={1}
+            color={dotColor}
+          />
+        )}
         <Controls
           showInteractive={false}
           style={{

@@ -19,6 +19,22 @@ function ensureStyles() {
   document.head.appendChild(s);
 }
 
+function isColorDark(color: string): boolean {
+  const hex = color.replace('#', '');
+  if (hex.length === 3) {
+    const r = parseInt(hex[0] + hex[0], 16);
+    const g = parseInt(hex[1] + hex[1], 16);
+    const b = parseInt(hex[2] + hex[2], 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  } else if (hex.length === 6) {
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  }
+  return true;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export const SeqMessageEdge = memo(function SeqMessageEdge({
   id,
@@ -29,7 +45,9 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
 }: EdgeProps) {
   ensureStyles();
 
-  const isDark       = useAppStore((s) => s.theme) === 'dark';
+  const themeName    = useAppStore((s) => s.theme);
+  const bgColor      = useAppStore((s) => s.visualData.canvas.bgColor);
+  const isDark       = bgColor ? isColorDark(bgColor) : themeName === 'dark';
   const currentTime  = useAppStore((s) => s.currentTime);
   const schedules    = useAppStore((s) => s.schedules);
   const timelines    = useAppStore((s) => s.visualData.timelines);
@@ -94,12 +112,12 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
   );
 
   // ── Colors ────────────────────────────────────────────────────────────────
-  const syncColor        = isDark ? 'rgba(148,163,184,0.6)'  : 'rgba(100,116,139,0.55)';
-  const syncActiveColor  = isDark ? 'rgba(129,140,248,0.95)' : 'rgba(99,102,241,0.9)';
-  const asyncColor       = isDark ? 'rgba(52,211,153,0.65)'  : 'rgba(16,185,129,0.6)';
-  const asyncActiveColor = isDark ? 'rgba(52,211,153,0.95)'  : 'rgba(16,185,129,0.9)';
-  const returnColor      = isDark ? 'rgba(148,163,184,0.32)' : 'rgba(100,116,139,0.28)';
-  const returnActiveColor= isDark ? 'rgba(165,180,252,0.85)' : 'rgba(99,102,241,0.75)';
+  const syncColor        = isDark ? 'rgba(156, 163, 175, 0.85)' : 'rgba(71, 85, 105, 0.8)';
+  const syncActiveColor  = isDark ? 'rgba(129, 140, 248, 1)'    : 'rgba(79, 70, 229, 1)';
+  const asyncColor       = isDark ? 'rgba(52, 211, 153, 0.85)'  : 'rgba(5, 150, 105, 0.75)';
+  const asyncActiveColor = isDark ? 'rgba(52, 211, 153, 1)'     : 'rgba(5, 150, 105, 1)';
+  const returnColor      = isDark ? 'rgba(156, 163, 175, 0.6)'  : 'rgba(100, 116, 139, 0.5)';
+  const returnActiveColor= isDark ? 'rgba(165, 180, 252, 1)'    : 'rgba(79, 70, 229, 0.9)';
 
   // Arrow stroke is ALWAYS visible (no fade/disappear)
   const strokeColor = isReturn

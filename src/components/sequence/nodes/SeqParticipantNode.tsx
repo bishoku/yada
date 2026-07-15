@@ -10,6 +10,22 @@ import {
 } from '../useSequenceLayout';
 
 // ── Theme mapping (matches BaseNode themeStyles) ──────────────────────────────
+function isColorDark(color: string): boolean {
+  const hex = color.replace('#', '');
+  if (hex.length === 3) {
+    const r = parseInt(hex[0] + hex[0], 16);
+    const g = parseInt(hex[1] + hex[1], 16);
+    const b = parseInt(hex[2] + hex[2], 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  } else if (hex.length === 6) {
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  }
+  return true;
+}
+
 interface ThemeStyle {
   border: string;
   text: string;
@@ -197,6 +213,11 @@ export const SeqParticipantNode = memo(function SeqParticipantNode({
 
   const { minSlot, maxSlot, isActive } = useParticipantActivity(logicalId);
 
+  const themeName = useAppStore((s) => s.theme);
+  const bgColor = useAppStore((s) => s.visualData.canvas.bgColor);
+  const isBgDark = bgColor ? isColorDark(bgColor) : (themeName === 'dark');
+  const defaultLifelineColor = isBgDark ? 'rgba(203, 213, 225, 0.8)' : 'rgba(71, 85, 105, 0.8)';
+
   // Registry definition
   const nodeDef    = NodeRegistry[nodeType];
   const colorClass = nodeDef?.colorClass ?? 'text-slate-500';
@@ -280,7 +301,7 @@ export const SeqParticipantNode = memo(function SeqParticipantNode({
       : `bg-white dark:bg-slate-900 ${theme.border}`,
   ].join(' ');
 
-  const lifelineColor = isActive ? theme.activityBorder : undefined;
+  const lifelineColor = isActive ? theme.activityBorder : defaultLifelineColor;
 
   return (
     <div
@@ -317,7 +338,7 @@ export const SeqParticipantNode = memo(function SeqParticipantNode({
           top: HEADER_HEIGHT,
           width: 0,
           height: lifelineHeight,
-          borderLeft: `2px dashed ${lifelineColor ?? 'rgba(148,163,184,0.22)'}`,
+          borderLeft: `2px dashed ${lifelineColor}`,
           transform: 'translateX(-1px)',
           zIndex: 1,
           transition: 'border-color 0.25s ease',
