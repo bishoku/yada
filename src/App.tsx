@@ -4,6 +4,7 @@ import { WelcomeScreen } from './components/welcome/WelcomeScreen';
 import { MainLayout } from './components/layout/MainLayout';
 import { ComponentStudio } from './components/studio/ComponentStudio';
 import { GoogleDriveService } from './services/googleDriveAPI';
+import { ShareLoader } from './components/share/ShareLoader';
 
 function App() {
   const currentWorkspace = useAppStore((state) => state.currentWorkspace);
@@ -56,11 +57,17 @@ function App() {
   }, []);
 
   if (!currentWorkspace) {
-    return <WelcomeScreen />;
+    return (
+      <>
+        <ShareLoader />
+        <WelcomeScreen />
+      </>
+    );
   }
 
   return (
     <>
+      <ShareLoader />
       {currentView === 'studio' ? <ComponentStudio /> : <MainLayout />}
     </>
   );

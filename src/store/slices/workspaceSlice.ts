@@ -29,6 +29,7 @@ export interface WorkspaceSlice {
   leftSidebarOpen: boolean;
   rightSidebarOpen: boolean;
   isSaving: boolean;
+  isReadOnly: boolean;
 
   setWorkspace: (ws: WorkspaceMeta | null) => void;
   setDiagram: (diagram: any | null) => void;
@@ -47,6 +48,8 @@ export interface WorkspaceSlice {
   openRightSidebar: () => void;
   viewMode: 'freeform' | 'sequence';
   toggleViewMode: () => void;
+  setReadOnly: (isReadOnly: boolean) => void;
+  loadSharedDiagram: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram) => void;
   manualSave: () => Promise<void>;
   deleteWorkspace: (path: string) => Promise<void>;
 }
@@ -62,6 +65,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   leftSidebarOpen: true,
   rightSidebarOpen: true,
   isSaving: false,
+  isReadOnly: false,
 
   setWorkspace: (ws) => set({ currentWorkspace: ws }),
   setDiagram: (diagram) => set({ currentDiagram: diagram }),
@@ -248,6 +252,28 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   openRightSidebar: () => set({ rightSidebarOpen: true }),
   viewMode: 'freeform' as const,
   toggleViewMode: () => set((state) => ({ viewMode: state.viewMode === 'freeform' ? 'sequence' as const : 'freeform' as const })),
+
+  setReadOnly: (isReadOnly: boolean) => set({ isReadOnly }),
+
+  loadSharedDiagram: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram) => {
+    // Shared diagrams are loaded without a workspace context, in read-only mode
+    set({
+      currentWorkspace: {
+        id: 'shared-diagram',
+        name: 'Shared Diagram',
+        path: 'memory://shared',
+        description: 'A read-only shared diagram',
+        createdAt: new Date().toISOString(),
+        lastAccessed: new Date().toISOString()
+      },
+      logicalData,
+      visualData,
+      isReadOnly: true,
+      isDirty: false,
+      leftSidebarOpen: false, // hide toolbox
+      rightSidebarOpen: false // hide properties by default
+    });
+  },
 
   manualSave: async () => {
     const state = get();

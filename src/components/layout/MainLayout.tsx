@@ -15,6 +15,8 @@ export const MainLayout: React.FC = () => {
   const setTimelineHeight = useAppStore((s) => s.setTimelineHeight);
   const language = useAppStore((s) => s.language);
   const viewMode = useAppStore((s) => s.viewMode);
+  const leftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
+  const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
   const [isResizing, setIsResizing] = useState(false);
   const resizerRef = useRef<HTMLDivElement>(null);
 
@@ -59,7 +61,7 @@ export const MainLayout: React.FC = () => {
       <div className="flex-1 flex overflow-hidden relative">
         
         {/* Left Sidebar: Explorer & Library */}
-        <SidebarLeft />
+        {leftSidebarOpen && <SidebarLeft />}
 
         {/* Center Section: Canvas & Timeline */}
         <main className="flex-1 flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -100,7 +102,7 @@ export const MainLayout: React.FC = () => {
         </main>
 
         {/* Right Sidebar: Simulation Panel / Properties Panel */}
-        <RightSidebarShell />
+        {rightSidebarOpen && <RightSidebarShell />}
 
       </div>
     </div>

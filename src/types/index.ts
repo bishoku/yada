@@ -329,6 +329,9 @@ export interface AppState {
 
   // View Mode
   toggleViewMode: () => void;
+  isReadOnly: boolean;
+  setReadOnly: (isReadOnly: boolean) => void;
+  loadSharedDiagram: (logicalData: LogicalDiagram, visualData: VisualDiagram) => void;
 
   // Layout Actions
   toggleLeftSidebar: () => void;
