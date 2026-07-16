@@ -24,6 +24,7 @@ export interface TimelineSlice {
   deleteSequenceStep: (seqId: string) => void;
   setSequenceStepOrder: (seqId: string, stepNumber: number) => void;
   setSequenceStepRoundTrip: (seqId: string, isRoundTrip: boolean) => void;
+  setSequenceStepAnimationMode: (seqId: string, mode: 'normal' | 'roundTrip' | 'repeat', particleCount?: number) => void;
   toggleSequenceAsync: (seqId: string) => void;
   toggleTimeline: () => void;
   setTimelineHeight: (height: number) => void;
@@ -139,6 +140,23 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
     set((state) => {
       const sequences = state.logicalData.sequences.map((s) => 
         s.id === seqId ? { ...s, isRoundTrip } : s
+      );
+      return {
+        logicalData: { ...state.logicalData, sequences },
+        isDirty: true
+      };
+    });
+  },
+
+  setSequenceStepAnimationMode: (seqId, mode, particleCount) => {
+    set((state) => {
+      const sequences = state.logicalData.sequences.map((s) =>
+        s.id === seqId ? {
+          ...s,
+          animationMode: mode,
+          isRoundTrip: mode === 'roundTrip', // keep backward compat
+          ...(mode === 'repeat' && particleCount !== undefined ? { repeatParticleCount: particleCount } : {}),
+        } : s
       );
       return {
         logicalData: { ...state.logicalData, sequences },

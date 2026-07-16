@@ -5,6 +5,7 @@ export const useEdgeAnimation = (edgeId: string, pathRef: RefObject<SVGPathEleme
   const selectedSequenceId = useAppStore((s) => s.selectedSequenceId);
 
   const [particlePos, setParticlePos] = useState<{ x: number; y: number; rotation: number } | null>(null);
+  const [particlePositions, setParticlePositions] = useState<Array<{ x: number; y: number; rotation: number }>>([]);
   const [isAnimating, setIsAnimating] = useState(false);
   const [activeStepNumber, setActiveStepNumber] = useState<number | null>(null);
 
@@ -27,9 +28,29 @@ export const useEdgeAnimation = (edgeId: string, pathRef: RefObject<SVGPathEleme
       let activeSeq = null;
       for (const seq of seqsForEdge) {
         const sched = schedules[seq.id];
-        if (sched && currentTime >= sched.start && currentTime <= sched.end) {
-          activeSeq = seq;
-          break;
+        if (!sched) continue;
+
+        const effectiveMode = seq.animationMode ?? (seq.isRoundTrip ? 'roundTrip' : 'normal');
+
+        if (effectiveMode === 'repeat') {
+          // Repeat mode: starts at step start, continues until entire timeline ends
+          if (currentTime >= sched.start) {
+            // Find the global timeline end (max of all schedule end times)
+            let timelineEnd = sched.end;
+            for (const key in schedules) {
+              if (schedules[key].end > timelineEnd) timelineEnd = schedules[key].end;
+            }
+            if (currentTime <= timelineEnd) {
+              activeSeq = seq;
+              break;
+            }
+          }
+        } else {
+          // Normal / RoundTrip: only active during step's own window
+          if (currentTime >= sched.start && currentTime <= sched.end) {
+            activeSeq = seq;
+            break;
+          }
         }
       }
 
@@ -45,6 +66,7 @@ export const useEdgeAnimation = (edgeId: string, pathRef: RefObject<SVGPathEleme
       const pathEl = pathRef.current;
       if (!pathEl || !newIsAnimating || !activeSeq) {
         setParticlePos((prev) => (prev !== null ? null : prev));
+        setParticlePositions((prev) => (prev.length !== 0 ? [] : prev));
         return;
       }
 
@@ -52,50 +74,95 @@ export const useEdgeAnimation = (edgeId: string, pathRef: RefObject<SVGPathEleme
         const sched = schedules[activeSeq.id];
         if (!sched) {
           setParticlePos((prev) => (prev !== null ? null : prev));
+          setParticlePositions((prev) => (prev.length !== 0 ? [] : prev));
           return;
         }
 
         const timing = state.visualData.timelines[activeSeq.id];
         const stepDuration = timing?.duration ?? 1000;
         const elapsed = currentTime - sched.start;
+        const effectiveMode = activeSeq.animationMode ?? (activeSeq.isRoundTrip ? 'roundTrip' : 'normal');
 
-        let actualProgress = 0;
-
-        if (activeSeq.isRoundTrip) {
-          const transitHalf = stepDuration / 2;
-          const returnStartElapsed = (sched.end - sched.start) - transitHalf;
-
-          if (elapsed < transitHalf) {
-            actualProgress = Math.min(Math.max(elapsed / transitHalf, 0), 1);
-          } else if (elapsed < returnStartElapsed) {
-            actualProgress = 1.0;
-          } else {
-            const returnElapsed = elapsed - returnStartElapsed;
-            actualProgress = 1.0 - Math.min(Math.max(returnElapsed / transitHalf, 0), 1);
-          }
-        } else {
-          const transitDuration = stepDuration;
-          if (elapsed < transitDuration) {
-            const progress = Math.min(Math.max(elapsed / transitDuration, 0), 1);
-            actualProgress = progress;
-          } else {
-            actualProgress = 1;
-          }
-        }
-        
         const totalLength = pathEl.getTotalLength();
-        if (totalLength > 0) {
-          const point = pathEl.getPointAtLength(actualProgress * totalLength);
-          
-          // Calculate rotation
-          const p1 = pathEl.getPointAtLength(Math.max(0, actualProgress * totalLength - 1));
-          const p2 = pathEl.getPointAtLength(Math.min(totalLength, actualProgress * totalLength + 1));
-          const rotation = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+        if (totalLength <= 0) return;
 
-          setParticlePos({ x: point.x, y: point.y, rotation });
+        switch (effectiveMode) {
+          case 'repeat': {
+            const count = activeSeq.repeatParticleCount ?? 1;
+            const cycleDuration = stepDuration;
+            const positions: Array<{ x: number; y: number; rotation: number }> = [];
+
+            for (let i = 0; i < count; i++) {
+              const offset = (i / count) * cycleDuration;
+              const particleElapsed = (elapsed - offset) % cycleDuration;
+
+              // Only show particle if it has "started" (elapsed >= offset for first appearance)
+              if (elapsed < offset) continue;
+
+              // Ensure positive modulo for elapsed time
+              const safeElapsed = particleElapsed < 0 ? particleElapsed + cycleDuration : particleElapsed;
+              const progress = Math.max(0, Math.min(1, safeElapsed / cycleDuration));
+
+              const point = pathEl.getPointAtLength(progress * totalLength);
+              const p1 = pathEl.getPointAtLength(Math.max(0, progress * totalLength - 1));
+              const p2 = pathEl.getPointAtLength(Math.min(totalLength, progress * totalLength + 1));
+              const rotation = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+
+              positions.push({ x: point.x, y: point.y, rotation });
+            }
+
+            setParticlePositions(positions);
+            setParticlePos(positions[0] ?? null);
+            return;
+          }
+
+          case 'roundTrip': {
+            const transitHalf = stepDuration / 2;
+            const returnStartElapsed = (sched.end - sched.start) - transitHalf;
+            let actualProgress = 0;
+
+            if (elapsed < transitHalf) {
+              actualProgress = Math.min(Math.max(elapsed / transitHalf, 0), 1);
+            } else if (elapsed < returnStartElapsed) {
+              actualProgress = 1.0;
+            } else {
+              const returnElapsed = elapsed - returnStartElapsed;
+              actualProgress = 1.0 - Math.min(Math.max(returnElapsed / transitHalf, 0), 1);
+            }
+
+            const point = pathEl.getPointAtLength(actualProgress * totalLength);
+            const p1 = pathEl.getPointAtLength(Math.max(0, actualProgress * totalLength - 1));
+            const p2 = pathEl.getPointAtLength(Math.min(totalLength, actualProgress * totalLength + 1));
+            const rotation = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+
+            setParticlePos({ x: point.x, y: point.y, rotation });
+            setParticlePositions([]);
+            break;
+          }
+
+          case 'normal':
+          default: {
+            const transitDuration = stepDuration;
+            let actualProgress = 0;
+            if (elapsed < transitDuration) {
+              actualProgress = Math.min(Math.max(elapsed / transitDuration, 0), 1);
+            } else {
+              actualProgress = 1;
+            }
+
+            const point = pathEl.getPointAtLength(actualProgress * totalLength);
+            const p1 = pathEl.getPointAtLength(Math.max(0, actualProgress * totalLength - 1));
+            const p2 = pathEl.getPointAtLength(Math.min(totalLength, actualProgress * totalLength + 1));
+            const rotation = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+
+            setParticlePos({ x: point.x, y: point.y, rotation });
+            setParticlePositions([]);
+            break;
+          }
         }
       } catch (err) {
         setParticlePos((prev) => (prev !== null ? null : prev));
+        setParticlePositions((prev) => (prev.length !== 0 ? [] : prev));
       }
     });
 
@@ -104,6 +171,7 @@ export const useEdgeAnimation = (edgeId: string, pathRef: RefObject<SVGPathEleme
 
   return {
     particlePos,
+    particlePositions,
     isAnimating,
     isSelected,
     isAsync,

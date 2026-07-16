@@ -49,6 +49,8 @@ export interface SequenceStep {
   edgeId: string;          // Foreign Key → LogicalEdge.id
   isAsync: boolean;        // True = fire and forget, don't block subsequent stepNumbers
   isRoundTrip?: boolean;   // True = round-trip A→B→A for sync responses (request+response)
+  animationMode?: 'normal' | 'roundTrip' | 'repeat';  // Animation mode for simulation
+  repeatParticleCount?: number;  // How many particles in repeat mode
   // NOTE: 'direction' removed — use the "Swap Source/Target" action on edges instead.
 }
 
@@ -316,6 +318,7 @@ export interface AppState {
   deleteSequenceStep: (seqId: string) => void;
   setSequenceStepOrder: (seqId: string, stepNumber: number) => void;
   setSequenceStepRoundTrip: (seqId: string, isRoundTrip: boolean) => void;
+  setSequenceStepAnimationMode: (seqId: string, mode: 'normal' | 'roundTrip' | 'repeat', particleCount?: number) => void;
   toggleSequenceAsync: (seqId: string) => void;
   clearCanvas: () => void;
   updateNodeDetails: (id: string, name: string, type: string, theme?: string, handles?: HandleConfig[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any) => void;

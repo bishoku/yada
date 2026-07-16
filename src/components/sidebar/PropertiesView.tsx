@@ -54,6 +54,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
   const updateEdgeDetails = useAppStore((s) => s.updateEdgeDetails);
   const setSequenceStepOrder = useAppStore((s) => s.setSequenceStepOrder);
   const setSequenceStepRoundTrip = useAppStore((s) => s.setSequenceStepRoundTrip);
+  const setSequenceStepAnimationMode = useAppStore((s) => s.setSequenceStepAnimationMode);
   const pushStateToHistory = useAppStore((s) => s.pushStateToHistory);
 
   // ── Snapshot of pre-preview state for undo and Cancel ───────────────────
@@ -116,7 +117,8 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
     id: string, protocol: string, isAsync: boolean, duration: number, delay: number,
     tooltipText: string, tooltipDuration: number, description: string,
     particleType: ParticleType, showArrow: boolean, color: string,
-    stepNumber: number, _direction: 'forward' | 'reverse', isRoundTrip: boolean
+    stepNumber: number, _direction: 'forward' | 'reverse', isRoundTrip: boolean,
+    animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number
   ) => {
     // Logical: protocol, isAsync, description — Visual: duration, delay, tooltip, particleType, etc.
     updateEdgeDetails(id, protocol, isAsync, description, duration, delay, tooltipText, tooltipDuration, particleType, showArrow, color);
@@ -124,10 +126,14 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
     if (seq) {
       if (seq.stepNumber !== stepNumber) setSequenceStepOrder(seq.id, stepNumber);
       // direction no longer in SequenceStep — swap via Swap button
-      setSequenceStepRoundTrip(seq.id, isRoundTrip);
+      if (animationMode) {
+        setSequenceStepAnimationMode(seq.id, animationMode, repeatParticleCount);
+      } else {
+        setSequenceStepRoundTrip(seq.id, isRoundTrip);
+      }
     }
     setIsDirty(true);
-  }, [updateEdgeDetails, setSequenceStepOrder, setSequenceStepRoundTrip]);
+  }, [updateEdgeDetails, setSequenceStepOrder, setSequenceStepRoundTrip, setSequenceStepAnimationMode]);
 
   // ── Apply ─────────────────────────────────────────────────────────────────
   const handleApply = useCallback(() => {
@@ -222,6 +228,8 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
             language={language}
             maxSteps={maxSteps}
             sequenceRoundTrip={activeEdgeSeq?.isRoundTrip ?? false}
+            sequenceAnimationMode={activeEdgeSeq?.animationMode}
+            sequenceRepeatParticleCount={activeEdgeSeq?.repeatParticleCount}
             onPreview={handlePreviewEdge}
             onSubmit={onApplyEdge}
           />
