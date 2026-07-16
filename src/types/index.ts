@@ -162,7 +162,7 @@ export interface ActiveEdgeProperties {
 }
 
 // --- CUSTOM COMPONENT STUDIO DATA ---
-export type ShapeType = 'rectangle' | 'circle' | 'text' | 'image';
+export type ShapeType = 'rectangle' | 'circle' | 'text' | 'image' | 'triangle' | 'star' | 'polygon' | 'line';
 
 export interface ShapeLayer {
   id: string;
@@ -173,6 +173,8 @@ export interface ShapeLayer {
   y: number;
   width: number;
   height: number;
+  locked?: boolean;
+  visible?: boolean;
   style: {
     fill?: string;
     stroke?: string;
@@ -180,6 +182,17 @@ export interface ShapeLayer {
     opacity?: number;
     rx?: number;
     rotation?: number;
+    // Text-specific
+    fontSize?: number;
+    fontFamily?: string;
+    fontWeight?: string;
+    textAlign?: 'left' | 'center' | 'right';
+    letterSpacing?: number;
+    // Polygon-specific
+    sides?: number;
+    // Star-specific
+    points?: number;
+    innerRadius?: number;
   };
   content?: string;
 }
@@ -189,6 +202,7 @@ export interface CustomComponentTemplate {
   name: string;
   category: string;
   dimensions: { width: number; height: number };
+  editDimensions?: { width: number; height: number };
   layers: ShapeLayer[];
   createdAt: string;
 }
@@ -348,6 +362,9 @@ export interface AppState {
   addLayer: (layer: ShapeLayer) => void;
   updateLayer: (id: string, updates: Partial<ShapeLayer>) => void;
   deleteLayer: (id: string) => void;
+  duplicateLayer: (id: string) => void;
+  toggleLayerLock: (id: string) => void;
+  toggleLayerVisibility: (id: string) => void;
   reorderLayers: (sourceIndex: number, destinationIndex: number) => void;
   saveComponentToLibrary: () => Promise<void>;
   loadLibrary: () => Promise<void>;

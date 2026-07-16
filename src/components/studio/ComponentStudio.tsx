@@ -19,6 +19,9 @@ export const ComponentStudio: React.FC = () => {
   const addLayer = useAppStore((s: any) => s.addLayer);
   const updateLayer = useAppStore((s: any) => s.updateLayer);
   const deleteLayer = useAppStore((s: any) => s.deleteLayer);
+  const duplicateLayer = useAppStore((s: any) => s.duplicateLayer);
+  const toggleLayerLock = useAppStore((s: any) => s.toggleLayerLock);
+  const toggleLayerVisibility = useAppStore((s: any) => s.toggleLayerVisibility);
   const reorderLayers = useAppStore((s: any) => s.reorderLayers);
   const saveComponentToLibrary = useAppStore((s: any) => s.saveComponentToLibrary);
 
@@ -47,21 +50,40 @@ export const ComponentStudio: React.FC = () => {
     const defaultStyles: Record<ShapeType, any> = {
       rectangle: { fill: '#6366f1', stroke: '#4f46e5', strokeWidth: 2, opacity: 1, rx: 8, rotation: 0 },
       circle: { fill: '#10b981', stroke: '#059669', strokeWidth: 2, opacity: 1, rotation: 0 },
-      text: { fill: '#1e293b', opacity: 1, rotation: 0 },
+      triangle: { fill: '#f59e0b', stroke: '#d97706', strokeWidth: 2, opacity: 1, rotation: 0 },
+      star: { fill: '#eab308', stroke: '#ca8a04', strokeWidth: 2, opacity: 1, rotation: 0, points: 5, innerRadius: 0.4 },
+      polygon: { fill: '#06b6d4', stroke: '#0891b2', strokeWidth: 2, opacity: 1, rotation: 0, sides: 6 },
+      line: { fill: 'none', stroke: '#64748b', strokeWidth: 3, opacity: 1, rotation: 0 },
+      text: { fill: '#1e293b', opacity: 1, rotation: 0, fontSize: 16, fontFamily: 'sans-serif', fontWeight: '700', textAlign: 'center' as const, letterSpacing: 0 },
       image: { opacity: 1, rotation: 0 },
     };
+
+    const shapeNames: Record<ShapeType, { tr: string; en: string }> = {
+      rectangle: { tr: 'Kutu', en: 'Rectangle' },
+      circle: { tr: 'Daire', en: 'Circle' },
+      triangle: { tr: 'Üçgen', en: 'Triangle' },
+      star: { tr: 'Yıldız', en: 'Star' },
+      polygon: { tr: 'Çokgen', en: 'Polygon' },
+      line: { tr: 'Çizgi', en: 'Line' },
+      text: { tr: 'Metin', en: 'Text' },
+      image: { tr: 'Görsel', en: 'Image' },
+    };
+
+    const shapeName = language === 'tr' ? shapeNames[type].tr : shapeNames[type].en;
 
     const newLayer: ShapeLayer = {
       id: `layer-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       type,
-      name: `Katman ${layerCount + 1} (${type === 'rectangle' ? 'Kutu' : type === 'circle' ? 'Daire' : type === 'text' ? 'Metin' : 'Görsel'})`,
+      name: `${language === 'tr' ? 'Katman' : 'Layer'} ${layerCount + 1} (${shapeName})`,
       zIndex: layerCount,
       x: 30 + (layerCount * 10) % 50,
       y: 30 + (layerCount * 10) % 50,
-      width: type === 'text' ? 100 : 60,
-      height: type === 'text' ? 24 : 60,
+      width: type === 'text' ? 100 : type === 'line' ? 80 : 60,
+      height: type === 'text' ? 24 : type === 'line' ? 4 : 60,
+      locked: false,
+      visible: true,
       style: defaultStyles[type] || { opacity: 1 },
-      content: type === 'text' ? 'Metin' : '',
+      content: type === 'text' ? (language === 'tr' ? 'Metin' : 'Text') : '',
     };
 
     addLayer(newLayer);
@@ -88,7 +110,7 @@ export const ComponentStudio: React.FC = () => {
     setSelectedLayerId(layerId);
 
     const layer = activeComponent.layers.find((l: ShapeLayer) => l.id === layerId);
-    if (!layer) return;
+    if (!layer || layer.locked) return;
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -118,13 +140,16 @@ export const ComponentStudio: React.FC = () => {
     window.addEventListener('mouseup', handleMouseUp);
   };
 
-  // Resize shapes inside studio canvas
+  // Resize shapes inside studio canvas — with boundary clamping fix
   const handleResizeMouseDown = (e: React.MouseEvent, layerId: string, handleType: 'tl' | 'tr' | 'bl' | 'br') => {
     e.stopPropagation();
     e.preventDefault();
 
     const layer = activeComponent.layers.find((l: ShapeLayer) => l.id === layerId);
-    if (!layer) return;
+    if (!layer || layer.locked) return;
+
+    const canvasWidth = activeComponent.dimensions.width;
+    const canvasHeight = activeComponent.dimensions.height;
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -147,7 +172,7 @@ export const ComponentStudio: React.FC = () => {
           nextW = Math.max(10, initialW + deltaX);
           nextH = Math.max(10, initialH + deltaY);
           break;
-        case 'bl':
+        case 'bl': {
           const possibleW_bl = initialW - deltaX;
           if (possibleW_bl >= 10) {
             nextX = initialX + deltaX;
@@ -155,15 +180,18 @@ export const ComponentStudio: React.FC = () => {
           }
           nextH = Math.max(10, initialH + deltaY);
           break;
+        }
         case 'tr':
           nextW = Math.max(10, initialW + deltaX);
-          const possibleH_tr = initialH - deltaY;
-          if (possibleH_tr >= 10) {
-            nextY = initialY + deltaY;
-            nextH = possibleH_tr;
+          {
+            const possibleH_tr = initialH - deltaY;
+            if (possibleH_tr >= 10) {
+              nextY = initialY + deltaY;
+              nextH = possibleH_tr;
+            }
           }
           break;
-        case 'tl':
+        case 'tl': {
           const possibleW_tl = initialW - deltaX;
           const possibleH_tl = initialH - deltaY;
           if (possibleW_tl >= 10) {
@@ -175,11 +203,24 @@ export const ComponentStudio: React.FC = () => {
             nextH = possibleH_tl;
           }
           break;
+        }
       }
 
+      // Clamp position to canvas bounds (prevent negative coordinates)
+      nextX = Math.max(0, nextX);
+      nextY = Math.max(0, nextY);
+
+      // Clamp width/height so shape doesn't exceed canvas boundaries
+      nextW = Math.min(nextW, canvasWidth - nextX);
+      nextH = Math.min(nextH, canvasHeight - nextY);
+
+      // Ensure minimum size after clamping
+      nextW = Math.max(10, nextW);
+      nextH = Math.max(10, nextH);
+
       updateLayer(layerId, {
-        x: Math.max(0, nextX),
-        y: Math.max(0, nextY),
+        x: nextX,
+        y: nextY,
         width: nextW,
         height: nextH
       });
@@ -299,6 +340,9 @@ export const ComponentStudio: React.FC = () => {
           onDeleteLayer={deleteLayer}
           onUpdateLayer={updateLayer}
           onImageUpload={handleImageUpload}
+          onDuplicateLayer={duplicateLayer}
+          onToggleLayerLock={toggleLayerLock}
+          onToggleLayerVisibility={toggleLayerVisibility}
           totalLayersCount={activeComponent.layers.length}
         />
       </div>
