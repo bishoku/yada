@@ -49,6 +49,8 @@ export interface SequenceStep {
   edgeId: string;          // Foreign Key → LogicalEdge.id
   isAsync: boolean;        // True = fire and forget, don't block subsequent stepNumbers
   isRoundTrip?: boolean;   // True = round-trip A→B→A for sync responses (request+response)
+  animationMode?: 'normal' | 'roundTrip' | 'repeat';  // Animation mode for simulation
+  repeatParticleCount?: number;  // How many particles in repeat mode
   // NOTE: 'direction' removed — use the "Swap Source/Target" action on edges instead.
 }
 
@@ -162,7 +164,7 @@ export interface ActiveEdgeProperties {
 }
 
 // --- CUSTOM COMPONENT STUDIO DATA ---
-export type ShapeType = 'rectangle' | 'circle' | 'text' | 'image';
+export type ShapeType = 'rectangle' | 'circle' | 'text' | 'image' | 'triangle' | 'star' | 'polygon' | 'line';
 
 export interface ShapeLayer {
   id: string;
@@ -173,6 +175,8 @@ export interface ShapeLayer {
   y: number;
   width: number;
   height: number;
+  locked?: boolean;
+  visible?: boolean;
   style: {
     fill?: string;
     stroke?: string;
@@ -180,6 +184,17 @@ export interface ShapeLayer {
     opacity?: number;
     rx?: number;
     rotation?: number;
+    // Text-specific
+    fontSize?: number;
+    fontFamily?: string;
+    fontWeight?: string;
+    textAlign?: 'left' | 'center' | 'right';
+    letterSpacing?: number;
+    // Polygon-specific
+    sides?: number;
+    // Star-specific
+    points?: number;
+    innerRadius?: number;
   };
   content?: string;
 }
@@ -189,6 +204,7 @@ export interface CustomComponentTemplate {
   name: string;
   category: string;
   dimensions: { width: number; height: number };
+  editDimensions?: { width: number; height: number };
   layers: ShapeLayer[];
   createdAt: string;
 }
@@ -302,6 +318,7 @@ export interface AppState {
   deleteSequenceStep: (seqId: string) => void;
   setSequenceStepOrder: (seqId: string, stepNumber: number) => void;
   setSequenceStepRoundTrip: (seqId: string, isRoundTrip: boolean) => void;
+  setSequenceStepAnimationMode: (seqId: string, mode: 'normal' | 'roundTrip' | 'repeat', particleCount?: number) => void;
   toggleSequenceAsync: (seqId: string) => void;
   clearCanvas: () => void;
   updateNodeDetails: (id: string, name: string, type: string, theme?: string, handles?: HandleConfig[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any) => void;
@@ -348,6 +365,9 @@ export interface AppState {
   addLayer: (layer: ShapeLayer) => void;
   updateLayer: (id: string, updates: Partial<ShapeLayer>) => void;
   deleteLayer: (id: string) => void;
+  duplicateLayer: (id: string) => void;
+  toggleLayerLock: (id: string) => void;
+  toggleLayerVisibility: (id: string) => void;
   reorderLayers: (sourceIndex: number, destinationIndex: number) => void;
   saveComponentToLibrary: () => Promise<void>;
   loadLibrary: () => Promise<void>;

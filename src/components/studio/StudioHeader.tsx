@@ -77,6 +77,33 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
           </select>
         </div>
 
+        <div className="flex items-center gap-1.5 text-xs text-slate-550 dark:text-slate-400">
+          <span>{t.canvasPresets}</span>
+          <select
+            value={
+              [32, 48, 64, 96, 128, 256].some((s) => width === s && height === s)
+                ? `${width}`
+                : 'custom'
+            }
+            onChange={(e) => {
+              if (e.target.value !== 'custom') {
+                const size = Number(e.target.value);
+                onWidthChange(size);
+                onHeightChange(size);
+              }
+            }}
+            className="bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded-xl text-xs focus:outline-none text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
+          >
+            <option value="32">32 × 32</option>
+            <option value="48">48 × 48</option>
+            <option value="64">64 × 64</option>
+            <option value="96">96 × 96</option>
+            <option value="128">128 × 128</option>
+            <option value="256">256 × 256</option>
+            <option value="custom">{t.customSize}</option>
+          </select>
+        </div>
+
         <div className="flex items-center gap-1 text-xs text-slate-550 dark:text-slate-400">
           <span>W:</span>
           <input

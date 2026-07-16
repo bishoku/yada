@@ -1,5 +1,5 @@
 import React from 'react';
-import { Move, ArrowUp, ArrowDown, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Move, ArrowUp, ArrowDown, Trash2, Image as ImageIcon, Lock, Unlock, Eye, EyeOff, Copy, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { ShapeLayer } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
 import { translations } from '../../i18n/translations';
@@ -17,8 +17,30 @@ interface StudioInspectorProps {
   onDeleteLayer: (id: string) => void;
   onUpdateLayer: (id: string, updates: Partial<ShapeLayer>) => void;
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>, layerId: string) => void;
+  onDuplicateLayer: (id: string) => void;
+  onToggleLayerLock: (id: string) => void;
+  onToggleLayerVisibility: (id: string) => void;
   totalLayersCount: number;
 }
+
+const FONT_FAMILIES = [
+  { value: 'sans-serif', label: 'Sans-serif' },
+  { value: 'serif', label: 'Serif' },
+  { value: 'monospace', label: 'Monospace' },
+  { value: 'Georgia', label: 'Georgia' },
+  { value: "'Courier New'", label: 'Courier New' },
+  { value: "'Times New Roman'", label: 'Times New Roman' },
+  { value: 'Arial', label: 'Arial' },
+  { value: 'Verdana', label: 'Verdana' },
+  { value: "'Trebuchet MS'", label: 'Trebuchet MS' },
+];
+
+const FONT_WEIGHTS = [
+  { value: '300', label: 'Light' },
+  { value: '400', label: 'Normal' },
+  { value: '700', label: 'Bold' },
+  { value: '900', label: 'Black' },
+];
 
 export const StudioInspector: React.FC<StudioInspectorProps> = ({
   layers,
@@ -33,6 +55,9 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
   onDeleteLayer,
   onUpdateLayer,
   onImageUpload,
+  onDuplicateLayer,
+  onToggleLayerLock,
+  onToggleLayerVisibility,
   totalLayersCount,
 }) => {
   const language = useAppStore((state) => state.language);
@@ -57,6 +82,8 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
             layersListDescending.map((layer) => {
               const originalIdx = layers.findIndex((l) => l.id === layer.id);
               const isSelected = selectedLayerId === layer.id;
+              const isLocked = layer.locked ?? false;
+              const isVisible = layer.visible !== false;
               
               return (
                 <div
@@ -73,48 +100,92 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
                     isSelected 
                       ? 'border-indigo-500/40 bg-indigo-500/5 dark:bg-indigo-500/10' 
                       : 'border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                  } ${draggedId === layer.id ? 'opacity-40 bg-slate-100/50 dark:bg-slate-800/50 border-dashed border-indigo-500' : ''}`}
+                  } ${draggedId === layer.id ? 'opacity-40 bg-slate-100/50 dark:bg-slate-800/50 border-dashed border-indigo-500' : ''} ${
+                    !isVisible ? 'opacity-40' : ''
+                  }`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Move className={`w-3.5 h-3.5 ${isSelected ? 'text-indigo-500' : 'text-slate-400'}`} />
-                    <span className="text-xs font-bold truncate text-slate-700 dark:text-slate-350">
+                    <span className={`text-xs font-bold truncate ${
+                      isLocked
+                        ? 'text-slate-400 dark:text-slate-500'
+                        : 'text-slate-700 dark:text-slate-350'
+                    }`}>
                       {layer.name}
                     </span>
+                    {isLocked && (
+                      <Lock className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {/* Always-visible buttons: Lock, Visibility, Duplicate */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onMoveLayerUp(originalIdx);
+                        onToggleLayerLock(layer.id);
                       }}
-                      disabled={originalIdx === totalLayersCount - 1}
-                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-                      title="Katmanı Üste Taşı"
+                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors cursor-pointer"
+                      title={isLocked ? t.unlockLayer : t.lockLayer}
                     >
-                      <ArrowUp className="w-3 h-3" />
+                      {isLocked ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onMoveLayerDown(originalIdx);
+                        onToggleLayerVisibility(layer.id);
                       }}
-                      disabled={originalIdx === 0}
-                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-                      title="Katmanı Alta Taşı"
+                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors cursor-pointer"
+                      title={isVisible ? t.hideLayer : t.showLayer}
                     >
-                      <ArrowDown className="w-3 h-3" />
+                      {isVisible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDeleteLayer(layer.id);
+                        onDuplicateLayer(layer.id);
                       }}
-                      className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                      title="Sil"
+                      className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors cursor-pointer"
+                      title={t.duplicateLayer}
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Copy className="w-3 h-3" />
                     </button>
+
+                    {/* Hover-only buttons: ArrowUp, ArrowDown, Trash */}
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMoveLayerUp(originalIdx);
+                        }}
+                        disabled={originalIdx === totalLayersCount - 1}
+                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                        title="Katmanı Üste Taşı"
+                      >
+                        <ArrowUp className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMoveLayerDown(originalIdx);
+                        }}
+                        disabled={originalIdx === 0}
+                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                        title="Katmanı Alta Taşı"
+                      >
+                        <ArrowDown className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteLayer(layer.id);
+                        }}
+                        className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                        title="Sil"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -234,16 +305,125 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
 
             {/* Content based fields (Text and Image) */}
             {selectedLayer.type === 'text' && (
-              <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  {t.textValue}
-                </label>
-                <input
-                  type="text"
-                  value={selectedLayer.content || ''}
-                  onChange={(e) => onUpdateLayer(selectedLayer.id, { content: e.target.value })}
-                  className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-250 font-bold"
-                />
+              <div className="flex flex-col gap-3">
+                {/* Text Content - Textarea for multi-line */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    {t.textValue}
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={selectedLayer.content || ''}
+                    onChange={(e) => onUpdateLayer(selectedLayer.id, { content: e.target.value })}
+                    className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-250 font-bold resize-none"
+                  />
+                </div>
+
+                {/* Font Family & Font Size */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                      {t.fontFamily}
+                    </label>
+                    <select
+                      value={selectedLayer.style.fontFamily || 'sans-serif'}
+                      onChange={(e) => onUpdateLayer(selectedLayer.id, {
+                        style: { ...selectedLayer.style, fontFamily: e.target.value }
+                      })}
+                      className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                    >
+                      {FONT_FAMILIES.map((f) => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                      {t.fontSize}
+                    </label>
+                    <input
+                      type="number"
+                      min={6}
+                      value={selectedLayer.style.fontSize ?? Math.round(selectedLayer.height * 0.7)}
+                      onChange={(e) => onUpdateLayer(selectedLayer.id, {
+                        style: { ...selectedLayer.style, fontSize: Math.max(6, Number(e.target.value)) }
+                      })}
+                      className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Font Weight */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    {t.fontWeight}
+                  </label>
+                  <div className="flex items-center gap-1">
+                    {FONT_WEIGHTS.map((fw) => (
+                      <button
+                        key={fw.value}
+                        onClick={() => onUpdateLayer(selectedLayer.id, {
+                          style: { ...selectedLayer.style, fontWeight: fw.value }
+                        })}
+                        className={`flex-1 px-2 py-1.5 text-[10px] font-semibold rounded-lg border transition-colors cursor-pointer ${
+                          (selectedLayer.style.fontWeight || '400') === fw.value
+                            ? 'bg-indigo-500/20 text-indigo-500 border-indigo-500/30'
+                            : 'text-slate-400 hover:text-slate-600 border-slate-200 dark:border-slate-800'
+                        }`}
+                      >
+                        {fw.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Text Align */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    {t.textAlign}
+                  </label>
+                  <div className="flex items-center gap-1">
+                    {([
+                      { value: 'left' as const, Icon: AlignLeft },
+                      { value: 'center' as const, Icon: AlignCenter },
+                      { value: 'right' as const, Icon: AlignRight },
+                    ]).map(({ value, Icon }) => (
+                      <button
+                        key={value}
+                        onClick={() => onUpdateLayer(selectedLayer.id, {
+                          style: { ...selectedLayer.style, textAlign: value }
+                        })}
+                        className={`flex-1 flex items-center justify-center px-2 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                          (selectedLayer.style.textAlign || 'left') === value
+                            ? 'bg-indigo-500/20 text-indigo-500 border-indigo-500/30'
+                            : 'text-slate-400 hover:text-slate-600 border-slate-200 dark:border-slate-800'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Letter Spacing */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    <span>{t.letterSpacing}</span>
+                    <span>{selectedLayer.style.letterSpacing ?? 0}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="10"
+                    step="0.5"
+                    value={selectedLayer.style.letterSpacing ?? 0}
+                    onChange={(e) => onUpdateLayer(selectedLayer.id, {
+                      style: { ...selectedLayer.style, letterSpacing: Number(e.target.value) }
+                    })}
+                    className="w-full accent-indigo-650 cursor-pointer mt-1"
+                  />
+                </div>
               </div>
             )}
 
@@ -262,6 +442,64 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
                     accept="image/*"
                     onChange={(e) => onImageUpload(e, selectedLayer.id)}
                     className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Polygon Properties */}
+            {selectedLayer.type === 'polygon' && (
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  {t.polygonSides}
+                </label>
+                <input
+                  type="number"
+                  min={3}
+                  max={12}
+                  value={selectedLayer.style.sides ?? 6}
+                  onChange={(e) => onUpdateLayer(selectedLayer.id, {
+                    style: { ...selectedLayer.style, sides: Math.min(12, Math.max(3, Number(e.target.value))) }
+                  })}
+                  className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            )}
+
+            {/* Star Properties */}
+            {selectedLayer.type === 'star' && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    {t.starPoints}
+                  </label>
+                  <input
+                    type="number"
+                    min={3}
+                    max={12}
+                    value={selectedLayer.style.points ?? 5}
+                    onChange={(e) => onUpdateLayer(selectedLayer.id, {
+                      style: { ...selectedLayer.style, points: Math.min(12, Math.max(3, Number(e.target.value))) }
+                    })}
+                    className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    <span>{t.starInnerRadius}</span>
+                    <span>{selectedLayer.style.innerRadius ?? 0.4}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="0.9"
+                    step="0.05"
+                    value={selectedLayer.style.innerRadius ?? 0.4}
+                    onChange={(e) => onUpdateLayer(selectedLayer.id, {
+                      style: { ...selectedLayer.style, innerRadius: Number(e.target.value) }
+                    })}
+                    className="w-full accent-indigo-650 cursor-pointer mt-1"
                   />
                 </div>
               </div>

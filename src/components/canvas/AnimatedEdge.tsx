@@ -119,7 +119,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const pathRef = useRef<SVGPathElement>(null);
 
   // Use our custom hook to abstract animation calculation
-  const { particlePos, isAnimating, isSelected, isAsync, seqsForEdge, activeStepNumber } = useEdgeAnimation(id, pathRef);
+  const { particlePos, particlePositions, isAnimating, isSelected, isAsync, seqsForEdge, activeStepNumber } = useEdgeAnimation(id, pathRef);
 
   // Build step labels string, e.g. "1- [HTTP]" or "1, 2- [gRPC]"
   const stepNums = seqsForEdge
@@ -191,19 +191,34 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
         }}
       />
       
-      {/* Playback particle */}
-      {particlePos && (
-        <g
-          transform={`translate(${particlePos.x}, ${particlePos.y}) rotate(${particlePos.rotation})`}
-          style={{ pointerEvents: 'none' }}
-        >
-          <AnimationParticle
-            type={particleType}
-            rotation={particlePos.rotation}
-            stepNumber={activeStepNumber}
-          />
-        </g>
-      )}
+      {/* Playback particles — repeat mode renders multiple, normal/roundTrip render single */}
+      {particlePositions && particlePositions.length > 0
+        ? particlePositions.map((pos, idx) => (
+            <g
+              key={`particle-${idx}`}
+              transform={`translate(${pos.x}, ${pos.y}) rotate(${pos.rotation})`}
+              style={{ pointerEvents: 'none' }}
+            >
+              <AnimationParticle
+                type={particleType}
+                rotation={pos.rotation}
+                stepNumber={activeStepNumber}
+              />
+            </g>
+          ))
+        : particlePos && (
+            <g
+              transform={`translate(${particlePos.x}, ${particlePos.y}) rotate(${particlePos.rotation})`}
+              style={{ pointerEvents: 'none' }}
+            >
+              <AnimationParticle
+                type={particleType}
+                rotation={particlePos.rotation}
+                stepNumber={activeStepNumber}
+              />
+            </g>
+          )
+      }
 
       {/* Dynamic Step Order Labels overlay */}
       {stepLabel && (

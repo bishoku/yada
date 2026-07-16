@@ -10,18 +10,22 @@ interface EdgePropertiesFormProps {
   language: string;
   maxSteps: number;
   sequenceRoundTrip: boolean;
+  sequenceAnimationMode?: 'normal' | 'roundTrip' | 'repeat';
+  sequenceRepeatParticleCount?: number;
   onSubmit: (
     id: string, protocol: string, isAsync: boolean, duration: number, delay: number,
     tooltipText: string, tooltipDuration: number, description: string,
     particleType: ParticleType | undefined, showArrow: boolean, color: string,
-    stepNumber: number, direction: 'forward' | 'reverse', isRoundTrip: boolean
+    stepNumber: number, direction: 'forward' | 'reverse', isRoundTrip: boolean,
+    animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number
   ) => void;
   /** Called immediately on every field change for live canvas preview */
   onPreview: (
     id: string, protocol: string, isAsync: boolean, duration: number, delay: number,
     tooltipText: string, tooltipDuration: number, description: string,
     particleType: ParticleType, showArrow: boolean, color: string,
-    stepNumber: number, direction: 'forward' | 'reverse', isRoundTrip: boolean
+    stepNumber: number, direction: 'forward' | 'reverse', isRoundTrip: boolean,
+    animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number
   ) => void;
 }
 
@@ -71,6 +75,8 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
   language: lang,
   maxSteps,
   sequenceRoundTrip,
+  sequenceAnimationMode,
+  sequenceRepeatParticleCount,
   onSubmit,
   onPreview,
 }, ref) => {
@@ -82,6 +88,10 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
   const [tooltipText, setTooltipText] = useState(activeEdge.tooltipText);
   const [tooltipDuration, setTooltipDuration] = useState(activeEdge.tooltipDuration);
   const [formRoundTrip, setFormRoundTrip] = useState(sequenceRoundTrip);
+  const [formAnimationMode, setFormAnimationMode] = useState<'normal' | 'roundTrip' | 'repeat'>(
+    sequenceAnimationMode ?? (sequenceRoundTrip ? 'roundTrip' : 'normal')
+  );
+  const [formRepeatCount, setFormRepeatCount] = useState(sequenceRepeatParticleCount ?? 3);
   const [description, setDescription] = useState(activeEdge.description ?? '');
   const [particleType, setParticleType] = useState<ParticleType>(resolveParticleType(activeEdge.particleType));
   const [showArrow, setShowArrow] = useState(activeEdge.showArrow ?? false);
@@ -96,6 +106,8 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
     showArrow: activeEdge.showArrow ?? false,
     color: activeEdge.color ?? DEFAULT_COLOR,
     roundTrip: sequenceRoundTrip,
+    animationMode: (sequenceAnimationMode ?? (sequenceRoundTrip ? 'roundTrip' : 'normal')) as 'normal' | 'roundTrip' | 'repeat',
+    repeatParticleCount: sequenceRepeatParticleCount ?? 3,
   });
 
   useEffect(() => {
@@ -108,20 +120,24 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       showArrow: activeEdge.showArrow ?? false,
       color: activeEdge.color ?? DEFAULT_COLOR,
       roundTrip: sequenceRoundTrip,
+      animationMode: (sequenceAnimationMode ?? (sequenceRoundTrip ? 'roundTrip' : 'normal')) as 'normal' | 'roundTrip' | 'repeat',
+      repeatParticleCount: sequenceRepeatParticleCount ?? 3,
     };
     setProtocol(snap.protocol); setIsAsync(snap.isAsync); setStepNumber(snap.stepNumber);
     setDuration(snap.duration); setDelay(snap.delay); setTooltipText(snap.tooltipText);
     setTooltipDuration(snap.tooltipDuration); setDescription(snap.description);
     setParticleType(snap.particleType); setShowArrow(snap.showArrow); setColor(snap.color);
     setFormRoundTrip(snap.roundTrip);
+    setFormAnimationMode(snap.animationMode);
+    setFormRepeatCount(snap.repeatParticleCount);
     setOrig(snap);
-  }, [activeEdge, sequenceRoundTrip]);
+  }, [activeEdge, sequenceRoundTrip, sequenceAnimationMode, sequenceRepeatParticleCount]);
 
   // Convenience: preview current values
   const preview = (o?: Partial<{
     p: string; ia: boolean; s: number; d: number; dl: number;
     tt: string; td: number; desc: string; pt: ParticleType; arr: boolean; clr: string;
-    rt: boolean;
+    rt: boolean; am: 'normal' | 'roundTrip' | 'repeat'; rpc: number;
   }>) =>
     onPreview(
       activeEdge.id,
@@ -130,22 +146,25 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       o?.tt ?? tooltipText, o?.td ?? tooltipDuration,
       o?.desc ?? description, o?.pt ?? particleType, o?.arr ?? showArrow, o?.clr ?? color,
       o?.s ?? stepNumber, 'forward', o?.rt ?? formRoundTrip,
+      o?.am ?? formAnimationMode, o?.rpc ?? formRepeatCount,
     );
 
   useImperativeHandle(ref, () => ({
-    submit: () => onSubmit(activeEdge.id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description, particleType, showArrow, color, stepNumber, 'forward', formRoundTrip),
+    submit: () => onSubmit(activeEdge.id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description, particleType, showArrow, color, stepNumber, 'forward', formRoundTrip, formAnimationMode, formRepeatCount),
     cancel: () => {
       setProtocol(orig.protocol); setIsAsync(orig.isAsync); setStepNumber(orig.stepNumber);
       setDuration(orig.duration); setDelay(orig.delay); setTooltipText(orig.tooltipText);
       setTooltipDuration(orig.tooltipDuration); setDescription(orig.description);
       setParticleType(orig.particleType); setShowArrow(orig.showArrow); setColor(orig.color);
       setFormRoundTrip(orig.roundTrip);
+      setFormAnimationMode(orig.animationMode);
+      setFormRepeatCount(orig.repeatParticleCount);
       onPreview(activeEdge.id, orig.protocol, orig.isAsync, orig.duration, orig.delay,
         orig.tooltipText, orig.tooltipDuration, orig.description, orig.particleType, orig.showArrow, orig.color,
-        orig.stepNumber, 'forward', orig.roundTrip);
+        orig.stepNumber, 'forward', orig.roundTrip, orig.animationMode, orig.repeatParticleCount);
     },
   }), [activeEdge.id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration,
-       description, particleType, showArrow, color, stepNumber, formRoundTrip, orig, onSubmit, onPreview]);
+       description, particleType, showArrow, color, stepNumber, formRoundTrip, formAnimationMode, formRepeatCount, orig, onSubmit, onPreview]);
 
   const tr = (t: string, e: string) => lang === 'tr' ? t : e;
 
@@ -255,21 +274,60 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
         </div>
       </div>
 
-      {/* Simulation mode */}
-      <Divider label={tr('Simülasyon', 'Simulation')} />
+      {/* Animation Mode — radio group */}
+      <Divider label={tr('Simülasyon Modu', 'Animation Mode')} />
 
-      {/* Round-trip only */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-1.5">
+        {/* Normal */}
         <label className="flex items-center gap-1.5 cursor-pointer">
           <input
-            type="checkbox" checked={formRoundTrip}
-            onChange={(e) => { setFormRoundTrip(e.target.checked); preview({ rt: e.target.checked }); }}
-            className="accent-indigo-600 rounded cursor-pointer w-3.5 h-3.5"
+            type="radio" name="animMode" value="normal"
+            checked={formAnimationMode === 'normal'}
+            onChange={() => { setFormAnimationMode('normal'); setFormRoundTrip(false); preview({ rt: false, am: 'normal' }); }}
+            className="accent-indigo-600 w-3.5 h-3.5 cursor-pointer"
+          />
+          <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">
+            {tr('Normal', 'Normal')}
+          </span>
+        </label>
+
+        {/* Round-Trip */}
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="radio" name="animMode" value="roundTrip"
+            checked={formAnimationMode === 'roundTrip'}
+            onChange={() => { setFormAnimationMode('roundTrip'); setFormRoundTrip(true); preview({ rt: true, am: 'roundTrip' }); }}
+            className="accent-indigo-600 w-3.5 h-3.5 cursor-pointer"
           />
           <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">
             {tr('Gidiş-Dönüş', 'Round-Trip')}
           </span>
         </label>
+
+        {/* Repeat */}
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="radio" name="animMode" value="repeat"
+            checked={formAnimationMode === 'repeat'}
+            onChange={() => { setFormAnimationMode('repeat'); setFormRoundTrip(false); preview({ rt: false, am: 'repeat', rpc: formRepeatCount }); }}
+            className="accent-indigo-600 w-3.5 h-3.5 cursor-pointer"
+          />
+          <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">
+            {tr('Sürekli Tekrar', 'Repeat')}
+          </span>
+        </label>
+
+        {/* Particle Count — only visible when repeat is selected */}
+        {formAnimationMode === 'repeat' && (
+          <div className="ml-5 flex items-center gap-2 mt-0.5">
+            <Label>{tr('Parçacık Sayısı', 'Particle Count')}</Label>
+            <CompactInput
+              type="number" min={1} max={10} style={{ width: 56 }}
+              value={formRepeatCount}
+              onChange={(e) => { const v = Math.max(1, Math.min(10, Number(e.target.value))); setFormRepeatCount(v); preview({ rpc: v }); }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Particle type — picker with preview */}

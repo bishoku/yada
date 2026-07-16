@@ -27,6 +27,7 @@ export const RightSidebarShell: React.FC = () => {
   const setSelectedSequenceId = useAppStore((s) => s.setSelectedSequenceId);
   const setSequenceStepOrder = useAppStore((s) => s.setSequenceStepOrder);
   const setSequenceStepRoundTrip = useAppStore((s) => s.setSequenceStepRoundTrip);
+  const setSequenceStepAnimationMode = useAppStore((s) => s.setSequenceStepAnimationMode);
   const logicalData = useAppStore((s) => s.logicalData);
 
   const hasSelection = !!(activeNode || activeEdge);
@@ -52,6 +53,7 @@ export const RightSidebarShell: React.FC = () => {
     tooltipText: string, tooltipDuration: number, description: string,
     particleType: ParticleType | undefined, showArrow: boolean, color: string,
     stepNumber: number, _direction: 'forward' | 'reverse', isRoundTrip: boolean,
+    animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number,
   ) => {
     // Update logical fields (protocol, isAsync, description) and visual fields (particleType, etc.)
     updateEdgeDetails(id, protocol, isAsync, description, duration, delay, tooltipText, tooltipDuration, particleType, showArrow, color);
@@ -60,12 +62,16 @@ export const RightSidebarShell: React.FC = () => {
     if (seq) {
       if (seq.stepNumber !== stepNumber) setSequenceStepOrder(seq.id, stepNumber);
       // direction removed from SequenceStep — use swapEdgeDirection action instead
-      setSequenceStepRoundTrip(seq.id, isRoundTrip);
+      if (animationMode) {
+        setSequenceStepAnimationMode(seq.id, animationMode, repeatParticleCount);
+      } else {
+        setSequenceStepRoundTrip(seq.id, isRoundTrip);
+      }
     }
 
     // Clear isNew so that closing doesn't delete the edge
     clearActiveProperties();
-  }, [updateEdgeDetails, logicalData.sequences, setSequenceStepOrder, setSequenceStepRoundTrip, clearActiveProperties]);
+  }, [updateEdgeDetails, logicalData.sequences, setSequenceStepOrder, setSequenceStepRoundTrip, setSequenceStepAnimationMode, clearActiveProperties]);
 
   const handleSwapEdgeDirection = useCallback((edgeId: string) => {
     swapEdgeDirection(edgeId);
