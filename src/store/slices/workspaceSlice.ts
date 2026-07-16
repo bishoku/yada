@@ -29,6 +29,7 @@ export interface WorkspaceSlice {
   leftSidebarOpen: boolean;
   rightSidebarOpen: boolean;
   isSaving: boolean;
+  isReadOnly: boolean;
 
   setWorkspace: (ws: WorkspaceMeta | null) => void;
   setDiagram: (diagram: any | null) => void;
@@ -47,6 +48,9 @@ export interface WorkspaceSlice {
   openRightSidebar: () => void;
   viewMode: 'freeform' | 'sequence';
   toggleViewMode: () => void;
+  setReadOnly: (isReadOnly: boolean) => void;
+  loadSharedDiagram: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram) => void;
+  cloneSharedToWorkspace: (name: string) => Promise<import('../../types').WorkspaceMeta>;
   manualSave: () => Promise<void>;
   deleteWorkspace: (path: string) => Promise<void>;
 }
@@ -62,6 +66,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   leftSidebarOpen: true,
   rightSidebarOpen: true,
   isSaving: false,
+  isReadOnly: false,
 
   setWorkspace: (ws) => set({ currentWorkspace: ws }),
   setDiagram: (diagram) => set({ currentDiagram: diagram }),
@@ -248,6 +253,67 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   openRightSidebar: () => set({ rightSidebarOpen: true }),
   viewMode: 'freeform' as const,
   toggleViewMode: () => set((state) => ({ viewMode: state.viewMode === 'freeform' ? 'sequence' as const : 'freeform' as const })),
+
+  setReadOnly: (isReadOnly: boolean) => set({ isReadOnly }),
+
+  loadSharedDiagram: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram) => {
+    // Shared diagrams are loaded without a workspace context, in read-only mode
+    set({
+      currentWorkspace: {
+        id: 'shared-diagram',
+        name: 'Shared Diagram',
+        path: 'memory://shared',
+        description: 'A read-only shared diagram',
+        createdAt: new Date().toISOString(),
+        lastAccessed: new Date().toISOString()
+      },
+      logicalData,
+      visualData,
+      isReadOnly: true,
+      isDirty: false,
+      leftSidebarOpen: false, // hide toolbox
+      rightSidebarOpen: false, // hide properties by default
+      activeNodeProperties: null,
+      activeEdgeProperties: null,
+      pastStates: [],
+      futureStates: []
+    });
+  },
+
+  cloneSharedToWorkspace: async (name: string) => {
+    try {
+      const state = get();
+      
+      // 1. Create a new workspace metadata record
+      const resJson = await StorageService.create_workspace(name, state.currentWorkspace?.description || '');
+      const ws: WorkspaceMeta = JSON.parse(resJson);
+      
+      // 2. Save the current diagram under the new workspace path
+      const logicalJson = JSON.stringify(state.logicalData);
+      const visualJson = JSON.stringify(state.visualData);
+      await StorageService.save_diagram(ws.path, logicalJson, visualJson);
+      
+      // 3. Set the new workspace as active and disable read-only mode
+      set({
+        currentWorkspace: ws,
+        isReadOnly: false,
+        isDirty: false,
+        leftSidebarOpen: true,
+        rightSidebarOpen: true,
+        pastStates: [],
+        futureStates: []
+      });
+      
+      // 4. Refresh workspace list and library
+      await get().fetchRecentWorkspaces();
+      await get().loadLibrary();
+      
+      return ws;
+    } catch (err) {
+      console.error('Error cloning shared diagram:', err);
+      throw err;
+    }
+  },
 
   manualSave: async () => {
     const state = get();

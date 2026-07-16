@@ -329,6 +329,10 @@ export interface AppState {
 
   // View Mode
   toggleViewMode: () => void;
+  isReadOnly: boolean;
+  setReadOnly: (isReadOnly: boolean) => void;
+  loadSharedDiagram: (logicalData: LogicalDiagram, visualData: VisualDiagram) => void;
+  cloneSharedToWorkspace: (name: string) => Promise<WorkspaceMeta>;
 
   // Layout Actions
   toggleLeftSidebar: () => void;

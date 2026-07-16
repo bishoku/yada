@@ -21,6 +21,8 @@ import { SettingsModal } from './topbar/SettingsModal';
 import { GifExportModal } from './topbar/GifExportModal';
 import { AiCopyModal } from './topbar/AiCopyModal';
 import { CanvasBgSelector } from './topbar/CanvasBgSelector';
+import { ShareModal } from './topbar/ShareModal';
+import { Share2 } from 'lucide-react';
 
 export const TopBar: React.FC = () => {
   const currentWorkspace = useAppStore((s) => s.currentWorkspace);
@@ -47,6 +49,7 @@ export const TopBar: React.FC = () => {
   const toggleTimeline = useAppStore((s) => s.toggleTimeline);
   const viewMode = useAppStore((s) => s.viewMode);
   const toggleViewMode = useAppStore((s) => s.toggleViewMode);
+  const isReadOnly = useAppStore((s) => s.isReadOnly);
 
   // Google Sync State
   const googleUser = useAppStore((s) => s.googleUser);
@@ -59,6 +62,7 @@ export const TopBar: React.FC = () => {
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportProgress, setExportProgress] = useState<number | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // GIF Config State
   const [showGifConfig, setShowGifConfig] = useState(false);
@@ -337,7 +341,7 @@ export const TopBar: React.FC = () => {
         </div>
 
         {/* Freeform-only controls */}
-        {currentView === 'diagram' && (
+        {currentView === 'diagram' && !isReadOnly && (
           <>
             <CanvasBgSelector />
 
@@ -398,12 +402,14 @@ export const TopBar: React.FC = () => {
               <Copy className="w-3.5 h-3.5" />
             </button>
 
-            {/* Export */}
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
+
+            {/* Export & Share */}
             <div className="relative">
               <button
                 onClick={() => setShowExportMenu(!showExportMenu)}
                 className="flex items-center gap-1 px-2 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs cursor-pointer font-semibold transition-all"
-                title={language === 'tr' ? 'Dışa Aktar' : 'Export'}
+                title={language === 'tr' ? 'Dışa Aktar / Paylaş' : 'Export / Share'}
               >
                 <FileDown className="w-3.5 h-3.5" />
                 <span className="hidden lg:inline">{language === 'tr' ? 'Dışa Aktar' : 'Export'}</span>
@@ -432,6 +438,19 @@ export const TopBar: React.FC = () => {
                   >
                     {language === 'tr' ? 'Etkileşimli Oynatıcı (HTML)' : 'Interactive Player (HTML)'}
                   </button>
+
+                  {!isReadOnly && (
+                    <>
+                      <div className="h-px bg-slate-200 dark:bg-slate-800 my-1" />
+                      <button
+                        onClick={() => { setShowShareModal(true); setShowExportMenu(false); }}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center gap-2"
+                      >
+                        <Share2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                        {language === 'tr' ? 'Diyagramı Paylaş (URL)' : 'Share Diagram (URL)'}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -547,6 +566,10 @@ export const TopBar: React.FC = () => {
         aiText={aiText}
         setAiText={setAiText}
       />
+
+      {showShareModal && (
+        <ShareModal onClose={() => setShowShareModal(false)} />
+      )}
     </header>
   );
 };
