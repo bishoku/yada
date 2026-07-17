@@ -73,9 +73,53 @@ export const tempoAdapter: DiagramAdapter = {
       }
     };
 
+    // Helper: extract service name from resource attributes
+    const extractServiceName = (resource: any): string => {
+      if (!resource?.attributes) return 'unknown-service';
+      const attrs = resource.attributes;
+      // Attributes can be an array of {key, value} or a plain object
+      if (Array.isArray(attrs)) {
+        const found = attrs.find((a: any) => a.key === 'service.name');
+        return found?.value?.stringValue ?? found?.value?.Value?.StringValue ?? 'unknown-service';
+      }
+      return attrs['service.name'] ?? 'unknown-service';
+    };
+
     if (data.batches) {
       for (const batch of data.batches) {
-        if (batch.resourceSpans) extractSpans(batch.resourceSpans);
+        if (batch.resourceSpans) {
+          // OTLP protobuf-JSON format: batches[].resourceSpans[]
+          extractSpans(batch.resourceSpans);
+        } else if (batch.resource !== undefined) {
+          // Grafana Tempo native export format:
+          // batches[].resource + batches[].instrumentationLibrarySpans[] or scopeSpans[]
+          const serviceName = extractServiceName(batch.resource);
+          const spanGroups = batch.instrumentationLibrarySpans ?? batch.scopeSpans ?? [];
+          for (const group of spanGroups) {
+            for (const span of (group.spans ?? [])) {
+              const attributes: Record<string, string> = {};
+              if (span.attributes) {
+                for (const attr of span.attributes) {
+                  if (attr.value?.stringValue !== undefined) attributes[attr.key] = attr.value.stringValue;
+                  else if (attr.value?.intValue !== undefined) attributes[attr.key] = attr.value.intValue;
+                  else if (attr.value?.Value?.StringValue !== undefined) attributes[attr.key] = attr.value.Value.StringValue;
+                  else if (attr.value?.Value?.IntValue !== undefined) attributes[attr.key] = attr.value.Value.IntValue;
+                  else if (attr.value?.boolValue !== undefined) attributes[attr.key] = String(attr.value.boolValue);
+                }
+              }
+              spans.push({
+                traceId: span.traceId ?? span.trace_id ?? '',
+                spanId: span.spanId ?? span.span_id ?? '',
+                parentSpanId: span.parentSpanId ?? span.parent_span_id,
+                serviceName,
+                name: span.name ?? '',
+                startTime: parseInt(span.startTimeUnixNano ?? span.start_time_unix_nano ?? '0', 10),
+                endTime: parseInt(span.endTimeUnixNano ?? span.end_time_unix_nano ?? '0', 10),
+                attributes,
+              });
+            }
+          }
+        }
       }
     } else if (data.resourceSpans) {
       extractSpans(data.resourceSpans);
@@ -83,8 +127,9 @@ export const tempoAdapter: DiagramAdapter = {
       // Sometimes just an array of resourceSpans
       extractSpans(data);
     } else {
-      throw new Error('Unsupported JSON structure. Expected OTLP format.');
+      throw new Error('Unsupported JSON structure. Expected OTLP or Grafana Tempo format.');
     }
+
 
     if (spans.length === 0) {
       throw new Error('No spans found in the provided file.');
