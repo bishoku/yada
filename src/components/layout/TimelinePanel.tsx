@@ -284,7 +284,7 @@ export const TimelinePanel: React.FC = () => {
               onMouseDown={(e) => e.stopPropagation()} // Prevent setting playhead when clicking left panel
             >
               {/* Header Spacer Row */}
-              <div className="h-6 shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center px-3 text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+              <div className="h-6 shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center px-3 text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest sticky top-0 z-30">
                 {t.flowSteps}
               </div>
 

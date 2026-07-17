@@ -10,7 +10,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ maxTime, pxPerMs }
   const tickInterval = getOptimalTickInterval(pxPerMs);
   const steps = Math.ceil(maxTime / tickInterval);
   return (
-    <div className="h-6 relative border-b border-slate-200 dark:border-slate-800 shrink-0 bg-slate-50 dark:bg-slate-900 flex items-center">
+    <div className="h-6 sticky top-0 z-30 border-b border-slate-200 dark:border-slate-800 shrink-0 bg-slate-50 dark:bg-slate-900 flex items-center">
       <div className="absolute inset-y-0 left-0 flex" style={{ width: maxTime * pxPerMs }}>
         {Array.from({ length: steps }).map((_, i) => {
           const ms = i * tickInterval;
