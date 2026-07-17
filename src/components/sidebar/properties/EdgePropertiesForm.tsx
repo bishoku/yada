@@ -2,6 +2,7 @@ import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'rea
 import { ActiveEdgeProperties } from '../../../types';
 import { ParticleType, resolveParticleType } from '../../../config/particles';
 import { ParticlePicker } from './ParticlePicker';
+import { KeyValueEditor } from './KeyValueEditor';
 
 export type EdgePropertiesFormRef = { submit: () => void; cancel: () => void };
 
@@ -17,7 +18,8 @@ interface EdgePropertiesFormProps {
     tooltipText: string, tooltipDuration: number, description: string,
     particleType: ParticleType | undefined, showArrow: boolean, color: string,
     stepNumber: number, direction: 'forward' | 'reverse', isRoundTrip: boolean,
-    animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number
+    animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number,
+    properties?: Record<string, unknown>
   ) => void;
   /** Called immediately on every field change for live canvas preview */
   onPreview: (
@@ -25,7 +27,8 @@ interface EdgePropertiesFormProps {
     tooltipText: string, tooltipDuration: number, description: string,
     particleType: ParticleType, showArrow: boolean, color: string,
     stepNumber: number, direction: 'forward' | 'reverse', isRoundTrip: boolean,
-    animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number
+    animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number,
+    properties?: Record<string, unknown>
   ) => void;
 }
 
@@ -96,7 +99,8 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
   const [particleType, setParticleType] = useState<ParticleType>(resolveParticleType(activeEdge.particleType));
   const [showArrow, setShowArrow] = useState(activeEdge.showArrow ?? false);
   const [color, setColor] = useState(activeEdge.color ?? DEFAULT_COLOR);
-
+  const [properties, setProperties] = useState<Record<string, unknown>>(activeEdge.properties ?? {});
+ 
   const [orig, setOrig] = useState({
     protocol: activeEdge.protocol, isAsync: activeEdge.isAsync,
     stepNumber: activeEdge.stepNumber, duration: activeEdge.duration,
@@ -108,8 +112,9 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
     roundTrip: sequenceRoundTrip,
     animationMode: (sequenceAnimationMode ?? (sequenceRoundTrip ? 'roundTrip' : 'normal')) as 'normal' | 'roundTrip' | 'repeat',
     repeatParticleCount: sequenceRepeatParticleCount ?? 3,
+    properties: activeEdge.properties ?? {},
   });
-
+ 
   useEffect(() => {
     const snap = {
       protocol: activeEdge.protocol, isAsync: activeEdge.isAsync,
@@ -122,6 +127,7 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       roundTrip: sequenceRoundTrip,
       animationMode: (sequenceAnimationMode ?? (sequenceRoundTrip ? 'roundTrip' : 'normal')) as 'normal' | 'roundTrip' | 'repeat',
       repeatParticleCount: sequenceRepeatParticleCount ?? 3,
+      properties: activeEdge.properties ?? {},
     };
     setProtocol(snap.protocol); setIsAsync(snap.isAsync); setStepNumber(snap.stepNumber);
     setDuration(snap.duration); setDelay(snap.delay); setTooltipText(snap.tooltipText);
@@ -130,14 +136,16 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
     setFormRoundTrip(snap.roundTrip);
     setFormAnimationMode(snap.animationMode);
     setFormRepeatCount(snap.repeatParticleCount);
+    setProperties(snap.properties);
     setOrig(snap);
   }, [activeEdge, sequenceRoundTrip, sequenceAnimationMode, sequenceRepeatParticleCount]);
-
+ 
   // Convenience: preview current values
   const preview = (o?: Partial<{
     p: string; ia: boolean; s: number; d: number; dl: number;
     tt: string; td: number; desc: string; pt: ParticleType; arr: boolean; clr: string;
     rt: boolean; am: 'normal' | 'roundTrip' | 'repeat'; rpc: number;
+    props: Record<string, unknown>;
   }>) =>
     onPreview(
       activeEdge.id,
@@ -147,10 +155,11 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       o?.desc ?? description, o?.pt ?? particleType, o?.arr ?? showArrow, o?.clr ?? color,
       o?.s ?? stepNumber, 'forward', o?.rt ?? formRoundTrip,
       o?.am ?? formAnimationMode, o?.rpc ?? formRepeatCount,
+      o?.props ?? properties,
     );
-
+ 
   useImperativeHandle(ref, () => ({
-    submit: () => onSubmit(activeEdge.id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description, particleType, showArrow, color, stepNumber, 'forward', formRoundTrip, formAnimationMode, formRepeatCount),
+    submit: () => onSubmit(activeEdge.id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description, particleType, showArrow, color, stepNumber, 'forward', formRoundTrip, formAnimationMode, formRepeatCount, properties),
     cancel: () => {
       setProtocol(orig.protocol); setIsAsync(orig.isAsync); setStepNumber(orig.stepNumber);
       setDuration(orig.duration); setDelay(orig.delay); setTooltipText(orig.tooltipText);
@@ -159,12 +168,13 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       setFormRoundTrip(orig.roundTrip);
       setFormAnimationMode(orig.animationMode);
       setFormRepeatCount(orig.repeatParticleCount);
+      setProperties(orig.properties);
       onPreview(activeEdge.id, orig.protocol, orig.isAsync, orig.duration, orig.delay,
         orig.tooltipText, orig.tooltipDuration, orig.description, orig.particleType, orig.showArrow, orig.color,
-        orig.stepNumber, 'forward', orig.roundTrip, orig.animationMode, orig.repeatParticleCount);
+        orig.stepNumber, 'forward', orig.roundTrip, orig.animationMode, orig.repeatParticleCount, orig.properties);
     },
   }), [activeEdge.id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration,
-       description, particleType, showArrow, color, stepNumber, formRoundTrip, formAnimationMode, formRepeatCount, orig, onSubmit, onPreview]);
+       description, particleType, showArrow, color, stepNumber, formRoundTrip, formAnimationMode, formRepeatCount, properties, orig, onSubmit, onPreview]);
 
   const tr = (t: string, e: string) => lang === 'tr' ? t : e;
 
@@ -362,6 +372,13 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
         value={description}
         onChange={(e) => { setDescription(e.target.value); preview({ desc: e.target.value }); }}
         className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 resize-none"
+      />
+
+      {/* Key-Value Attributes Editor */}
+      <KeyValueEditor
+        properties={properties}
+        onChange={(next) => { setProperties(next); preview({ props: next }); }}
+        language={lang}
       />
 
     </div>

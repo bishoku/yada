@@ -7,6 +7,8 @@ interface ActiveFiltersBarProps {
   selectedAttributes: string[];
   onChange: (ast: FilterAST | null) => void;
   onRemoveAttribute: (key: string) => void;
+  simulationMultiplier: number;
+  onMultiplierChange: (val: number) => void;
 }
 
 const OPERATORS: { value: FilterOperator; label: string }[] = [
@@ -26,7 +28,9 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
   attributes,
   selectedAttributes,
   onChange,
-  onRemoveAttribute
+  onRemoveAttribute,
+  simulationMultiplier,
+  onMultiplierChange
 }) => {
   const [rules, setRules] = useState<FilterRule[]>([]);
   const [openPopover, setOpenPopover] = useState<string | null>(null);
@@ -91,10 +95,30 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
     return OPERATORS.filter(o => ['=', '!=', 'contains', 'not_contains', 'in', 'not_in'].includes(o.value));
   };
 
+  const renderSlider = () => (
+    <div className="ml-auto flex items-center gap-3 pr-2 border-l border-slate-200 dark:border-slate-700 pl-4">
+      <div className="flex flex-col">
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Sim Speed</label>
+        <div className="flex items-center gap-2">
+          <input 
+            type="range" 
+            min="1" 
+            max="100" 
+            value={simulationMultiplier} 
+            onChange={(e) => onMultiplierChange(Number(e.target.value))}
+            className="w-24 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+          />
+          <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 w-8">x{simulationMultiplier}</span>
+        </div>
+      </div>
+    </div>
+  );
+
   if (selectedAttributes.length === 0) {
     return (
       <div className="w-full h-12 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center px-4">
         <span className="text-sm text-slate-400">Select attributes from the sidebar to start filtering.</span>
+        {renderSlider()}
       </div>
     );
   }
@@ -221,11 +245,13 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
       {rules.some(r => r.value !== '' && (!Array.isArray(r.value) || r.value.length > 0)) && (
          <button
            onClick={() => setRules(prev => prev.map(r => ({ ...r, value: '' })))}
-           className="ml-auto text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+           className="text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
          >
            Clear Values
          </button>
       )}
+
+      {renderSlider()}
     </div>
   );
 };

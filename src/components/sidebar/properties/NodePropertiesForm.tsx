@@ -4,6 +4,7 @@ import { resolveHandles } from '../../../utils/portUtils';
 import { ConnectionPointsEditor } from './ConnectionPointsEditor';
 import { ActiveNodeProperties } from '../../../types';
 import { useAppStore } from '../../../store/useAppStore';
+import { KeyValueEditor } from './KeyValueEditor';
 
 export type NodePropertiesFormRef = { submit: () => void; cancel: () => void };
 
@@ -14,12 +15,14 @@ interface NodePropertiesFormProps {
   onSubmit: (
     id: string, name: string, type: string, theme: string,
     handles?: HandleConfig[], displayMode?: 'default' | 'icon-only',
-    rotation?: number, customStyles?: any
+    rotation?: number, customStyles?: any,
+    properties?: Record<string, unknown>
   ) => void;
   /** Called immediately on every non-handle field change for live canvas preview */
   onPreview: (
     id: string, name: string, type: string, theme: string,
-    displayMode: 'default' | 'icon-only', rotation: number, customStyles: any
+    displayMode: 'default' | 'icon-only', rotation: number, customStyles: any,
+    properties: Record<string, unknown>
   ) => void;
   onValidationError?: (hasError: boolean) => void;
 }
@@ -81,6 +84,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
   const [displayMode, setDisplayMode] = useState<'default' | 'icon-only'>(activeNode.displayMode ?? 'default');
   const [rotation, setRotation] = useState(activeNode.rotation ?? 0);
   const [customStyles, setCustomStyles] = useState<any>(activeNode.customStyles ?? {});
+  const [properties, setProperties] = useState<Record<string, unknown>>(activeNode.properties ?? {});
 
   const nodes = useAppStore((s) => s.logicalData.nodes);
   const nameExists = useMemo(() => {
@@ -99,6 +103,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
   const [origDisplayMode, setOrigDisplayMode] = useState<'default' | 'icon-only'>(activeNode.displayMode ?? 'default');
   const [origRotation, setOrigRotation] = useState(activeNode.rotation ?? 0);
   const [origCustomStyles, setOrigCustomStyles] = useState<any>(activeNode.customStyles ?? {});
+  const [origProperties, setOrigProperties] = useState<Record<string, unknown>>(activeNode.properties ?? {});
 
   // Sync when active node changes (new selection)
   useEffect(() => {
@@ -110,10 +115,11 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
     setDisplayMode(activeNode.displayMode ?? 'default'); setOrigDisplayMode(activeNode.displayMode ?? 'default');
     setRotation(activeNode.rotation ?? 0); setOrigRotation(activeNode.rotation ?? 0);
     setCustomStyles(activeNode.customStyles ?? {}); setOrigCustomStyles(activeNode.customStyles ?? {});
+    setProperties(activeNode.properties ?? {}); setOrigProperties(activeNode.properties ?? {});
   }, [activeNode]);
 
   // Convenience: preview the current field values (except handles)
-  const preview = (overrides?: Partial<{ n: string; t: string; th: string; dm: 'default' | 'icon-only'; r: number; cs: any }>) => {
+  const preview = (overrides?: Partial<{ n: string; t: string; th: string; dm: 'default' | 'icon-only'; r: number; cs: any; props: Record<string, unknown> }>) => {
     const nextName = overrides?.n ?? name;
     // Check if nextName already exists in another node
     const isDup = nodes.some(n => n.id !== activeNode.id && n.name.trim().toLowerCase() === nextName.trim().toLowerCase());
@@ -128,23 +134,25 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
       overrides?.dm ?? displayMode,
       overrides?.r ?? rotation,
       overrides?.cs ?? customStyles,
+      overrides?.props ?? properties,
     );
   };
 
   useImperativeHandle(ref, () => ({
     submit: () => {
       if (nameExists) return;
-      onSubmit(activeNode.id, name, type, theme, handles, displayMode, rotation, customStyles);
+      onSubmit(activeNode.id, name, type, theme, handles, displayMode, rotation, customStyles, properties);
     },
     cancel: () => {
       setName(origName); setType(origType); setTheme(origTheme);
       setHandles(origHandles); setDisplayMode(origDisplayMode);
       setRotation(origRotation); setCustomStyles(origCustomStyles);
+      setProperties(origProperties);
       // Revert preview to original values
-      onPreview(activeNode.id, origName, origType, origTheme, origDisplayMode, origRotation, origCustomStyles);
+      onPreview(activeNode.id, origName, origType, origTheme, origDisplayMode, origRotation, origCustomStyles, origProperties);
     },
-  }), [activeNode.id, name, type, theme, handles, displayMode, rotation, customStyles,
-       origName, origType, origTheme, origHandles, origDisplayMode, origRotation, origCustomStyles,
+  }), [activeNode.id, name, type, theme, handles, displayMode, rotation, customStyles, properties,
+       origName, origType, origTheme, origHandles, origDisplayMode, origRotation, origCustomStyles, origProperties,
        onSubmit, onPreview, nameExists]);
 
   const isSection = activeNode.type === 'section';
@@ -296,6 +304,13 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
           </div>
         </>
       )}
+
+      {/* Key-Value Attributes Editor */}
+      <KeyValueEditor
+        properties={properties}
+        onChange={(next) => { setProperties(next); preview({ props: next }); }}
+        language={lang}
+      />
 
       {/* Connection points editor */}
       <Divider />

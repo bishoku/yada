@@ -34,6 +34,30 @@ export const tempoAdapter: DiagramAdapter = {
     }
 
     const spans: NormalizedSpan[] = [];
+
+    const resolveSyntheticServiceName = (span: any, defaultService: string, attributes: Record<string, string>): string => {
+      if (attributes['peer.service']) return attributes['peer.service'];
+      
+      if (attributes['db.system']) {
+        return attributes['db.name'] ? `${attributes['db.system']}:${attributes['db.name']}` : attributes['db.system'];
+      }
+      
+      if (attributes['messaging.system']) {
+        return attributes['messaging.destination'] ? `${attributes['messaging.system']}:${attributes['messaging.destination']}` : attributes['messaging.system'];
+      }
+      
+      if (span.kind === 3 || span.kind === 'SPAN_KIND_CLIENT') {
+        if (attributes['http.url']) {
+          try {
+            const url = new URL(attributes['http.url']);
+            return url.hostname;
+          } catch(e) {}
+        }
+      }
+
+      return defaultService;
+    };
+
     // Helper to traverse and extract OTLP
     const extractSpans = (resourceSpans: any[]) => {
       for (const rs of resourceSpans) {
@@ -64,11 +88,13 @@ export const tempoAdapter: DiagramAdapter = {
                   }
                 }
 
+                const syntheticServiceName = resolveSyntheticServiceName(span, serviceName, attributes);
+
                 spans.push({
                   traceId: span.traceId,
                   spanId: span.spanId,
                   parentSpanId: span.parentSpanId,
-                  serviceName,
+                  serviceName: syntheticServiceName,
                   name: span.name,
                   startTime: parseInt(span.startTimeUnixNano || '0', 10),
                   endTime: parseInt(span.endTimeUnixNano || '0', 10),
@@ -121,11 +147,13 @@ export const tempoAdapter: DiagramAdapter = {
                   else if (attr.value?.boolValue !== undefined) attributes[attr.key] = String(attr.value.boolValue);
                 }
               }
+              const syntheticServiceName = resolveSyntheticServiceName(span, serviceName, attributes);
+
               spans.push({
                 traceId: span.traceId ?? span.trace_id ?? '',
                 spanId: span.spanId ?? span.span_id ?? '',
                 parentSpanId: span.parentSpanId ?? span.parent_span_id,
-                serviceName,
+                serviceName: syntheticServiceName,
                 name: span.name ?? '',
                 startTime: parseInt(span.startTimeUnixNano ?? span.start_time_unix_nano ?? '0', 10),
                 endTime: parseInt(span.endTimeUnixNano ?? span.end_time_unix_nano ?? '0', 10),
@@ -310,39 +338,48 @@ export const tempoAdapter: DiagramAdapter = {
         edgeMap.set(edgeKey, edgeId);
 
         let protocol = 'TCP';
+        let isAsync = false;
+
         if (span.attributes['http.method']) protocol = 'HTTP';
         if (span.attributes['db.system']) protocol = 'SQL';
         if (span.attributes['rpc.system']) protocol = 'gRPC';
+        if (span.attributes['messaging.system']) {
+          protocol = span.attributes['messaging.system'];
+          isAsync = true;
+        }
 
         edges.push({
           id: edgeId,
           sourceId,
           targetId,
-          isAsync: false, // Default sync
+          isAsync,
           protocol,
           description: span.name
         });
       }
 
       const sequenceId = `seq-${crypto.randomUUID()}`;
+      const isMessaging = !!span.attributes['messaging.system'];
+      
       sequences.push({
         id: sequenceId,
         stepNumber: stepCounter++,
         edgeId: edgeId,
-        isAsync: false,
-        isRoundTrip: true,
-        animationMode: 'roundTrip'
+        isAsync: isMessaging,
+        isRoundTrip: !isMessaging,
+        animationMode: isMessaging ? 'normal' : 'roundTrip'
       });
 
       // Calculate timing (convert nano to milli)
-      const durationMs = Math.max(100, Math.floor((span.endTime - span.startTime) / 1000000));
+      const multiplier = filters?.simulationMultiplier || 1;
+      const durationMs = Math.max(100, Math.floor((span.endTime - span.startTime) / 1000000)) * multiplier;
       // delay from parent start (just a rough estimate for visual playback)
-      const delayMs = Math.max(0, Math.floor((span.startTime - parentSpan.startTime) / 1000000));
+      const delayMs = Math.max(0, Math.floor((span.startTime - parentSpan.startTime) / 1000000)) * multiplier;
 
       timelines[sequenceId] = {
         sequenceId,
-        duration: Math.min(durationMs, 5000), // Cap to 5s for playback sanity
-        delay: Math.min(delayMs, 2000),
+        duration: Math.min(durationMs, 50000), // Cap increased for high multipliers
+        delay: Math.min(delayMs, 20000),
         internalProcess: {
           text: span.name,
           duration: 1000

@@ -145,6 +145,7 @@ export interface ActiveNodeProperties {
     borderRadius?: number;
   };
   isNew?: boolean;
+  properties?: Record<string, unknown>;
 }
 
 export interface ActiveEdgeProperties {
@@ -161,6 +162,7 @@ export interface ActiveEdgeProperties {
   showArrow?: boolean;
   color?: string;
   isNew?: boolean;
+  properties?: Record<string, unknown>;
 }
 
 // --- CUSTOM COMPONENT STUDIO DATA ---
@@ -323,7 +325,7 @@ export interface AppState {
   setSequenceStepAnimationMode: (seqId: string, mode: 'normal' | 'roundTrip' | 'repeat', particleCount?: number) => void;
   toggleSequenceAsync: (seqId: string) => void;
   clearCanvas: () => void;
-  updateNodeDetails: (id: string, name: string, type: string, theme?: string, handles?: HandleConfig[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any) => void;
+  updateNodeDetails: (id: string, name: string, type: string, theme?: string, handles?: HandleConfig[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any, properties?: Record<string, unknown>) => void;
   updateNodeHandles: (nodeId: string, handles: HandleConfig[]) => void;
   updateEdgeDetails: (
     edgeId: string,
@@ -338,7 +340,8 @@ export interface AppState {
     tooltipDuration?: number,
     particleType?: ParticleType,
     showArrow?: boolean,
-    color?: string
+    color?: string,
+    properties?: Record<string, unknown>
   ) => void;
 
   // Active Selection Actions

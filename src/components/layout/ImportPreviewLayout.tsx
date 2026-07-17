@@ -27,6 +27,7 @@ export const ImportPreviewLayout: React.FC = () => {
   const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]);
   const [nodeTypeMappings, setNodeTypeMappings] = useState<NodeTypeMappingRule[]>([]);
   const [activeTab, setActiveTab] = useState<'filters' | 'mapping'>('filters');
+  const [simulationMultiplier, setSimulationMultiplier] = useState<number>(1);
   
   const [loading, setLoading] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -98,7 +99,8 @@ export const ImportPreviewLayout: React.FC = () => {
       try {
         const result = await adapter.parse(importRawData, { 
           ast: filterAst || undefined,
-          nodeTypeMappings: nodeTypeMappings.length > 0 ? nodeTypeMappings : undefined
+          nodeTypeMappings: nodeTypeMappings.length > 0 ? nodeTypeMappings : undefined,
+          simulationMultiplier
         });
         loadImportPreview(result.logicalData, result.visualData);
       } catch (err) {
@@ -113,7 +115,7 @@ export const ImportPreviewLayout: React.FC = () => {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [filterAst, nodeTypeMappings, importRawData, importAdapterId]); // intentionally omitting loadImportPreview
+  }, [filterAst, nodeTypeMappings, simulationMultiplier, importRawData, importAdapterId]); // intentionally omitting loadImportPreview
 
   const handleCancel = () => {
     setViewMode('freeform');
@@ -213,6 +215,8 @@ export const ImportPreviewLayout: React.FC = () => {
             selectedAttributes={selectedAttributes}
             onChange={setFilterAst}
             onRemoveAttribute={(key) => setSelectedAttributes(prev => prev.filter(k => k !== key))}
+            simulationMultiplier={simulationMultiplier}
+            onMultiplierChange={setSimulationMultiplier}
           />
 
       {/* Main Area */}

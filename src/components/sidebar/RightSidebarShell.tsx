@@ -39,11 +39,12 @@ export const RightSidebarShell: React.FC = () => {
     id: string, name: string, type: string, theme: string,
     handles?: HandleConfig[], displayMode?: 'default' | 'icon-only',
     rotation?: number, customStyles?: any,
+    properties?: Record<string, unknown>,
   ) => {
     // skipHistory: true because PropertiesView already pushed the pre-preview
     // snapshot to history via pushStateToHistory before calling submit().
     window.dispatchEvent(new CustomEvent('canvas:applyNodeProperties', {
-      detail: { id, name, type, theme, handles, displayMode, rotation, customStyles, skipHistory: true }
+      detail: { id, name, type, theme, handles, displayMode, rotation, customStyles, properties, skipHistory: true }
     }));
     clearActiveProperties();
   }, [clearActiveProperties]);
@@ -54,9 +55,10 @@ export const RightSidebarShell: React.FC = () => {
     particleType: ParticleType | undefined, showArrow: boolean, color: string,
     stepNumber: number, _direction: 'forward' | 'reverse', isRoundTrip: boolean,
     animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number,
+    properties?: Record<string, unknown>,
   ) => {
-    // Update logical fields (protocol, isAsync, description) and visual fields (particleType, etc.)
-    updateEdgeDetails(id, protocol, isAsync, description, duration, delay, tooltipText, tooltipDuration, particleType, showArrow, color);
+    // Update logical fields (protocol, isAsync, description, properties) and visual fields (particleType, etc.)
+    updateEdgeDetails(id, protocol, isAsync, description, duration, delay, tooltipText, tooltipDuration, particleType, showArrow, color, properties);
 
     const seq = logicalData.sequences.find((s) => s.edgeId === id);
     if (seq) {

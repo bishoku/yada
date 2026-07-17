@@ -26,6 +26,7 @@ export interface ImportFilter {
   types?: string[]; // Legacy basic filter
   ast?: FilterAST;  // Advanced AST filter
   nodeTypeMappings?: NodeTypeMappingRule[];
+  simulationMultiplier?: number;
 }
 
 export interface AttributeMetadata {

@@ -22,7 +22,7 @@ export interface CanvasSlice {
   startDrag: (type: string, name: string) => void;
   cancelDrag: () => void;
   clearCanvas: () => void;
-  updateNodeDetails: (id: string, name: string, type: string, theme?: string, handles?: HandleConfig[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any) => void;
+  updateNodeDetails: (id: string, name: string, type: string, theme?: string, handles?: HandleConfig[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any, properties?: Record<string, unknown>) => void;
   updateNodeHandles: (nodeId: string, handles: HandleConfig[]) => void;
   updateEdgeDetails: (
     edgeId: string,
@@ -35,7 +35,8 @@ export interface CanvasSlice {
     tooltipDuration?: number,
     particleType?: ParticleType,
     showArrow?: boolean,
-    color?: string
+    color?: string,
+    properties?: Record<string, unknown>
   ) => void;
   setNodeParent: (nodeId: string, parentId: string | null) => void;
   autoResizeSection: (sectionId: string) => void;
@@ -329,11 +330,11 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     selectedSequenceId: null
   })),
 
-  updateNodeDetails: (id, name, type, theme, handles, displayMode, rotation, customStyles) => {
+  updateNodeDetails: (id, name, type, theme, handles, displayMode, rotation, customStyles, properties) => {
     set((state) => {
-      // Logical: only name and type (handles now live in visual layer)
+      // Logical: name, type, properties (handles now live in visual layer)
       const nodes = state.logicalData.nodes.map((n) => 
-        n.id === id ? { ...n, name, type } : n
+        n.id === id ? { ...n, name, type, properties: properties !== undefined ? properties : n.properties } : n
       );
       const existingVisual = state.visualData.layoutNodes[id] ?? { id, x: 0, y: 0 };
 
@@ -397,12 +398,13 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     tooltipDuration?: number,
     particleType?: ParticleType,
     showArrow?: boolean,
-    color?: string
+    color?: string,
+    properties?: Record<string, unknown>
   ) => {
     set((state) => {
-      // Update logical layer: protocol, isAsync, description only
+      // Update logical layer: protocol, isAsync, description, properties
       const edges = state.logicalData.edges.map((e) =>
-        e.id === id ? { ...e, protocol, isAsync, description } : e
+        e.id === id ? { ...e, protocol, isAsync, description, properties: properties !== undefined ? properties : e.properties } : e
       );
 
       // Sync isAsync to sequences

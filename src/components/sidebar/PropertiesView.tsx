@@ -12,13 +12,16 @@ interface PropertiesViewProps {
   onApplyNode: (
     id: string, name: string, type: string, theme: string,
     handles?: HandleConfig[], displayMode?: 'default' | 'icon-only',
-    rotation?: number, customStyles?: any
+    rotation?: number, customStyles?: any,
+    properties?: Record<string, unknown>
   ) => void;
   onApplyEdge: (
     id: string, protocol: string, isAsync: boolean, duration: number, delay: number,
     tooltipText: string, tooltipDuration: number, description: string,
     particleType: ParticleType | undefined, showArrow: boolean, color: string,
-    stepNumber: number, direction: 'forward' | 'reverse', isRoundTrip: boolean
+    stepNumber: number, direction: 'forward' | 'reverse', isRoundTrip: boolean,
+    animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number,
+    properties?: Record<string, unknown>
   ) => void;
   onCancelEdge: () => void;
   /** Swaps the source and target of the selected edge */
@@ -106,9 +109,10 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
   /** Node: called on every field change (handles excluded — only applied on submit) */
   const handlePreviewNode = useCallback((
     id: string, name: string, type: string, theme: string,
-    displayMode: 'default' | 'icon-only', rotation: number, customStyles: any
+    displayMode: 'default' | 'icon-only', rotation: number, customStyles: any,
+    properties: Record<string, unknown>
   ) => {
-    updateNodeDetails(id, name, type, theme, undefined, displayMode, rotation, customStyles);
+    updateNodeDetails(id, name, type, theme, undefined, displayMode, rotation, customStyles, properties);
     setIsDirty(true);
   }, [updateNodeDetails]);
 
@@ -118,10 +122,11 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
     tooltipText: string, tooltipDuration: number, description: string,
     particleType: ParticleType, showArrow: boolean, color: string,
     stepNumber: number, _direction: 'forward' | 'reverse', isRoundTrip: boolean,
-    animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number
+    animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number,
+    properties?: Record<string, unknown>
   ) => {
-    // Logical: protocol, isAsync, description — Visual: duration, delay, tooltip, particleType, etc.
-    updateEdgeDetails(id, protocol, isAsync, description, duration, delay, tooltipText, tooltipDuration, particleType, showArrow, color);
+    // Logical: protocol, isAsync, description, properties — Visual: duration, delay, tooltip, particleType, etc.
+    updateEdgeDetails(id, protocol, isAsync, description, duration, delay, tooltipText, tooltipDuration, particleType, showArrow, color, properties);
     const seq = useAppStore.getState().logicalData.sequences.find((s) => s.edgeId === id);
     if (seq) {
       if (seq.stepNumber !== stepNumber) setSequenceStepOrder(seq.id, stepNumber);
