@@ -46,10 +46,15 @@ export interface WorkspaceSlice {
   toggleLeftSidebar: () => void;
   toggleRightSidebar: () => void;
   openRightSidebar: () => void;
-  viewMode: 'freeform' | 'sequence';
+  viewMode: 'freeform' | 'sequence' | 'import-preview';
   toggleViewMode: () => void;
+  setViewMode: (mode: 'freeform' | 'sequence' | 'import-preview') => void;
+  rawTraceJson: string | null;
+  setRawTraceJson: (data: string | null) => void;
+
   setReadOnly: (isReadOnly: boolean) => void;
   loadSharedDiagram: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram) => void;
+  loadImportPreview: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram) => void;
   cloneSharedToWorkspace: (name: string) => Promise<import('../../types').WorkspaceMeta>;
   manualSave: () => Promise<void>;
   deleteWorkspace: (path: string) => Promise<void>;
@@ -252,7 +257,12 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   toggleRightSidebar: () => set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen })),
   openRightSidebar: () => set({ rightSidebarOpen: true }),
   viewMode: 'freeform' as const,
-  toggleViewMode: () => set((state) => ({ viewMode: state.viewMode === 'freeform' ? 'sequence' as const : 'freeform' as const })),
+  toggleViewMode: () => set((state) => ({ 
+    viewMode: state.viewMode === 'freeform' ? 'sequence' as const : 'freeform' as const 
+  })),
+  setViewMode: (mode) => set({ viewMode: mode }),
+  rawTraceJson: null,
+  setRawTraceJson: (data) => set({ rawTraceJson: data }),
 
   setReadOnly: (isReadOnly: boolean) => set({ isReadOnly }),
 
@@ -279,6 +289,34 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       futureStates: []
     });
   },
+
+  loadImportPreview: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram) => {
+    set({
+      currentWorkspace: {
+        id: 'import-preview',
+        name: 'Import Preview',
+        path: 'memory://preview',
+        description: 'Temporary diagram preview',
+        createdAt: new Date().toISOString(),
+        lastAccessed: new Date().toISOString()
+      },
+      logicalData,
+      visualData,
+      isReadOnly: false, // Allow playback/simulation in preview
+      isDirty: false,
+      isPlaying: false,
+      currentTime: 0,
+      activeSequenceIds: [],
+      selectedSequenceId: null,
+      leftSidebarOpen: true, // Show filter sidebar
+      rightSidebarOpen: false,
+      activeNodeProperties: null,
+      activeEdgeProperties: null,
+      pastStates: [],
+      futureStates: []
+    });
+  },
+
 
   cloneSharedToWorkspace: async (name: string) => {
     try {

@@ -63,20 +63,23 @@ export const useCanvasSync = (
 
         if (state.logicalData.edges !== prevState.logicalData.edges ||
             state.visualData.layoutEdges !== prevState.visualData.layoutEdges) {
-          setRfEdges(() =>
-            state.logicalData.edges.map((le) => {
-              const ve = state.visualData.layoutEdges[le.id];
-              return {
-                id: le.id,
-                type: 'customEdge',
-                source: le.sourceId,
-                target: le.targetId,
-                sourceHandle: ve?.sourceHandle ? `${ve.sourceHandle}-source` : undefined,
-                targetHandle: ve?.targetHandle ? `${ve.targetHandle}-target` : undefined,
-                reconnectable: true,
-              };
-            })
-          );
+          setTimeout(() => {
+            const freshState = useAppStore.getState();
+            setRfEdges(() =>
+              freshState.logicalData.edges.map((le) => {
+                const ve = freshState.visualData.layoutEdges[le.id];
+                return {
+                  id: le.id,
+                  type: 'customEdge',
+                  source: le.sourceId,
+                  target: le.targetId,
+                  sourceHandle: ve?.sourceHandle ? `${ve.sourceHandle}-source` : undefined,
+                  targetHandle: ve?.targetHandle ? `${ve.targetHandle}-target` : undefined,
+                  reconnectable: true,
+                };
+              })
+            );
+          }, 50);
         }
       }
     });
@@ -119,7 +122,9 @@ export const useCanvasSync = (
     });
     
     setRfNodes(nodes);
-    setRfEdges(edges);
+    setTimeout(() => {
+      setRfEdges(edges);
+    }, 50);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Sync node positions on Layout Recalculation / Undo / Redo ──────────────

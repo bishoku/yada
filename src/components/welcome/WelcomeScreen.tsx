@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readFile } from '@tauri-apps/plugin-fs';
-import { FolderPlus, FolderOpen, History, Info, AlertCircle, HardDrive, Settings, Globe, Moon, Sun, Check, Download, Trash2, Upload, Edit } from 'lucide-react';
+import { FolderPlus, FolderOpen, History, Info, AlertCircle, HardDrive, Settings, Globe, Moon, Sun, Check, Download, Trash2, Upload, Edit, Activity } from 'lucide-react';
 import { translations } from '../../i18n/translations';
 import { isTauri, StorageService } from '../../services/storage';
 import { exportWorkspace, importWorkspace, ImportConflict, ConflictResolution } from '../../utils/workspaceZip';
+import { ChevronDown } from 'lucide-react';
+
 
 export const WelcomeScreen: React.FC = () => {
   const recentWorkspaces = useAppStore((s) => s.recentWorkspaces);
@@ -25,6 +27,10 @@ export const WelcomeScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPrefModal, setShowPrefModal] = useState(false);
+  const [showImportMenu, setShowImportMenu] = useState(false);
+
+  const setRawTraceJson = useAppStore((s) => s.setRawTraceJson);
+  const setViewMode = useAppStore((s) => s.setViewMode);
 
   // Workspace Deletion/Import/Rename States
   const [workspaceToDelete, setWorkspaceToDelete] = useState<any | null>(null);
@@ -90,6 +96,55 @@ export const WelcomeScreen: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const handleImportTempo = async () => {
+    setShowImportMenu(false);
+    try {
+      let rawJson = '';
+      if (isTauri()) {
+        const selected = await open({
+          multiple: false,
+          filters: [{ name: 'Tempo Trace', extensions: ['json'] }],
+          title: 'Select Tempo Trace JSON',
+        });
+        if (!selected || typeof selected !== 'string') return;
+        setLoading(true);
+        const data = await readFile(selected);
+        rawJson = new TextDecoder().decode(data);
+      } else {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = async (e: any) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          setLoading(true);
+          const reader = new FileReader();
+          reader.onload = async (event: any) => {
+            try {
+              rawJson = event.target.result as string;
+              setRawTraceJson(rawJson);
+              setViewMode('import-preview');
+            } catch (err: any) {
+              setError(err.message || err.toString());
+            } finally {
+              setLoading(false);
+            }
+          };
+          reader.readAsText(file);
+        };
+        input.click();
+        return;
+      }
+      setRawTraceJson(rawJson);
+      setViewMode('import-preview');
+    } catch (err: any) {
+      setError(err.message || err.toString());
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const runImport = async (zipData: ArrayBuffer | Uint8Array) => {
     try {
@@ -247,14 +302,39 @@ export const WelcomeScreen: React.FC = () => {
                 <span>{t.recentWorkspaces}</span>
               </div>
               <div className="flex items-center gap-3">
-                <button
-                  onClick={handleImport}
-                  disabled={loading}
-                  className="text-xs text-indigo-650 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 flex items-center gap-1 cursor-pointer transition-colors duration-200 hover:underline font-semibold"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  {t.importDproj}
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowImportMenu(!showImportMenu)}
+                    disabled={loading}
+                    className="text-xs px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-650 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors duration-200 font-semibold"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    {t.importDproj}
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+
+                  {showImportMenu && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowImportMenu(false)} />
+                      <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg z-50 overflow-hidden py-1 animate-in slide-in-from-top-2 duration-200">
+                        <button
+                          onClick={() => { setShowImportMenu(false); handleImport(); }}
+                          className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          Import Diagram (.dproj)
+                        </button>
+                        <button
+                          onClick={handleImportTempo}
+                          className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                        >
+                          <Activity className="w-3.5 h-3.5 text-orange-500" />
+                          Import OTel Trace (.json)
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -216,7 +216,8 @@ export interface AppState {
   isDirty: boolean;
   
   // Canvas View Mode
-  viewMode: 'freeform' | 'sequence';
+  viewMode: 'freeform' | 'sequence' | 'import-preview';
+  rawTraceJson: string | null;
 
   // Phase 5 Studio State
   currentView: 'diagram' | 'studio';
@@ -349,7 +350,11 @@ export interface AppState {
   isReadOnly: boolean;
   setReadOnly: (isReadOnly: boolean) => void;
   loadSharedDiagram: (logicalData: LogicalDiagram, visualData: VisualDiagram) => void;
+  loadImportPreview: (logicalData: LogicalDiagram, visualData: VisualDiagram) => void;
   cloneSharedToWorkspace: (name: string) => Promise<WorkspaceMeta>;
+  setRawTraceJson: (data: string | null) => void;
+  setViewMode: (mode: 'freeform' | 'sequence' | 'import-preview') => void;
+
 
   // Layout Actions
   toggleLeftSidebar: () => void;

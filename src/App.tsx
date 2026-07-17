@@ -7,12 +7,14 @@ import { GoogleDriveService } from './services/googleDriveAPI';
 import { ShareLoader } from './components/share/ShareLoader';
 
 import { SharedDiagramLayout } from './components/layout/SharedDiagramLayout';
+import { ImportPreviewLayout } from './components/layout/ImportPreviewLayout';
 
 function App() {
   const currentWorkspace = useAppStore((state) => state.currentWorkspace);
   const loadAppPreferences = useAppStore((state) => state.loadAppPreferences);
   const currentView = useAppStore((state) => state.currentView);
   const isReadOnly = useAppStore((state) => state.isReadOnly);
+  const viewMode = useAppStore((state) => state.viewMode);
 
   useEffect(() => {
     // Load app preferences (language and theme) on startup
@@ -59,7 +61,7 @@ function App() {
     }
   }, []);
 
-  if (!currentWorkspace) {
+  if (!currentWorkspace && viewMode !== 'import-preview') {
     return (
       <>
         <ShareLoader />
@@ -71,7 +73,9 @@ function App() {
   return (
     <>
       <ShareLoader />
-      {isReadOnly ? (
+      {viewMode === 'import-preview' ? (
+        <ImportPreviewLayout />
+      ) : isReadOnly ? (
         <SharedDiagramLayout />
       ) : currentView === 'studio' ? (
         <ComponentStudio />
