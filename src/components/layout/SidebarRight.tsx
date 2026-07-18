@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Terminal, Activity, ArrowRight, ArrowRightLeft, CornerDownRight, Server, Layers } from 'lucide-react';
+import { Terminal, Activity, ArrowRight, ArrowRightLeft, CornerDownRight, Server, Layers, Trash2 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { NodeRegistry } from '../../registry/NodeRegistry';
 
@@ -14,6 +14,7 @@ export const SidebarRight: React.FC = () => {
   const setFocusedNodeId = useAppStore((s) => s.setFocusedNodeId);
   const isPlaying = useAppStore((s) => s.isPlaying);
   const schedules = useAppStore((s) => s.schedules);
+  const deleteNode = useAppStore((s) => s.deleteNode);
 
   const activeRowRef = useRef<HTMLDivElement>(null);
 
@@ -202,7 +203,7 @@ export const SidebarRight: React.FC = () => {
                       : 'cursor-pointer hover:border-indigo-500/50 dark:hover:border-indigo-500/50 hover:shadow-md dark:hover:bg-indigo-500/[0.02]'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <div className={`p-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 ${colorClass}`}>
                       {icon}
                     </div>
@@ -210,13 +211,30 @@ export const SidebarRight: React.FC = () => {
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         {node.name}
                       </span>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-550 font-bold uppercase tracking-wider mt-0.5">
+                      <span className="text-[9px] text-slate-450 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
                         {isSection 
                           ? (language === 'tr' ? 'Alan (Section)' : 'Section') 
                           : (def?.name[language] ?? node.type)}
                       </span>
                     </div>
                   </div>
+                  {!isPlaying && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const confirmMsg = language === 'tr'
+                          ? `"${node.name}" bileşenini diyagramdan silmek istediğinize emin misiniz?`
+                          : `Are you sure you want to delete "${node.name}" from the diagram?`;
+                        if (window.confirm(confirmMsg)) {
+                          deleteNode(node.id);
+                        }
+                      }}
+                      className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 cursor-pointer transition-all focus:outline-none shrink-0"
+                      title={language === 'tr' ? 'Sil' : 'Delete'}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
 
                 </div>
               );

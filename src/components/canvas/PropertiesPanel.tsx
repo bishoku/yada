@@ -280,7 +280,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">
-                  {t.themeColor}
+                  {t.nodeColorTheme}
                 </label>
                 <div className="flex gap-2.5">
                   {['indigo', 'emerald', 'rose', 'amber', 'violet', 'cyan'].map((color) => (

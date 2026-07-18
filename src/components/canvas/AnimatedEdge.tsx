@@ -61,6 +61,96 @@ function getParallelBezierPath({
   return [path, labelX, labelY];
 }
 
+/**
+ * Generates a prominent loop path for self-referencing edges (source === target).
+ * The loop exits from the source handle, arcs outward, and returns to the target handle.
+ * The arc direction and size adapt to which handles are used.
+ */
+function getSelfLoopPath(
+  sourceX: number,
+  sourceY: number,
+  sourcePosition: string,
+  targetX: number,
+  targetY: number,
+  targetPosition: string,
+  siblingIndex: number,
+  _siblingCount: number,
+): [string, number, number] {
+  // Base loop radius — grows with sibling index to prevent overlap
+  const baseRadius = 70;
+  const siblingStep = 35;
+  const radius = baseRadius + siblingIndex * siblingStep;
+
+  // Determine the outward direction based on source handle position
+  const srcSide = sourcePosition as string;
+  const tgtSide = targetPosition as string;
+
+  // If source and target handles are on the same side, create a U-loop on that side
+  if (srcSide === tgtSide) {
+    // Both handles on same side — separate them vertically/horizontally
+    const gap = 20; // spread between the two endpoints
+    let sx = sourceX, sy = sourceY, tx = targetX, ty = targetY;
+    let c1x: number, c1y: number, c2x: number, c2y: number;
+
+    switch (srcSide) {
+      case 'top':
+        sx = sourceX - gap; sy = sourceY;
+        tx = targetX + gap; ty = targetY;
+        c1x = sx - radius * 0.5; c1y = sy - radius;
+        c2x = tx + radius * 0.5; c2y = ty - radius;
+        break;
+      case 'bottom':
+        sx = sourceX - gap; sy = sourceY;
+        tx = targetX + gap; ty = targetY;
+        c1x = sx - radius * 0.5; c1y = sy + radius;
+        c2x = tx + radius * 0.5; c2y = ty + radius;
+        break;
+      case 'left':
+        sx = sourceX; sy = sourceY - gap;
+        tx = targetX; ty = targetY + gap;
+        c1x = sx - radius; c1y = sy - radius * 0.5;
+        c2x = tx - radius; c2y = ty + radius * 0.5;
+        break;
+      case 'right':
+      default:
+        sx = sourceX; sy = sourceY - gap;
+        tx = targetX; ty = targetY + gap;
+        c1x = sx + radius; c1y = sy - radius * 0.5;
+        c2x = tx + radius; c2y = ty + radius * 0.5;
+        break;
+    }
+
+    const path = `M ${sx},${sy} C ${c1x},${c1y} ${c2x},${c2y} ${tx},${ty}`;
+    const labelX = 0.125 * sx + 0.375 * c1x + 0.375 * c2x + 0.125 * tx;
+    const labelY = 0.125 * sy + 0.375 * c1y + 0.375 * c2y + 0.125 * ty;
+    return [path, labelX, labelY];
+  }
+
+  // Different sides — create an L-shaped loop going outward from both handles
+  let c1x = sourceX, c1y = sourceY;
+  let c2x = targetX, c2y = targetY;
+
+  // Extend control points outward from their respective sides
+  switch (srcSide) {
+    case 'top':    c1y -= radius; break;
+    case 'bottom': c1y += radius; break;
+    case 'left':   c1x -= radius; break;
+    case 'right':  c1x += radius; break;
+  }
+
+  switch (tgtSide) {
+    case 'top':    c2y -= radius; break;
+    case 'bottom': c2y += radius; break;
+    case 'left':   c2x -= radius; break;
+    case 'right':  c2x += radius; break;
+  }
+
+  const path = `M ${sourceX},${sourceY} C ${c1x},${c1y} ${c2x},${c2y} ${targetX},${targetY}`;
+  const labelX = 0.125 * sourceX + 0.375 * c1x + 0.375 * c2x + 0.125 * targetX;
+  const labelY = 0.125 * sourceY + 0.375 * c1y + 0.375 * c2y + 0.125 * targetY;
+  return [path, labelX, labelY];
+}
+
 export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const {
     id,
@@ -77,6 +167,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const le = logicalData.edges.find((e) => e.id === id);
   const ve = layoutEdges[id];
   const isReversed = le ? le.sourceId !== props.source : false;
+  const isSelfLoop = le ? le.sourceId === le.targetId : false;
 
   const siblingEdges = useMemo(() => {
     if (!le) return [];
@@ -107,15 +198,27 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
     offset = -offset;
   }
 
-  const [edgePath, labelX, labelY] = getParallelBezierPath({
-    sourceX: isReversed ? targetX : sourceX,
-    sourceY: isReversed ? targetY : sourceY,
-    sourcePosition: isReversed ? targetPosition : sourcePosition,
-    targetPosition: isReversed ? sourcePosition : targetPosition,
-    targetX: isReversed ? sourceX : targetX,
-    targetY: isReversed ? sourceY : targetY,
-    offset,
-  });
+  // Use dedicated self-loop path when source === target
+  const [edgePath, labelX, labelY] = isSelfLoop
+    ? getSelfLoopPath(
+        sourceX,
+        sourceY,
+        sourcePosition,
+        targetX,
+        targetY,
+        targetPosition,
+        siblingIndex >= 0 ? siblingIndex : 0,
+        siblingCount,
+      )
+    : getParallelBezierPath({
+        sourceX: isReversed ? targetX : sourceX,
+        sourceY: isReversed ? targetY : sourceY,
+        sourcePosition: isReversed ? targetPosition : sourcePosition,
+        targetPosition: isReversed ? sourcePosition : targetPosition,
+        targetX: isReversed ? sourceX : targetX,
+        targetY: isReversed ? sourceY : targetY,
+        offset,
+      });
   const pathRef = useRef<SVGPathElement>(null);
 
   // Use our custom hook to abstract animation calculation

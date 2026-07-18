@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { AppState, LogicalNode, VisualNode, LogicalEdge, VisualEdge, HandleConfig, ActiveNodeProperties, ActiveEdgeProperties } from '../../types';
+import { AppState, LogicalNode, VisualNode, LogicalEdge, VisualEdge, HandleConfig, ActiveNodeProperties, ActiveEdgeProperties, StickyNote } from '../../types';
 import { ParticleType } from '../../config/particles';
 import { getLayoutedElements } from '../../utils/layout';
 
@@ -240,7 +240,15 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
   deleteNode: (id) => {
     get().pushToHistory();
     set((state) => {
-      const nodes = state.logicalData.nodes.filter((n) => n.id !== id);
+      const deletedNode = state.logicalData.nodes.find((n) => n.id === id);
+      const isSection = deletedNode?.type === 'section';
+      const sectionVisual = state.visualData.layoutNodes[id];
+
+      // Filter out deleted node, and also clean up parentId for any children
+      const nodes = state.logicalData.nodes
+        .filter((n) => n.id !== id)
+        .map((n) => (n.parentId === id ? { ...n, parentId: undefined } : n));
+
       const deletedEdgeIds = state.logicalData.edges
         .filter((e) => e.sourceId === id || e.targetId === id)
         .map((e) => e.id);
@@ -250,6 +258,22 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
       
       const layoutNodes = { ...state.visualData.layoutNodes };
       delete layoutNodes[id];
+
+      // If it was a section, promote children to absolute coordinates
+      if (isSection && sectionVisual) {
+        state.logicalData.nodes.forEach((n) => {
+          if (n.parentId === id) {
+            const childVisual = layoutNodes[n.id];
+            if (childVisual) {
+              layoutNodes[n.id] = {
+                ...childVisual,
+                x: sectionVisual.x + childVisual.x,
+                y: sectionVisual.y + childVisual.y,
+              };
+            }
+          }
+        });
+      }
 
       // Clean up visual edges for deleted logical edges
       const layoutEdges = { ...state.visualData.layoutEdges };
