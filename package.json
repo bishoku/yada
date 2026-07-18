@@ -21,6 +21,7 @@
     "@xyflow/react": "^12.11.2",
     "dagre": "^0.8.5",
     "gif.js": "^0.2.0",
+    "gifenc": "^1.0.3",
     "html-to-image": "^1.11.13",
     "jszip": "^3.10.1",
     "lucide-react": "^1.24.0",

@@ -11,7 +11,7 @@ import {
 import { translations } from '../../i18n/translations';
 import { generateStandaloneHtml } from '../../utils/exportTemplate';
 import { generateSequenceHtml } from '../../utils/exportSequenceTemplate';
-import { exportToPng, exportToGif } from '../../utils/exportMedia';
+import { exportToPng, exportToGif, exportToVideo } from '../../utils/exportMedia';
 import { save } from '@tauri-apps/plugin-dialog';
 import { StorageService, isTauri } from '../../services/storage';
 import { GoogleDriveService } from '../../services/googleDriveAPI';
@@ -64,8 +64,9 @@ export const TopBar: React.FC = () => {
   const [exportProgress, setExportProgress] = useState<number | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
 
-  // GIF Config State
-  const [showGifConfig, setShowGifConfig] = useState(false);
+  // Export Config State (shared modal for GIF + Video)
+  const [showExportConfig, setShowExportConfig] = useState(false);
+  const [exportMode, setExportMode] = useState<'gif' | 'video'>('gif');
 
   // AI Copy Modal State
   const [showAiModal, setShowAiModal] = useState(false);
@@ -144,26 +145,56 @@ export const TopBar: React.FC = () => {
     }
   };
 
-  const handleExportGif = async (fps: number, quality: number) => {
+  const handleExportGif = async (
+    fps: number,
+    quality: number,
+    scale: number,
+    skipStatic: boolean
+  ) => {
     try {
+      setExportMode('gif');
       setExportProgress(0);
       const defaultName = `${currentWorkspace?.name || 'diagram'}.gif`;
       const schedules = useAppStore.getState().schedules as Record<string, { start: number, end: number }>;
       const schedValues = Object.values(schedules);
       const maxDuration = schedValues.length > 0 ? Math.max(...schedValues.map(s => s.end)) + 500 : 2000;
 
-      // Map 1-100 to 30-1 for gif.js (1 is best quality, 30 is worst)
-      const mappedQuality = Math.max(1, 31 - Math.round(quality * 0.3));
+      window.dispatchEvent(new CustomEvent('export:fitview'));
+      await new Promise(r => setTimeout(r, 150)); // Wait for React Flow to fit the view
+
+      await exportToGif(
+        '.react-flow', maxDuration, defaultName, language,
+        fps, quality, scale, skipStatic,
+        (progress) => setExportProgress(progress)
+      );
+    } catch (err) {
+      console.error('Error exporting GIF:', err);
+      alert(language === 'tr' ? `GIF dışa aktarma hatası: ${err}` : `GIF Export error: ${err}`);
+    } finally {
+      setExportProgress(null);
+    }
+  };
+
+  const handleExportVideo = async (fps: number, quality: 'low' | 'medium' | 'high') => {
+    try {
+      setExportMode('video');
+      setExportProgress(0);
+      const defaultName = `${currentWorkspace?.name || 'diagram'}.webm`;
+      const schedules = useAppStore.getState().schedules as Record<string, { start: number, end: number }>;
+      const schedValues = Object.values(schedules);
+      const maxDuration = schedValues.length > 0 ? Math.max(...schedValues.map(s => s.end)) + 500 : 2000;
 
       window.dispatchEvent(new CustomEvent('export:fitview'));
       await new Promise(r => setTimeout(r, 150)); // Wait for React Flow to fit the view
 
-      await exportToGif('.react-flow', maxDuration, defaultName, language, fps, mappedQuality, (progress) => {
-        setExportProgress(progress);
-      });
+      await exportToVideo(
+        '.react-flow', maxDuration, defaultName, language,
+        fps, quality,
+        (progress) => setExportProgress(progress)
+      );
     } catch (err) {
-      console.error('Error exporting GIF:', err);
-      alert(language === 'tr' ? `GIF dışa aktarma hatası: ${err}` : `GIF Export error: ${err}`);
+      console.error('Error exporting Video:', err);
+      alert(language === 'tr' ? `Video dışa aktarma hatası: ${err}` : `Video Export error: ${err}`);
     } finally {
       setExportProgress(null);
     }
@@ -456,11 +487,11 @@ export const TopBar: React.FC = () => {
                     {language === 'tr' ? 'Görüntü (PNG)' : 'Image (PNG)'}
                   </button>
                   <button
-                    onClick={() => { setShowGifConfig(true); setShowExportMenu(false); }}
+                    onClick={() => { setShowExportConfig(true); setShowExportMenu(false); }}
                     className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center justify-between"
                   >
-                    {language === 'tr' ? 'Animasyon (GIF)' : 'Animation (GIF)'}
-                    <span className="text-[9px] bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 px-1.5 py-0.5 rounded-md font-bold">New</span>
+                    {language === 'tr' ? 'Animasyon (GIF / Video)' : 'Animation (GIF / Video)'}
+                    <span className="text-[9px] bg-violet-500/10 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded-md font-bold">{language === 'tr' ? 'Yeni' : 'New'}</span>
                   </button>
                   <div className="h-px bg-slate-200 dark:bg-slate-800 my-1" />
                   <button
@@ -559,23 +590,29 @@ export const TopBar: React.FC = () => {
       {exportProgress !== null && createPortal(
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[99999]">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4">
-            <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-6" />
+            <Loader2 className={`w-12 h-12 animate-spin mb-6 ${exportMode === 'video' ? 'text-violet-500' : 'text-indigo-500'}`} />
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2 text-center">
-              {language === 'tr' ? 'GIF Oluşturuluyor...' : 'Generating GIF...'}
+              {exportMode === 'video'
+                ? (language === 'tr' ? 'Video Oluşturuluyor...' : 'Generating Video...')
+                : (language === 'tr' ? 'GIF Oluşturuluyor...' : 'Generating GIF...')}
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center">
-              {language === 'tr'
-                ? 'Lütfen bekleyin, kareler oluşturulup birleştiriliyor. Bu işlem bilgisayarınızın performansına göre birkaç saniye sürebilir.'
-                : 'Please wait, frames are being rendered and encoded. This may take a few seconds depending on your computer performance.'}
+              {exportMode === 'video'
+                ? (language === 'tr'
+                  ? 'Lütfen bekleyin, kareler yakalanıp video olarak kodlanıyor. Bu işlem animasyon süresine bağlıdır.'
+                  : 'Please wait, frames are captured and encoded into video. Duration depends on animation length.')
+                : (language === 'tr'
+                  ? 'Lütfen bekleyin, kareler oluşturulup birleştiriliyor. Bu işlem birkaç saniye sürebilir.'
+                  : 'Please wait, frames are being rendered and encoded. This may take a few seconds.')}
             </p>
 
             <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 mb-2 overflow-hidden border border-slate-200 dark:border-slate-700">
               <div
-                className="bg-indigo-500 h-3 rounded-full transition-all duration-300 ease-out"
+                className={`h-3 rounded-full transition-all duration-300 ease-out ${exportMode === 'video' ? 'bg-violet-500' : 'bg-indigo-500'}`}
                 style={{ width: `${exportProgress}%` }}
               />
             </div>
-            <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+            <div className={`text-xs font-bold ${exportMode === 'video' ? 'text-violet-600 dark:text-violet-400' : 'text-indigo-600 dark:text-indigo-400'}`}>
               {exportProgress}%
             </div>
           </div>
@@ -583,11 +620,12 @@ export const TopBar: React.FC = () => {
         document.body
       )}
 
-      {/* GIF Export Settings Modal */}
+      {/* Animated Export Settings Modal (GIF + Video) */}
       <GifExportModal
-        isOpen={showGifConfig}
-        onClose={() => setShowGifConfig(false)}
-        onExport={handleExportGif}
+        isOpen={showExportConfig}
+        onClose={() => setShowExportConfig(false)}
+        onExportGif={handleExportGif}
+        onExportVideo={handleExportVideo}
       />
 
       {/* AI Copy Modal */}
