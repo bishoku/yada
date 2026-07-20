@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { Terminal, Activity, ArrowRight, ArrowRightLeft, CornerDownRight, Server, Layers, Trash2 } from 'lucide-react';
+import { Terminal, Activity, ArrowRight, ArrowRightLeft, CornerDownRight, Server, Layers, Trash2, Pencil } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { NodeRegistry } from '../../registry/NodeRegistry';
+
 
 /**
  * SimulationPanel
@@ -22,6 +23,10 @@ export const SimulationPanel: React.FC = () => {
   const schedules = useAppStore((s) => s.schedules);
   const deleteNode = useAppStore((s) => s.deleteNode);
   const openConfirm = useAppStore((s) => s.openConfirm);
+  const setActiveNodeProperties = useAppStore((s) => s.setActiveNodeProperties);
+  const setActiveEdgeProperties = useAppStore((s) => s.setActiveEdgeProperties);
+  const openRightSidebar = useAppStore((s) => s.openRightSidebar);
+  const clearActiveProperties = useAppStore((s) => s.clearActiveProperties);
 
   const activeRowRef = useRef<HTMLDivElement>(null);
 
@@ -105,11 +110,44 @@ export const SimulationPanel: React.FC = () => {
                         {seq.isAsync ? 'Asenkron' : 'Senkron'}
                       </span>
                     </div>
-                    {sched && (
-                      <span className="text-[9px] font-mono text-slate-400 dark:text-slate-550">
-                        {sched.start}-{sched.end}ms
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      {sched && (
+                        <span className="text-[9px] font-mono text-slate-400 dark:text-slate-550">
+                          {sched.start}-{sched.end}ms
+                        </span>
+                      )}
+                      {!isPlaying && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSequenceId(seq.id);
+                            const ve = visualData.layoutEdges[edge.id];
+                            setActiveEdgeProperties({
+                              id: edge.id,
+                              protocol: edge.protocol ?? 'Call',
+                              isAsync: edge.isAsync,
+                              stepNumber: seq.stepNumber ?? 1,
+                              duration: timing?.duration ?? 1000,
+                              delay: timing?.delay ?? 0,
+                              tooltipText: timing?.internalProcess?.text ?? '',
+                              tooltipDuration: timing?.internalProcess?.duration ?? 1000,
+                              description: edge.description ?? '',
+                              particleType: ve?.particleType ?? 'dot',
+                              showArrow: ve?.showArrow ?? false,
+                              color: ve?.color ?? '',
+                              properties: edge.properties ?? {},
+                            });
+                            setActiveNodeProperties(null);
+                            openRightSidebar();
+                          }}
+                          className="p-1 rounded-md text-slate-455 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer transition-all focus:outline-none flex items-center justify-center"
+                          title={language === 'tr' ? 'Düzenle' : 'Edit'}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
                   </div>
 
                   <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200">
@@ -204,28 +242,60 @@ export const SimulationPanel: React.FC = () => {
                     </div>
                   </div>
                   {!isPlaying && (
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const confirmMsg = language === 'tr'
-                          ? `"${node.name}" bileşenini diyagramdan silmek istediğinize emin misiniz?`
-                          : `Are you sure you want to delete "${node.name}" from the diagram?`;
-                        const confirmed = await openConfirm({
-                          title: language === 'tr' ? 'Bileşeni Sil' : 'Delete Component',
-                          message: confirmMsg,
-                          type: 'danger',
-                          confirmText: language === 'tr' ? 'Sil' : 'Delete',
-                          cancelText: language === 'tr' ? 'İptal' : 'Cancel'
-                        });
-                        if (confirmed) {
-                          deleteNode(node.id);
-                        }
-                      }}
-                      className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 cursor-pointer transition-all focus:outline-none shrink-0"
-                      title={language === 'tr' ? 'Sil' : 'Delete'}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (node.type === 'sticky_note') {
+                            clearActiveProperties();
+                            const ev = new CustomEvent('canvas:editStickyNote', { detail: { id: node.id } });
+                            window.dispatchEvent(ev);
+                            return;
+                          }
+
+                          const vn = visualData.layoutNodes[node.id];
+                          setActiveNodeProperties({
+                            id: node.id,
+                            name: node.name,
+                            type: node.type,
+                            theme: vn?.theme ?? 'indigo',
+                            handles: vn?.handles,
+                            displayMode: vn?.displayMode ?? 'default',
+                            rotation: vn?.rotation ?? 0,
+                            customStyles: vn?.customStyles ?? {},
+                            properties: node.properties ?? {},
+                          });
+                          setActiveEdgeProperties(null);
+                          openRightSidebar();
+                        }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer transition-all focus:outline-none flex items-center justify-center"
+                        title={language === 'tr' ? 'Düzenle' : 'Edit'}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const confirmMsg = language === 'tr'
+                            ? `"${node.name}" bileşenini diyagramdan silmek istediğinize emin misiniz?`
+                            : `Are you sure you want to delete "${node.name}" from the diagram?`;
+                          const confirmed = await openConfirm({
+                            title: language === 'tr' ? 'Bileşeni Sil' : 'Delete Component',
+                            message: confirmMsg,
+                            type: 'danger',
+                            confirmText: language === 'tr' ? 'Sil' : 'Delete',
+                            cancelText: language === 'tr' ? 'İptal' : 'Cancel'
+                          });
+                          if (confirmed) {
+                            deleteNode(node.id);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 cursor-pointer transition-all focus:outline-none"
+                        title={language === 'tr' ? 'Sil' : 'Delete'}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   )}
                 </div>
               );
