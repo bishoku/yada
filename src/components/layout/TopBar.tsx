@@ -189,7 +189,7 @@ export const TopBar: React.FC = () => {
     }
   };
 
-  const handleExportVideo = async (fps: number, quality: 'low' | 'medium' | 'high') => {
+  const handleExportVideo = async (fps: number, quality: 'low' | 'medium' | 'high', scale: number = 1) => {
     try {
       setExportMode('video');
       setExportProgress(0);
@@ -204,7 +204,8 @@ export const TopBar: React.FC = () => {
       await exportToVideo(
         '.react-flow', maxDuration, defaultName, language,
         fps, quality,
-        (progress) => setExportProgress(progress)
+        (progress) => setExportProgress(progress),
+        scale
       );
     } catch (err) {
       console.error('Error exporting Video:', err);

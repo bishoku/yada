@@ -7,7 +7,7 @@ interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onExportGif: (fps: number, quality: number, scale: number, skipStatic: boolean) => void;
-  onExportVideo: (fps: number, quality: 'low' | 'medium' | 'high') => void;
+  onExportVideo: (fps: number, quality: 'low' | 'medium' | 'high', scale: number) => void;
 }
 
 type Tab = 'gif' | 'video';
@@ -25,6 +25,12 @@ const VIDEO_QUALITIES: { label: string; sublabel: string; value: VideoQuality }[
   { label: 'Medium', sublabel: '~3 Mbps', value: 'medium' },
   { label: 'High',   sublabel: '~8 Mbps', value: 'high'   },
 ];
+
+const VIDEO_RESOLUTIONS = [
+  { label: '1×',   sublabel: { en: 'Standard', tr: 'Standart' },    value: 1   },
+  { label: '1.5×', sublabel: { en: 'HD',       tr: 'HD' },          value: 1.5 },
+  { label: '2×',   sublabel: { en: 'Full HD',  tr: 'Full HD' },     value: 2   },
+] as const;
 
 export const GifExportModal: React.FC<ExportModalProps> = ({
   isOpen,
@@ -45,6 +51,7 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
   // ── Video settings ──
   const [videoFps,     setVideoFps]     = useState(30);
   const [videoQuality, setVideoQuality] = useState<VideoQuality>('medium');
+  const [videoScale,   setVideoScale]   = useState(1);
 
   if (!isOpen) return null;
 
@@ -63,7 +70,7 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
     if (tab === 'gif') {
       onExportGif(gifFps, gifQuality, gifScale, skipStatic);
     } else {
-      onExportVideo(videoFps, videoQuality);
+      onExportVideo(videoFps, videoQuality, videoScale);
     }
     onClose();
   };
@@ -255,6 +262,37 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Resolution Scale */}
+            <div>
+              <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
+                {tr('Resolution Scale', 'Çözünürlük Ölçeği')}
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {VIDEO_RESOLUTIONS.map((r) => (
+                  <button
+                    key={r.value}
+                    onClick={() => setVideoScale(r.value)}
+                    className={`flex flex-col items-center py-2 px-1 rounded-xl cursor-pointer transition-all border ${
+                      videoScale === r.value
+                        ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                    }`}
+                  >
+                    <span className="text-xs font-bold">{r.label}</span>
+                    <span className={`text-[9px] mt-0.5 ${videoScale === r.value ? 'text-violet-200' : 'text-slate-400'}`}>
+                      {r.sublabel[language]}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[9px] text-slate-400 mt-1">
+                {tr(
+                  'All resolutions use 2× supersampling for sharp text. Higher scales produce larger, crisper videos.',
+                  'Tüm çözünürlükler net yazı için 2× süperörnekleme kullanır. Yüksek ölçek daha büyük ama daha keskin video üretir.'
+                )}
+              </p>
             </div>
 
             {/* Info box */}

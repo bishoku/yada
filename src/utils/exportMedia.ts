@@ -93,7 +93,14 @@ const captureFrames = async (
   bgColor: string,
   /** Pre-fetched font CSS — call getFontEmbedCSS(node) once before the loop. */
   fontEmbedCSS: string,
-  onProgress: (pct: number) => void
+  onProgress: (pct: number) => void,
+  /**
+   * Capture pixel ratio. Higher values produce sharper text via supersampling.
+   * The raw canvas is `clientWidth*pixelRatio × clientHeight*pixelRatio`, then
+   * scaled to `clientWidth*scale × clientHeight*scale` (the final output size).
+   * Default 1 preserves legacy behaviour for GIF.
+   */
+  pixelRatio: number = 1
 ): Promise<{ canvas: HTMLCanvasElement; delay: number }[]> => {
   const store = useAppStore.getState();
   const stepMs = 1000 / fps;
@@ -121,13 +128,13 @@ const captureFrames = async (
     await waitRender();
     await new Promise((r) => setTimeout(r, 10)); // let react-flow finish
 
-    // Capture at full resolution, then scale down via drawImage for best quality.
+    // Capture at high resolution, then scale to the target output size.
     // fontEmbedCSS is pre-fetched once before the loop so fonts render correctly
     // on every frame without re-downloading. skipFonts is intentionally NOT used
     // here — it caused html-to-image to fall back to a system font with different
     // character metrics, making edge label text wrap at wrong break points.
     const raw = await toCanvas(node, {
-      pixelRatio: 1,
+      pixelRatio,
       fontEmbedCSS,
       backgroundColor: bgColor,
       width: node.clientWidth,
@@ -135,13 +142,17 @@ const captureFrames = async (
       style: { transform: 'scale(1)', transformOrigin: 'top left' },
     });
 
-    // Scale-down step (no-op when scale === 1)
+    // Scale to target output size.
+    // When pixelRatio > 1 and scale ≤ 1, this is supersampling: the higher-res
+    // capture is scaled down, producing sharper text and crisper edges.
     let target = raw;
-    if (scale < 1) {
+    if (raw.width !== scaledWidth || raw.height !== scaledHeight) {
       target = document.createElement('canvas');
       target.width  = scaledWidth;
       target.height = scaledHeight;
       const ctx = target.getContext('2d')!;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(raw, 0, 0, scaledWidth, scaledHeight);
     }
 
@@ -299,7 +310,8 @@ const encodeWithWebCodecs = async (
   height: number,
   fps: number,
   quality: 'low' | 'medium' | 'high',
-  onProgress: (pct: number) => void
+  onProgress: (pct: number) => void,
+  scale: number = 1
 ): Promise<Blob> => {
   const { Muxer, ArrayBufferTarget } = await import('webm-muxer');
 
@@ -312,9 +324,10 @@ const encodeWithWebCodecs = async (
 
   let codec: CodecPair | undefined;
   for (const c of candidates) {
+    const effectiveBitrate = scale > 1 ? Math.round(BITRATES[quality] * scale) : BITRATES[quality];
     const probe = await VideoEncoder.isConfigSupported({
       codec: c.enc, width, height,
-      bitrate: BITRATES[quality],
+      bitrate: effectiveBitrate,
       framerate: fps,
     });
     if (probe.supported) { codec = c; break; }
@@ -337,11 +350,12 @@ const encodeWithWebCodecs = async (
       error: reject,
     });
 
+    const effectiveBitrate = scale > 1 ? Math.round(BITRATES[quality] * scale) : BITRATES[quality];
     encoder.configure({
       codec:                 codec!.enc,
       width,
       height,
-      bitrate:               BITRATES[quality],
+      bitrate:               effectiveBitrate,
       framerate:             fps,
       hardwareAcceleration:  'prefer-hardware',
       latencyMode:           'quality',
@@ -386,7 +400,8 @@ const encodeWithMediaRecorder = (
   width: number,
   height: number,
   quality: 'low' | 'medium' | 'high',
-  onProgress: (pct: number) => void
+  onProgress: (pct: number) => void,
+  scale: number = 1
 ): Promise<Blob> => {
   const mimeType = [
     'video/webm;codecs=vp9',
@@ -403,9 +418,10 @@ const encodeWithMediaRecorder = (
   const videoTrack = stream.getVideoTracks()[0] as any;
   const chunks: Blob[] = [];
 
+  const effectiveBitrate = scale > 1 ? Math.round(BITRATES[quality] * scale) : BITRATES[quality];
   const recorder = new MediaRecorder(stream, {
     mimeType,
-    videoBitsPerSecond: BITRATES[quality],
+    videoBitsPerSecond: effectiveBitrate,
   });
   recorder.ondataavailable = (e: BlobEvent) => {
     if (e.data?.size > 0) chunks.push(e.data);
@@ -433,9 +449,15 @@ export const exportToVideo = async (
   defaultName: string,
   language: 'tr' | 'en',
   fps: number,
-  /** 'low' ≈ 1 Mbps | 'medium' ≈ 3 Mbps | 'high' ≈ 8 Mbps */
+  /** 'low' ≈ 1 Mbps | 'medium' ≈ 3 Mbps | 'high' ≈ 8 Mbps (at 1× scale) */
   quality: 'low' | 'medium' | 'high',
-  onProgress: (percent: number) => void
+  onProgress: (percent: number) => void,
+  /**
+   * Output resolution multiplier relative to CSS element size.
+   * 1 = same dimensions as on screen (supersampled for sharpness).
+   * 1.5–2 = higher-res output for even crisper text at larger file size.
+   */
+  scale: number = 1
 ): Promise<void> => {
   const node = document.querySelector(containerSelector) as HTMLElement;
   if (!node) throw new Error('Diagram container not found.');
@@ -463,27 +485,38 @@ export const exportToVideo = async (
     const fontEmbedCSS = await getFontEmbedCSS(node).catch(() => '');
     const frames = await captureFrames(
       node, maxDuration, fps,
-      1,     // full resolution for video
-      false, // no frame dedup — keeps smooth motion
+      scale,  // output resolution multiplier
+      false,  // no frame dedup — keeps smooth motion
       bgColor,
       fontEmbedCSS,
-      onProgress
+      onProgress,
+      2       // capture at 2× pixel ratio for sharp text (supersampling)
     );
 
     const { width, height } = frames[0].canvas;
 
     // ── Phase 2: Encode (55-100%) ─────────────────────────────
+    // Scale bitrate proportionally when output resolution is larger than 1×
+    const scaledQuality = { ...BITRATES };
+    if (scale > 1) {
+      const bitrateFactor = scale; // linear scaling — reasonable for diagram content
+      for (const key of Object.keys(scaledQuality) as Array<keyof typeof BITRATES>) {
+        scaledQuality[key] = Math.round(BITRATES[key] * bitrateFactor);
+      }
+    }
+    const effectiveQuality = quality; // label stays the same; bitrate is scaled via BITRATES override
+
     // Try fast WebCodecs path first; fall back to MediaRecorder on failure.
     let blob: Blob;
     if (supportsWebCodecs()) {
       try {
-        blob = await encodeWithWebCodecs(frames, width, height, fps, quality, onProgress);
+        blob = await encodeWithWebCodecs(frames, width, height, fps, effectiveQuality, onProgress, scale);
       } catch (webCodecsErr) {
         console.warn('[Video Export] WebCodecs failed, falling back to MediaRecorder:', webCodecsErr);
-        blob = await encodeWithMediaRecorder(frames, width, height, quality, onProgress);
+        blob = await encodeWithMediaRecorder(frames, width, height, effectiveQuality, onProgress, scale);
       }
     } else {
-      blob = await encodeWithMediaRecorder(frames, width, height, quality, onProgress);
+      blob = await encodeWithMediaRecorder(frames, width, height, effectiveQuality, onProgress, scale);
     }
 
     // ── Phase 3: Save ─────────────────────────────────────────
