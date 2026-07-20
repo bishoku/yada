@@ -2,6 +2,8 @@ import { useEffect, RefObject } from 'react';
 import { Node } from '@xyflow/react';
 import { useAppStore } from '../../../store/useAppStore';
 import { toRfNode } from './utils';
+import { generateNodeId } from '../../../utils/idGenerator';
+
 
 export const useCanvasDrop = (
   wrapperRef: RefObject<HTMLDivElement | null>,
@@ -22,7 +24,7 @@ export const useCanvasDrop = (
 
       const { type, name } = current;
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      const nodeId = `node-${type}-${Date.now()}`;
+      const nodeId = generateNodeId(type);
 
       const isSection = type === 'section';
       const isStickyNote = type === 'sticky_note';

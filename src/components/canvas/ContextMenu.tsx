@@ -1,6 +1,8 @@
 import { Trash2, X, Info, Clock, Copy } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { translations } from '../../i18n/translations';
+import { generateSeqId } from '../../utils/idGenerator';
+
 
 interface ContextMenuProps {
   menu: {
@@ -78,7 +80,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelet
                 const nextStepNum = logicalData.sequences.length > 0 
                   ? Math.max(...logicalData.sequences.map(s => s.stepNumber)) + 1 
                   : 1;
-                const seqId = `seq-${Date.now()}`;
+                const seqId = generateSeqId();
                 addSequenceStep(
                   { id: seqId, stepNumber: nextStepNum, edgeId: menu.id, isAsync: false },
                   { sequenceId: seqId, duration: 1000, delay: 0 }

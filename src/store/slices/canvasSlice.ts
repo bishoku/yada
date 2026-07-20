@@ -2,6 +2,8 @@ import { StateCreator } from 'zustand';
 import { AppState, LogicalNode, VisualNode, LogicalEdge, VisualEdge, HandleConfig, ActiveNodeProperties, ActiveEdgeProperties, StickyNote } from '../../types';
 import { ParticleType } from '../../config/particles';
 import { getLayoutedElements } from '../../utils/layout';
+import { generateNodeId } from '../../utils/idGenerator';
+
 
 export interface CanvasSlice {
   pendingDrop: { type: string; name: string } | null;
@@ -83,7 +85,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
       const originalVisualNode = state.visualData.layoutNodes[id];
       if (!originalLogicalNode || !originalVisualNode) return {};
 
-      const cloneId = `${originalLogicalNode.id}-clone-${Date.now()}`;
+      const cloneId = generateNodeId(originalLogicalNode.type);
       
       const baseClonedName = `${originalLogicalNode.name} (Copy)`;
       let clonedName = baseClonedName;

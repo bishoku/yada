@@ -32,6 +32,8 @@ import { DragGhost } from './DragGhost';
 import { StickyNoteEditorModal } from './StickyNoteEditorModal';
 import { getDefaultHandles } from '../../utils/portUtils';
 import { ActiveAttributesPopover } from './ActiveAttributesPopover';
+import { generateEdgeId, generateSeqId } from '../../utils/idGenerator';
+
 
 import {
   useCanvasSync,
@@ -445,7 +447,7 @@ const FlowWrapper: React.FC = () => {
         }
       }
 
-      const edgeId = `edge-${logicalFrom}-${logicalTo}-${Date.now()}`;
+      const edgeId = generateEdgeId(logicalFrom, logicalTo);
       const newRfEdge: Edge = {
         id: edgeId,
         type: 'customEdge',
@@ -476,7 +478,7 @@ const FlowWrapper: React.FC = () => {
 
       zustandAddEdge(logicalEdge, visualEdge);
 
-      const seqId = `seq-${Date.now()}`;
+      const seqId = generateSeqId();
       addSequenceStep(
         {
           id: seqId,
