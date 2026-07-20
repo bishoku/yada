@@ -95,11 +95,11 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
   const isCustomTheme = themeKey.startsWith('#');
 
   const containerStyle: React.CSSProperties = {
-    backgroundColor: customStyles.backgroundColor || undefined,
+    backgroundColor: customStyles.backgroundColor || ((isNodeActive && isCustomTheme) ? `${themeKey}1A` : undefined),
     borderColor: customStyles.borderColor || (isCustomTheme ? themeKey : undefined),
     borderStyle: customStyles.borderStyle || undefined,
     borderRadius: customStyles.borderRadius ? `${customStyles.borderRadius}px` : undefined,
-    boxShadow: (selected && isCustomTheme) ? `0 0 0 3px ${themeKey}33` : undefined,
+    boxShadow: ((isNodeActive || selected) && isCustomTheme) ? `0 0 0 4px ${themeKey}33` : undefined,
   };
 
   // ── Key design principle ──────────────────────────────────────────────────
@@ -175,16 +175,16 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
       <div
         style={containerStyle}
         className={`w-full h-full rounded-xl text-slate-800 dark:text-slate-100 flex items-center justify-center transition-all duration-200 ${displayMode === 'icon-only'
-            ? `bg-transparent border-transparent ${selected ? 'ring-2 ring-indigo-500/50' : ''}`
+            ? `bg-transparent border-transparent ${selected ? (isCustomTheme ? '' : 'ring-2 ring-indigo-500/50') : ''}`
             : `border-2 shadow-md dark:shadow-xl ${
             // Vertical layout: icon on top, text below
             isVertical ? 'flex-col px-2 py-4 gap-3' : 'flex-row px-4 py-3 gap-2.5'
             } ${isProcessing
               ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 dark:border-emerald-500 scale-[1.02] shadow-emerald-100 dark:shadow-emerald-950/40 ring-4 ring-emerald-500/20 animate-pulse'
               : isNodeActive
-                ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 dark:border-indigo-400 scale-[1.02] shadow-indigo-100 dark:shadow-indigo-950/40 ring-4 ring-indigo-500/20'
+                ? `scale-[1.02] ${isCustomTheme ? 'bg-white dark:bg-slate-900' : `${style.bg} ${style.border} ${style.ring} ring-4`}`
                 : selected
-                  ? `bg-white dark:bg-slate-900 ${isCustomTheme ? '' : `${style.border} ${style.ring}`} ${isCustomTheme ? '' : 'ring-4 ring-indigo-500/10'}`
+                  ? `bg-white dark:bg-slate-900 ${isCustomTheme ? '' : `${style.border} ${style.ring} ring-4`}`
                   : `bg-white dark:bg-slate-900 ${isCustomTheme ? '' : `${style.border} ${style.borderHover}`}`
             }`
           }`}

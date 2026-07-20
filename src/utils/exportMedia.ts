@@ -30,8 +30,11 @@ export const exportToPng = async (
 
     const dataUrl = await toPng(node, {
       quality: 1,
-      pixelRatio: 2, // High resolution
+      pixelRatio: 4, // 4× supersampling for crisp text and sharp edges
       backgroundColor: bgColor,
+      width: node.clientWidth,
+      height: node.clientHeight,
+      style: { transform: 'scale(1)', transformOrigin: 'top left' },
     });
 
     // Restore hidden elements
@@ -106,8 +109,9 @@ const captureFrames = async (
   const stepMs = 1000 / fps;
   const totalFrames = Math.max(1, Math.ceil(maxDuration / stepMs));
 
-  const scaledWidth  = Math.round(node.clientWidth  * scale);
-  const scaledHeight = Math.round(node.clientHeight * scale);
+  // H.264 requires even dimensions — round up to next even number
+  const scaledWidth  = Math.round(node.clientWidth  * scale / 2) * 2;
+  const scaledHeight = Math.round(node.clientHeight * scale / 2) * 2;
 
   const elementsToHide = document.querySelectorAll(
     '.react-flow__controls, .react-flow__panel, .react-flow__minimap'
@@ -392,6 +396,132 @@ const encodeWithWebCodecs = async (
 };
 
 /**
+ * Primary encoding path: WebCodecs H.264 + mp4-muxer → MP4.
+ * Works in both Tauri (WKWebView) and browsers (Chrome/Edge/Safari).
+ * Hardware-accelerated — no IPC per frame, encoding stays in the WebView.
+ */
+const encodeWithWebCodecsMp4 = async (
+  frames: { canvas: HTMLCanvasElement; delay: number }[],
+  width: number,
+  height: number,
+  fps: number,
+  quality: 'low' | 'medium' | 'high',
+  onProgress: (pct: number) => void,
+  scale: number = 1
+): Promise<Blob> => {
+  const { Muxer, ArrayBufferTarget } = await import('mp4-muxer');
+
+  // Ensure even dimensions (H.264 requirement)
+  const encWidth  = width  % 2 === 0 ? width  : width  + 1;
+  const encHeight = height % 2 === 0 ? height : height + 1;
+
+  const effectiveBitrate = scale > 1 ? Math.round(BITRATES[quality] * scale) : BITRATES[quality];
+
+  // Probe H.264 codec support — try multiple profiles
+  const h264Candidates = [
+    'avc1.42001f', // Baseline L3.1 — broadest hardware support
+    'avc1.4d0028', // Main L4.0 — good balance
+    'avc1.640028', // High L4.0 — best compression
+  ];
+
+  let codecStr: string | undefined;
+  for (const c of h264Candidates) {
+    try {
+      const probe = await VideoEncoder.isConfigSupported({
+        codec: c, width: encWidth, height: encHeight,
+        bitrate: effectiveBitrate,
+        framerate: fps,
+      });
+      if (probe.supported) { codecStr = c; break; }
+    } catch { /* some WebViews throw instead of returning unsupported */ }
+  }
+  if (!codecStr) throw new Error('H.264 encoding not supported.');
+
+  const target = new ArrayBufferTarget();
+  const muxer = new Muxer({
+    target,
+    video: { codec: 'avc', width: encWidth, height: encHeight },
+    firstTimestampBehavior: 'strict',
+    fastStart: 'in-memory',
+  });
+
+  // If source frames have odd dimensions, we'll pad them
+  const needsPadding = encWidth !== width || encHeight !== height;
+  let padCanvas: HTMLCanvasElement | null = null;
+  let padCtx: CanvasRenderingContext2D | null = null;
+  if (needsPadding) {
+    padCanvas = document.createElement('canvas');
+    padCanvas.width  = encWidth;
+    padCanvas.height = encHeight;
+    padCtx = padCanvas.getContext('2d')!;
+  }
+
+  return new Promise<Blob>((resolve, reject) => {
+    const encoder = new VideoEncoder({
+      output: (chunk, meta) => {
+        try { muxer.addVideoChunk(chunk, meta); }
+        catch (e) { reject(e); }
+      },
+      error: (e) => reject(new Error(`H.264 encode error: ${e.message}`)),
+    });
+
+    encoder.configure({
+      codec:                 codecStr!,
+      width:                 encWidth,
+      height:                encHeight,
+      bitrate:               effectiveBitrate,
+      framerate:             fps,
+      hardwareAcceleration:  'prefer-hardware',
+      latencyMode:           'quality',
+    });
+
+    (async () => {
+      try {
+        let timestampUs   = 0;
+        const keyInterval = Math.max(1, fps * 2);
+
+        for (let i = 0; i < frames.length; i++) {
+          const { canvas, delay } = frames[i];
+          const durationUs = Math.round(delay * 1000);
+
+          // Pad to even dimensions if needed
+          const src = needsPadding ? (() => {
+            padCtx!.clearRect(0, 0, encWidth, encHeight);
+            padCtx!.drawImage(canvas, 0, 0);
+            return padCanvas!;
+          })() : canvas;
+
+          const vf = new VideoFrame(src, { timestamp: timestampUs, duration: durationUs });
+          encoder.encode(vf, { keyFrame: i % keyInterval === 0 });
+          vf.close();
+
+          timestampUs += durationUs;
+          onProgress(55 + Math.floor(((i + 1) / frames.length) * 45));
+
+          if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
+        }
+
+        await encoder.flush();
+        muxer.finalize();
+        resolve(new Blob([target.buffer], { type: 'video/mp4' }));
+      } catch (e) {
+        reject(e);
+      }
+    })();
+  });
+};
+
+/** Simple browser download helper */
+const triggerDownload = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+/**
  * Fallback encoding path via MediaRecorder.
  * Must wait in real-time between frames so MediaRecorder gets correct timing.
  */
@@ -462,7 +592,8 @@ export const exportToVideo = async (
   const node = document.querySelector(containerSelector) as HTMLElement;
   if (!node) throw new Error('Diagram container not found.');
 
-  if (!supportsWebCodecs() && typeof MediaRecorder === 'undefined') {
+  // Browser-only validation — Tauri uses Rust-native encoding
+  if (!isTauri() && !supportsWebCodecs() && typeof MediaRecorder === 'undefined') {
     throw new Error(
       language === 'tr'
         ? 'Bu tarayıcı video dışa aktarmayı desteklemiyor.'
@@ -496,47 +627,46 @@ export const exportToVideo = async (
     const { width, height } = frames[0].canvas;
 
     // ── Phase 2: Encode (55-100%) ─────────────────────────────
-    // Scale bitrate proportionally when output resolution is larger than 1×
-    const scaledQuality = { ...BITRATES };
-    if (scale > 1) {
-      const bitrateFactor = scale; // linear scaling — reasonable for diagram content
-      for (const key of Object.keys(scaledQuality) as Array<keyof typeof BITRATES>) {
-        scaledQuality[key] = Math.round(BITRATES[key] * bitrateFactor);
-      }
-    }
-    const effectiveQuality = quality; // label stays the same; bitrate is scaled via BITRATES override
-
-    // Try fast WebCodecs path first; fall back to MediaRecorder on failure.
+    // Strategy: try H.264/MP4 first (universal playback, HW-accelerated),
+    // fall back to VP9/WebM, then MediaRecorder as last resort.
     let blob: Blob;
+    let format: 'mp4' | 'webm' = 'mp4';
+
     if (supportsWebCodecs()) {
       try {
-        blob = await encodeWithWebCodecs(frames, width, height, fps, effectiveQuality, onProgress, scale);
-      } catch (webCodecsErr) {
-        console.warn('[Video Export] WebCodecs failed, falling back to MediaRecorder:', webCodecsErr);
-        blob = await encodeWithMediaRecorder(frames, width, height, effectiveQuality, onProgress, scale);
+        blob = await encodeWithWebCodecsMp4(frames, width, height, fps, quality, onProgress, scale);
+      } catch (mp4Err) {
+        console.warn('[Video Export] H.264/MP4 failed, trying VP9/WebM:', mp4Err);
+        format = 'webm';
+        try {
+          blob = await encodeWithWebCodecs(frames, width, height, fps, quality, onProgress, scale);
+        } catch (webmErr) {
+          console.warn('[Video Export] VP9/WebM failed, falling back to MediaRecorder:', webmErr);
+          blob = await encodeWithMediaRecorder(frames, width, height, quality, onProgress, scale);
+        }
       }
     } else {
-      blob = await encodeWithMediaRecorder(frames, width, height, effectiveQuality, onProgress, scale);
+      format = 'webm';
+      blob = await encodeWithMediaRecorder(frames, width, height, quality, onProgress, scale);
     }
 
     // ── Phase 3: Save ─────────────────────────────────────────
+    const ext = format === 'mp4' ? 'mp4' : 'webm';
+    const filterName = format === 'mp4' ? 'MP4 Video' : 'WebM Video';
+    const saveName = defaultName.replace(/\.(webm|mp4)$/i, `.${ext}`);
+
     if (isTauri()) {
       const selectedPath = await save({
         title:   language === 'tr' ? 'Video Olarak Kaydet' : 'Save as Video',
-        defaultPath: defaultName,
-        filters: [{ name: 'WebM Video', extensions: ['webm'] }],
+        defaultPath: saveName,
+        filters: [{ name: filterName, extensions: [ext] }],
       });
       if (selectedPath) {
         const bytes = new Uint8Array(await blob.arrayBuffer());
         await writeFile(selectedPath, bytes);
       }
     } else {
-      const url = URL.createObjectURL(blob);
-      const a   = document.createElement('a');
-      a.href     = url;
-      a.download = defaultName;
-      a.click();
-      URL.revokeObjectURL(url);
+      triggerDownload(blob, saveName);
     }
   } finally {
     store.setCurrentTime(originalTime);

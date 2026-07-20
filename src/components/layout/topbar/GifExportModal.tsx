@@ -112,10 +112,7 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
             }`}
           >
             <Film className="w-3.5 h-3.5" />
-            {tr('Video (WebM)', 'Video (WebM)')}
-            <span className="text-[9px] bg-violet-500/15 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded font-bold leading-none">
-              NEW
-            </span>
+            {tr('Video (MP4)', 'Video (MP4)')}
           </button>
         </div>
 
@@ -297,17 +294,13 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
 
             {/* Info box */}
             <div className="rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200/60 dark:border-violet-800/40 p-3 text-[10px] text-violet-700 dark:text-violet-400 space-y-1">
-              <p className="font-semibold">{tr('About WebM export', 'WebM dışa aktarma hakkında')}</p>
-              <p className="text-violet-600/80 dark:text-violet-500">
-                {tr(
-                  'Video files are 5–20× smaller than GIF at equal quality. Playback requires a modern browser or video player.',
-                  'Video dosyaları aynı kalitede GIF\'ten 5–20× daha küçüktür. Oynatmak için modern bir tarayıcı veya medya oynatıcı gerekir.'
-                )}
+              <p className="font-semibold">
+                {tr('About MP4 export', 'MP4 dışa aktarma hakkında')}
               </p>
               <p className="text-violet-600/80 dark:text-violet-500">
                 {tr(
-                  '⏱ Encoding takes approximately the same time as the animation duration.',
-                  '⏱ Kodlama işlemi yaklaşık animasyon süresi kadar sürer.'
+                  'Uses hardware-accelerated H.264 encoding for fast export. MP4 plays everywhere — phones, browsers, media players. 5–20× smaller than GIF.',
+                  'Hızlı dışa aktarma için donanım hızlandırmalı H.264 kodlama kullanır. MP4 her yerde oynar — telefon, tarayıcı, medya oynatıcı. GIF\'ten 5–20× daha küçük.'
                 )}
               </p>
             </div>
