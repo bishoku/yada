@@ -16,6 +16,7 @@ interface ConnectionPointsEditorProps {
   connectedHandleIds: Set<string>;
   language: string;
   onChange: (handles: HandleConfig[]) => void;
+  isVertical?: boolean;
 }
 
 /**
@@ -31,6 +32,7 @@ export const ConnectionPointsEditor: React.FC<ConnectionPointsEditorProps> = ({
   connectedHandleIds,
   language,
   onChange,
+  isVertical = false,
 }) => {
   const openConfirm = useAppStore((s) => s.openConfirm);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -121,7 +123,9 @@ export const ConnectionPointsEditor: React.FC<ConnectionPointsEditorProps> = ({
       {/* ── Preview canvas ── */}
       <div
         ref={previewRef}
-        className="relative w-full h-20 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden"
+        className={`relative bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden transition-all duration-300 ${
+          isVertical ? 'w-28 h-40 mx-auto' : 'w-full h-20'
+        }`}
       >
         <div className="absolute inset-5 border border-dashed border-slate-300 dark:border-slate-700 rounded bg-white/60 dark:bg-slate-800/60 flex items-center justify-center">
           <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold truncate px-1">

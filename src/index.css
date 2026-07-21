@@ -168,12 +168,24 @@ h1, h2, h3, h4, h5, h6 {
 .react-flow--connecting .react-flow__handle.handle-idle,
 .react-flow__node.connecting-target .react-flow__handle.handle-idle {
   opacity: 1 !important;
+}
+
+/* During connection, only target handles should accept pointer events so they can receive the dropped edge */
+.react-flow--connecting .react-flow__handle.target.handle-idle,
+.react-flow__node.connecting-target .react-flow__handle.target.handle-idle {
   pointer-events: auto !important;
 }
 
+/* Ensure source handles do not block target handles during connection */
+.react-flow--connecting .react-flow__handle.source,
+.react-flow__node.connecting-target .react-flow__handle.source {
+  pointer-events: none !important;
+}
+
+
 /* Subtle glow on handle hover for easier targeting — no scale */
 .react-flow__handle:hover {
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.35) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--handle-glow-color, #6366f1) 35%, transparent) !important;
 }
 
 /* ── React Flow Controls Theming ───────────────────────────────────────── */
@@ -237,4 +249,16 @@ h1, h2, h3, h4, h5, h6 {
 .theme-synthwave .react-flow__controls-button:hover {
   background-color: var(--color-slate-800) !important;
   color: var(--color-indigo-400) !important;
+}
+
+/* Hide spin-button spinners in Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Hide spin-button spinners in Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
 }

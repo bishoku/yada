@@ -50,13 +50,23 @@ const Label: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </span>
 );
 
-/** Compact text input */
-const CompactInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
-  <input
-    {...props}
-    className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200"
-  />
-);
+/** Compact text input with auto-select on focus */
+const CompactInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => {
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+    if (props.onFocus) {
+      props.onFocus(e);
+    }
+  };
+
+  return (
+    <input
+      {...props}
+      onFocus={handleFocus}
+      className={`w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 ${props.className ?? ''}`}
+    />
+  );
+};
 
 /** Compact select */
 const CompactSelect: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => (
@@ -499,6 +509,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
         connectedHandleIds={connectedHandleIds}
         language={lang}
         onChange={setHandles}
+        isVertical={rotation === 90}
       />
 
     </div>

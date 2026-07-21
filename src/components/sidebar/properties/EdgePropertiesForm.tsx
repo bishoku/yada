@@ -52,13 +52,23 @@ const Label: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </span>
 );
 
-/** Compact text/number input */
-const CompactInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
-  <input
-    {...props}
-    className={`w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 ${props.className ?? ''}`}
-  />
-);
+/** Compact text/number input with auto-select on focus */
+const CompactInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => {
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+    if (props.onFocus) {
+      props.onFocus(e);
+    }
+  };
+
+  return (
+    <input
+      {...props}
+      onFocus={handleFocus}
+      className={`w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 ${props.className ?? ''}`}
+    />
+  );
+};
 
 /** Thin divider with optional inline label */
 const Divider: React.FC<{ label?: string }> = ({ label }) => (
@@ -86,15 +96,15 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
   const [protocol, setProtocol] = useState(activeEdge.protocol);
   const [isAsync, setIsAsync] = useState(activeEdge.isAsync);
   const [stepNumber, setStepNumber] = useState(activeEdge.stepNumber);
-  const [duration, setDuration] = useState(activeEdge.duration);
-  const [delay, setDelay] = useState(activeEdge.delay);
+  const [duration, setDuration] = useState<number | string>(activeEdge.duration);
+  const [delay, setDelay] = useState<number | string>(activeEdge.delay);
   const [tooltipText, setTooltipText] = useState(activeEdge.tooltipText);
-  const [tooltipDuration, setTooltipDuration] = useState(activeEdge.tooltipDuration);
+  const [tooltipDuration, setTooltipDuration] = useState<number | string>(activeEdge.tooltipDuration);
   const [formRoundTrip, setFormRoundTrip] = useState(sequenceRoundTrip);
   const [formAnimationMode, setFormAnimationMode] = useState<'normal' | 'roundTrip' | 'repeat'>(
     sequenceAnimationMode ?? (sequenceRoundTrip ? 'roundTrip' : 'normal')
   );
-  const [formRepeatCount, setFormRepeatCount] = useState(sequenceRepeatParticleCount ?? 3);
+  const [formRepeatCount, setFormRepeatCount] = useState<number | string>(sequenceRepeatParticleCount ?? 3);
   const [description, setDescription] = useState(activeEdge.description ?? '');
   const [particleType, setParticleType] = useState<ParticleType>(resolveParticleType(activeEdge.particleType));
   const [showArrow, setShowArrow] = useState(activeEdge.showArrow ?? false);
@@ -142,24 +152,59 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
  
   // Convenience: preview current values
   const preview = (o?: Partial<{
-    p: string; ia: boolean; s: number; d: number; dl: number;
-    tt: string; td: number; desc: string; pt: ParticleType; arr: boolean; clr: string;
-    rt: boolean; am: 'normal' | 'roundTrip' | 'repeat'; rpc: number;
+    p: string; ia: boolean; s: number; d: number | string; dl: number | string;
+    tt: string; td: number | string; desc: string; pt: ParticleType; arr: boolean; clr: string;
+    rt: boolean; am: 'normal' | 'roundTrip' | 'repeat'; rpc: number | string;
     props: Record<string, unknown>;
-  }>) =>
+  }>) => {
+    const parseNum = (val: any, minVal: number, maxVal = Infinity) => {
+      const n = Number(val);
+      if (isNaN(n)) return minVal;
+      return Math.max(minVal, Math.min(maxVal, n));
+    };
+
     onPreview(
       activeEdge.id,
       o?.p ?? protocol, o?.ia ?? isAsync,
-      o?.d ?? duration, o?.dl ?? delay,
-      o?.tt ?? tooltipText, o?.td ?? tooltipDuration,
+      parseNum(o?.d !== undefined ? o.d : duration, 50),
+      parseNum(o?.dl !== undefined ? o.dl : delay, 0),
+      o?.tt ?? tooltipText,
+      parseNum(o?.td !== undefined ? o.td : tooltipDuration, 100),
       o?.desc ?? description, o?.pt ?? particleType, o?.arr ?? showArrow, o?.clr ?? color,
       o?.s ?? stepNumber, 'forward', o?.rt ?? formRoundTrip,
-      o?.am ?? formAnimationMode, o?.rpc ?? formRepeatCount,
+      o?.am ?? formAnimationMode,
+      parseNum(o?.rpc !== undefined ? o.rpc : formRepeatCount, 1, 10),
       o?.props ?? properties,
     );
+  };
  
   useImperativeHandle(ref, () => ({
-    submit: () => onSubmit(activeEdge.id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration, description, particleType, showArrow, color, stepNumber, 'forward', formRoundTrip, formAnimationMode, formRepeatCount, properties),
+    submit: () => {
+      const parseNum = (val: any, minVal: number, maxVal = Infinity) => {
+        const n = Number(val);
+        if (isNaN(n)) return minVal;
+        return Math.max(minVal, Math.min(maxVal, n));
+      };
+      onSubmit(
+        activeEdge.id,
+        protocol,
+        isAsync,
+        parseNum(duration, 50),
+        parseNum(delay, 0),
+        tooltipText,
+        parseNum(tooltipDuration, 100),
+        description,
+        particleType,
+        showArrow,
+        color,
+        stepNumber,
+        'forward',
+        formRoundTrip,
+        formAnimationMode,
+        parseNum(formRepeatCount, 1, 10),
+        properties
+      );
+    },
     cancel: () => {
       setProtocol(orig.protocol); setIsAsync(orig.isAsync); setStepNumber(orig.stepNumber);
       setDuration(orig.duration); setDelay(orig.delay); setTooltipText(orig.tooltipText);
@@ -271,15 +316,33 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
         <div className="flex flex-col gap-1">
           <Label>{tr('Süre (ms)', 'Duration')}</Label>
           <CompactInput
-            type="number" min="50" value={duration}
-            onChange={(e) => { const v = Math.max(50, Number(e.target.value)); setDuration(v); preview({ d: v }); }}
+            type="number"
+            value={duration}
+            onChange={(e) => {
+              setDuration(e.target.value);
+              preview({ d: e.target.value });
+            }}
+            onBlur={() => {
+              const val = Math.max(50, Number(duration) || 50);
+              setDuration(val);
+              preview({ d: val });
+            }}
           />
         </div>
         <div className="flex flex-col gap-1">
           <Label>{tr('Gecikme (ms)', 'Delay')}</Label>
           <CompactInput
-            type="number" min="0" value={delay}
-            onChange={(e) => { const v = Math.max(0, Number(e.target.value)); setDelay(v); preview({ dl: v }); }}
+            type="number"
+            value={delay}
+            onChange={(e) => {
+              setDelay(e.target.value);
+              preview({ dl: e.target.value });
+            }}
+            onBlur={() => {
+              const val = Math.max(0, Number(delay) || 0);
+              setDelay(val);
+              preview({ dl: val });
+            }}
           />
         </div>
       </div>
@@ -332,9 +395,18 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
           <div className="ml-5 flex items-center gap-2 mt-0.5">
             <Label>{tr('Parçacık Sayısı', 'Particle Count')}</Label>
             <CompactInput
-              type="number" min={1} max={10} style={{ width: 56 }}
+              type="number"
+              style={{ width: 56 }}
               value={formRepeatCount}
-              onChange={(e) => { const v = Math.max(1, Math.min(10, Number(e.target.value))); setFormRepeatCount(v); preview({ rpc: v }); }}
+              onChange={(e) => {
+                setFormRepeatCount(e.target.value);
+                preview({ rpc: e.target.value });
+              }}
+              onBlur={() => {
+                const val = Math.max(1, Math.min(10, Number(formRepeatCount) || 1));
+                setFormRepeatCount(val);
+                preview({ rpc: val });
+              }}
             />
           </div>
         )}
@@ -358,8 +430,17 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
           onChange={(e) => { setTooltipText(e.target.value); preview({ tt: e.target.value }); }}
         />
         <CompactInput
-          type="number" min="100" value={tooltipDuration}
-          onChange={(e) => { const v = Math.max(100, Number(e.target.value)); setTooltipDuration(v); preview({ td: v }); }}
+          type="number"
+          value={tooltipDuration}
+          onChange={(e) => {
+            setTooltipDuration(e.target.value);
+            preview({ td: e.target.value });
+          }}
+          onBlur={() => {
+            const val = Math.max(100, Number(tooltipDuration) || 100);
+            setTooltipDuration(val);
+            preview({ td: val });
+          }}
           placeholder="ms"
         />
       </div>

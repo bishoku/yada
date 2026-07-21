@@ -43,13 +43,25 @@ const sideToPosition = (side: PortSide): Position => {
   }
 };
 
-const themeStyles: Record<string, { border: string; borderHover: string; ring: string; text: string; bg: string }> = {
-  indigo: { border: 'border-indigo-500 dark:border-indigo-500/80', borderHover: 'hover:border-indigo-600 dark:hover:border-indigo-400', ring: 'ring-indigo-500/10 dark:ring-indigo-500/20 shadow-indigo-100 dark:shadow-indigo-950/40', text: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-500/5 dark:bg-indigo-500/10' },
-  emerald: { border: 'border-emerald-500 dark:border-emerald-500/80', borderHover: 'hover:border-emerald-600 dark:hover:border-emerald-400', ring: 'ring-emerald-500/10 dark:ring-emerald-500/20 shadow-emerald-100 dark:shadow-emerald-950/40', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/5 dark:bg-emerald-500/10' },
-  rose: { border: 'border-rose-500 dark:border-rose-500/80', borderHover: 'hover:border-rose-600 dark:hover:border-rose-400', ring: 'ring-rose-500/10 dark:ring-rose-500/20 shadow-rose-100 dark:shadow-rose-950/40', text: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-500/5 dark:bg-rose-500/10' },
-  amber: { border: 'border-amber-500 dark:border-amber-500/80', borderHover: 'hover:border-amber-600 dark:hover:border-amber-400', ring: 'ring-amber-500/10 dark:ring-amber-500/20 shadow-amber-100 dark:shadow-amber-950/40', text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/5 dark:bg-amber-500/10' },
-  violet: { border: 'border-violet-500 dark:border-violet-500/80', borderHover: 'hover:border-violet-600 dark:hover:border-violet-400', ring: 'ring-violet-500/10 dark:ring-violet-500/20 shadow-violet-100 dark:shadow-violet-950/40', text: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-500/5 dark:bg-violet-500/10' },
-  cyan: { border: 'border-cyan-500 dark:border-cyan-500/80', borderHover: 'hover:border-cyan-600 dark:hover:border-cyan-400', ring: 'ring-cyan-500/10 dark:ring-cyan-500/20 shadow-cyan-100 dark:shadow-cyan-950/40', text: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-500/5 dark:bg-cyan-500/10' },
+const getThemeHexColor = (themeKey: string): string => {
+  switch (themeKey) {
+    case 'emerald': return '#10b981';
+    case 'rose':    return '#f43f5e';
+    case 'amber':   return '#f59e0b';
+    case 'violet':  return '#8b5cf6';
+    case 'cyan':    return '#06b6d4';
+    case 'indigo':  return '#6366f1';
+    default:        return themeKey; // custom hex color
+  }
+};
+
+const themeStyles: Record<string, { border: string; borderHover: string; ring: string; text: string; bg: string; handleBg: string; resizerBorder: string; resizerHandleBorder: string }> = {
+  indigo: { border: 'border-indigo-500 dark:border-indigo-500/80', borderHover: 'hover:border-indigo-600 dark:hover:border-indigo-400', ring: 'ring-indigo-500/10 dark:ring-indigo-500/20 shadow-indigo-100 dark:shadow-indigo-950/40', text: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-500/5 dark:bg-indigo-500/10', handleBg: '!bg-indigo-500 dark:!bg-indigo-400', resizerBorder: '!border-indigo-500', resizerHandleBorder: '!border-indigo-500' },
+  emerald: { border: 'border-emerald-500 dark:border-emerald-500/80', borderHover: 'hover:border-emerald-600 dark:hover:border-emerald-400', ring: 'ring-emerald-500/10 dark:ring-emerald-500/20 shadow-emerald-100 dark:shadow-emerald-950/40', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/5 dark:bg-emerald-500/10', handleBg: '!bg-emerald-500 dark:!bg-emerald-400', resizerBorder: '!border-emerald-500', resizerHandleBorder: '!border-emerald-500' },
+  rose: { border: 'border-rose-500 dark:border-rose-500/80', borderHover: 'hover:border-rose-600 dark:hover:border-rose-400', ring: 'ring-rose-500/10 dark:ring-rose-500/20 shadow-rose-100 dark:shadow-rose-950/40', text: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-500/5 dark:bg-rose-500/10', handleBg: '!bg-rose-500 dark:!bg-rose-400', resizerBorder: '!border-rose-500', resizerHandleBorder: '!border-rose-500' },
+  amber: { border: 'border-amber-500 dark:border-amber-500/80', borderHover: 'hover:border-amber-600 dark:hover:border-amber-400', ring: 'ring-amber-500/10 dark:ring-amber-500/20 shadow-amber-100 dark:shadow-amber-950/40', text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/5 dark:bg-amber-500/10', handleBg: '!bg-amber-500 dark:!bg-amber-400', resizerBorder: '!border-amber-500', resizerHandleBorder: '!border-amber-500' },
+  violet: { border: 'border-violet-500 dark:border-violet-500/80', borderHover: 'hover:border-violet-600 dark:hover:border-violet-400', ring: 'ring-violet-500/10 dark:ring-violet-500/20 shadow-violet-100 dark:shadow-violet-950/40', text: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-500/5 dark:bg-violet-500/10', handleBg: '!bg-violet-500 dark:!bg-violet-400', resizerBorder: '!border-violet-500', resizerHandleBorder: '!border-violet-500' },
+  cyan: { border: 'border-cyan-500 dark:border-cyan-500/80', borderHover: 'hover:border-cyan-600 dark:hover:border-cyan-400', ring: 'ring-cyan-500/10 dark:ring-cyan-500/20 shadow-cyan-100 dark:shadow-cyan-950/40', text: 'text-cyan-600 dark:text-cyan-400', bg: 'bg-cyan-500/5 dark:bg-cyan-500/10', handleBg: '!bg-cyan-500 dark:!bg-cyan-400', resizerBorder: '!border-cyan-500', resizerHandleBorder: '!border-cyan-500' },
 };
 
 export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) => {
@@ -93,6 +105,7 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
   const customTemplate = libraryComponents.find((c: any) => c.componentId === type);
 
   const isCustomTheme = themeKey.startsWith('#');
+  const themeHexColor = useMemo(() => getThemeHexColor(themeKey), [themeKey]);
 
   const containerStyle: React.CSSProperties = {
     backgroundColor: customStyles.backgroundColor || ((isNodeActive && isCustomTheme) ? `${themeKey}1A` : undefined),
@@ -121,8 +134,10 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
         minWidth={isVertical ? 32 : 120}
         minHeight={isVertical ? 120 : 32}
         isVisible={!!selected}
-        lineClassName="border-indigo-500"
-        handleClassName="w-2 h-2 bg-white border-2 border-indigo-500 rounded-full"
+        lineClassName={isCustomTheme ? undefined : style.resizerBorder}
+        lineStyle={isCustomTheme ? { borderColor: themeKey } : undefined}
+        handleClassName={`w-2 h-2 bg-white border-2 rounded-full ${isCustomTheme ? '' : style.resizerHandleBorder}`}
+        handleStyle={isCustomTheme ? { borderColor: themeKey } : undefined}
         onResizeEnd={(_, params) => {
           updateNodeDimensions(id, params.width, params.height);
         }}
@@ -130,7 +145,7 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
 
       {/* Tooltip Bubble */}
       {activeTooltipText && (
-        <div className="absolute top-[-52px] left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-xl shadow-lg border border-indigo-500/30 whitespace-nowrap animate-bounce duration-1000">
+        <div className="absolute top-[-52px] left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-xl shadow-lg border border-indigo-500/30 whitespace-nowrap">
           <MessageSquare className="w-3.5 h-3.5 fill-white/10" />
           <span>{activeTooltipText}</span>
           <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-indigo-600 rotate-45 border-r border-b border-indigo-500/30" />
@@ -159,13 +174,20 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
               style={{ ...posStyle, opacity: 0 }}
               className={`${sizeClass} !border-0 !bg-transparent ${handleClass}`}
             />
-            {/* SOURCE — the only visible circle */}
+             {/* SOURCE — the only visible circle */}
             <Handle
               type="source"
               position={pos}
               id={`${h.id}-source`}
-              style={{ ...posStyle, pointerEvents: isConnecting ? 'none' : 'auto' }}
-              className={`${sizeClass} !border-2 !border-white dark:!border-slate-900 !bg-indigo-500 dark:!bg-indigo-400 !transition-all !duration-150 ${handleClass}`}
+              style={{
+                ...posStyle,
+                pointerEvents: isConnecting ? 'none' : 'auto',
+                backgroundColor: isCustomTheme ? themeKey : undefined,
+                ['--handle-glow-color' as any]: themeHexColor,
+              }}
+              className={`${sizeClass} !border-2 !border-white dark:!border-slate-900 !transition-all !duration-150 ${handleClass} ${
+                isCustomTheme ? '' : style.handleBg
+              }`}
             />
           </React.Fragment>
         );
@@ -180,9 +202,9 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
             // Vertical layout: icon on top, text below
             isVertical ? 'flex-col px-2 py-4 gap-3' : 'flex-row px-4 py-3 gap-2.5'
             } ${isProcessing
-              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 dark:border-emerald-500 scale-[1.02] shadow-emerald-100 dark:shadow-emerald-950/40 ring-4 ring-emerald-500/20 animate-pulse'
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 dark:border-emerald-500 shadow-emerald-100 dark:shadow-emerald-950/40 ring-4 ring-emerald-500/20'
               : isNodeActive
-                ? `scale-[1.02] ${isCustomTheme ? 'bg-white dark:bg-slate-900' : `${style.bg} ${style.border} ${style.ring} ring-4`}`
+                ? `${isCustomTheme ? 'bg-white dark:bg-slate-900' : `${style.bg} ${style.border} ${style.ring} ring-4`}`
                 : selected
                   ? `bg-white dark:bg-slate-900 ${isCustomTheme ? '' : `${style.border} ${style.ring} ring-4`}`
                   : `bg-white dark:bg-slate-900 ${isCustomTheme ? '' : `${style.border} ${style.borderHover}`}`
