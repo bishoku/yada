@@ -100,7 +100,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   isReadOnly: false,
   isFullscreen: false,
 
-  setWorkspace: (ws) => set({ currentWorkspace: ws }),
+  setWorkspace: (ws) => set({ currentWorkspace: ws, isReadOnly: false }),
   setDiagrams: (diagrams) => set({ diagrams }),
   setActiveDiagramId: (id) => set({ activeDiagramId: id }),
   setOpenDiagramIds: (ids) => set({ openDiagramIds: ids }),
@@ -295,6 +295,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         openDiagramIds: ['default'],
         logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
         visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} },
+        isReadOnly: false,
         isDirty: false,
         isPlaying: false,
         currentTime: 0,
@@ -335,6 +336,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         openDiagramIds: [],
         logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
         visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} },
+        isReadOnly: false,
         isDirty: false,
         isPlaying: false,
         currentTime: 0,
@@ -517,12 +519,12 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
 
   setReadOnly: (isReadOnly: boolean) => set({ isReadOnly }),
 
-  loadSharedDiagram: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram) => {
+  loadSharedDiagram: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram, title?: string) => {
     // Shared diagrams are loaded without a workspace context, in read-only mode
     set({
       currentWorkspace: {
         id: 'shared-diagram',
-        name: 'Shared Diagram',
+        name: title || 'Shared Diagram',
         path: 'memory://shared',
         description: 'A read-only shared diagram',
         createdAt: new Date().toISOString(),

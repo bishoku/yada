@@ -408,7 +408,7 @@ export interface AppState {
   toggleViewMode: () => void;
   isReadOnly: boolean;
   setReadOnly: (isReadOnly: boolean) => void;
-  loadSharedDiagram: (logicalData: LogicalDiagram, visualData: VisualDiagram) => void;
+  loadSharedDiagram: (logicalData: LogicalDiagram, visualData: VisualDiagram, title?: string) => void;
   loadImportPreview: (logicalData: LogicalDiagram, visualData: VisualDiagram) => void;
   cloneSharedToWorkspace: (name: string) => Promise<WorkspaceMeta>;
   setImportState: (adapterId: string | null, data: string | null) => void;

@@ -5,6 +5,7 @@ import { translations } from '../../i18n/translations';
 
 export const SharedTopBar: React.FC = () => {
   const currentWorkspace = useAppStore((s) => s.currentWorkspace);
+  const setWorkspace = useAppStore((s) => s.setWorkspace);
   const language = useAppStore((s) => s.language);
   const cloneSharedToWorkspace = useAppStore((s) => s.cloneSharedToWorkspace);
   const viewMode = useAppStore((s) => s.viewMode);
@@ -17,6 +18,10 @@ export const SharedTopBar: React.FC = () => {
 
   const t = translations[language];
   const isTr = language === 'tr';
+
+  const handleBackToWelcome = () => {
+    setWorkspace(null);
+  };
 
   const handleCloneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,8 +48,12 @@ export const SharedTopBar: React.FC = () => {
         
         {/* Left: App Logo & Workspace Name Badge */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <img src="pwa-icon.png" className="h-6 w-6" alt="Yada logo" />
+          <div
+            onClick={handleBackToWelcome}
+            className="flex items-center gap-1.5 cursor-pointer group shrink-0"
+            title={isTr ? 'Giriş ekranına dön' : 'Go back to welcome screen'}
+          >
+            <img src="pwa-icon.png" className="h-6 w-6 transition-transform group-hover:scale-105" alt="Yada logo" />
             <span className="font-bold text-sm tracking-wide bg-gradient-to-r from-indigo-600 to-indigo-400 dark:from-indigo-400 dark:to-indigo-200 bg-clip-text text-transparent hidden sm:inline">
               {t.welcomeTitle || 'YADA'}
             </span>
