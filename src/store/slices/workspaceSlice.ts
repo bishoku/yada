@@ -3,6 +3,7 @@ import { AppState, WorkspaceMeta } from '../../types';
 import { Language, Theme } from '../../i18n/translations';
 import { StorageService, isTauri } from '../../services/storage';
 import { migratePortFormat } from '../../utils/portMigration';
+import { migrateToSchemaV2 } from '../../utils/schemaMigration';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
 const applyTheme = (theme: Theme) => {
@@ -119,7 +120,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     };
     
     // Save new diagram
-    const logicalJson = JSON.stringify({ schemaVersion: 1, nodes: [], edges: [], sequences: [] });
+    const logicalJson = JSON.stringify({ schemaVersion: 2, nodes: [], edges: [], sequences: [] });
     const visualJson = JSON.stringify({ canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} });
     await StorageService.save_diagram(state.currentWorkspace.path, newId, logicalJson, visualJson);
     
@@ -161,7 +162,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         await get().switchDiagram(remainingIds[0]);
       } else {
         set({
-          logicalData: { schemaVersion: 1, nodes: [], edges: [], sequences: [] },
+          logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
           visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} }
         });
       }
@@ -191,7 +192,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       const diagJson = await StorageService.load_diagram(ws.path, id);
       const diag = JSON.parse(diagJson);
       
-      let logicalData: import('../../types').LogicalDiagram = { schemaVersion: 1, nodes: [], edges: [], sequences: [] };
+      let logicalData: import('../../types').LogicalDiagram = { schemaVersion: 2, nodes: [], edges: [], sequences: [] };
       let visualData: import('../../types').VisualDiagram = { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} };
       
       if (diag.logicalData && Array.isArray(diag.logicalData.nodes) && Array.isArray(diag.logicalData.edges)) {
@@ -226,7 +227,8 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         };
       }
       
-      const migrated = migratePortFormat(logicalData, visualData);
+      const migratedPort = migratePortFormat(logicalData, visualData);
+      const migrated = migrateToSchemaV2(migratedPort.logicalData, migratedPort.visualData);
       
       const openIds = new Set(state.openDiagramIds);
       openIds.add(id);
@@ -258,7 +260,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         set({ 
           activeDiagramId: null,
           openDiagramIds: [],
-          logicalData: { schemaVersion: 1, nodes: [], edges: [], sequences: [] },
+          logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
           visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} },
           rightSidebarOpen: false,
           timelineOpen: false,
@@ -275,7 +277,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       const resJson = await StorageService.create_workspace(name, description);
       const ws: WorkspaceMeta = JSON.parse(resJson);
       
-      const logicalJson = JSON.stringify({ schemaVersion: 1, nodes: [], edges: [], sequences: [] });
+      const logicalJson = JSON.stringify({ schemaVersion: 2, nodes: [], edges: [], sequences: [] });
       const visualJson = JSON.stringify({ canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} });
       
       // Create default diagram and diagrams directory
@@ -291,7 +293,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         diagrams: [defaultDiagram],
         activeDiagramId: 'default',
         openDiagramIds: ['default'],
-        logicalData: { schemaVersion: 1, nodes: [], edges: [], sequences: [] },
+        logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
         visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} },
         isDirty: false,
         isPlaying: false,
@@ -331,7 +333,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         diagrams,
         activeDiagramId: null,
         openDiagramIds: [],
-        logicalData: { schemaVersion: 1, nodes: [], edges: [], sequences: [] },
+        logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
         visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} },
         isDirty: false,
         isPlaying: false,

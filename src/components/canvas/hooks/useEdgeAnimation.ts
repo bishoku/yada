@@ -29,8 +29,8 @@ export const useEdgeAnimation = (edgeId: string, pathRef: RefObject<SVGPathEleme
       for (const seq of seqsForEdge) {
         const sched = schedules[seq.id];
         if (!sched) continue;
-
-        const effectiveMode = seq.animationMode ?? (seq.isRoundTrip ? 'roundTrip' : 'normal');
+        const timing = state.visualData.timelines[seq.id];
+        const effectiveMode = timing?.animationMode ?? (seq.isRoundTrip ? 'roundTrip' : 'normal');
 
         if (effectiveMode === 'repeat') {
           // Repeat mode: starts at step start, continues until entire timeline ends
@@ -81,14 +81,14 @@ export const useEdgeAnimation = (edgeId: string, pathRef: RefObject<SVGPathEleme
         const timing = state.visualData.timelines[activeSeq.id];
         const stepDuration = timing?.duration ?? 1000;
         const elapsed = currentTime - sched.start;
-        const effectiveMode = activeSeq.animationMode ?? (activeSeq.isRoundTrip ? 'roundTrip' : 'normal');
+        const effectiveMode = timing?.animationMode ?? (activeSeq.isRoundTrip ? 'roundTrip' : 'normal');
 
         const totalLength = pathEl.getTotalLength();
         if (totalLength <= 0) return;
 
         switch (effectiveMode) {
           case 'repeat': {
-            const count = activeSeq.repeatParticleCount ?? 1;
+            const count = timing?.repeatParticleCount ?? 1;
             const cycleDuration = stepDuration;
             const positions: Array<{ x: number; y: number; rotation: number }> = [];
 

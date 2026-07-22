@@ -153,13 +153,28 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
       const sequences = state.logicalData.sequences.map((s) =>
         s.id === seqId ? {
           ...s,
-          animationMode: mode,
-          isRoundTrip: mode === 'roundTrip', // keep backward compat
-          ...(mode === 'repeat' && particleCount !== undefined ? { repeatParticleCount: particleCount } : {}),
+          isRoundTrip: mode === 'roundTrip',
         } : s
       );
+
+      const existingTiming = state.visualData.timelines[seqId] || {
+        sequenceId: seqId,
+        duration: 1000,
+        delay: 0,
+      };
+
+      const timelines = {
+        ...state.visualData.timelines,
+        [seqId]: {
+          ...existingTiming,
+          animationMode: mode,
+          ...(mode === 'repeat' && particleCount !== undefined ? { repeatParticleCount: particleCount } : {}),
+        }
+      };
+
       return {
         logicalData: { ...state.logicalData, sequences },
+        visualData: { ...state.visualData, timelines },
         isDirty: true
       };
     });

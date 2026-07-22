@@ -367,7 +367,6 @@ export const tempoAdapter: DiagramAdapter = {
         edgeId: edgeId,
         isAsync: isMessaging,
         isRoundTrip: !isMessaging,
-        animationMode: isMessaging ? 'normal' : 'roundTrip'
       });
 
       // Calculate timing (convert nano to milli)
@@ -380,6 +379,7 @@ export const tempoAdapter: DiagramAdapter = {
         sequenceId,
         duration: Math.min(durationMs, 50000), // Cap increased for high multipliers
         delay: Math.min(delayMs, 20000),
+        animationMode: isMessaging ? 'normal' : 'roundTrip',
         internalProcess: {
           text: span.name,
           duration: 1000
@@ -388,7 +388,7 @@ export const tempoAdapter: DiagramAdapter = {
     }
 
     const logicalData: LogicalDiagram = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       nodes,
       edges,
       sequences

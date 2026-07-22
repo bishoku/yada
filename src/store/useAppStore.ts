@@ -58,7 +58,7 @@ export const useAppStore = create<AppState>()((set, get, store) => {
     ...createHistorySlice(...a),
 
     // Phase 2 Canvas Initial State
-    logicalData: { schemaVersion: 1, nodes: [], edges: [], sequences: [] },
+    logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
     visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {}, annotations: {} },
     schedules: {},
     

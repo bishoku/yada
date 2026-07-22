@@ -3,6 +3,34 @@ import { Node, Edge } from '@xyflow/react';
 import { useAppStore } from '../../../store/useAppStore';
 import { toRfNode } from './utils';
 
+const buildRfNodesFromState = (logicalData: any, visualData: any): Node[] => {
+  const sortedLogical = [...(logicalData.nodes || [])].sort((a, b) => {
+    const aS = a.type === 'section' ? 0 : 1;
+    const bS = b.type === 'section' ? 0 : 1;
+    return aS - bS;
+  });
+
+  const logicalRfNodes: Node[] = sortedLogical.map((ln) => {
+    const vn = visualData.layoutNodes[ln.id] ?? { x: 0, y: 0 };
+    return toRfNode(ln, vn);
+  });
+
+  const annotations = visualData.annotations || {};
+  const stickyRfNodes: Node[] = Object.keys(annotations).map((noteId) => {
+    const vn = visualData.layoutNodes[noteId] ?? { x: 50, y: 50, width: 220, height: 160 };
+    const ann = annotations[noteId];
+    return toRfNode({ id: noteId, type: 'sticky_note', name: ann?.header || 'Sticky Note' }, vn);
+  });
+
+  const all = [...logicalRfNodes, ...stickyRfNodes];
+  all.sort((a, b) => {
+    const aS = a.type === 'sectionNode' ? 0 : 1;
+    const bS = b.type === 'sectionNode' ? 0 : 1;
+    return aS - bS;
+  });
+  return all;
+};
+
 export const useCanvasSync = (
   setRfNodes: React.Dispatch<React.SetStateAction<Node[]>>,
   setRfEdges: React.Dispatch<React.SetStateAction<Edge[]>>
@@ -12,75 +40,41 @@ export const useCanvasSync = (
   const logicalDataRef = useRef(useAppStore.getState().logicalData);
 
   // Sync refs with store to avoid unnecessary dependency triggers
-  // Also reactively sync ReactFlow state when logical nodes/edges change
+  // Also reactively sync ReactFlow state when logical nodes/edges or visual annotations change
   useEffect(() => {
     const unsub = useAppStore.subscribe((state, prevState) => {
       visualDataRef.current = state.visualData;
       logicalDataRef.current = state.logicalData;
 
-      // Sync nodes/edges if they actually changed
-      if (
+      const nodesChanged =
         state.logicalData.nodes !== prevState.logicalData.nodes ||
-        state.logicalData.edges !== prevState.logicalData.edges
+        state.visualData.annotations !== prevState.visualData.annotations;
+
+      if (nodesChanged) {
+        setRfNodes(() => buildRfNodesFromState(state.logicalData, state.visualData));
+      }
+
+      if (
+        state.logicalData.edges !== prevState.logicalData.edges ||
+        state.visualData.layoutEdges !== prevState.visualData.layoutEdges
       ) {
-        setRfNodes((currentNodes) => {
-          // 1. Filter out deleted nodes
-          const remainingNodes = currentNodes.filter((cn) =>
-            state.logicalData.nodes.some((ln) => ln.id === cn.id)
+        setTimeout(() => {
+          const freshState = useAppStore.getState();
+          setRfEdges(() =>
+            freshState.logicalData.edges.map((le) => {
+              const ve = freshState.visualData.layoutEdges[le.id];
+              return {
+                id: le.id,
+                type: 'customEdge',
+                source: le.sourceId,
+                target: le.targetId,
+                sourceHandle: ve?.sourceHandle ? `${ve.sourceHandle}-source` : undefined,
+                targetHandle: ve?.targetHandle ? `${ve.targetHandle}-target` : undefined,
+                reconnectable: true,
+              };
+            })
           );
-
-          // 2. Update existing nodes (parentId, data changes)
-          const updatedRemaining = remainingNodes.map((cn) => {
-            const ln = state.logicalData.nodes.find((l) => l.id === cn.id);
-            if (!ln) return cn;
-            const vn = state.visualData.layoutNodes[ln.id] ?? { x: 0, y: 0 };
-            return toRfNode(ln, vn);
-          });
-
-          // 3. Add newly created nodes (sections first for parentId resolution)
-          const newLogical = state.logicalData.nodes
-            .filter((ln) => !currentNodes.some((cn) => cn.id === ln.id))
-            .sort((a, b) => {
-              const aS = a.type === 'section' ? 0 : 1;
-              const bS = b.type === 'section' ? 0 : 1;
-              return aS - bS;
-            });
-            
-          const newNodes = newLogical.map((ln) => {
-            const vn = state.visualData.layoutNodes[ln.id] ?? { x: 0, y: 0 };
-            return toRfNode(ln, vn);
-          });
-
-          // Sort: sections first in the final array
-          const all = [...updatedRemaining, ...newNodes];
-          all.sort((a, b) => {
-            const aS = a.type === 'sectionNode' ? 0 : 1;
-            const bS = b.type === 'sectionNode' ? 0 : 1;
-            return aS - bS;
-          });
-          return all;
-        });
-
-        if (state.logicalData.edges !== prevState.logicalData.edges ||
-            state.visualData.layoutEdges !== prevState.visualData.layoutEdges) {
-          setTimeout(() => {
-            const freshState = useAppStore.getState();
-            setRfEdges(() =>
-              freshState.logicalData.edges.map((le) => {
-                const ve = freshState.visualData.layoutEdges[le.id];
-                return {
-                  id: le.id,
-                  type: 'customEdge',
-                  source: le.sourceId,
-                  target: le.targetId,
-                  sourceHandle: ve?.sourceHandle ? `${ve.sourceHandle}-source` : undefined,
-                  targetHandle: ve?.targetHandle ? `${ve.targetHandle}-target` : undefined,
-                  reconnectable: true,
-                };
-              })
-            );
-          }, 50);
-        }
+        }, 50);
       }
     });
     return unsub;
@@ -94,21 +88,9 @@ export const useCanvasSync = (
     initialised.current = true;
     
     const state = useAppStore.getState();
-    const logicalData = state.logicalData;
-
-    // Sort: sections first so ReactFlow can resolve parentId references
-    const sortedLogical = [...logicalData.nodes].sort((a, b) => {
-      const aS = a.type === 'section' ? 0 : 1;
-      const bS = b.type === 'section' ? 0 : 1;
-      return aS - bS;
-    });
+    const nodes = buildRfNodesFromState(state.logicalData, state.visualData);
     
-    const nodes: Node[] = sortedLogical.map((ln) => {
-      const vn = state.visualData.layoutNodes[ln.id] ?? { x: 0, y: 0 };
-      return toRfNode(ln, vn);
-    });
-    
-    const edges: Edge[] = logicalData.edges.map((le) => {
+    const edges: Edge[] = state.logicalData.edges.map((le) => {
       const ve = state.visualData.layoutEdges[le.id];
       return {
         id: le.id,
@@ -131,18 +113,7 @@ export const useCanvasSync = (
   useEffect(() => {
     if (layoutVersion === 0) return;
     const state = useAppStore.getState();
-    const sortedLogical = [...state.logicalData.nodes].sort((a, b) => {
-      const aS = a.type === 'section' ? 0 : 1;
-      const bS = b.type === 'section' ? 0 : 1;
-      return aS - bS;
-    });
-    
-    setRfNodes(() =>
-      sortedLogical.map((ln) => {
-        const vn = visualDataRef.current.layoutNodes[ln.id] ?? { x: 0, y: 0 };
-        return toRfNode(ln, vn);
-      })
-    );
+    setRfNodes(() => buildRfNodesFromState(state.logicalData, visualDataRef.current));
   }, [layoutVersion, setRfNodes]);
 
   return { visualDataRef };

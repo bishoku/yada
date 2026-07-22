@@ -13,7 +13,7 @@ export interface CanvasSlice {
   cloneNode: (id: string) => void;
   updateNodePosition: (id: string, x: number, y: number) => void;
   updateNodeDimensions: (id: string, width: number, height: number) => void;
-  addStickyNote: (logical: LogicalNode, visual: VisualNode, annotation: StickyNote) => void;
+  addStickyNote: (visual: VisualNode, annotation: StickyNote) => void;
   updateStickyNote: (id: string, updates: Partial<StickyNote>) => void;
   deleteStickyNote: (id: string) => void;
   addEdge: (logical: LogicalEdge, visual: VisualEdge) => void;
@@ -150,14 +150,12 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     });
   },
 
-  addStickyNote: (logical, visual, annotation) => {
+  addStickyNote: (visual, annotation) => {
     get().pushToHistory();
     set((state) => {
-      const nodes = [...state.logicalData.nodes, logical];
       const layoutNodes = { ...state.visualData.layoutNodes, [visual.id]: visual };
       const annotations = { ...(state.visualData.annotations || {}), [annotation.id]: annotation };
       return {
-        logicalData: { ...state.logicalData, nodes },
         visualData: { ...state.visualData, layoutNodes, annotations },
         isDirty: true
       };
@@ -183,7 +181,6 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
   deleteStickyNote: (id) => {
     get().pushToHistory();
     set((state) => {
-      const nodes = state.logicalData.nodes.filter((n) => n.id !== id);
       const layoutNodes = { ...state.visualData.layoutNodes };
       delete layoutNodes[id];
       
@@ -191,7 +188,6 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
       delete annotations[id];
 
       return {
-        logicalData: { ...state.logicalData, nodes },
         visualData: { ...state.visualData, layoutNodes, annotations },
         isDirty: true
       };

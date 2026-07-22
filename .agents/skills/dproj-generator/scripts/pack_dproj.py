@@ -5,10 +5,13 @@ pack_dproj.py — Validates and packs workspace.json + diagram.json into a .dpro
 Usage:
   python pack_dproj.py <output.dproj> <workspace.json> <diagram.json>
 
-Auto-repairs applied silently before packing:
+Auto-repairs applied silently before packing (Schema V2):
   1. Handle IDs referenced in layoutEdges but missing from node handles → injected.
   2. Child nodes (parentId set) using absolute canvas coordinates → converted to
      section-relative coordinates using a two-condition heuristic.
+  3. Purge pseudo-logical sticky_note entries from logicalData.nodes (belong in annotations).
+  4. Move animationMode and repeatParticleCount from SequenceStep to VisualDiagram.timelines.
+  5. Bump schemaVersion to 2.
 """
 
 import sys
@@ -18,7 +21,7 @@ import os
 
 VALID_TYPES = {
     "client", "load_balancer", "gateway", "server", "database",
-    "cache", "queue", "firewall", "section", "sticky_note",
+    "cache", "queue", "firewall", "section",
 }
 VALID_SIDES = {"top", "right", "bottom", "left"}
 DEFAULT_HANDLES = [
@@ -121,10 +124,7 @@ def repair_section_coordinates(data: dict) -> list:
     """
     Child nodes with parentId must use section-relative coordinates.
     Detects and converts absolute canvas coordinates to relative using a
-    two-condition heuristic:
-      (a) Node position falls outside section bounds when treated as relative.
-      (b) After subtracting section position, the node falls inside the section.
-    Mutates data in place.
+    two-condition heuristic. Mutates data in place.
     """
     repairs = []
     ld = data.get("logicalData", {})
@@ -132,7 +132,6 @@ def repair_section_coordinates(data: dict) -> list:
     nodes = ld.get("nodes", [])
     layout_nodes = vd.get("layoutNodes", {})
 
-    # Build section map
     sections = {}
     for n in nodes:
         if n.get("type") == "section":
@@ -159,10 +158,7 @@ def repair_section_coordinates(data: dict) -> list:
         nw = vn.get("width", 224)
         nh = vn.get("height", 52)
 
-        # (a) Looks wrong as relative coords
         outside_as_relative = nx > sw or ny > sh or nx < -nw or ny < -nh
-
-        # (b) Makes sense after converting to relative
         rel_x = nx - sx
         rel_y = ny - sy
         inside_after_conversion = 0 <= rel_x < sw and 0 <= rel_y < sh
@@ -178,45 +174,31 @@ def repair_section_coordinates(data: dict) -> list:
     return repairs
 
 
-# ─── Repair 3: Orphaned annotations → synthesise missing sticky_note entries ──
+# ─── Repair 3: Schema V2 Cleanups (Sticky notes & Sequence animations) ─────────
 
-def repair_sticky_notes(data: dict) -> list:
+def repair_schema_v2(data: dict) -> list:
     """
-    A sticky note requires THREE entries:
-      (a) logicalData.nodes  — type='sticky_note'
-      (b) visualData.layoutNodes — position + size
-      (c) visualData.annotations — content + style
-
-    If (c) exists but (a) or (b) are missing, synthesise them.
-    Mutates data in place.
+    Migrates diagram data to Schema V2:
+      1. Purge sticky_note entries from logicalData.nodes (belong in visualData.annotations).
+      2. Ensure layoutNodes entry exists for every annotation.
+      3. Move animationMode / repeatParticleCount from SequenceStep to VisualDiagram.timelines.
+      4. Bump schemaVersion to 2.
     """
     repairs = []
     ld = data.get("logicalData", {})
     vd = data.get("visualData", {})
+
+    # 1. Clean sticky_note from logicalData.nodes
+    nodes = ld.get("nodes", [])
+    clean_nodes = [n for n in nodes if n.get("type") != "sticky_note" and not (n.get("properties") or {}).get("_visualOnly")]
+    if len(clean_nodes) != len(nodes):
+        ld["nodes"] = clean_nodes
+        repairs.append(f"  ✎  Removed {len(nodes) - len(clean_nodes)} legacy sticky_note entries from logicalData.nodes")
+
+    # 2. Ensure layoutNodes entry exists for every annotation
     annotations = vd.get("annotations", {})
-    if not annotations:
-        return repairs
-
-    nodes = ld.setdefault("nodes", [])
     layout_nodes = vd.setdefault("layoutNodes", {})
-    existing_ids = {n.get("id") for n in nodes}
-
-    for note_id, annotation in annotations.items():
-        if not isinstance(annotation, dict):
-            continue
-
-        # (a) Missing logical node
-        if note_id not in existing_ids:
-            nodes.append({
-                "id": note_id,
-                "type": "sticky_note",
-                "name": annotation.get("header", "Sticky Note"),
-                "properties": {"_visualOnly": True}
-            })
-            existing_ids.add(note_id)
-            repairs.append(f"  ✎  Annotation '{note_id}': synthesised missing logicalData.nodes entry")
-
-        # (b) Missing layoutNode
+    for note_id in annotations:
         if note_id not in layout_nodes:
             layout_nodes[note_id] = {
                 "id": note_id,
@@ -227,17 +209,38 @@ def repair_sticky_notes(data: dict) -> list:
             }
             repairs.append(f"  ✎  Annotation '{note_id}': synthesised missing layoutNodes entry at (50, 50)")
 
+    # 3. Move animation fields from sequences to timelines
+    sequences = ld.get("sequences", [])
+    timelines = vd.setdefault("timelines", {})
+    for s in sequences:
+        mode = s.pop("animationMode", None)
+        count = s.pop("repeatParticleCount", None)
+        if mode is not None or count is not None:
+            seq_id = s.get("id")
+            if seq_id:
+                t = timelines.setdefault(seq_id, {"sequenceId": seq_id, "duration": 1000, "delay": 0})
+                if mode is not None:
+                    t["animationMode"] = mode
+                if count is not None:
+                    t["repeatParticleCount"] = count
+                repairs.append(f"  ✎  Sequence '{seq_id}': moved animation parameters to timelines")
+
+    # 4. Bump schemaVersion
+    if data.get("schemaVersion") != 2:
+        data["schemaVersion"] = 2
+        ld["schemaVersion"] = 2
+        repairs.append("  ✎  Bumped schemaVersion to 2")
+
     return repairs
 
 
 # ─── Diagram validation ────────────────────────────────────────────────────────
 
-
 def validate_diagram(data: dict) -> list:
     errors = []
 
-    if data.get("schemaVersion") != 1:
-        errors.append("diagram.json: 'schemaVersion' must be 1")
+    if data.get("schemaVersion") not in (1, 2):
+        errors.append("diagram.json: 'schemaVersion' must be 1 or 2")
 
     ld = data.get("logicalData")
     if not isinstance(ld, dict):
@@ -356,8 +359,8 @@ def main():
     all_repairs = []
     coord_repairs = repair_section_coordinates(diagram_data)
     all_repairs.extend(coord_repairs)
-    note_repairs = repair_sticky_notes(diagram_data)
-    all_repairs.extend(note_repairs)
+    schema_repairs = repair_schema_v2(diagram_data)
+    all_repairs.extend(schema_repairs)
     handle_repairs = repair_handles(diagram_data)
     all_repairs.extend(handle_repairs)
 

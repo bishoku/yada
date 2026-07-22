@@ -49,13 +49,10 @@ export interface SequenceStep {
   edgeId: string;          // Foreign Key → LogicalEdge.id
   isAsync: boolean;        // True = fire and forget, don't block subsequent stepNumbers
   isRoundTrip?: boolean;   // True = round-trip A→B→A for sync responses (request+response)
-  animationMode?: 'normal' | 'roundTrip' | 'repeat';  // Animation mode for simulation
-  repeatParticleCount?: number;  // How many particles in repeat mode
-  // NOTE: 'direction' removed — use the "Swap Source/Target" action on edges instead.
 }
 
 export interface LogicalDiagram {
-  schemaVersion: number;   // Schema version for future-proof migrations (current: 1)
+  schemaVersion: number;   // Schema version for future-proof migrations (current: 2)
   nodes: LogicalNode[];
   edges: LogicalEdge[];
   sequences: SequenceStep[];
@@ -99,6 +96,8 @@ export interface TimelineTiming {
   sequenceId: string;      // Foreign Key → SequenceStep.id
   duration: number;        // Transition duration in milliseconds
   delay: number;           // Transition start delay in milliseconds
+  animationMode?: 'normal' | 'roundTrip' | 'repeat';  // Visual animation mode for simulation
+  repeatParticleCount?: number;  // How many particles in repeat mode
   internalProcess?: {
     text: string;          // Text to show in tooltip bubble
     duration: number;      // Tooltip display duration in milliseconds
@@ -342,7 +341,7 @@ export interface AppState {
   updateNodeDimensions: (id: string, width: number, height: number) => void;
   
   // Sticky Note Actions
-  addStickyNote: (logical: LogicalNode, visual: VisualNode, annotation: StickyNote) => void;
+  addStickyNote: (visual: VisualNode, annotation: StickyNote) => void;
   updateStickyNote: (id: string, updates: Partial<StickyNote>) => void;
   deleteStickyNote: (id: string) => void;
   addEdge: (logical: LogicalEdge, visual: VisualEdge) => void;

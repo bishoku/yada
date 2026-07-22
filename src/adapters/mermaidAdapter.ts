@@ -528,7 +528,7 @@ export const mermaidAdapter: DiagramAdapter = {
 
     // ── Build output ──────────────────────────────────────────────────────
     const logicalData: LogicalDiagram = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       nodes: logicalNodes,
       edges: logicalEdges,
       sequences,

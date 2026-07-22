@@ -142,25 +142,17 @@ export function repairDiagram(
   // If an annotation exists but (a) or (b) are missing, synthesise them.
 
   const annotations: Record<string, any> = visualData.annotations ?? {};
-  const logicalNodeIds = new Set(nodes.map((n: any) => n.id));
-  const repairedNodes = [...nodes];
+  
+  // Remove any legacy pseudo-logical sticky_note entries from nodes
+  const repairedNodes = nodes.filter((n: any) => n.type !== 'sticky_note' && n.properties?._visualOnly !== true);
+  if (repairedNodes.length !== nodes.length) {
+    repairs.push(`Cleaned up ${nodes.length - repairedNodes.length} legacy sticky_note entries from logicalData.nodes`);
+  }
 
   for (const [noteId, annotation] of Object.entries(annotations)) {
     if (!annotation || typeof annotation !== 'object') continue;
 
-    // (a) Missing logical node
-    if (!logicalNodeIds.has(noteId)) {
-      repairedNodes.push({
-        id: noteId,
-        type: 'sticky_note',
-        name: annotation.header ?? 'Sticky Note',
-        properties: { _visualOnly: true },
-      });
-      logicalNodeIds.add(noteId);
-      repairs.push(`Annotation '${noteId}': synthesised missing logicalData.nodes entry`);
-    }
-
-    // (b) Missing layoutNode (position/size)
+    // Missing layoutNode (position/size)
     if (!layoutNodes[noteId]) {
       // Place in a safe default position; the user can move it after import
       layoutNodes[noteId] = {

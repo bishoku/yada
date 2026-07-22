@@ -100,6 +100,11 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
     return logicalData.sequences.find((s) => s.edgeId === activeEdge.id) ?? null;
   }, [activeEdge, logicalData.sequences]);
 
+  const activeEdgeTiming = useMemo(() => {
+    if (!activeEdgeSeq) return null;
+    return visualData.timelines[activeEdgeSeq.id] ?? null;
+  }, [activeEdgeSeq, visualData.timelines]);
+
   // ── Refs to form imperative handles ─────────────────────────────────────
   const nodeFormRef = useRef<NodePropertiesFormRef>(null);
   const edgeFormRef = useRef<EdgePropertiesFormRef>(null);
@@ -233,8 +238,8 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
             language={language}
             maxSteps={maxSteps}
             sequenceRoundTrip={activeEdgeSeq?.isRoundTrip ?? false}
-            sequenceAnimationMode={activeEdgeSeq?.animationMode}
-            sequenceRepeatParticleCount={activeEdgeSeq?.repeatParticleCount}
+            sequenceAnimationMode={activeEdgeTiming?.animationMode}
+            sequenceRepeatParticleCount={activeEdgeTiming?.repeatParticleCount}
             onPreview={handlePreviewEdge}
             onSubmit={onApplyEdge}
           />

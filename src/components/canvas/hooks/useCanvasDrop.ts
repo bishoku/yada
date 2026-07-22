@@ -51,8 +51,6 @@ export const useCanvasDrop = (
 
       setRfNodes((nds) => isSection ? [newNode, ...nds] : [...nds, newNode]);
       
-      const logicalNode = { id: nodeId, type, name: uniqueName, properties: { _visualOnly: isStickyNote } };
-      
       if (isStickyNote) {
         // Find a safe start time (currentTime or 0)
         const currentTime = useAppStore.getState().currentTime;
@@ -77,8 +75,9 @@ export const useCanvasDrop = (
           endTime,
           alwaysVisible: false
         };
-        addStickyNote(logicalNode, visualNode, annotation);
+        addStickyNote(visualNode, annotation);
       } else {
+        const logicalNode = { id: nodeId, type, name: uniqueName };
         addNode(logicalNode, visualNode);
       }
       

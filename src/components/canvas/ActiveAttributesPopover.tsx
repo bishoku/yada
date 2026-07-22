@@ -26,7 +26,7 @@ export const ActiveAttributesPopover: React.FC = () => {
       const stepDuration = timing?.duration ?? 1000;
 
       // 1. Edge Active Check
-      const effectiveMode = seq.animationMode ?? (seq.isRoundTrip ? 'roundTrip' : 'normal');
+      const effectiveMode = timing?.animationMode ?? (seq.isRoundTrip ? 'roundTrip' : 'normal');
       let edgeAnimating = false;
 
       if (effectiveMode === 'repeat') {
