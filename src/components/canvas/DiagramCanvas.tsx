@@ -65,6 +65,7 @@ function isColorDark(color: string): boolean {
 
 const FlowWrapper: React.FC = () => {
   const updateNodePosition = useAppStore((s) => s.updateNodePosition);
+  const updateNodeDimensions = useAppStore((s) => s.updateNodeDimensions);
   const zustandAddEdge = useAppStore((s) => s.addEdge);
   const zustandReconnectEdge = useAppStore((s) => s.reconnectEdge);
   const deleteNode = useAppStore((s) => s.deleteNode);
@@ -360,6 +361,8 @@ const FlowWrapper: React.FC = () => {
       changes.forEach((change) => {
         if (change.type === 'position' && change.position) {
           updateNodePosition(change.id, change.position.x, change.position.y);
+        } else if (change.type === 'dimensions' && change.dimensions) {
+          updateNodeDimensions(change.id, Math.round(change.dimensions.width), Math.round(change.dimensions.height));
         } else if (change.type === 'remove') {
           const state = useAppStore.getState();
           const node = state.logicalData.nodes.find(n => n.id === change.id);
@@ -370,7 +373,7 @@ const FlowWrapper: React.FC = () => {
         }
       });
     },
-    [setRfNodes, updateNodePosition, deleteNode, isPlaying, setSelectedSequenceId, setRfEdges, handleSnapping]
+    [setRfNodes, updateNodePosition, updateNodeDimensions, deleteNode, isPlaying, setSelectedSequenceId, setRfEdges, handleSnapping]
 
   );
 

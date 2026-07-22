@@ -9,6 +9,8 @@ export const StickyNoteNode: React.FC<NodeProps> = ({ id, selected }) => {
   const isPlaying = useAppStore((s) => s.isPlaying);
   const visualNode = useAppStore((s) => s.visualData.layoutNodes[id]);
   const annotation = useAppStore((s) => s.visualData.annotations?.[id]);
+  const updateNodeDimensions = useAppStore((s: any) => s.updateNodeDimensions);
+  const pushToHistory = useAppStore((s: any) => s.pushToHistory);
   const { isVisible, opacity } = useStickyNoteVisibility(id);
 
   if (!visualNode || !annotation) return null;
@@ -72,7 +74,11 @@ export const StickyNoteNode: React.FC<NodeProps> = ({ id, selected }) => {
           color="#3b82f6" 
           isVisible={true} 
           minWidth={100} 
-          minHeight={100} 
+          minHeight={100}
+          onResizeStart={() => pushToHistory()}
+          onResizeEnd={(_, params) => {
+            updateNodeDimensions(id, Math.round(params.width), Math.round(params.height));
+          }}
         />
       )}
     </>

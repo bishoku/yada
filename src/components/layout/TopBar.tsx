@@ -286,7 +286,7 @@ export const TopBar: React.FC = () => {
 
         {/* Workspace pill */}
         <div
-          className="hidden sm:flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group cursor-pointer"
+          className="hidden sm:flex items-center gap-1.5 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group cursor-pointer"
           title={currentWorkspace?.path}
           onClick={() => setShowSettings(true)}
         >
@@ -309,7 +309,7 @@ export const TopBar: React.FC = () => {
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); manualSave(); }}
-                className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-500 transition-colors cursor-pointer"
+                className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-500 transition-colors cursor-pointer"
                 title={language === 'tr' ? 'Şimdi kaydet' : 'Save now'}
               >
                 <Save className="w-3 h-3" />
@@ -329,13 +329,13 @@ export const TopBar: React.FC = () => {
       {/* ── Center Section: View Switcher ── */}
       <div className="flex-1 flex justify-center min-w-0">
         {activeDiagramId && (
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-0.5 rounded-lg select-none">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 p-0.5 rounded-lg select-none">
             <button
               onClick={() => viewMode !== 'freeform' && toggleViewMode()}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 viewMode === 'freeform'
-                  ? 'bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
               title={language === 'tr' ? 'Serbest Stil Görünümü' : 'Free Style View'}
             >
@@ -346,8 +346,8 @@ export const TopBar: React.FC = () => {
               onClick={() => viewMode !== 'sequence' && toggleViewMode()}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 viewMode === 'sequence'
-                  ? 'bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
               title={language === 'tr' ? 'Sequence Diagram Görünümü' : 'Sequence Diagram View'}
             >
@@ -362,12 +362,12 @@ export const TopBar: React.FC = () => {
       <div className="flex items-center gap-1.5 shrink-0">
         {/* Panel toggles */}
         {activeDiagramId && (
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5">
             <button
               onClick={toggleLeftSidebar}
               className={`p-1.5 rounded-md cursor-pointer transition-colors ${leftSidebarOpen
-                ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+                ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 shadow-sm'
+                : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
               title={language === 'tr' ? 'Sol panel' : 'Left panel'}
             >
@@ -376,8 +376,8 @@ export const TopBar: React.FC = () => {
             <button
               onClick={toggleTimeline}
               className={`p-1.5 rounded-md cursor-pointer transition-colors ${timelineOpen
-                ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+                ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 shadow-sm'
+                : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
               title={language === 'tr' ? 'Zaman çizelgesi' : 'Timeline'}
             >
@@ -386,17 +386,17 @@ export const TopBar: React.FC = () => {
             <button
               onClick={toggleRightSidebar}
               className={`p-1.5 rounded-md cursor-pointer transition-colors ${rightSidebarOpen
-                ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+                ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 shadow-sm'
+                : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
               title={language === 'tr' ? 'Sağ panel' : 'Right panel'}
             >
               <PanelRight className="w-3.5 h-3.5" />
             </button>
-            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+            <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-0.5" />
             <button
               onClick={toggleFullscreen}
-              className="p-1.5 rounded-md cursor-pointer transition-colors text-slate-400 hover:text-slate-650 dark:text-slate-500 dark:hover:text-slate-300"
+              className="p-1.5 rounded-md cursor-pointer transition-colors text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200"
               title={language === 'tr' ? 'Tam Ekran' : 'Fullscreen'}
             >
               {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
@@ -410,7 +410,7 @@ export const TopBar: React.FC = () => {
             <CanvasBgSelector />
 
             {/* Undo / Redo */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5">
+            <div className="flex items-center bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5">
               <button
                 onClick={undo}
                 disabled={pastStates.length === 0}
@@ -433,7 +433,7 @@ export const TopBar: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setShowLayoutMenu(!showLayoutMenu)}
-                className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer transition-colors"
+                className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer transition-colors"
                 title={language === 'tr' ? 'Otomatik Düzenle' : 'Auto-Layout'}
               >
                 <Grid className="w-3.5 h-3.5" />
@@ -460,7 +460,7 @@ export const TopBar: React.FC = () => {
             {/* Copy for AI */}
             <button
               onClick={handleCopyForAi}
-              className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer transition-colors"
+              className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer transition-colors"
               title={language === 'tr' ? 'AI İçin Kopyala' : 'Copy for AI'}
             >
               <Copy className="w-3.5 h-3.5" />

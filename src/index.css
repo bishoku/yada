@@ -62,19 +62,19 @@ h1, h2, h3, h4, h5, h6 {
 .theme-nord {
   --color-slate-950: #2e3440; /* base background */
   --color-slate-900: #3b4252; /* secondary container background */
-  --color-slate-800: #434c5e; /* border primary */
-  --color-slate-850: #4c566a; /* border secondary */
-  --color-slate-700: #d8dee9; /* primary text */
-  --color-slate-600: #e5e9f0; /* primary titles */
-  --color-slate-500: #88c0d0; /* accent light */
-  --color-slate-400: #81a1c1; /* accent muted */
+  --color-slate-850: #434c5e; /* surface background */
+  --color-slate-800: #4c566a; /* border primary */
+  --color-slate-700: #4c566a; /* border secondary */
+  --color-slate-600: #9aa5b9; /* muted text */
+  --color-slate-500: #81a1c1; /* accent muted */
+  --color-slate-400: #eceff4; /* primary text */
   --color-slate-200: #d8dee9;
-  --color-slate-100: #e5e9f0;
+  --color-slate-100: #eceff4;
   --color-slate-50: #2e3440;
   
-  --color-indigo-600: #81a1c1; /* primary action buttons */
-  --color-indigo-500: #88c0d0; /* action button hover */
-  --color-indigo-400: #88c0d0;
+  --color-indigo-600: #5e81ac; /* primary action buttons */
+  --color-indigo-500: #81a1c1; /* action button hover */
+  --color-indigo-400: #88c0d0; /* accent light */
   
   color-scheme: dark;
 }
@@ -87,21 +87,21 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Custom visual styling overrides for Dracula theme */
 .theme-dracula {
-  --color-slate-950: #282a36; /* base background */
-  --color-slate-900: #1e1f29; /* secondary container background */
+  --color-slate-950: #21222c; /* base background */
+  --color-slate-900: #282a36; /* secondary container background */
+  --color-slate-850: #343746; /* surface background */
   --color-slate-800: #44475a; /* border primary */
-  --color-slate-850: #343746; /* border secondary */
-  --color-slate-700: #f8f8f2; /* primary text */
-  --color-slate-600: #ffffff; /* primary titles */
-  --color-slate-500: #ff79c6; /* accent pink */
-  --color-slate-400: #bd93f9; /* accent purple */
+  --color-slate-700: #44475a; /* border secondary */
+  --color-slate-600: #8993b8; /* muted text */
+  --color-slate-500: #bd93f9; /* accent purple */
+  --color-slate-400: #f8f8f2; /* primary text */
   --color-slate-200: #f8f8f2;
   --color-slate-100: #ffffff;
-  --color-slate-50: #282a36;
+  --color-slate-50: #21222c;
   
-  --color-indigo-600: #bd93f9; /* primary action buttons */
-  --color-indigo-500: #ff79c6; /* action button hover */
-  --color-indigo-400: #50fa7b; /* accent green */
+  --color-indigo-600: #9870db; /* primary action buttons */
+  --color-indigo-500: #bd93f9; /* action button hover */
+  --color-indigo-400: #bd93f9; /* accent text */
   
   color-scheme: dark;
 }
@@ -116,19 +116,19 @@ h1, h2, h3, h4, h5, h6 {
 .theme-synthwave {
   --color-slate-950: #181528; /* base background */
   --color-slate-900: #241e3a; /* secondary container background */
+  --color-slate-850: #2d1f44; /* surface background */
   --color-slate-800: #3b2d54; /* border primary */
-  --color-slate-850: #2d1f44; /* border secondary */
-  --color-slate-700: #e2e8f0; /* primary text */
-  --color-slate-600: #ff79c6; /* primary titles (pink) */
-  --color-slate-500: #00f0ff; /* accent cyan */
-  --color-slate-400: #ff79c6; /* accent pink */
+  --color-slate-700: #3b2d54; /* border secondary */
+  --color-slate-600: #9884b8; /* muted text */
+  --color-slate-500: #ff79c6; /* accent pink */
+  --color-slate-400: #e2e8f0; /* primary text */
   --color-slate-200: #e2e8f0;
   --color-slate-100: #ffffff;
   --color-slate-50: #181528;
   
-  --color-indigo-600: #ff79c6; /* primary action buttons (pink) */
-  --color-indigo-500: #00f0ff; /* action button hover (cyan) */
-  --color-indigo-400: #00f0ff;
+  --color-indigo-600: #d84b9e; /* primary action buttons */
+  --color-indigo-500: #ff79c6; /* action button hover */
+  --color-indigo-400: #ff79c6; /* accent text */
   
   color-scheme: dark;
 }
@@ -143,19 +143,19 @@ h1, h2, h3, h4, h5, h6 {
 .theme-retro {
   --color-slate-950: #1a1412; /* base background (warm dark brown) */
   --color-slate-900: #261e1b; /* secondary container background */
+  --color-slate-850: #332824; /* surface background */
   --color-slate-800: #42352f; /* border primary */
-  --color-slate-850: #332824; /* border secondary */
-  --color-slate-700: #f5e6d3; /* primary text (warm cream/parchment) */
-  --color-slate-600: #ffb703; /* primary titles (amber gold) */
-  --color-slate-500: #fb8500; /* accent orange */
-  --color-slate-400: #d97706; /* accent ochre */
+  --color-slate-700: #42352f; /* border secondary */
+  --color-slate-600: #a38f85; /* muted text */
+  --color-slate-500: #d97706; /* accent amber */
+  --color-slate-400: #f5e6d3; /* primary text */
   --color-slate-200: #f5e6d3;
   --color-slate-100: #fff7ed;
   --color-slate-50: #1a1412;
   
-  --color-indigo-600: #d97706; /* primary action buttons */
-  --color-indigo-500: #fb8500; /* action button hover */
-  --color-indigo-400: #ffb703;
+  --color-indigo-600: #b45309; /* primary action buttons */
+  --color-indigo-500: #d97706; /* action button hover */
+  --color-indigo-400: #ffb703; /* accent gold text */
   
   color-scheme: dark;
 }

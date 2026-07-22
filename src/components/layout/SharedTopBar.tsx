@@ -66,13 +66,13 @@ export const SharedTopBar: React.FC = () => {
         </div>
 
         {/* Center: View Switcher */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-0.5 rounded-lg select-none">
+        <div className="flex items-center bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 p-0.5 rounded-lg select-none">
           <button
             onClick={() => viewMode !== 'freeform' && toggleViewMode()}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all duration-200 cursor-pointer ${
               viewMode === 'freeform'
-                ? 'bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-350'
+                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
             title={isTr ? 'Serbest Stil Görünümü' : 'Free Style View'}
           >
@@ -83,8 +83,8 @@ export const SharedTopBar: React.FC = () => {
             onClick={() => viewMode !== 'sequence' && toggleViewMode()}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all duration-200 cursor-pointer ${
               viewMode === 'sequence'
-                ? 'bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-350'
+                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
             title={isTr ? 'Sequence Diagram Görünümü' : 'Sequence Diagram View'}
           >
