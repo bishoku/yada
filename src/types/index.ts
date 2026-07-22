@@ -411,6 +411,12 @@ export interface AppState {
   loadSharedDiagram: (logicalData: LogicalDiagram, visualData: VisualDiagram, title?: string) => void;
   loadImportPreview: (logicalData: LogicalDiagram, visualData: VisualDiagram) => void;
   cloneSharedToWorkspace: (name: string) => Promise<WorkspaceMeta>;
+  saveSharedToWorkspace: (
+    targetWorkspacePath: string | null,
+    isNew: boolean,
+    newWorkspaceName?: string,
+    targetDiagramName?: string
+  ) => Promise<WorkspaceMeta>;
   setImportState: (adapterId: string | null, data: string | null) => void;
   setViewMode: (mode: 'freeform' | 'sequence' | 'import-preview') => void;
 

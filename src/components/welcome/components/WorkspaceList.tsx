@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  ChevronDown, Upload, FolderOpen, HardDrive, Edit, Download, Trash2, Info, Activity, Sparkles, ArrowRight 
+  ChevronDown, Upload, FolderOpen, HardDrive, Edit, Download, Trash2, Info, Activity, Sparkles, ArrowRight, RotateCcw
 } from 'lucide-react';
 import { WorkspaceMeta } from '../../../types';
 import { DiagramAdapter } from '../../../adapters/types';
@@ -16,6 +16,8 @@ interface WorkspaceListProps {
   showImportMenu: boolean;
   setShowImportMenu: (show: boolean) => void;
   availableAdapters: DiagramAdapter[];
+  needsPermission?: boolean;
+  onGrantPermission?: () => void;
   onLoadRecent: (path: string) => void;
   onRenameWorkspace: (ws: WorkspaceMeta) => void;
   onExport: (ws: WorkspaceMeta) => void;
@@ -31,6 +33,8 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   showImportMenu,
   setShowImportMenu,
   availableAdapters,
+  needsPermission,
+  onGrantPermission,
   onLoadRecent,
   onRenameWorkspace,
   onExport,
@@ -93,6 +97,14 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 font-semibold text-xs uppercase tracking-wider">
             <span>{t.recentWorkspaces}</span>
+            <button
+              type="button"
+              onClick={() => useAppStore.getState().fetchRecentWorkspaces()}
+              className="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+              title={language === 'tr' ? 'Yenile' : 'Refresh'}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -139,6 +151,25 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
             </div>
           </div>
         </div>
+
+        {/* ── Permission Grant Banner (File System Access Mode) ── */}
+        {needsPermission && (
+          <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 rounded-xl flex items-center justify-between gap-2 shadow-sm animate-in fade-in duration-200">
+            <div className="flex items-center gap-2">
+              <HardDrive className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div className="text-xs text-amber-800 dark:text-amber-200 font-medium">
+                {language === 'tr' ? 'Yerel klasöre (.yada) erişim izni verilmeli' : 'Local folder (.yada) permission required'}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onGrantPermission}
+              className="px-3 py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer shrink-0 shadow-xs"
+            >
+              {language === 'tr' ? 'İzin Ver' : 'Grant Access'}
+            </button>
+          </div>
+        )}
 
         {/* ── Recent Workspaces List ── */}
         {recentWorkspaces.length === 0 ? (

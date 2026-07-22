@@ -1,231 +1,137 @@
-import { invoke } from '@tauri-apps/api/core';
+import { IStorageDriver, StorageMode } from './storage/types';
+import { TauriDriver } from './storage/drivers/TauriDriver';
+import { LocalStorageDriver } from './storage/drivers/LocalStorageDriver';
+import { FileSystemAccessDriver } from './storage/drivers/FileSystemAccessDriver';
+import { IDBHandleService } from './storage/idbHandle';
 
-/**
- * Checks if the application is running inside a Tauri environment.
- */
 export const isTauri = () => {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
 };
 
-// --- Web Environment (LocalStorage) Helpers ---
-const WEB_WORKSPACES_KEY = 'yada_workspaces';
-const WEB_PREFS_KEY = 'yada_preferences';
-const WEB_DIAGRAM_PREFIX = 'yada_data_';
-const WEB_GLOBAL_COMPONENTS_DIR = 'virtual://global_components';
+const STORAGE_MODE_KEY = 'yada_storage_mode';
 
-const generateId = () => Math.random().toString(36).substring(2, 9);
+class StorageManager implements IStorageDriver {
+  private activeDriver: IStorageDriver;
+  private mode: StorageMode;
 
-export const StorageService = {
-  // ---------------------------------------------------------
-  // WORKSPACE METADATA
-  // ---------------------------------------------------------
-  create_workspace: async (name: string, description: string): Promise<string> => {
+  constructor() {
     if (isTauri()) {
-      return await invoke<string>('create_workspace', { name, description });
-    }
-    // Web Implementation
-    const workspacesStr = localStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
-    const workspaces = JSON.parse(workspacesStr);
-    
-    const id = generateId();
-    const virtualPath = `virtual://workspace/${id}`;
-    
-    const ws = {
-      name,
-      description,
-      path: virtualPath,
-      lastModified: new Date().toISOString(),
-      dataDir: `${virtualPath}/data`
-    };
-    
-    workspaces.push(ws);
-    localStorage.setItem(WEB_WORKSPACES_KEY, JSON.stringify(workspaces));
-    return JSON.stringify(ws);
-  },
-
-  load_workspace: async (path: string): Promise<string> => {
-    if (isTauri()) {
-      return await invoke<string>('load_workspace', { path });
-    }
-    // Web Implementation
-    const workspacesStr = localStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
-    const workspaces = JSON.parse(workspacesStr);
-    const ws = workspaces.find((w: any) => w.path === path);
-    if (!ws) throw new Error('Workspace not found');
-    return JSON.stringify(ws);
-  },
-
-  save_workspace: async (metaJson: string): Promise<void> => {
-    if (isTauri()) {
-      await invoke('save_workspace', { metaJson });
-      return;
-    }
-    // Web Implementation
-    const ws = JSON.parse(metaJson);
-    const workspacesStr = localStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
-    let workspaces = JSON.parse(workspacesStr);
-    const index = workspaces.findIndex((w: any) => w.path === ws.path);
-    
-    if (index >= 0) {
-      workspaces[index] = { ...workspaces[index], ...ws, lastModified: new Date().toISOString() };
+      this.activeDriver = new TauriDriver();
+      this.mode = 'tauri';
     } else {
-      workspaces.push(ws);
-    }
-    localStorage.setItem(WEB_WORKSPACES_KEY, JSON.stringify(workspaces));
-  },
-
-  get_recent_workspaces: async (): Promise<string> => {
-    if (isTauri()) {
-      return await invoke<string>('get_recent_workspaces');
-    }
-    // Web Implementation
-    const workspacesStr = localStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
-    const workspaces = JSON.parse(workspacesStr);
-    // Sort by lastModified descending
-    workspaces.sort((a: any, b: any) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
-    return JSON.stringify(workspaces);
-  },
-
-  // ---------------------------------------------------------
-  // DIAGRAM DATA
-  // ---------------------------------------------------------
-  save_diagram: async (path: string, diagramId: string, logicalJson: string, visualJson: string, _diagramFileJson?: string): Promise<void> => {
-    if (isTauri()) {
-      await invoke('save_diagram', { path, diagramId, logicalJson, visualJson });
-    } else {
-      // Web Implementation — store both legacy and enveloped formats for compatibility
-      const dataKey = `${WEB_DIAGRAM_PREFIX}${path}_${diagramId}`;
-      const payload = {
-        schemaVersion: JSON.parse(logicalJson).schemaVersion ?? 1,
-        logicalData: JSON.parse(logicalJson),
-        visualData: JSON.parse(visualJson),
-      };
-      localStorage.setItem(dataKey, JSON.stringify(payload));
-    }
-  },
-
-  load_diagram: async (path: string, diagramId: string = 'default'): Promise<string> => {
-    if (isTauri()) {
-      return await invoke<string>('load_diagram', { path, diagramId });
-    } else {
-      // Web Implementation
-      let dataKey = `${WEB_DIAGRAM_PREFIX}${path}_${diagramId}`;
-      let dataStr = localStorage.getItem(dataKey);
-      
-      // Backward compatibility check
-      if (!dataStr && diagramId === 'default') {
-        const legacyKey = `${WEB_DIAGRAM_PREFIX}${path}`;
-        dataStr = localStorage.getItem(legacyKey);
-      }
-      
-      if (!dataStr) throw new Error('Diagram data not found');
-      // Returns { schemaVersion, logicalData, visualData } as string (legacy: just { logicalData, visualData })
-      return dataStr;
-    }
-  },
-
-  // ---------------------------------------------------------
-  // PREFERENCES
-  // ---------------------------------------------------------
-  save_preferences: async (preferencesJson: string): Promise<void> => {
-    if (isTauri()) {
-      await invoke('save_preferences', { preferencesJson });
-      return;
-    }
-    // Web Implementation
-    localStorage.setItem(WEB_PREFS_KEY, preferencesJson);
-  },
-
-  load_preferences: async (): Promise<string> => {
-    if (isTauri()) {
-      try {
-        return await invoke<string>('load_preferences');
-      } catch (err) {
-        // If file doesn't exist, return empty JSON object
-        return "{}";
+      const savedMode = (localStorage.getItem(STORAGE_MODE_KEY) as StorageMode) || 'localstorage';
+      if (savedMode === 'fs-access' && FileSystemAccessDriver.isSupported()) {
+        this.activeDriver = new FileSystemAccessDriver();
+        this.mode = 'fs-access';
+      } else {
+        this.activeDriver = new LocalStorageDriver();
+        this.mode = 'localstorage';
       }
     }
-    // Web Implementation
-    return localStorage.getItem(WEB_PREFS_KEY) || "{}";
-  },
-
-  // ---------------------------------------------------------
-  // GENERIC FILE OPERATIONS (Used for Components / Studio)
-  // ---------------------------------------------------------
-  get_global_components_dir: async (): Promise<string> => {
-    if (isTauri()) {
-      return await invoke<string>('get_global_components_dir');
-    }
-    // Web Implementation
-    return WEB_GLOBAL_COMPONENTS_DIR;
-  },
-
-  save_text_file: async (path: string, content: string): Promise<void> => {
-    if (isTauri()) {
-      await invoke('save_text_file', { path, content });
-      return;
-    }
-    // Web Implementation
-    localStorage.setItem(`file://${path}`, content);
-  },
-
-  read_text_file: async (path: string): Promise<string> => {
-    if (isTauri()) {
-      return await invoke<string>('read_text_file', { path });
-    }
-    // Web Implementation
-    const content = localStorage.getItem(`file://${path}`);
-    if (content === null) throw new Error(`File not found: ${path}`);
-    return content;
-  },
-
-  list_json_files_in_dir: async (dirPath: string): Promise<string[]> => {
-    if (isTauri()) {
-      return await invoke<string[]>('list_json_files_in_dir', { dirPath });
-    }
-    // Web Implementation
-    const files: string[] = [];
-    const prefix = `file://${dirPath}/`;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix) && key.endsWith('.json')) {
-        const content = localStorage.getItem(key);
-        if (content) {
-          files.push(content);
-        }
-      }
-    }
-    return files;
-  },
-
-  delete_file: async (path: string): Promise<void> => {
-    if (isTauri()) {
-      await invoke('delete_file', { path });
-      return;
-    }
-    // Web Implementation
-    localStorage.removeItem(`file://${path}`);
-  },
-
-  delete_workspace: async (path: string): Promise<void> => {
-    if (isTauri()) {
-      // Delete directory on disk
-      await invoke('delete_file', { path });
-      
-      // Load recent, filter out this workspace, and save it back
-      const recentJson = await invoke<string>('get_recent_workspaces');
-      const recent = JSON.parse(recentJson);
-      const filtered = recent.filter((w: any) => w.path !== path);
-      await invoke('save_recent_workspaces', { workspacesJson: JSON.stringify(filtered) });
-      return;
-    }
-    // Web Implementation
-    const workspacesStr = localStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
-    const workspaces = JSON.parse(workspacesStr);
-    const filtered = workspaces.filter((w: any) => w.path !== path);
-    localStorage.setItem(WEB_WORKSPACES_KEY, JSON.stringify(filtered));
-    
-    const dataKey = `${WEB_DIAGRAM_PREFIX}${path}`;
-    localStorage.removeItem(dataKey);
   }
-};
+
+  public getMode(): StorageMode {
+    return this.mode;
+  }
+
+  public async setStorageMode(newMode: StorageMode): Promise<boolean> {
+    if (isTauri()) {
+      // In Tauri mode, we always use Tauri native FS
+      return false;
+    }
+
+    if (newMode === 'fs-access') {
+      const handle = await FileSystemAccessDriver.selectDirectory();
+      if (handle) {
+        this.activeDriver = new FileSystemAccessDriver(handle);
+        this.mode = 'fs-access';
+        localStorage.setItem(STORAGE_MODE_KEY, 'fs-access');
+        return true;
+      }
+      return false; // User cancelled
+    } else {
+      this.activeDriver = new LocalStorageDriver();
+      this.mode = 'localstorage';
+      localStorage.setItem(STORAGE_MODE_KEY, 'localstorage');
+      return true;
+    }
+  }
+
+  public async disconnectLocalFolder(): Promise<void> {
+    await IDBHandleService.clearDirectoryHandle();
+    await this.setStorageMode('localstorage');
+  }
+
+  public async checkLocalFolderPermission(): Promise<'granted' | 'prompt' | 'denied' | 'no-handle'> {
+    if (this.activeDriver instanceof FileSystemAccessDriver) {
+      return await this.activeDriver.checkPermission();
+    }
+    return 'granted';
+  }
+
+  public async requestLocalFolderPermission(): Promise<boolean> {
+    if (this.activeDriver instanceof FileSystemAccessDriver) {
+      return await this.activeDriver.requestPermission();
+    }
+    return true;
+  }
+
+  // --- Delegated IStorageDriver Methods ---
+  create_workspace(name: string, description: string): Promise<string> {
+    return this.activeDriver.create_workspace(name, description);
+  }
+
+  load_workspace(path: string): Promise<string> {
+    return this.activeDriver.load_workspace(path);
+  }
+
+  save_workspace(metaJson: string): Promise<void> {
+    return this.activeDriver.save_workspace(metaJson);
+  }
+
+  get_recent_workspaces(): Promise<string> {
+    return this.activeDriver.get_recent_workspaces();
+  }
+
+  delete_workspace(path: string): Promise<void> {
+    return this.activeDriver.delete_workspace(path);
+  }
+
+  save_diagram(path: string, diagramId: string, logicalJson: string, visualJson: string, diagramFileJson?: string): Promise<void> {
+    return this.activeDriver.save_diagram(path, diagramId, logicalJson, visualJson, diagramFileJson);
+  }
+
+  load_diagram(path: string, diagramId: string = 'default'): Promise<string> {
+    return this.activeDriver.load_diagram(path, diagramId);
+  }
+
+  save_preferences(preferencesJson: string): Promise<void> {
+    return this.activeDriver.save_preferences(preferencesJson);
+  }
+
+  load_preferences(): Promise<string> {
+    return this.activeDriver.load_preferences();
+  }
+
+  get_global_components_dir(): Promise<string> {
+    return this.activeDriver.get_global_components_dir();
+  }
+
+  save_text_file(path: string, content: string): Promise<void> {
+    return this.activeDriver.save_text_file(path, content);
+  }
+
+  read_text_file(path: string): Promise<string> {
+    return this.activeDriver.read_text_file(path);
+  }
+
+  list_json_files_in_dir(dirPath: string): Promise<string[]> {
+    return this.activeDriver.list_json_files_in_dir(dirPath);
+  }
+
+  delete_file(path: string): Promise<void> {
+    return this.activeDriver.delete_file(path);
+  }
+}
+
+export const StorageService = new StorageManager();

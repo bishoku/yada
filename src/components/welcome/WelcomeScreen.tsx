@@ -48,6 +48,8 @@ export const WelcomeScreen: React.FC = () => {
     handleCreate,
     handleLoadRecent,
     onGoogleSignIn,
+    needsPermission,
+    handleGrantPermission,
     handleResolveConflicts,
     handleCancelConflicts,
   } = useWelcome();
@@ -79,6 +81,8 @@ export const WelcomeScreen: React.FC = () => {
           showImportMenu={showImportMenu}
           setShowImportMenu={setShowImportMenu}
           availableAdapters={availableAdapters}
+          needsPermission={needsPermission}
+          onGrantPermission={handleGrantPermission}
           onLoadRecent={handleLoadRecent}
           onRenameWorkspace={(ws) => {
             setWorkspaceToRename(ws);

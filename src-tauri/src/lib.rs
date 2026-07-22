@@ -18,37 +18,83 @@ struct WorkspaceMeta {
     path: String,
 }
 
-// Helper to retrieve recent workspaces list from app config directory
-fn get_recent_workspaces_list(app_handle: &AppHandle) -> Result<Vec<WorkspaceMeta>, String> {
-    let config_dir = app_handle
-        .path()
-        .app_config_dir()
-        .map_err(|e| e.to_string())?;
-    let config_file = config_dir.join("recent_workspaces.json");
-    if !config_file.exists() {
-        return Ok(Vec::new());
-    }
-    let content = fs::read_to_string(&config_file).map_err(|e| e.to_string())?;
-    let list: Vec<WorkspaceMeta> = serde_json::from_str(&content).map_err(|e| e.to_string())?;
-    Ok(list)
+// Helper to safely parse workspace.json without serde alias/duplicate conflicts
+fn parse_workspace_meta(content: &str, dir_path: &Path) -> Result<WorkspaceMeta, String> {
+    let val: serde_json::Value = serde_json::from_str(content)
+        .map_err(|e| format!("Failed to parse workspace.json: {}", e))?;
+
+    let obj = val.as_object().ok_or_else(|| "workspace.json is not a valid JSON object".to_string())?;
+
+    let folder_name = dir_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+
+    let name = obj.get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or(&folder_name)
+        .to_string();
+
+    let description = obj.get("description")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    let created_at = obj.get("createdAt")
+        .or_else(|| obj.get("created_at"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+
+    let last_accessed = obj.get("lastAccessed")
+        .or_else(|| obj.get("last_accessed"))
+        .or_else(|| obj.get("lastModified"))
+        .and_then(|v| v.as_str())
+        .unwrap_or(&created_at)
+        .to_string();
+
+    let id = obj.get("id")
+        .and_then(|v| v.as_str())
+        .unwrap_or(&name)
+        .to_string();
+
+    Ok(WorkspaceMeta {
+        id,
+        name,
+        description,
+        created_at,
+        last_accessed,
+        path: dir_path.to_string_lossy().to_string(),
+    })
 }
 
-// Helper to save recent workspaces list to app config directory
-fn save_recent_workspaces_list(
-    app_handle: &AppHandle,
-    list: &Vec<WorkspaceMeta>,
-) -> Result<(), String> {
-    let config_dir = app_handle
+// Helper to scan home/.yada directory for all valid workspace subfolders
+fn scan_workspaces_dir(app_handle: &AppHandle) -> Result<Vec<WorkspaceMeta>, String> {
+    let home = app_handle
         .path()
-        .app_config_dir()
-        .map_err(|e| e.to_string())?;
-    if !config_dir.exists() {
-        fs::create_dir_all(&config_dir).map_err(|e| e.to_string())?;
+        .home_dir()
+        .map_err(|e| format!("Failed to get home directory: {}", e))?;
+    let base_dir = home.join(".yada");
+
+    let mut list: Vec<WorkspaceMeta> = Vec::new();
+
+    if base_dir.exists() && base_dir.is_dir() {
+        if let Ok(entries) = fs::read_dir(&base_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    let ws_json = path.join("workspace.json");
+                    if ws_json.exists() {
+                        if let Ok(content) = fs::read_to_string(&ws_json) {
+                            if let Ok(meta) = parse_workspace_meta(&content, &path) {
+                                list.push(meta);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-    let config_file = config_dir.join("recent_workspaces.json");
-    let content = serde_json::to_string(list).map_err(|e| e.to_string())?;
-    fs::write(&config_file, content).map_err(|e| e.to_string())?;
-    Ok(())
+
+    list.sort_by(|a, b| b.last_accessed.cmp(&a.last_accessed));
+    Ok(list)
 }
 
 #[tauri::command]
@@ -103,23 +149,34 @@ fn create_workspace(
     fs::write(&workspace_json_path, json_content)
         .map_err(|e| format!("Failed to write workspace.json: {}", e))?;
 
-    // 6. Update recent workspaces list
-    let mut list = get_recent_workspaces_list(&app_handle).unwrap_or_default();
-    list.retain(|w| w.path != meta.path); // remove duplicate if exists
-    list.insert(0, meta.clone());
-    if list.len() > 15 {
-        list.truncate(15);
-    }
-    let _ = save_recent_workspaces_list(&app_handle, &list);
-
     // Return serialized meta string
     let result_json = serde_json::to_string(&meta).map_err(|e| e.to_string())?;
     Ok(result_json)
 }
 
+fn resolve_workspace_dir(app_handle: &AppHandle, path_str: &str) -> Result<std::path::PathBuf, String> {
+    let p = Path::new(path_str);
+    if p.is_absolute() && p.exists() {
+        Ok(p.to_path_buf())
+    } else {
+        let home = app_handle
+            .path()
+            .home_dir()
+            .map_err(|e| format!("Failed to get home directory: {}", e))?;
+        let resolved = home.join(".yada").join(path_str);
+        if resolved.exists() {
+            Ok(resolved)
+        } else if p.exists() {
+            Ok(p.to_path_buf())
+        } else {
+            Ok(resolved)
+        }
+    }
+}
+
 #[tauri::command]
 fn load_workspace(app_handle: AppHandle, path: String) -> Result<String, String> {
-    let ws_dir = Path::new(&path);
+    let ws_dir = resolve_workspace_dir(&app_handle, &path)?;
     let workspace_json_path = ws_dir.join("workspace.json");
 
     if !workspace_json_path.exists() {
@@ -128,11 +185,10 @@ fn load_workspace(app_handle: AppHandle, path: String) -> Result<String, String>
         );
     }
 
-    // Read and parse workspace.json
+    // Read and parse workspace.json dynamically
     let content = fs::read_to_string(&workspace_json_path)
         .map_err(|e| format!("Failed to read workspace.json: {}", e))?;
-    let mut meta: WorkspaceMeta = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse workspace.json: {}", e))?;
+    let mut meta = parse_workspace_meta(&content, &ws_dir)?;
 
     // Update last accessed time
     meta.last_accessed = Utc::now().to_rfc3339();
@@ -142,15 +198,6 @@ fn load_workspace(app_handle: AppHandle, path: String) -> Result<String, String>
     fs::write(&workspace_json_path, json_content)
         .map_err(|e| format!("Failed to update workspace.json: {}", e))?;
 
-    // Update recent workspaces list
-    let mut list = get_recent_workspaces_list(&app_handle).unwrap_or_default();
-    list.retain(|w| w.path != meta.path);
-    list.insert(0, meta.clone());
-    if list.len() > 15 {
-        list.truncate(15);
-    }
-    let _ = save_recent_workspaces_list(&app_handle, &list);
-
     // Return serialized meta string
     let result_json = serde_json::to_string(&meta).map_err(|e| e.to_string())?;
     Ok(result_json)
@@ -158,41 +205,31 @@ fn load_workspace(app_handle: AppHandle, path: String) -> Result<String, String>
 
 #[tauri::command]
 fn get_recent_workspaces(app_handle: AppHandle) -> Result<String, String> {
-    let list = get_recent_workspaces_list(&app_handle)?;
+    let list = scan_workspaces_dir(&app_handle)?;
     let result_json = serde_json::to_string(&list).map_err(|e| e.to_string())?;
     Ok(result_json)
 }
 
 #[tauri::command]
-fn save_recent_workspaces(app_handle: AppHandle, workspaces_json: String) -> Result<(), String> {
-    let list: Vec<WorkspaceMeta> =
-        serde_json::from_str(&workspaces_json).map_err(|e| e.to_string())?;
-    save_recent_workspaces_list(&app_handle, &list)?;
+fn save_recent_workspaces(_app_handle: AppHandle, _workspaces_json: String) -> Result<(), String> {
     Ok(())
 }
 
 #[tauri::command]
 fn save_workspace(app_handle: AppHandle, meta_json: String) -> Result<(), String> {
-    let meta: WorkspaceMeta = serde_json::from_str(&meta_json).map_err(|e| e.to_string())?;
-    let ws_path = Path::new(&meta.path);
+    let val: serde_json::Value = serde_json::from_str(&meta_json).map_err(|e| e.to_string())?;
+    let path_str = val.get("path").and_then(|v| v.as_str()).unwrap_or("");
+    let ws_dir = resolve_workspace_dir(&app_handle, path_str)?;
 
-    if !ws_path.exists() {
+    if !ws_dir.exists() {
         return Err("Workspace directory does not exist".to_string());
     }
 
-    let workspace_json_path = ws_path.join("workspace.json");
+    let meta = parse_workspace_meta(&meta_json, &ws_dir)?;
+    let workspace_json_path = ws_dir.join("workspace.json");
     let json_content = serde_json::to_string_pretty(&meta).map_err(|e| e.to_string())?;
     fs::write(&workspace_json_path, json_content)
         .map_err(|e| format!("Failed to save workspace.json: {}", e))?;
-
-    // Update recent workspaces list with this updated metadata
-    let mut list = get_recent_workspaces_list(&app_handle).unwrap_or_default();
-    if let Some(pos) = list.iter().position(|w| w.path == meta.path) {
-        list[pos] = meta;
-    } else {
-        list.insert(0, meta);
-    }
-    save_recent_workspaces_list(&app_handle, &list)?;
 
     Ok(())
 }

@@ -37,7 +37,33 @@ export const useWelcome = () => {
   const [workspaceToDelete, setWorkspaceToDelete] = useState<WorkspaceMeta | null>(null);
   const [workspaceToRename, setWorkspaceToRename] = useState<WorkspaceMeta | null>(null);
   const [renameName, setRenameName] = useState('');
+  const [needsPermission, setNeedsPermission] = useState(false);
   const [importConflicts, setImportConflicts] = useState<ImportConflict[]>([]);
+
+  useEffect(() => {
+    const checkPerm = async () => {
+      if (!isTauri() && StorageService.getMode() === 'fs-access') {
+        const state = await StorageService.checkLocalFolderPermission();
+        if (state === 'prompt') {
+          setNeedsPermission(true);
+        } else {
+          setNeedsPermission(false);
+          fetchRecentWorkspaces();
+        }
+      } else {
+        fetchRecentWorkspaces();
+      }
+    };
+    checkPerm();
+  }, [fetchRecentWorkspaces]);
+
+  const handleGrantPermission = async () => {
+    const granted = await StorageService.requestLocalFolderPermission();
+    if (granted) {
+      setNeedsPermission(false);
+      await fetchRecentWorkspaces();
+    }
+  };
   const [conflictResolver, setConflictResolver] = useState<{
     resolve: (resolutions: Record<string, ConflictResolution>) => void;
     reject: (err: any) => void;
@@ -259,6 +285,8 @@ export const useWelcome = () => {
     handleCreate,
     handleLoadRecent,
     onGoogleSignIn,
+    needsPermission,
+    handleGrantPermission,
     handleResolveConflicts,
     handleCancelConflicts,
   };

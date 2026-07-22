@@ -1,6 +1,9 @@
-import React from 'react';
-import { Settings, Globe, Sun, Moon, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Globe, Sun, Moon, Check, HardDrive, Folder } from 'lucide-react';
 import { translations } from '../../../i18n/translations';
+import { StorageService, isTauri } from '../../../services/storage';
+import { StorageMode } from '../../../services/storage/types';
+import { useAppStore } from '../../../store/useAppStore';
 
 interface PreferencesModalProps {
   isOpen: boolean;
@@ -19,6 +22,14 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   onChangeLanguage,
   onChangeTheme,
 }) => {
+  const [storageMode, setStorageMode] = useState<StorageMode>(StorageService.getMode());
+
+  useEffect(() => {
+    if (isOpen) {
+      setStorageMode(StorageService.getMode());
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const t = translations[language];
@@ -34,6 +45,58 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
         </div>
 
         <div className="space-y-5">
+          {/* Storage Location (Web Only) */}
+          {!isTauri() && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <HardDrive className="w-3.5 h-3.5" />
+                {language === 'tr' ? 'Depolama Konumu' : 'Storage Location'}
+              </label>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await StorageService.setStorageMode('localstorage');
+                    setStorageMode('localstorage');
+                    await useAppStore.getState().fetchRecentWorkspaces();
+                  }}
+                  className={`py-2 px-3 text-xs font-semibold rounded-xl border transition-all cursor-pointer flex items-center gap-2 ${
+                    storageMode === 'localstorage'
+                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-650/25'
+                      : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <HardDrive className="w-3.5 h-3.5 shrink-0" />
+                  <span className="flex-1 text-left">
+                    {language === 'tr' ? 'Sanal (LocalStorage)' : 'Virtual (LocalStorage)'}
+                  </span>
+                  {storageMode === 'localstorage' && <Check className="w-3.5 h-3.5 shrink-0" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const success = await StorageService.setStorageMode('fs-access');
+                    if (success) {
+                      setStorageMode('fs-access');
+                      await useAppStore.getState().fetchRecentWorkspaces();
+                    }
+                  }}
+                  className={`py-2 px-3 text-xs font-semibold rounded-xl border transition-all cursor-pointer flex items-center gap-2 ${
+                    storageMode === 'fs-access'
+                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-650/25'
+                      : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <Folder className="w-3.5 h-3.5 shrink-0" />
+                  <span className="flex-1 text-left">
+                    {language === 'tr' ? 'Yerel Klasör (.yada vb.)' : 'Local Folder (.yada etc.)'}
+                  </span>
+                  {storageMode === 'fs-access' && <Check className="w-3.5 h-3.5 shrink-0" />}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Language Selection */}
           <div>
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">

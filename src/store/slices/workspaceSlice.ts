@@ -75,6 +75,12 @@ export interface WorkspaceSlice {
   loadSharedDiagram: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram) => void;
   loadImportPreview: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram) => void;
   cloneSharedToWorkspace: (name: string) => Promise<import('../../types').WorkspaceMeta>;
+  saveSharedToWorkspace: (
+    targetWorkspacePath: string | null,
+    isNew: boolean,
+    newWorkspaceName?: string,
+    targetDiagramName?: string
+  ) => Promise<import('../../types').WorkspaceMeta>;
   copyDiagramToWorkspace: (diagramId: string, targetWorkspacePath: string, newName?: string) => Promise<string>;
   moveDiagramToWorkspace: (diagramId: string, targetWorkspacePath: string, newName?: string) => Promise<string>;
   importPreviewToWorkspace: (targetWorkspacePath: string, diagramName: string) => Promise<string>;
@@ -572,44 +578,74 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
 
 
   cloneSharedToWorkspace: async (name: string) => {
+    return get().saveSharedToWorkspace(null, true, name, 'Default Diagram');
+  },
+
+  saveSharedToWorkspace: async (
+    targetWorkspacePath: string | null,
+    isNew: boolean,
+    newWorkspaceName?: string,
+    targetDiagramName?: string
+  ) => {
     try {
       const state = get();
-      
-      // 1. Create a new workspace metadata record
-      const resJson = await StorageService.create_workspace(name, state.currentWorkspace?.description || '');
-      const ws: WorkspaceMeta = JSON.parse(resJson);
-      
-      // 2. Save the current diagram under the new workspace path
+      const diagName = targetDiagramName || state.currentWorkspace?.name || 'Shared Diagram';
+
+      let ws: WorkspaceMeta;
+      let targetPath: string;
+
+      if (isNew && newWorkspaceName) {
+        // 1. Create a new workspace metadata record
+        const resJson = await StorageService.create_workspace(newWorkspaceName, state.currentWorkspace?.description || '');
+        ws = JSON.parse(resJson);
+        targetPath = ws.path;
+      } else if (targetWorkspacePath) {
+        targetPath = targetWorkspacePath;
+        const resJson = await StorageService.load_workspace(targetPath);
+        ws = JSON.parse(resJson);
+      } else {
+        throw new Error('No target workspace specified');
+      }
+
+      // 2. Determine diagram ID and save diagram files
+      const diagramId = isNew ? 'default' : `diag_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       const logicalJson = JSON.stringify(state.logicalData);
       const visualJson = JSON.stringify(state.visualData);
-      await StorageService.save_diagram(ws.path, 'default', logicalJson, visualJson);
-      
-      const defaultDiagram = { id: 'default', name: 'Default Diagram', updatedAt: new Date().toISOString() };
+      await StorageService.save_diagram(targetPath, diagramId, logicalJson, visualJson);
+
+      // 3. Read and update diagrams index.json in target workspace
+      let existingDiagrams: import('../../types').DiagramMeta[] = [];
       try {
-        await StorageService.save_text_file(`${ws.path}/diagrams/index.json`, JSON.stringify({ diagrams: [defaultDiagram] }));
-      } catch (e) {}
-      
-      // 3. Set the new workspace as active and disable read-only mode
+        const indexStr = await StorageService.read_text_file(`${targetPath}/diagrams/index.json`);
+        existingDiagrams = JSON.parse(indexStr).diagrams || [];
+      } catch (e) {
+        if (!isNew) {
+          existingDiagrams = [{ id: 'default', name: 'Default Diagram', updatedAt: ws.createdAt || new Date().toISOString() }];
+        }
+      }
+
+      const newDiagMeta = { id: diagramId, name: diagName, updatedAt: new Date().toISOString() };
+      const updatedDiagrams = [...existingDiagrams.filter(d => d.id !== diagramId), newDiagMeta];
+      await StorageService.save_text_file(`${targetPath}/diagrams/index.json`, JSON.stringify({ diagrams: updatedDiagrams }));
+
+      // 4. Load target workspace & switch active diagram
+      await get().loadWorkspace(targetPath);
+      await get().switchDiagram(diagramId);
+
+      // 5. Exit read-only mode & refresh state
       set({
-        currentWorkspace: ws,
-        diagrams: [defaultDiagram],
-        activeDiagramId: 'default',
-        openDiagramIds: ['default'],
         isReadOnly: false,
         isDirty: false,
         leftSidebarOpen: true,
         rightSidebarOpen: true,
-        pastStates: [],
-        futureStates: []
       });
-      
-      // 4. Refresh workspace list and library
+
       await get().fetchRecentWorkspaces();
       await get().loadLibrary();
-      
+
       return ws;
     } catch (err) {
-      console.error('Error cloning shared diagram:', err);
+      console.error('Error saving shared diagram to workspace:', err);
       throw err;
     }
   },

@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { FolderHeart, Database, ShieldAlert, Sparkles, X, ChevronRight, LayoutDashboard, ListOrdered } from 'lucide-react';
+import { FolderHeart, Database, ShieldAlert, LayoutDashboard, ListOrdered } from 'lucide-react';
 import { translations } from '../../i18n/translations';
+import { WorkspacePickerModal } from './WorkspacePickerModal';
 
 export const SharedTopBar: React.FC = () => {
   const currentWorkspace = useAppStore((s) => s.currentWorkspace);
   const setWorkspace = useAppStore((s) => s.setWorkspace);
   const language = useAppStore((s) => s.language);
-  const cloneSharedToWorkspace = useAppStore((s) => s.cloneSharedToWorkspace);
+  const fetchRecentWorkspaces = useAppStore((s) => s.fetchRecentWorkspaces);
+  const saveSharedToWorkspace = useAppStore((s) => s.saveSharedToWorkspace);
   const viewMode = useAppStore((s) => s.viewMode);
   const toggleViewMode = useAppStore((s) => s.toggleViewMode);
   const openAlert = useAppStore((s) => s.openAlert);
 
-  const [showCloneModal, setShowCloneModal] = useState(false);
-  const [cloneName, setCloneName] = useState(currentWorkspace?.name ? `${currentWorkspace.name} - Kopya` : 'Yeni Diyagram');
-  const [isCloning, setIsCloning] = useState(false);
+  const [showPickerModal, setShowPickerModal] = useState(false);
 
   const t = translations[language];
   const isTr = language === 'tr';
@@ -23,22 +23,22 @@ export const SharedTopBar: React.FC = () => {
     setWorkspace(null);
   };
 
-  const handleCloneSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!cloneName.trim()) return;
-
-    setIsCloning(true);
+  const handlePickerConfirm = async (
+    targetWorkspacePath: string | null,
+    _targetWorkspaceName: string,
+    isNew: boolean,
+    newWorkspaceName?: string,
+    targetDiagramName?: string
+  ) => {
     try {
-      await cloneSharedToWorkspace(cloneName.trim());
-      setShowCloneModal(false);
-    } catch (err) {
+      await saveSharedToWorkspace(targetWorkspacePath, isNew, newWorkspaceName, targetDiagramName);
+    } catch (err: any) {
       console.error(err);
       openAlert({
         title: isTr ? 'Hata' : 'Error',
-        message: isTr ? 'Klonlama başarısız oldu' : 'Cloning failed'
+        message: err.message || (isTr ? 'Kaydetme başarısız oldu' : 'Save failed')
       });
-    } finally {
-      setIsCloning(false);
+      throw err;
     }
   };
 
@@ -106,8 +106,8 @@ export const SharedTopBar: React.FC = () => {
         <div>
           <button
             onClick={() => {
-              setCloneName(currentWorkspace?.name ? `${currentWorkspace.name} - Kopya` : 'Yeni Diyagram');
-              setShowCloneModal(true);
+              fetchRecentWorkspaces();
+              setShowPickerModal(true);
             }}
             className="flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white rounded-lg text-xs font-bold shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
           >
@@ -117,79 +117,15 @@ export const SharedTopBar: React.FC = () => {
         </div>
       </header>
 
-      {/* Premium Clone Modal */}
-      {showCloneModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div
-            className="bg-white dark:bg-slate-800 border border-slate-150 dark:border-slate-700 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 font-sans"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/10">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-850 dark:text-white">
-                    {isTr ? 'Çalışma Alanını Kopyala' : 'Save to Workspace'}
-                  </h3>
-                  <p className="text-[11px] text-slate-400 dark:text-slate-450 mt-0.5">
-                    {isTr ? 'Diyagramı kendi yerel alanınızda düzenleyin' : 'Edit the diagram in your local workspace'}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowCloneModal(false)}
-                className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-350 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCloneSubmit} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-                  {isTr ? 'Çalışma Alanı Adı' : 'Workspace Name'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={cloneName}
-                  onChange={(e) => setCloneName(e.target.value)}
-                  placeholder={isTr ? 'örn: Benim Mimarim' : 'e.g. My Architecture'}
-                  className="w-full px-3.5 py-2 border border-slate-200 dark:border-slate-750 rounded-xl bg-white dark:bg-slate-900 text-slate-850 dark:text-white text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  autoFocus
-                  disabled={isCloning}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-700 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCloneModal(false)}
-                  disabled={isCloning}
-                  className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-905 transition-all cursor-pointer"
-                >
-                  {t.cancel || 'İptal'}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCloning || !cloneName.trim()}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-500/10 transition-all cursor-pointer"
-                >
-                  {isCloning ? (
-                    <span>{isTr ? 'Kaydediliyor...' : 'Saving...'}</span>
-                  ) : (
-                    <>
-                      <span>{isTr ? 'Oluştur ve Başlat' : 'Create & Open'}</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Workspace Picker Modal */}
+      {showPickerModal && (
+        <WorkspacePickerModal
+          isOpen={showPickerModal}
+          onClose={() => setShowPickerModal(false)}
+          mode="add"
+          diagramName={currentWorkspace?.name || (isTr ? 'Örnek Diyagram' : 'Shared Diagram')}
+          onConfirm={handlePickerConfirm}
+        />
       )}
     </>
   );
