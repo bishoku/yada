@@ -1,11 +1,12 @@
 ---
 name: dproj-generator
 description: >
-  Generate YADA .dproj project files from natural language descriptions of
-  distributed system architectures, design patterns, and data flows.
-  Use this skill when a user asks to visualize, diagram, or simulate any
-  architecture pattern (SAGA, CQRS, Event Sourcing, microservices flows, etc.)
-  with YADA. The output is a .dproj ZIP archive the user can import directly.
+  Generate YADA .dproj project files or shareable preview URLs from natural
+  language descriptions of distributed system architectures, design patterns,
+  and data flows. Use this skill when a user asks to visualize, diagram, or
+  simulate any architecture pattern (SAGA, CQRS, Event Sourcing, microservices
+  flows, etc.) with YADA. Output is either a .dproj ZIP archive for import or
+  a Magic Link URL for instant browser preview.
 ---
 
 # YADA .dproj Generator
@@ -19,6 +20,18 @@ ZIP containing `workspace.json` + `diagram.json` (+ optional `components/` folde
 **workspace.json**: `{ "name": "...", "description": "...", "path": "virtual://workspace/imported", "lastModified": "ISO8601" }`
 
 **diagram.json**: `{ "schemaVersion": 2, "logicalData": LogicalDiagram, "visualData": VisualDiagram }`
+
+## Output Modes
+
+This skill supports two output formats. Choose based on user intent:
+
+| User Intent | Trigger Phrases | Output |
+|---|---|---|
+| Project file | "prepare yada project for …", "generate .dproj …", "create project file" | `.dproj` ZIP (via `pack_dproj.py`) |
+| Preview URL | "simulate … and give me the preview url", "… share link", "… preview link", "give me the magic link" | Clickable URL (via `build_share_url.py`) |
+| Ambiguous | "simulate …", "visualize …", "diagram …" | Ask user: `.dproj file or preview URL?` |
+
+When user intent is ambiguous, ask: *"Would you like a `.dproj` project file to import, or a preview URL you can open directly in the browser?"*
 
 ## Data Model
 
@@ -116,6 +129,7 @@ Always use standard handle IDs (`"right:50"`, `"left:50"`, `"top:50"`, `"bottom:
 3. Sticky notes exist ONLY in `visualData.annotations` and `visualData.layoutNodes` (NOT in `logicalData.nodes`).
 4. Handles use exact standard format (`"right:50"`, `"left:50"`, `"top:50"`, `"bottom:50"`).
 5. Sequential step timelines accumulate `delay`: `delay[i] = delay[i-1] + duration[i-1]`.
+6. For Magic Link output: share payload includes `currentView: "diagram"` alongside `logicalData` and `visualData`.
 
 ## Building the .dproj
 
@@ -124,6 +138,42 @@ Use the bundled script which validates all IDs, foreign keys, and node types bef
 ```bash
 python <skill_dir>/scripts/pack_dproj.py output.dproj /tmp/workspace.json /tmp/diagram.json
 ```
+
+## Building the Preview URL (Magic Link)
+
+For instant browser preview without file downloads. Uses LZ-String compression to embed the full diagram state in a URL hash fragment.
+
+**Share Payload Format** (what the YADA app expects):
+```json
+{ "logicalData": { ... }, "visualData": { ... }, "currentView": "diagram" }
+```
+
+**How it works**: `JSON.stringify(payload)` → `LZString.compressToEncodedURIComponent()` → URL-safe string appended to `#share=`.
+
+**URL Template**: `https://bishoku.github.io/yada/#share=<compressed_data>`
+
+Use the bundled script which validates, repairs, compresses, and writes the URL to a markdown file:
+
+```bash
+python <skill_dir>/scripts/build_share_url.py /tmp/diagram.json \
+  --name "CQRS Pattern" \
+  --description "Command Query Responsibility Segregation with Event Store" \
+  --output-md generated_link.md
+```
+
+### ⚠️ Token Efficiency (Critical)
+
+The script writes the URL to a **markdown file** — it does **NOT** output the URL to stdout.
+This is intentional: compressed URLs can be 2,000–30,000+ characters. Sending that data back
+through LLM context wastes thousands of tokens on unreadable compressed noise.
+
+**Agent behavior after running the script:**
+- ✅ Tell the user: *"Preview URL has been generated. You can find the clickable link in `generated_link.md`."*
+- ❌ Do NOT read the generated markdown file back into context.
+- ❌ Do NOT try to extract or echo the URL from the file.
+- ❌ Do NOT include any `#share=...` data in your response.
+
+⚠️ **Size limit**: URLs over 32,000 characters may not work reliably in all browsers. The script exits with an error when this limit is exceeded — in that case, fall back to `.dproj` output using `pack_dproj.py`.
 
 ## Complete Example: 3-Service Flow with Event Bus
 
