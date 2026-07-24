@@ -13,6 +13,22 @@ export const GlobalConfirmAlertModal: React.FC = () => {
   const language = useAppStore((s) => s.language);
   const t = translations[language];
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (confirmState?.isOpen) {
+          closeConfirm(false);
+        } else if (alertState?.isOpen) {
+          closeAlert();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [confirmState, alertState, closeConfirm, closeAlert]);
+
+
+
   // Helper for Confirm Icons & Colors
   const getConfirmStyle = (type: 'danger' | 'info' | 'warning' = 'info') => {
     switch (type) {

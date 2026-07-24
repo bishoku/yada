@@ -12,6 +12,35 @@ export interface GoogleUser {
   expiresAt: number;
 }
 
+// --- LLM & AI CHAT ---
+export interface LlmProfile {
+  id: string;
+  name: string;
+  provider: 'openrouter' | 'openai' | 'gemini' | 'anthropic';
+  apiUrl: string;
+  apiKey: string;
+  model: string;
+}
+
+export interface LlmPreferences {
+  activeProfileId?: string;
+  profiles?: LlmProfile[];
+  provider: 'openrouter' | 'openai' | 'gemini' | 'anthropic';
+  apiUrl: string;
+  apiKey: string;
+  model: string;
+  shortTermMemoryLimit?: number;
+}
+
+
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'assistant' | 'system';
+  text: string;
+  timestamp: string;
+}
+
+
 // --- PORT / HANDLE SYSTEM ---
 export type PortSide = 'top' | 'right' | 'bottom' | 'left';
 
@@ -270,6 +299,9 @@ export interface AppState {
   language: Language;
   theme: Theme;
   maxSteps: number;
+  llmPreferences: LlmPreferences;
+  saveLlmPreferences: (prefs: LlmPreferences) => Promise<void>;
+
   
   // Phase 2 Canvas State
   logicalData: LogicalDiagram;
@@ -335,7 +367,9 @@ export interface AppState {
   loadAppPreferences: () => Promise<void>;
   
   // Phase 2 Canvas Actions
+  updateDiagramFromAi: (logical: LogicalDiagram, visual: VisualDiagram) => void;
   addNode: (logical: LogicalNode, visual: VisualNode) => void;
+
   cloneNode: (id: string) => void;
   updateNodePosition: (id: string, x: number, y: number) => void;
   updateNodeDimensions: (id: string, width: number, height: number) => void;

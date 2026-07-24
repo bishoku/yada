@@ -500,6 +500,8 @@ export const TimelinePanel: React.FC<{ forceCollapsed?: boolean }> = ({ forceCol
                     const left = note.startTime * pxPerMs;
                     const width = (note.endTime - note.startTime) * pxPerMs;
 
+                    const noteStyle = note.style || {};
+
                     return (
                       <div 
                         key={`track-ann-${id}`} 
@@ -511,12 +513,13 @@ export const TimelinePanel: React.FC<{ forceCollapsed?: boolean }> = ({ forceCol
                           style={{
                             left,
                             width,
-                            backgroundColor: note.style.backgroundColor,
-                            borderColor: note.style.borderColor,
-                            color: note.style.textColor,
+                            backgroundColor: noteStyle.backgroundColor || '#0f172a',
+                            borderColor: noteStyle.borderColor || '#6366f1',
+                            color: noteStyle.textColor || '#e2e8f0',
                             opacity: note.alwaysVisible ? 0.5 : 1
                           }}
                         >
+
                           {!note.alwaysVisible && (
                             <>
                               <div 

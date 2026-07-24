@@ -24,6 +24,17 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+
   // MAX URL length for safe sharing is generally around 2000 characters.
   // We leave some buffer for the domain name.
   const MAX_SAFE_URL_LENGTH = 8000;

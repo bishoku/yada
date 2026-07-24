@@ -53,7 +53,18 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
   const [videoQuality, setVideoQuality] = useState<VideoQuality>('medium');
   const [videoScale,   setVideoScale]   = useState(1);
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
+
 
   const tr = (en: string, turk: string) => (language === 'tr' ? turk : en);
 

@@ -52,7 +52,9 @@ export interface CanvasSlice {
   setActiveNodeProperties: (props: ActiveNodeProperties | null) => void;
   setActiveEdgeProperties: (props: ActiveEdgeProperties | null) => void;
   clearActiveProperties: () => void;
+  updateDiagramFromAi: (logical: import('../../types').LogicalDiagram, visual: import('../../types').VisualDiagram) => void;
 }
+
 
 export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (set, get) => ({
   pendingDrop: null,
@@ -64,7 +66,17 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
   setActiveEdgeProperties: (props) => set({ activeEdgeProperties: props }),
   clearActiveProperties: () => set({ activeNodeProperties: null, activeEdgeProperties: null }),
 
+  updateDiagramFromAi: (logical, visual) => {
+    get().pushToHistory();
+    set((state) => ({
+      logicalData: logical || state.logicalData,
+      visualData: visual || state.visualData,
+      isDirty: true,
+    }));
+  },
+
   addNode: (logical, visual) => {
+
     get().pushToHistory();
     set((state) => {
       const nodes = [...state.logicalData.nodes, logical];

@@ -15,16 +15,18 @@ export const StickyNoteNode: React.FC<NodeProps> = ({ id, selected }) => {
 
   if (!visualNode || !annotation) return null;
 
+  const noteStyle = annotation.style || {};
+
   // Render order and positioning
   const style = {
-    backgroundColor: annotation.style.backgroundColor,
-    borderColor: annotation.style.borderColor,
-    color: annotation.style.textColor,
-    fontFamily: annotation.style.fontFamily,
-    fontSize: `${annotation.style.fontSize}px`,
-    borderRadius: `${annotation.style.borderRadius}px`,
+    backgroundColor: noteStyle.backgroundColor || '#0f172a',
+    borderColor: noteStyle.borderColor || '#6366f1',
+    color: noteStyle.textColor || '#e2e8f0',
+    fontFamily: noteStyle.fontFamily || 'Inter',
+    fontSize: `${noteStyle.fontSize || 12}px`,
+    borderRadius: `${noteStyle.borderRadius || 8}px`,
     opacity: opacity,
-    boxShadow: annotation.style.shadow ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' : 'none',
+    boxShadow: noteStyle.shadow !== false ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' : 'none',
     transition: 'opacity 0.2s ease-in-out',
     pointerEvents: isVisible ? 'auto' : 'none',
   } as React.CSSProperties;
@@ -48,13 +50,14 @@ export const StickyNoteNode: React.FC<NodeProps> = ({ id, selected }) => {
           <div 
             className="px-3 py-2 font-semibold border-b shrink-0 flex items-center"
             style={{ 
-              backgroundColor: annotation.style.headerColor || 'rgba(0,0,0,0.05)',
-              borderColor: annotation.style.borderColor 
+              backgroundColor: noteStyle.headerColor || 'rgba(0,0,0,0.05)',
+              borderColor: noteStyle.borderColor || '#6366f1'
             }}
           >
             {annotation.header}
           </div>
         )}
+
         <div className="flex-1 p-3 overflow-y-auto">
           <SimpleMarkdown text={annotation.body} />
         </div>

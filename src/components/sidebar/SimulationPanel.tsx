@@ -193,7 +193,8 @@ export const SimulationPanel: React.FC = () => {
           <Layers className="w-4 h-4 text-slate-400 dark:text-slate-500" />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 bg-slate-50/20 dark:bg-slate-950/20 min-h-0">
+        <div className="flex-1 overflow-y-auto p-3 pb-20 flex flex-col gap-2 bg-slate-50/20 dark:bg-slate-950/20 min-h-0">
+
           {logicalData.nodes.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
               <Server className="w-8 h-8 text-slate-350 dark:text-slate-500 stroke-[1.5] mb-2" />

@@ -67,3 +67,25 @@ commands.allow = ["list_json_files_in_dir"]
 identifier = "allow-get-global-components-dir"
 description = "Allows getting global components directory path"
 commands.allow = ["get_global_components_dir"]
+
+[[permission]]
+identifier = "allow-chat-with-agent"
+description = "Allows executing chat commands with LLM agent"
+commands.allow = ["chat_with_agent"]
+
+[[permission]]
+identifier = "allow-get-chat-memory"
+description = "Allows retrieving chat history memory"
+commands.allow = ["get_chat_memory"]
+
+[[permission]]
+identifier = "allow-clear-chat-memory"
+description = "Allows clearing chat memory"
+commands.allow = ["clear_chat_memory"]
+
+[[permission]]
+identifier = "allow-cancel-agent-chat"
+description = "Allows cancelling LLM agent chat"
+commands.allow = ["cancel_agent_chat"]
+
+

@@ -26,7 +26,18 @@ export const ConnectionConfirmModal: React.FC<ConnectionConfirmModalProps> = ({
   const language = useAppStore((state) => state.language);
   const t = translations[language];
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && pendingConnection) {
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pendingConnection, onCancel]);
+
   if (!pendingConnection) return null;
+
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 font-sans">

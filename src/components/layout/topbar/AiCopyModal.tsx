@@ -13,7 +13,18 @@ interface AiCopyModalProps {
 export const AiCopyModal: React.FC<AiCopyModalProps> = ({ isOpen, onClose, aiText, setAiText }) => {
   const language = useAppStore((s) => s.language);
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
+
 
   return createPortal(
     <div className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[9999]">

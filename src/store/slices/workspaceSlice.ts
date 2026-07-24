@@ -31,11 +31,14 @@ export interface WorkspaceSlice {
   language: Language;
   theme: Theme;
   maxSteps: number;
+  llmPreferences: import('../../types').LlmPreferences;
+  saveLlmPreferences: (prefs: import('../../types').LlmPreferences) => Promise<void>;
   leftSidebarOpen: boolean;
   rightSidebarOpen: boolean;
   isSaving: boolean;
   isReadOnly: boolean;
   isFullscreen: boolean;
+
 
   toggleFullscreen: () => Promise<void>;
   exitFullscreen: () => Promise<void>;
@@ -100,6 +103,29 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   language: 'en',
   theme: 'nord',
   maxSteps: 30,
+  llmPreferences: {
+    provider: 'openrouter',
+    apiUrl: 'https://openrouter.ai/api/v1',
+    apiKey: '',
+    model: 'anthropic/claude-3.5-sonnet',
+    shortTermMemoryLimit: 20,
+  },
+  saveLlmPreferences: async (prefs) => {
+    try {
+      set({ llmPreferences: prefs });
+      const currentPrefStr = await StorageService.load_preferences();
+      const prefObj = JSON.parse(currentPrefStr || '{}');
+      prefObj.language = get().language;
+      prefObj.theme = get().theme;
+      prefObj.maxSteps = get().maxSteps;
+      prefObj.llm = prefs;
+      await StorageService.save_preferences(JSON.stringify(prefObj));
+    } catch (err) {
+      console.error('Error saving LLM preferences:', err);
+    }
+  },
+
+
   leftSidebarOpen: true,
   rightSidebarOpen: true,
   isSaving: false,
@@ -377,9 +403,15 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   },
 
   changeLanguage: async (lang: Language) => {
+
     try {
       set({ language: lang });
-      const prefObj = { language: lang, theme: get().theme, maxSteps: get().maxSteps };
+      const currentPrefStr = await StorageService.load_preferences();
+      const prefObj = JSON.parse(currentPrefStr || '{}');
+      prefObj.language = lang;
+      prefObj.theme = get().theme;
+      prefObj.maxSteps = get().maxSteps;
+      prefObj.llm = get().llmPreferences;
       await StorageService.save_preferences(JSON.stringify(prefObj));
     } catch (err) {
       console.error('Error saving language preference:', err);
@@ -390,7 +422,12 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     try {
       set({ theme });
       applyTheme(theme);
-      const prefObj = { language: get().language, theme, maxSteps: get().maxSteps };
+      const currentPrefStr = await StorageService.load_preferences();
+      const prefObj = JSON.parse(currentPrefStr || '{}');
+      prefObj.language = get().language;
+      prefObj.theme = theme;
+      prefObj.maxSteps = get().maxSteps;
+      prefObj.llm = get().llmPreferences;
       await StorageService.save_preferences(JSON.stringify(prefObj));
     } catch (err) {
       console.error('Error saving theme preference:', err);
@@ -400,7 +437,12 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   changeMaxSteps: async (max: number) => {
     try {
       set({ maxSteps: max });
-      const prefObj = { language: get().language, theme: get().theme, maxSteps: max };
+      const currentPrefStr = await StorageService.load_preferences();
+      const prefObj = JSON.parse(currentPrefStr || '{}');
+      prefObj.language = get().language;
+      prefObj.theme = get().theme;
+      prefObj.maxSteps = max;
+      prefObj.llm = get().llmPreferences;
       await StorageService.save_preferences(JSON.stringify(prefObj));
     } catch (err) {
       console.error('Error saving maxSteps preference:', err);
@@ -424,8 +466,16 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         ? prefObj.theme
         : 'nord';
       const finalMaxSteps: number = typeof prefObj.maxSteps === 'number' ? prefObj.maxSteps : 30;
-      
-      set({ language: finalLang, theme: finalTheme, maxSteps: finalMaxSteps });
+      const llmPrefs = prefObj.llm || {
+        provider: 'openrouter',
+        apiUrl: 'https://openrouter.ai/api/v1',
+        apiKey: '',
+        model: 'anthropic/claude-3.5-sonnet',
+        shortTermMemoryLimit: 20,
+      };
+
+      set({ language: finalLang, theme: finalTheme, maxSteps: finalMaxSteps, llmPreferences: llmPrefs });
+
       applyTheme(finalTheme);
       
       await get().loadLibrary();

@@ -13,7 +13,10 @@ import { Minimize } from 'lucide-react';
 
 const SequenceDiagramCanvas = lazy(() => import('../sequence/SequenceDiagramCanvas').then(m => ({ default: m.SequenceDiagramCanvas })));
 
+import { ChatOverlay } from '../chat/ChatOverlay';
+
 export const MainLayout: React.FC = () => {
+
   const timelineHeight = useAppStore((s) => s.timelineHeight);
   const _timelineOpen = useAppStore((s) => s.timelineOpen);
   const setTimelineHeight = useAppStore((s) => s.setTimelineHeight);
@@ -140,6 +143,10 @@ export const MainLayout: React.FC = () => {
       
       {/* Create Diagram Name Modal */}
       <CreateDiagramModal />
+
+      {/* AI Chat Overlay */}
+      <ChatOverlay />
     </div>
   );
 };
+

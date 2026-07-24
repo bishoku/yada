@@ -31,6 +31,17 @@ export const CreateDiagramModal: React.FC = () => {
     }
   }, [isCreateDiagramModalOpen, diagrams, language]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isCreateDiagramModalOpen) {
+        setCreateDiagramModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCreateDiagramModalOpen, setCreateDiagramModalOpen]);
+
+
   if (!isCreateDiagramModalOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {

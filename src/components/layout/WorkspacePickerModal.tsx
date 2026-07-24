@@ -31,6 +31,17 @@ export const WorkspacePickerModal: React.FC<WorkspacePickerModalProps> = ({
   const recentWorkspaces = useAppStore((s) => s.recentWorkspaces);
   const t = translations[language];
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+
   // Exclude current workspace from copy/move options
   const selectableWorkspaces = currentWorkspacePath 
     ? recentWorkspaces.filter(ws => ws.path !== currentWorkspacePath)

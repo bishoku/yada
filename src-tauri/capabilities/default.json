@@ -24,7 +24,11 @@
     "allow-delete-file",
     "allow-list-json-files-in-dir",
     "allow-get-global-components-dir",
+    "allow-chat-with-agent",
+    "allow-get-chat-memory",
+    "allow-clear-chat-memory",
     "fs:default",
+
     "fs:allow-write-file",
     "oauth:default",
     "oauth:allow-start"

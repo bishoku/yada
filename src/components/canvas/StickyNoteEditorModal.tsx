@@ -41,6 +41,17 @@ export const StickyNoteEditorModal: React.FC = () => {
     return () => window.removeEventListener('canvas:editStickyNote', handleOpen);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+
   const handleSave = () => {
     if (noteId) {
       updateStickyNote(noteId, {
