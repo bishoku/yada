@@ -95,7 +95,7 @@ export const RightSidebarShell: React.FC = () => {
   return (
     <aside
       className={`border-l border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/40 backdrop-blur-md flex flex-col h-full select-none shrink-0 z-20 transition-all duration-300 ease-in-out overflow-hidden ${
-        rightSidebarOpen ? 'w-[300px]' : 'w-0 border-l-0'
+        rightSidebarOpen ? 'w-[260px]' : 'w-0 border-l-0'
       }`}
     >
       {/* Properties panel slides in over simulation when a selection is active */}

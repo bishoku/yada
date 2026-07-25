@@ -36,7 +36,7 @@ export const useCanvasDrop = (
 
       console.log(`[Canvas] Placing "${name}" at flow (${x.toFixed(0)}, ${y.toFixed(0)})`);
 
-      const visualNode = { id: nodeId, x, y, width, height, ...(isSection ? { zIndex: -1 } : {}) };
+      const visualNode = { id: nodeId, x, y, width, height, theme: 'white', ...(isSection ? { zIndex: -1 } : {}) };
       
       // Calculate unique name with index
       const existingNames = useAppStore.getState().logicalData.nodes.map(n => n.name);

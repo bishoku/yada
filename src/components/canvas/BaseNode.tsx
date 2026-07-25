@@ -16,12 +16,108 @@ interface BaseNodeProps {
   selected?: boolean;
 }
 
+const PRESET_HEX: Record<string, string> = {
+  white: '#ffffff',
+  slate: '#64748b',
+  indigo: '#6366f1',
+  emerald: '#10b981',
+  amber: '#f59e0b',
+  rose: '#f43f5e',
+  violet: '#8b5cf6',
+  cyan: '#06b6d4',
+};
+
+const getThemeHexColor = (themeKey: string): string => {
+  if (PRESET_HEX[themeKey]) return PRESET_HEX[themeKey];
+  return themeKey; // custom hex color
+};
+
+/**
+ * Calculates a visually distinct, harmonious border color derived from the background color
+ * (22% darker shade for crisp definition and depth).
+ */
+export const getHarmoniousBorderColor = (bgColor: string) => {
+  if (!bgColor) return undefined;
+  let hex = bgColor.trim();
+
+  if (PRESET_HEX[hex]) {
+    hex = PRESET_HEX[hex];
+  }
+
+  if (/^#([0-9a-f]{3})$/i.test(hex)) {
+    hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+  }
+
+  const hexMatch = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!hexMatch) return undefined;
+
+  const r = parseInt(hexMatch[1], 16);
+  const g = parseInt(hexMatch[2], 16);
+  const b = parseInt(hexMatch[3], 16);
+
+  const darken = (c: number) => Math.max(0, Math.floor(c * 0.78));
+  const dr = darken(r);
+  const dg = darken(g);
+  const db = darken(b);
+
+  const toHex = (c: number) => c.toString(16).padStart(2, '0');
+  return `#${toHex(dr)}${toHex(dg)}${toHex(db)}`;
+};
+
+/**
+ * Calculates perceived luminance of a background color and returns WCAG AAA compliant
+ * contrast colors for primary text, subtext, icon, and vertical divider.
+ */
+export const getContrastingTextColors = (bgColor: string) => {
+  if (!bgColor) return null;
+  let hex = bgColor.trim();
+
+  // Handle rgb/rgba strings
+  const rgbMatch = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/i.exec(hex);
+  let r = 0, g = 0, b = 0;
+
+  if (rgbMatch) {
+    r = parseInt(rgbMatch[1], 10);
+    g = parseInt(rgbMatch[2], 10);
+    b = parseInt(rgbMatch[3], 10);
+  } else {
+    if (PRESET_HEX[hex]) {
+      hex = PRESET_HEX[hex];
+    }
+
+    if (/^#([0-9a-f]{3})$/i.test(hex)) {
+      hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+    }
+
+    const hexMatch = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+    if (!hexMatch) return null;
+
+    r = parseInt(hexMatch[1], 16);
+    g = parseInt(hexMatch[2], 16);
+    b = parseInt(hexMatch[3], 16);
+  }
+
+  // W3C Perceived Luminance formula (YIQ): (r*299 + g*587 + b*114) / 1000
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+
+  // Luminance threshold (165 out of 255)
+  const isLight = yiq > 165;
+
+  return {
+    isLight,
+    text: isLight ? '#0f172a' : '#ffffff',                           // Primary Title
+    subtext: isLight ? 'rgba(15, 23, 42, 0.65)' : 'rgba(255, 255, 255, 0.75)', // Subtext (Type / Category)
+    iconColor: isLight ? '#0f172a' : '#ffffff',                       // Icon
+    divider: isLight ? 'rgba(15, 23, 42, 0.15)' : 'rgba(255, 255, 255, 0.25)', // Vertical divider
+  };
+};
+
 const getIcon = (type: string, colorClass: string, isIconOnly: boolean, customColor?: string) => {
   const def = getNodeDefinition(type);
   const sizeClass = isIconOnly ? 'w-[80%] h-[80%]' : 'w-8 h-8';
-  const isHex = customColor?.startsWith('#');
-  const isPredefined = customColor && !isHex;
-  const finalColorClass = isPredefined ? (themeStyles[customColor]?.text ?? colorClass) : colorClass;
+  const isHex = customColor?.startsWith('#') || customColor?.startsWith('rgba') || customColor?.startsWith('rgb');
+  const isPredefined = customColor && !isHex && !customColor.includes(' ');
+  const finalColorClass = isPredefined ? (themeStyles[customColor]?.text ?? colorClass) : (customColor?.includes(' ') ? customColor : colorClass);
   const className = `${sizeClass} ${isHex ? '' : finalColorClass} transition-all duration-300`;
   const extraProps = {
     className,
@@ -43,19 +139,8 @@ const sideToPosition = (side: PortSide): Position => {
   }
 };
 
-const getThemeHexColor = (themeKey: string): string => {
-  switch (themeKey) {
-    case 'emerald': return '#10b981';
-    case 'rose':    return '#f43f5e';
-    case 'amber':   return '#f59e0b';
-    case 'violet':  return '#8b5cf6';
-    case 'cyan':    return '#06b6d4';
-    case 'indigo':  return '#6366f1';
-    default:        return themeKey; // custom hex color
-  }
-};
-
 const themeStyles: Record<string, { border: string; borderHover: string; ring: string; text: string; bg: string; handleBg: string; resizerBorder: string; resizerHandleBorder: string }> = {
+  slate: { border: 'border-slate-500 dark:border-slate-500/80', borderHover: 'hover:border-slate-600 dark:hover:border-slate-400', ring: 'ring-slate-500/10 dark:ring-slate-500/20 shadow-slate-100 dark:shadow-slate-950/40', text: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-500/5 dark:bg-slate-500/10', handleBg: '!bg-slate-500 dark:!bg-slate-400', resizerBorder: '!border-slate-500', resizerHandleBorder: '!border-slate-500' },
   indigo: { border: 'border-indigo-500 dark:border-indigo-500/80', borderHover: 'hover:border-indigo-600 dark:hover:border-indigo-400', ring: 'ring-indigo-500/10 dark:ring-indigo-500/20 shadow-indigo-100 dark:shadow-indigo-950/40', text: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-500/5 dark:bg-indigo-500/10', handleBg: '!bg-indigo-500 dark:!bg-indigo-400', resizerBorder: '!border-indigo-500', resizerHandleBorder: '!border-indigo-500' },
   emerald: { border: 'border-emerald-500 dark:border-emerald-500/80', borderHover: 'hover:border-emerald-600 dark:hover:border-emerald-400', ring: 'ring-emerald-500/10 dark:ring-emerald-500/20 shadow-emerald-100 dark:shadow-emerald-950/40', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/5 dark:bg-emerald-500/10', handleBg: '!bg-emerald-500 dark:!bg-emerald-400', resizerBorder: '!border-emerald-500', resizerHandleBorder: '!border-emerald-500' },
   rose: { border: 'border-rose-500 dark:border-rose-500/80', borderHover: 'hover:border-rose-600 dark:hover:border-rose-400', ring: 'ring-rose-500/10 dark:ring-rose-500/20 shadow-rose-100 dark:shadow-rose-950/40', text: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-500/5 dark:bg-rose-500/10', handleBg: '!bg-rose-500 dark:!bg-rose-400', resizerBorder: '!border-rose-500', resizerHandleBorder: '!border-rose-500' },
@@ -74,17 +159,16 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
   const { tooltipActive: isProcessing, nodeActive: isNodeActive, tooltipText: activeTooltipText } = useNodeAnimation(id);
 
   const visualNode = useAppStore((s: any) => s.visualData.layoutNodes[id]);
-  const themeKey = visualNode?.theme ?? 'indigo';
+  const themeKey = visualNode?.theme ?? 'white';
   const displayMode = visualNode?.displayMode ?? 'default';
-  // orientation: rotation===90 means vertical (narrow+tall), rotation===0 means horizontal
   const isVertical = (visualNode?.rotation ?? 0) === 90;
   const customStyles = visualNode?.customStyles ?? {};
 
+  const isBorderOnly = customStyles.borderOnly !== false;
+
   const updateNodeDimensions = useAppStore((s: any) => s.updateNodeDimensions);
   const libraryComponents = useAppStore((s: any) => s.libraryComponents);
-  const nodeHandles = useAppStore((s: any) => {
-    return s.visualData.layoutNodes[id]?.handles;
-  });
+  const nodeHandles = useAppStore((s: any) => s.visualData.layoutNodes[id]?.handles);
 
   const connectedHandlesArray = useAppStore(
     useShallow((s: any) => {
@@ -104,27 +188,30 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
   const style = themeStyles[themeKey] ?? themeStyles.indigo;
   const customTemplate = libraryComponents.find((c: any) => c.componentId === type);
 
-  const isCustomTheme = themeKey.startsWith('#');
-  const themeHexColor = useMemo(() => getThemeHexColor(themeKey), [themeKey]);
+  // The node background color is directly set from customStyles or the chosen component color
+  const activeBgHex = useMemo(() => {
+    return customStyles.backgroundColor || getThemeHexColor(themeKey);
+  }, [customStyles.backgroundColor, themeKey]);
+
+  // Calculate contrast colors dynamically from activeBgHex ONLY if solid fill
+  const contrastColors = useMemo(() => {
+    if (isBorderOnly) return null;
+    return getContrastingTextColors(activeBgHex);
+  }, [activeBgHex, isBorderOnly]);
+
+  // Calculate border color: if borderOnly is true, activeBgHex is used directly as border stroke!
+  const harmoniousBorder = useMemo(() => {
+    if (customStyles.borderColor) return customStyles.borderColor;
+    if (isBorderOnly) return activeBgHex;
+    return getHarmoniousBorderColor(activeBgHex);
+  }, [customStyles.borderColor, activeBgHex, isBorderOnly]);
 
   const containerStyle: React.CSSProperties = {
-    backgroundColor: customStyles.backgroundColor || ((isNodeActive && isCustomTheme) ? `${themeKey}1A` : undefined),
-    borderColor: customStyles.borderColor || (isCustomTheme ? themeKey : undefined),
+    backgroundColor: (displayMode === 'icon-only' || isBorderOnly) ? undefined : activeBgHex,
+    borderColor: harmoniousBorder,
     borderStyle: customStyles.borderStyle || undefined,
     borderRadius: customStyles.borderRadius ? `${customStyles.borderRadius}px` : undefined,
   };
-
-  // ── Key design principle ──────────────────────────────────────────────────
-  // No CSS rotation is used anywhere.  The stored width × height IS the
-  // bounding box exactly as React Flow sees it, so handles are always at the
-  // real visual edges and edge routing is always correct.
-  //
-  // Orientation is achieved purely by changing content flow:
-  //   Horizontal → flex-row, icon left, text right
-  //   Vertical   → flex-col, icon top, text rotated 90° (writing-mode)
-  //
-  // When the user switches orientation in the properties panel,
-  // updateNodeDetails() automatically swaps width ↔ height in the store.
 
   return (
     <div className="relative w-full h-full font-sans" style={{ overflow: 'visible' }}>
@@ -133,10 +220,13 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
         minWidth={isVertical ? 32 : 120}
         minHeight={isVertical ? 120 : 32}
         isVisible={!!selected}
-        lineClassName={isCustomTheme ? undefined : style.resizerBorder}
-        lineStyle={isCustomTheme ? { borderColor: themeKey } : undefined}
-        handleClassName={`w-2 h-2 bg-white border-2 rounded-full ${isCustomTheme ? '' : style.resizerHandleBorder}`}
-        handleStyle={isCustomTheme ? { borderColor: themeKey } : undefined}
+        lineClassName={style.resizerBorder}
+        lineStyle={{ borderColor: (isBorderOnly || contrastColors?.isLight) ? '#4f46e5' : activeBgHex }}
+        handleClassName="w-2.5 h-2.5 rounded-full border-2 shadow-sm"
+        handleStyle={{
+          backgroundColor: (isBorderOnly || contrastColors?.isLight) ? '#4f46e5' : '#ffffff',
+          borderColor: (isBorderOnly || contrastColors?.isLight) ? '#ffffff' : activeBgHex,
+        }}
         onResizeEnd={(_, params) => {
           updateNodeDimensions(id, params.width, params.height);
         }}
@@ -151,10 +241,7 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
         </div>
       )}
 
-      {/* Connection handles — always at the bounding box edges, no transforms.
-          Each position has TWO handles (source + target) for bidirectional connections,
-          but only the SOURCE handle is visible. The TARGET handle is a transparent
-          hit-area — this prevents the double-circle artifact on hover. */}
+      {/* Connection handles */}
       {handles.map((h) => {
         const pos = sideToPosition(h.side);
         const posStyle = getHandleStyle(h.side, h.offset);
@@ -165,7 +252,6 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
 
         return (
           <React.Fragment key={h.id}>
-            {/* TARGET — invisible hit-area, same size as source so drop zone matches */}
             <Handle
               type="target"
               position={pos}
@@ -173,7 +259,6 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
               style={{ ...posStyle, opacity: 0 }}
               className={`${sizeClass} !border-0 !bg-transparent ${handleClass}`}
             />
-             {/* SOURCE — the only visible circle */}
             <Handle
               type="source"
               position={pos}
@@ -181,41 +266,44 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
               style={{
                 ...posStyle,
                 pointerEvents: isConnecting ? 'none' : 'auto',
-                backgroundColor: isCustomTheme ? themeKey : undefined,
-                ['--handle-glow-color' as any]: themeHexColor,
+                backgroundColor: activeBgHex,
+                ['--handle-glow-color' as any]: activeBgHex,
               }}
-              className={`${sizeClass} !border-2 !border-white dark:!border-slate-900 !transition-all !duration-150 ${handleClass} ${
-                isCustomTheme ? '' : style.handleBg
-              }`}
+              className={`${sizeClass} !border-2 ${
+                (isBorderOnly || contrastColors?.isLight) ? '!border-slate-400 dark:!border-slate-600' : '!border-white dark:!border-slate-900'
+              } !transition-all !duration-150 ${handleClass}`}
             />
           </React.Fragment>
         );
       })}
 
-      {/* Node card — layout only, zero CSS rotation */}
+      {/* Node card */}
       <div
         style={containerStyle}
-        className={`w-full h-full rounded-xl text-slate-800 dark:text-slate-100 flex items-center justify-center transition-all duration-200 ${displayMode === 'icon-only'
-            ? `bg-transparent border-transparent ${selected ? (isCustomTheme ? '' : 'ring-2 ring-indigo-500/50') : ''}`
+        className={`w-full h-full rounded-xl flex items-center justify-center transition-all duration-200 ${
+          isBorderOnly ? 'bg-white dark:bg-slate-900' : ''
+        } ${
+          contrastColors ? '' : 'text-slate-800 dark:text-slate-100'
+        } ${displayMode === 'icon-only'
+            ? `bg-transparent border-transparent ${selected ? 'ring-2 ring-indigo-500/50' : ''}`
             : `border-2 shadow-md dark:shadow-xl ${
-            // Vertical layout: icon on top, text below
-            isVertical ? 'flex-col px-2 py-4 gap-3' : 'flex-row px-4 py-3 gap-2.5'
-            } ${isProcessing
-              ? 'bg-white dark:bg-slate-900 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 dark:border-emerald-500'
-              : isNodeActive
-                ? `bg-white dark:bg-slate-900 ${isCustomTheme ? '' : `${style.bg} ${style.border}`}`
-                : selected
-                  ? `bg-white dark:bg-slate-900 ${isCustomTheme ? '' : `${style.border}`}`
-                  : `bg-white dark:bg-slate-900 ${isCustomTheme ? '' : `${style.border} ${style.borderHover}`}`
-            }`
-          }`}
+                isVertical ? 'flex-col px-2 py-4 gap-3' : 'flex-row px-4 py-3 gap-2.5'
+              } ${
+                isProcessing
+                  ? 'ring-4 ring-emerald-400/40 border-emerald-400'
+                  : isNodeActive
+                  ? 'ring-2 ring-indigo-500/50'
+                  : selected
+                  ? 'ring-2 ring-indigo-500/40 shadow-lg'
+                  : 'hover:opacity-95'
+              }`
+        }`}
       >
         {/* Icon */}
         <div
-          className={`flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 ${displayMode === 'icon-only'
-              ? 'w-full h-full'
-              : 'w-9 h-9'
-            }`}
+          className={`flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 ${
+            displayMode === 'icon-only' ? 'w-full h-full' : 'w-9 h-9'
+          }`}
         >
           {(() => {
             if (customStyles.productIcon) {
@@ -232,11 +320,11 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
                   const isHex = customStyles.iconColor?.startsWith('#');
                   const finalIconColor = isHex
                     ? customStyles.iconColor
-                    : (customStyles.iconColor ? themeStyles[customStyles.iconColor]?.text : style.text);
+                    : (isBorderOnly ? activeBgHex : (contrastColors ? contrastColors.iconColor : style.text));
                   return (
                     <div
-                      className={`flex items-center justify-center w-full h-full ${!isColored && !isHex ? finalIconColor : ''}`}
-                      style={!isColored && isHex ? { color: finalIconColor } : undefined}
+                      className="flex items-center justify-center w-full h-full"
+                      style={!isColored ? { color: finalIconColor } : undefined}
                     >
                       <IconComponent size={size} />
                     </div>
@@ -253,28 +341,42 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
                 />
               );
             }
-            return getIcon(type, style.text, displayMode === 'icon-only', customStyles.iconColor);
+            const defaultIconColor = isBorderOnly
+              ? activeBgHex
+              : (contrastColors ? contrastColors.iconColor : '#ffffff');
+            return getIcon(type, defaultIconColor, displayMode === 'icon-only', customStyles.iconColor || (isBorderOnly ? activeBgHex : (contrastColors ? contrastColors.iconColor : undefined)));
           })()}
         </div>
 
         {/* Divider (only for horizontal layout with text) */}
         {displayMode === 'default' && !isVertical && (
-          <div className="w-px h-7 bg-slate-200 dark:bg-slate-800/80 shrink-0 self-center" />
+          <div
+            className="w-px h-7 shrink-0 self-center transition-colors"
+            style={{ backgroundColor: isBorderOnly ? 'rgba(148, 163, 184, 0.3)' : (contrastColors ? contrastColors.divider : 'rgba(255,255,255,0.25)') }}
+          />
         )}
 
-        {/* Text — vertical mode uses writing-mode so text reads bottom-to-top */}
+        {/* Text */}
         {displayMode === 'default' && (
           <div
             className="flex-1 min-w-0"
             style={isVertical ? {
               writingMode: 'vertical-rl',
               textOrientation: 'mixed',
-              transform: 'rotate(180deg)',   // bottom-to-top reading direction
+              transform: 'rotate(180deg)',
               overflow: 'hidden',
             } : {}}
           >
-            <div className="font-bold text-xs truncate text-slate-800 dark:text-slate-200">{name}</div>
-            <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+            <div
+              className={`font-bold text-xs truncate transition-colors ${isBorderOnly ? 'text-slate-800 dark:text-slate-200' : ''}`}
+              style={isBorderOnly ? undefined : { color: contrastColors ? contrastColors.text : '#ffffff' }}
+            >
+              {name}
+            </div>
+            <div
+              className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 transition-colors ${isBorderOnly ? 'text-slate-400 dark:text-slate-500' : ''}`}
+              style={isBorderOnly ? undefined : { color: contrastColors ? contrastColors.subtext : 'rgba(255,255,255,0.75)' }}
+            >
               {customTemplate ? customTemplate.category : type}
             </div>
           </div>

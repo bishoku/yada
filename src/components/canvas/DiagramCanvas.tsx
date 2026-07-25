@@ -224,7 +224,7 @@ const FlowWrapper: React.FC = () => {
         id: node.id,
         name: ln.name,
         type: ln.type,
-        theme: vn?.theme ?? 'indigo',
+        theme: vn?.theme ?? 'white',
         handles: vn?.handles,
         displayMode: vn?.displayMode ?? 'default',
         rotation: vn?.rotation ?? 0,

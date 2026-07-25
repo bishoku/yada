@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YADA Diagram Embed Test Page</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --text-color: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+      --accent-color: #6366f1;
+    }
+
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    header {
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 0 0 8px 0;
+      background: linear-gradient(135deg, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin: 0;
+    }
+
+    /* Embedded Diagram Container Card */
+    .embed-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      margin-bottom: 24px;
+    }
+
+    .embed-header {
+      padding: 12px 16px;
+      background-color: rgba(15, 23, 42, 0.6);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .embed-header .badge {
+      background-color: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Responsive Iframe Wrapper */
+    .iframe-wrapper {
+      position: relative;
+      width: 100%;
+      height: 480px;
+      /* Standart diyagram yüksekliği */
+      background-color: #090d16;
+    }
+
+    .iframe-wrapper iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .instructions {
+      background-color: rgba(30, 41, 59, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    .instructions code {
+      background-color: rgba(15, 23, 42, 0.8);
+      color: #38bdf8;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <header>
+      <h1>YADA Interactive Diagram Embed Example</h1>
+      <p class="subtitle">Medium, Notion veya herhangi bir web sayfasına gömülebilir canlı mimari diyagramı örneği</p>
+    </header>
+
+    <!-- Diyagram Embed Kartı -->
+    <div class="embed-card">
+      <div class="embed-header">
+        <span>Interactive Architecture Diagram</span>
+        <span class="badge">Live Flow Simulation</span>
+      </div>
+
+      <!-- Iframe Alanı -->
+      <div class="iframe-wrapper">
+        <!-- 
+          NOT: Aşağıdaki 'src' kısmına YADA uygulamasından ürettiğiniz 
+          '?embed=true#share=...' linkini yapıştırabilirsiniz.
+        -->
+        <iframe
+          src="https://bishoku.github.io/yada/?embed=true#share=N4IgNg9g5glgxgQzAEQQFwSAXKAznACwFMBbBANSICdcYIA7bAJgBoR6IATI3bAbVAxO2dgFooAdxBt6CEkREBBAAoBJAAQBxdEQkIAntJBp9ABwVYQUHXsMBfFoOGX64gK4IqwmXIshNHl5UCDBguOoAZOoAyggAZkQmRqaeRPRoqs4guKK4plQw9FCiIUYm5iJxMFS6SGAgDk4iOXkFRSUwRrLyItH5hVDqihoAonAQuPq4aKRlZn64RHBodIyNIEIirghQaWhdvr39RUMairvpyanpmc25x8WlbOUL1ABu1A2OG1muwVAHHqWSjLCBUGJoMFEdQACgASopNABKK41G5ZFoPDpzCqWTjoBAAIwQiy+TRconkJDBhh8QJAAGECOh1ABZUg01F7W6WTFtR6dZ7zESIQgKdabCmQiBhQF+AAqEBl6gZdRi73gCjYKTRGQx9352KFuOy70+Et+oiIbyQcpEIxtYA8kPBUQZBRWcC56LurQGRuMwt5ZqoZJ+W1EYDAJDtlgAMnHWeplFQIG8hNRYQB5cz0YYAeizUbkCBRxteVA+obsAF02EROLteFgBCBuPgCqYVgwRMos9F5ep8whTDB84R0EZJSAiABGKe4RSTeherBxJCLbWpyHjeqWAAS8vlyiMuAgbiocCIPLEkjKnl2eojUECwnW7bgne7jEssXoMBWAAvBtk1TEguynLI51EQkFyXfQV2wdcwiILcIB3GURFUdJqFkeo2DPC8rxvVwX08bxjAfRISJKC59nfHhPxgLtVl6GASFCTwAP0dVPEISCRCIJg4OXVdkM3EB8nQiBd16ABFONT3PS9r0tHY9nvKhHxo-4ww-L9WPjCAEE4dR9xgaZOTYaciAAZhEhCxI3VDJO3GTMMsOEGwspSiNUiN1MuZ4qKfCkqU5BiO2Y78RCZFkGQgcCwESVYhwhGo5AEywiEjaMHMQtdnLQjC9xAQ9j18lSaMC-Zgq06jLSjGNIqYlie0sEYAA8ljcGZ1EVTDrKggAWfKnJQ4r3NKqA4WUBlKuItS6M07TLWlWUWoM9qQHIJAhB0dQs160xeqymcAFYxqQorXOk2SDyPE8COUxaAuWurVoja1bVrAiiAARzcNIr2bVsG12G85zO3B52sxdROuiaNlwOFz3oTh5U7bA0CoIGCJmUwADk3BIQlPiwWd1nB-zstnGDobp2C4fggrxJcizUbcdHMeY7HcZc6YiCJkmydDLAmCpxsaZnYShuaWXkZZ8aJI5tGMaxrAcbx7ICeJ0nydsyWIag+y5d5U3FYRwqkdVrn1d5zX+fxoW9dF7BDe+anIdymMzeyAA2K7rZVlG1Z50w+e1wXhf1sXhqN6WiFGv3cGTy3HMRkPOe5jWtYF3WRfJ86E8hy6U7L9PWZu22c4dvPnZjt2sH92sHBAdNcA8FACWwUAwAMc80BGKXm1AHKmt78Nsp91FPWS+UgxAGpplPAgIAkRQqFTKRHajl6iH3BB0eSkQCigAg0Cwc6AAYVsSQ-j78ZK4kvm+vhneccCnj-Z-gefF+XrVbIa8N5b3XpHAW+8H6cBPpYM+F8r63w+vfI+MCn5EBfog9+0FYJfxsozX+cB-4mkAavdem9t4QOen5aBsCQCEnQpCEgWDkFoFoX4SEpgsFtyEpPGyCsdRzyIAvE0uB-r4WAeQsBO967ZCgaguh8DX5IMovVNhCj0GYLfjw+yeCTaEOIX4Tg6EyGgMobvSBNCNGnxgOfZRd91GPxEM-exPDRp6MEmnQRf9hGLygFQUwXoCIgIoeAix1CVLsJsXYlhqjHxRMsC47h9ZLoeOyhXbxRDfEkJ4EA3AITpFULkVYpxlhOGxIwGohJxgIBcO0W3RA9AbSj0kkfSenVmDX2GmwQw4sb4ADphr+1stfJgAAOYaw0mBdNnC3NggElQxgpv086YyACc-t-ZjKYAAdlnLZc6Oz-Y7MOW3fu+hB6Ey4DwSe2xlpfzgG4SyJBogmGSi0qSnA3DLFUOMH8IAABWCAbTJFTF8n5fyEqQBqM4PObdiC2Ivtgc6rBv53I0s8Yg9I5BuzYBIIQaACDMCYN0kAHSsDDWvj07A+zr5t1cN9PcoBHnPNefod5k9PnfIyH8kQph9CEp7GhcFPKGBQqhLC-m8KiCIv2FfVF04GWOjKFivwOLPh4oJUS8WJK2DkspdSnVdKZDuHIpPFlTC2Ucq-lyiF20EASF4MK7lvyxUyglRA6VsrkUKstGRLwKrSB+FTKSTVnBCXEtJfqqlIBemUvpeIHezKnmWreTcm1YKXW8t5A8UFXAs1uuhQ2T1bAEV2J9X7UiUhMVBsEvIYIYAKL4vDdqpguqyXYBjb02c19jViAng8lNiUrXptALa0V-z+WCsYM6u19BxUwpLSAMtSL5WVpnjW7FscjDNojTqqNNLr7nTWf08Zmyj3+1nEwWcGz-aGvjSa8KVBenJtZWmj5ma52n28k626IrXXzvdYuixXry1rrRZSDkz7A30jgPoNpYa91toPVgWyYyu00pGQm3Sg633stHX+gtk6JhoH8TwcReb-2QqA8WkDpaZVgZReu3Sm7g0TC1CAXdrb23krQxhilfbXDrRaRa4d77OWfonSIYxcAADWGrCNzoXbRuF9HvXgcVaIYTMG1XbsQ9xlDfHDVtr7Xyf0pQv4rrlbZA138zPtCeMYVVIh1Whn09gHZva9Xux7cZmNgFsLcHJaISmbcVjyDAIUAjMNJ5H3YugVYrJrmnzDljNg3BzmdvSxeBL7Ub4xsKDMKgeEUwyR4C0r5wQYriy88YIgnU5UgC8leGA6YThSXAvRP6gNgbSxi23GG9Mv5xbIN+JL3AUt23DkYDLBhkW1cq7ln8+XrI4WK0gUrIMKs5eq9MmNMwGsiACORYIoRwiOn2jFAbAMgYrj6wQgbwlhv-lG4l5LcDUu83S0QTLFNe0xsW9V-2tXCu4Q26mLbk9AeGRGft+rjWQQul4peAgsIETInfosHrd2by4GEgN3RoARtLfG2xqbaW2w-bm39hbO3DLA4K2tkrEPytQ7p+1WHzx4ciAAGKJEIAMNkUH7Dddu69c2mP3FE5eyT97S9PsR2+79kzAP2c-gZ6torzOyu4G21VmHtWDuNa6j1FYJwBpgBVHUTHN3eu49GgN1J0v4tjbl6mcnX3KfK-Q6r-X7UNcbCZ+DnXeulvu0N9zjqjpnSC6OmgE6aB1ByS7txG32PxfZEugNwOz2XdvYmx9j3iuvfU9mbTv36uQdB7AJt1nX9occ4j4dywmg0jUASycBMSZl6mAYKSa76e+uBzsCPtgjyt57HIDAXQ0mYA7GCM1IAA"
+          title="YADA Diagram Embed" allow="fullscreen" loading="lazy">
+        </iframe>
+
+      </div>
+    </div>
+
+    <div class="iframe-wrapper">
+      <!-- 
+          NOT: Aşağıdaki 'src' kısmına YADA uygulamasından ürettiğiniz 
+          '?embed=true#share=...' linkini yapıştırabilirsiniz.
+        -->
+      <iframe
+        src="https://bishoku.github.io/yada/?embed=true#share=N4IgNg9g5glgxgQzAEQQFwSAXKAznACwFMBbBANSICdcYIA7bAJgBoR6IATI3bAbVAxO2dgFooAdxBt6CEkREBBAAoBJAAQBxdEQkIAntJBp9ABwVYQUHXsMBfFoOGX64gK4IqwmXIshNHl5UCDBguOoAZOoAyggAZkQmRqaeRPRoqs4guKK4plQw9FCiIUYm5iJxMFS6SGAgDk4iOXkFRSUwRrLyItH5hVDqihoAonAQuPq4aKRlZn64RHBodIyNIEIirghQaWhdvr39RUMairvpyanpmc25x8WlbOUL1ABu1A2OG1muwVAHHqWSjLCBUGJoMFEdQACgASopNABKK41G5ZFoPDpzCqWTjoBAAIwQiy+TRconkJDBhh8QJAAGECOh1ABZUg01F7W6WTFtR6dZ7zESIQgKdabCmQiBhQF+AAqEBl6gZdRi73gCjYKTRGQx9352KFuOy70+Et+oiIbyQcpEIxtYA8kPBUQZBRWcC56LurQGRuMwt5ZqoZJ+W1EYDAJDtlgAMnHWeplFQIG8hNRYQB5cz0YYAeizUbkCBRxteVA+obsAF02EROLteFgBCBuPgCqYVgwRMos9F5ep8whTDB84R0EZJSAiABGKe4RSTeherBxJCLbWpyHjeqWAAS8vlyiMuAgbiocCIPLEkjKnl2eojUECwnW7bgne7jEssXoMBWAAvBtk1TEguynLI51EQkFyXfQV2wdcwiILcIB3GURFUdJqFkeo2DPC8rxvVwX08bxjAfRISJKC59nfHhPxgLtVl6GASFCTwAP0dVPEISCRCIJg4OXVdkM3EB8nQiBd16ABFONT3PS9r0tHY9nvKhHxo-4ww-L9WPjCAEE4dR9xgaZOTYaciAAZhEhCxI3VDJO3GTMMsOEGwspSiNUiN1MuZ4qKfCkqU5BiO2Y78RCZFkGQgcCwESVYhwhGo5AEywiEjaMHMQtdnLQjC9xAQ9j18lSaMC-Zgq06jLSjGNIqYlie0sEYAA8ljcGZ1EVTDrKggAWfKnJQ4r3NKqA4WUBlKuItS6M07TLWlWUWoM9qQHIJAhB0dQs160xeqymcAFYxqQorXOk2SDyPE8COUxaAuWurVoja1bVrAiiAARzcNIr2bVsG12G85zO3B52sxdROuiaNlwOFz3oTh5U7bA0CoIGCJmUwADk3BIQlPiwWd1nB-zstnGDobp2C4fggrxJcizUbcdHMeY7HcZc6YiCJkmydDLAmCpxsaZnYShuaWXkZZ8aJI5tGMaxrAcbx7ICeJ0nydsyWIag+y5d5U3FYRwqkdVrn1d5zX+fxoW9dF7BDe+anIdymMzeyAA2K7rZVlG1Z50w+e1wXhf1sXhqN6WiFGv3cGTy3HMRkPOe5jWtYF3WRfJ86E8hy6U7L9PWZu22c4dvPnZjt2sH92sHBAdNcA8FACWwUAwAMc80BGKXm1AHKmt78Nsp91FPWS+UgxAGpplPAgIAkRQqFTKRHajl6iH3BB0eSkQCigAg0Cwc6AAYVsSQ-j78ZK4kvm+vhneccCnj-Z-gefF+XrVbIa8N5b3XpHAW+8H6cBPpYM+F8r63w+vfI+MCn5EBfog9+0FYJfxsozX+cB-4mkAavdem9t4QOen5aBsCQCEnQpCEgWDkFoFoX4SEpgsFtyEpPGyCsdRzyIAvE0uB-r4WAeQsBO967ZCgaguh8DX5IMovVNhCj0GYLfjw+yeCTaEOIX4Tg6EyGgMobvSBNCNGnxgOfZRd91GPxEM-exPDRp6MEmnQRf9hGLygFQUwXoCIgIoeAix1CVLsJsXYlhqjHxRMsC47h9ZLoeOyhXbxRDfEkJ4EA3AITpFULkVYpxlhOGxIwGohJxgIBcO0W3RA9AbSj0kkfSenVmDX2GmwQw4sb4ADphr+1stfJgAAOYaw0mBdNnC3NggElQxgpv086YyACc-t-ZjKYAAdlnLZc6Oz-Y7MOWwfxQhyAWRgISWBbM27930IPQmXAeCT22MtL+cA3CWRINEEwyUWlSU4G4ZYqhxg-hAAAKwQDaZIqZgWgvBQlSANRnB5zbsQWxF9sDnVYN-d5GlnjEHpHIN2bAJBCDQAQZgTBukgA6VgYa18enYH2dfNurhvp7lAF8n5fz9AAsnkCkFGRwUiFMPoKlPY0IItFQwZFUI0X8wxUQLF+wr54unJyx0ZRiV+FJZ8cllLqXi1pWwBlTKWWmvZTIdw5FJ68qYfywVX9hWIu2ggCQvAZUirBfKmUiqIEqrVTizVloyJeF1aQPwqZSRGs4FSmldKLXMpAL0plHLxA7x5d8p1-zXmuvhb6sVvIHhwq4MW-1KKGxBrYJiuxoa-akSkES6Ngl5DBDABRClCaTVMDNfS7AqbemzmvjasQE9Pm5sSs6gtoA3VyohRKqVjAfXuvoAq1FtaQD1uxRqptM9W0ktjkYHtibTXJtZdfc6az+njM2de-2s4mCzg2f7K1GbbXhSoL0nNfL82AqLeu0+3lvW3VlX6jdAat0WODQ2-d+LKQch-VG+kcB9BtPjee-tl6sC2TGcO1lIzM26Snf+gVc7wOVqXRMNA-ieDiPLRBpF0Ga2wbraq+DuKD26SPTGiYWoQBnr7QOhl+HCOMvHa4daLTHUzoA0KoDi6RDGLgAAa0NVR9dm62Poo4yGhDWrRAydQ-qk9WGRO4fE1a-t46+T+lKF-Xd6rbKWu-vZ9oTxjB6pEAa0MFnsA7LHea92o6bOpsAthbgDLRCUzbiseQYBCiUZhpPI+7F0CrFZC80+YcsZsG4A8odBWLyZfajfVNhQZhUDwimGSPAWnAuCDFcWwXjBEE6uqkAXkrwwHTCcKS4F6J-UBsDaWqW24w3pl-dLZBvzZe4Llu24cjCFYMDitrTWys-gq9ZHCNWkB1ZBo10rLXpmppmJ1kQARyLBFCOER0+0YqTYBkDFc42CGTeEjN-8c2ss5bgXl3mBWiBFYpmO1NW2Wv+za1V3Ch3UzHcnlDwyIyLsda6yCF0vFLwEFhAiZE79FijfezeXAwlJu6NALN7bC3+PLfy22UH63webdO4ZGHlX9u1cRw15H7P2po+eBjkQAAxRIhABhsmQ-YEbb3XrmyJ+46nv3acA6XkDiOIOwe2chwLn8nO9vVZ5-V3AJ3muo7a5drrXUeorBOANMAKo6hE9e2Nsno1JupJVxl+b6vUwM+B0znXBG9cW-aobjY3OEem-N9t92VuRcdUdM6KXR00AnTQOoOSXduKu5Jwr7Il1JuBx+77-7i3AeB618Hlnsy2fh4N7D6PYAjt86-ijwXieruWE0GkagmWTgJiTMvUwDBSQvYL+NwOdhZ9sC+VvPYlzdAqZgDsYIzUgA"
+        title="YADA Diagram Embed" allow="fullscreen" loading="lazy">
+      </iframe>
+
+    </div>
+  </div>
+
+  <!-- Kullanım Talimatları -->
+  <div class="instructions">
+    <strong style="color: #f8fafc;">Nasıl Kullanılır?</strong>
+    <ol style="margin: 8px 0 0 0; padding-left: 20px;">
+      <li>YADA uygulamasında diyagramınızı oluşturun ve sağ üstteki <code>Share Diagram</code> butonuna tıklayın.</li>
+      <li>Açılan pencerede <code>Gömme Modu (Clean Embed - ?embed=true)</code> seçeneğini işaretleyin.</li>
+      <li>Oluşturulan bağlantıyı kopyalayıp yukarıdaki <code>iframe</code>'in <code>src="..."</code> parametresine
+        yapıştırın.</li>
+    </ol>
+  </div>
+  </div>
+
+</body>
+
+</html>

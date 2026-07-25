@@ -129,7 +129,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
 
 
   leftSidebarOpen: true,
-  rightSidebarOpen: true,
+  rightSidebarOpen: false,
   isSaving: false,
   isReadOnly: false,
   isFullscreen: false,
@@ -275,7 +275,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         isDirty: false,
         pastStates: [],
         futureStates: [],
-        rightSidebarOpen: true,
+        rightSidebarOpen: false,
         timelineOpen: true,
         isPlaying: false,
         currentTime: 0,
@@ -339,7 +339,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         currentTime: 0,
         activeSequenceIds: [],
         selectedSequenceId: null,
-        rightSidebarOpen: true,
+        rightSidebarOpen: false,
         timelineOpen: true
       });
       await get().fetchRecentWorkspaces();
@@ -694,7 +694,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         isReadOnly: false,
         isDirty: false,
         leftSidebarOpen: true,
-        rightSidebarOpen: true,
+        rightSidebarOpen: false,
       });
 
       await get().fetchRecentWorkspaces();

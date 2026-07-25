@@ -28,20 +28,14 @@ interface NodePropertiesFormProps {
   onValidationError?: (hasError: boolean) => void;
 }
 
-const THEME_COLORS = ['indigo', 'emerald', 'rose', 'amber', 'violet', 'cyan'] as const;
+const THEME_COLORS = ['white', 'slate', 'indigo', 'emerald', 'amber', 'rose', 'violet', 'cyan'] as const;
 const BG: Record<string, string> = {
-  indigo: 'bg-indigo-500', emerald: 'bg-emerald-500', rose: 'bg-rose-500',
-  amber: 'bg-amber-500',   violet: 'bg-violet-500',   cyan: 'bg-cyan-500',
+  white: 'bg-white border border-slate-300 dark:bg-slate-900 dark:border-slate-700',
+  slate: 'bg-slate-500',   indigo: 'bg-indigo-500',  emerald: 'bg-emerald-500',
+  amber: 'bg-amber-500',   rose: 'bg-rose-500',      violet: 'bg-violet-500',
+  cyan: 'bg-cyan-500',
 };
 
-const PRESET_HEX: Record<string, string> = {
-  indigo: '#6366f1',
-  emerald: '#10b981',
-  rose: '#f43f5e',
-  amber: '#f59e0b',
-  violet: '#8b5cf6',
-  cyan: '#06b6d4',
-};
 
 /** Compact label used throughout the form */
 const Label: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -212,213 +206,84 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
         </div>
       )}
 
-      {/* Theme color — inline row */}
+      {/* Theme color — 4x2 Preset Grid + Custom Color Row */}
       {!isSection && (
         <div className="flex flex-col gap-2">
-          {/* Component Color */}
           <div className="flex items-center justify-between">
             <Label>{tr('Bileşen Rengi', 'Component Color')}</Label>
-            <div className="flex gap-1.5 items-center">
-              {THEME_COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => {
-                    setTheme(c);
-                    // Also sync icon color to match
-                    const s = { ...customStyles, iconColor: c };
-                    setCustomStyles(s);
-                    preview({ th: c, cs: s });
-                  }}
-                  className={`w-5 h-5 rounded-full ${BG[c]} hover:scale-110 active:scale-90 transition-transform cursor-pointer ${
-                    theme === c ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900' : ''
-                  }`}
-                  title={c}
-                />
-              ))}
-              <div className="w-9 flex items-center justify-start gap-1">
-                <div className={`w-5 h-5 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800 shrink-0 ${
+          </div>
+
+          {/* 4x2 Presets Grid */}
+          <div className="grid grid-cols-4 gap-2">
+            {THEME_COLORS.map((c) => (
+              <button
+                key={c}
+                onClick={() => {
+                  setTheme(c);
+                  const s = { ...customStyles };
+                  delete s.iconColor;
+                  delete s.backgroundColor;
+                  delete s.borderColor;
+                  setCustomStyles(s);
+                  preview({ th: c, cs: s });
+                }}
+                className={`h-5 rounded-full ${BG[c]} hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center justify-center ${
+                  theme === c ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-105 shadow-sm' : ''
+                }`}
+                title={c}
+              />
+            ))}
+          </div>
+
+          {/* Custom Color Picker Row */}
+          <div className="flex items-center justify-between pt-0.5">
+            <Label>{tr('Özel Renk Paleti', 'Custom Color')}</Label>
+            <div className="flex items-center gap-2">
+              {theme.startsWith('#') && (
+                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                  {theme}
+                </span>
+              )}
+              <div
+                className={`w-5 h-5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 ${
                   theme.startsWith('#') ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
-                }`} title={tr('Özel Renk', 'Custom Color')}>
-                  <input
-                    type="color"
-                    value={theme.startsWith('#') ? theme : '#4f46e5'}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setTheme(val);
-                      const s = { ...customStyles, iconColor: val };
-                      setCustomStyles(s);
-                      preview({ th: val, cs: s });
-                    }}
-                    className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 p-0 bg-transparent"
-                  />
-                </div>
+                }`}
+                title={tr('Özel Renk Seçici', 'Custom Color Picker')}
+              >
+                <input
+                  type="color"
+                  value={theme.startsWith('#') ? theme : '#4f46e5'}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setTheme(val);
+                    const s = { ...customStyles };
+                    delete s.iconColor;
+                    delete s.backgroundColor;
+                    delete s.borderColor;
+                    setCustomStyles(s);
+                    preview({ th: val, cs: s });
+                  }}
+                  className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 p-0 bg-transparent"
+                />
               </div>
             </div>
           </div>
-
-          {/* Icon Color */}
-          <div className="flex items-center justify-between">
-            <Label>{tr('İkon Rengi', 'Icon Color')}</Label>
-            <div className="flex gap-1.5 items-center">
-              {THEME_COLORS.map((c) => {
-                const activeIconColor = customStyles.iconColor || theme;
-                return (
-                  <button
-                    key={c}
-                    onClick={() => {
-                      const s = { ...customStyles, iconColor: c };
-                      setCustomStyles(s);
-                      preview({ cs: s });
-                    }}
-                    className={`w-5 h-5 rounded-full ${BG[c]} hover:scale-110 active:scale-90 transition-transform cursor-pointer ${
-                      activeIconColor === c ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900' : ''
-                    }`}
-                    title={c}
-                  />
-                );
-              })}
-              <div className="w-9 flex items-center justify-start gap-1">
-                <div className={`w-5 h-5 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800 shrink-0 ${
-                  (customStyles.iconColor || '').startsWith('#') ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
-                }`} title={tr('Özel İkon Rengi', 'Custom Icon Color')}>
-                  <input
-                    type="color"
-                    value={customStyles.iconColor?.startsWith('#') ? customStyles.iconColor : '#4f46e5'}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const s = { ...customStyles, iconColor: val };
-                      setCustomStyles(s);
-                      preview({ cs: s });
-                    }}
-                    className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 p-0 bg-transparent"
-                  />
-                </div>
-                {customStyles.iconColor && (
-                  <button
-                    onClick={() => {
-                      const s = { ...customStyles };
-                      delete s.iconColor;
-                      setCustomStyles(s);
-                      preview({ cs: s });
-                    }}
-                    className="text-rose-500 hover:text-rose-750 text-xs cursor-pointer ml-0.5 leading-none shrink-0"
-                    title={tr('Sıfırla', 'Reset')}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Background Color */}
-          <div className="flex items-center justify-between">
-            <Label>{tr('Arka Plan Rengi', 'Background Color')}</Label>
-            <div className="flex gap-1.5 items-center">
-              {THEME_COLORS.map((c) => {
-                const hexVal = PRESET_HEX[c];
-                return (
-                  <button
-                    key={c}
-                    onClick={() => {
-                      const s = { ...customStyles, backgroundColor: hexVal };
-                      setCustomStyles(s);
-                      preview({ cs: s });
-                    }}
-                    className={`w-5 h-5 rounded-full ${BG[c]} hover:scale-110 active:scale-90 transition-transform cursor-pointer ${
-                      customStyles.backgroundColor === hexVal ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900' : ''
-                    }`}
-                    title={c}
-                  />
-                );
-              })}
-              <div className="w-9 flex items-center justify-start gap-1">
-                <div className={`w-5 h-5 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800 shrink-0 ${
-                  (customStyles.backgroundColor || '').startsWith('#') && !Object.values(PRESET_HEX).includes(customStyles.backgroundColor) ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
-                }`} title={tr('Özel Arka Plan', 'Custom Background')}>
-                  <input
-                    type="color"
-                    value={customStyles.backgroundColor?.startsWith('#') ? customStyles.backgroundColor : '#ffffff'}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const s = { ...customStyles, backgroundColor: val };
-                      setCustomStyles(s);
-                      preview({ cs: s });
-                    }}
-                    className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%]"
-                  />
-                </div>
-                {customStyles.backgroundColor && (
-                  <button
-                    onClick={() => {
-                      const s = { ...customStyles };
-                      delete s.backgroundColor;
-                      setCustomStyles(s);
-                      preview({ cs: s });
-                    }}
-                    className="text-rose-500 hover:text-rose-755 text-xs cursor-pointer ml-0.5 leading-none shrink-0"
-                    title={tr('Sıfırla', 'Reset')}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Border Color */}
-          <div className="flex items-center justify-between">
-            <Label>{tr('Çerçeve Rengi', 'Border Color')}</Label>
-            <div className="flex gap-1.5 items-center">
-              {THEME_COLORS.map((c) => {
-                const hexVal = PRESET_HEX[c];
-                return (
-                  <button
-                    key={c}
-                    onClick={() => {
-                      const s = { ...customStyles, borderColor: hexVal };
-                      setCustomStyles(s);
-                      preview({ cs: s });
-                    }}
-                    className={`w-5 h-5 rounded-full ${BG[c]} hover:scale-110 active:scale-90 transition-transform cursor-pointer ${
-                      customStyles.borderColor === hexVal ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900' : ''
-                    }`}
-                    title={c}
-                  />
-                );
-              })}
-              <div className="w-9 flex items-center justify-start gap-1">
-                <div className={`w-5 h-5 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800 shrink-0 ${
-                  (customStyles.borderColor || '').startsWith('#') && !Object.values(PRESET_HEX).includes(customStyles.borderColor) ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
-                }`} title={tr('Özel Çerçeve', 'Custom Border')}>
-                  <input
-                    type="color"
-                    value={customStyles.borderColor?.startsWith('#') ? customStyles.borderColor : '#000000'}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const s = { ...customStyles, borderColor: val };
-                      setCustomStyles(s);
-                      preview({ cs: s });
-                    }}
-                    className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 p-0 bg-transparent"
-                  />
-                </div>
-                {customStyles.borderColor && (
-                  <button
-                    onClick={() => {
-                      const s = { ...customStyles };
-                      delete s.borderColor;
-                      setCustomStyles(s);
-                      preview({ cs: s });
-                    }}
-                    className="text-rose-500 hover:text-rose-755 text-xs cursor-pointer ml-0.5 leading-none shrink-0"
-                    title={tr('Sıfırla', 'Reset')}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </div>
+          <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/60 mt-0.5">
+            <Label>{tr('Sadece Çerçeve Rengi', 'Border Only')}</Label>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={customStyles.borderOnly !== false}
+                onChange={(e) => {
+                  const isChecked = e.target.checked;
+                  const s = { ...customStyles, borderOnly: isChecked };
+                  setCustomStyles(s);
+                  preview({ cs: s });
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-8 h-4 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600" />
+            </label>
           </div>
         </div>
       )}

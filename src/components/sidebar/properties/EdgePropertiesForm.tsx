@@ -32,15 +32,16 @@ interface EdgePropertiesFormProps {
   ) => void;
 }
 
-// Preset edge color palette
+// Preset edge color palette (8 architectural colors)
 const EDGE_COLORS = [
-  { label: 'Default', value: '',        cls: 'bg-slate-400' },
-  { label: 'Indigo',  value: '#6366f1', cls: 'bg-indigo-500' },
-  { label: 'Emerald', value: '#10b981', cls: 'bg-emerald-500' },
-  { label: 'Rose',    value: '#f43f5e', cls: 'bg-rose-500' },
-  { label: 'Amber',   value: '#f59e0b', cls: 'bg-amber-500' },
-  { label: 'Violet',  value: '#8b5cf6', cls: 'bg-violet-500' },
-  { label: 'Cyan',    value: '#06b6d4', cls: 'bg-cyan-500' },
+  { key: 'white',   value: '#ffffff', cls: 'bg-white border border-slate-300 dark:bg-slate-900 dark:border-slate-700' },
+  { key: 'slate',   value: '#64748b', cls: 'bg-slate-500' },
+  { key: 'indigo',  value: '#6366f1', cls: 'bg-indigo-500' },
+  { key: 'emerald', value: '#10b981', cls: 'bg-emerald-500' },
+  { key: 'amber',   value: '#f59e0b', cls: 'bg-amber-500' },
+  { key: 'rose',    value: '#f43f5e', cls: 'bg-rose-500' },
+  { key: 'violet',  value: '#8b5cf6', cls: 'bg-violet-500' },
+  { key: 'cyan',    value: '#06b6d4', cls: 'bg-cyan-500' },
 ];
 const DEFAULT_COLOR = '';
 
@@ -269,43 +270,47 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
         </div>
       </div>
 
-      {/* Edge Color — preset swatches + native color picker */}
-      <div className="flex items-center justify-between">
-        <Label>{tr('Renk', 'Color')}</Label>
-        <div className="flex items-center gap-1.5">
-          {/* Preset swatches */}
+      {/* Edge Color — 4x2 Preset Grid + Custom Color Row */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <Label>{tr('Bağlantı Rengi', 'Edge Color')}</Label>
+        </div>
+
+        {/* 4x2 Presets Grid */}
+        <div className="grid grid-cols-4 gap-2">
           {EDGE_COLORS.map((ec) => (
             <button
-              key={ec.value}
+              key={ec.key}
               onClick={() => { setColor(ec.value); preview({ clr: ec.value }); }}
-              className={`w-5 h-5 rounded-full ${ec.cls} hover:scale-110 active:scale-90 transition-transform cursor-pointer ${
-                color === ec.value
-                  ? 'ring-2 ring-offset-1 ring-slate-400 dark:ring-offset-slate-900'
-                  : ''
+              className={`h-5 rounded-full ${ec.cls} hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center justify-center ${
+                color === ec.value ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-105 shadow-sm' : ''
               }`}
-              title={ec.label}
+              title={ec.key}
             />
           ))}
-          {/* Divider */}
-          <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
-          {/* Custom hex picker */}
-          <div className="relative">
-            <input
-              type="color"
-              value={color || '#94a3b8'}
-              onChange={(e) => { setColor(e.target.value); preview({ clr: e.target.value }); }}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              title="Custom color"
-            />
+        </div>
+
+        {/* Custom Color Picker Row */}
+        <div className="flex items-center justify-between pt-0.5">
+          <Label>{tr('Özel Renk Paleti', 'Custom Color')}</Label>
+          <div className="flex items-center gap-2">
+            {color.startsWith('#') && (
+              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                {color}
+              </span>
+            )}
             <div
-              className="w-5 h-5 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
-              style={{ backgroundColor: color || undefined }}
+              className={`w-5 h-5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 ${
+                color.startsWith('#') ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
+              }`}
+              title={tr('Özel Renk Seçici', 'Custom Color Picker')}
             >
-              {!color && (
-                <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
-                  <path d="M4.5 1v7M1 4.5h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-slate-400" />
-                </svg>
-              )}
+              <input
+                type="color"
+                value={color?.startsWith('#') ? color : '#6366f1'}
+                onChange={(e) => { setColor(e.target.value); preview({ clr: e.target.value }); }}
+                className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 p-0 bg-transparent"
+              />
             </div>
           </div>
         </div>
