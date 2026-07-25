@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Share2, Lock, Copy, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
+import { Share2, Lock, Copy, CheckCircle2, AlertCircle, ExternalLink, Eye } from 'lucide-react';
 import { useAppStore } from '../../../store/useAppStore';
 import { prepareShareData } from '../../../utils/shareUtils';
 import { translations } from '../../../i18n/translations';
@@ -19,6 +19,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
 
   const [pin, setPin] = useState('');
   const [usePin, setUsePin] = useState(false);
+  const [useEmbed, setUseEmbed] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -34,9 +35,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-
-  // MAX URL length for safe sharing is generally around 2000 characters.
-  // We leave some buffer for the domain name.
+  // MAX URL length for safe sharing is generally around 8000 characters.
   const MAX_SAFE_URL_LENGTH = 8000;
 
   useEffect(() => {
@@ -47,9 +46,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
     }
     const timer = setTimeout(() => {
       generateLink();
-    }, 400);
+    }, 300);
     return () => clearTimeout(timer);
-  }, [usePin, pin]);
+  }, [usePin, pin, useEmbed]);
 
   const generateLink = async () => {
     setIsGenerating(true);
@@ -75,7 +74,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
       const baseUrl = isTauriApp
         ? 'https://bishoku.github.io/yada/'
         : window.location.origin + window.location.pathname;
-      const url = `${baseUrl}#share=${compressedBase64}`;
+
+      const embedParam = useEmbed ? '?embed=true' : '';
+      const url = `${baseUrl}${embedParam}#share=${compressedBase64}`;
 
       if (url.length > MAX_SAFE_URL_LENGTH) {
         setError(t.urlTooLongError);
@@ -129,9 +130,25 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Security Options */}
+          {/* Options Section */}
           <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl space-y-4">
-            <label className="flex items-center gap-3 cursor-pointer">
+            
+            {/* Embed Mode Checkbox */}
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={useEmbed}
+                onChange={(e) => setUseEmbed(e.target.checked)}
+                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+              />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <Eye className="w-4 h-4 text-indigo-500" />
+                {isTr ? 'Gömme Modu (Clean Embed - ?embed=true)' : 'Embed Mode (Clean Embed - ?embed=true)'}
+              </span>
+            </label>
+
+            {/* PIN Protection Checkbox */}
+            <label className="flex items-center gap-3 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={usePin}
@@ -139,10 +156,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
                     setUsePin(e.target.checked);
                     if (!e.target.checked) setPin('');
                 }}
-                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
               />
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                <Lock className="w-4 h-4" />
+                <Lock className="w-4 h-4 text-amber-500" />
                 {t.encryptWithPin}
               </span>
             </label>
@@ -189,12 +206,12 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
                   type="text"
                   readOnly
                   value={isGenerating ? (isTr ? 'Link oluşturuluyor...' : 'Generating link...') : shareUrl}
-                  className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-400 outline-none"
+                  className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-400 outline-none font-mono text-xs truncate"
                 />
                 <button
                   onClick={handleCopy}
                   disabled={!shareUrl || isGenerating || (usePin && pin.length < 4)}
-                  className={`px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium transition-all
+                  className={`px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium transition-all cursor-pointer
                     ${shareUrl && (!usePin || pin.length >= 4)
                       ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'

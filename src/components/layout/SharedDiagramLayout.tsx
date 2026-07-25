@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { useEffect, useRef, lazy, Suspense } from 'react';
 import { SharedTopBar } from './SharedTopBar';
 import { SharedPlaybackPanel } from './SharedPlaybackPanel';
 import { useAppStore } from '../../store/useAppStore';
@@ -8,10 +8,63 @@ const SequenceDiagramCanvas = lazy(() => import('../sequence/SequenceDiagramCanv
 
 export const SharedDiagramLayout: React.FC = () => {
   const viewMode = useAppStore((s) => s.viewMode);
+  const isPlaying = useAppStore((s) => s.isPlaying);
+  const logicalData = useAppStore((s) => s.logicalData);
 
-  // Check if embedded inside an iframe or accessed with ?embed=true
-  const isEmbed = window.self !== window.top || window.location.search.includes('embed=true') || window.location.search.includes('mode=embed');
+  // Check if embedded inside an iframe or accessed with embed=true / mode=embed in URL
+  const isEmbed = 
+    window.self !== window.top || 
+    window.location.href.includes('embed=true') || 
+    window.location.href.includes('mode=embed') ||
+    window.location.href.includes('embed=1');
 
+  // Auto-start simulation in embed mode
+  useEffect(() => {
+    if (isEmbed && logicalData.sequences && logicalData.sequences.length > 0) {
+      useAppStore.setState({ isPlaying: true, currentTime: 0 });
+    }
+  }, [isEmbed, logicalData]);
+
+  // Background animation tick loop for embed mode
+  const requestRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!isEmbed || !isPlaying) return;
+
+    let previousTime: number | null = null;
+    const tick = (timestamp: number) => {
+      if (previousTime !== null) {
+        const delta = timestamp - previousTime;
+        const state = useAppStore.getState();
+
+        const schedValues = Object.values(state.schedules);
+        const calcMax = schedValues.length > 0
+          ? Math.max(...schedValues.map((s) => s.end + 500))
+          : 2000;
+
+        const nextTime = state.currentTime + delta * state.playbackRate;
+
+        if (nextTime >= calcMax) {
+          state.setCurrentTime(0);
+          previousTime = timestamp;
+        } else {
+          state.setCurrentTime(nextTime);
+        }
+      }
+      previousTime = timestamp;
+      requestRef.current = requestAnimationFrame(tick);
+    };
+
+    requestRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (requestRef.current !== null) {
+        cancelAnimationFrame(requestRef.current);
+      }
+    };
+  }, [isEmbed, isPlaying]);
+
+  // Clean Embed View Mode (Confluence style: no topbar, no timeline, auto-play, no tabs/edit)
   if (isEmbed) {
     return (
       <div className="h-screen w-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none transition-colors duration-300">
@@ -32,6 +85,7 @@ export const SharedDiagramLayout: React.FC = () => {
     );
   }
 
+  // Normal Web Share View (Standalone URL opening outside iframe)
   return (
     <div className="h-screen w-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none transition-colors duration-300">
       

@@ -37,6 +37,7 @@ export interface WorkspaceSlice {
   rightSidebarOpen: boolean;
   isSaving: boolean;
   isReadOnly: boolean;
+  isEmbed: boolean;
   isFullscreen: boolean;
 
 
@@ -99,6 +100,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   activeDiagramId: null,
   openDiagramIds: [],
   isDirty: false,
+  isEmbed: false,
   isCreateDiagramModalOpen: false,
   language: 'en',
   theme: 'nord',
@@ -579,7 +581,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
 
   setReadOnly: (isReadOnly: boolean) => set({ isReadOnly }),
 
-  loadSharedDiagram: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram, title?: string) => {
+  loadSharedDiagram: (logicalData: import('../../types').LogicalDiagram, visualData: import('../../types').VisualDiagram, title?: string, isEmbed: boolean = false) => {
     // Shared diagrams are loaded without a workspace context, in read-only mode
     set({
       currentWorkspace: {
@@ -593,6 +595,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       logicalData,
       visualData,
       isReadOnly: true,
+      isEmbed,
       isDirty: false,
       leftSidebarOpen: false, // hide toolbox
       rightSidebarOpen: false, // hide properties by default

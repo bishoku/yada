@@ -441,8 +441,9 @@ export interface AppState {
   // View Mode
   toggleViewMode: () => void;
   isReadOnly: boolean;
+  isEmbed: boolean;
   setReadOnly: (isReadOnly: boolean) => void;
-  loadSharedDiagram: (logicalData: LogicalDiagram, visualData: VisualDiagram, title?: string) => void;
+  loadSharedDiagram: (logicalData: LogicalDiagram, visualData: VisualDiagram, title?: string, isEmbed?: boolean) => void;
   loadImportPreview: (logicalData: LogicalDiagram, visualData: VisualDiagram) => void;
   cloneSharedToWorkspace: (name: string) => Promise<WorkspaceMeta>;
   saveSharedToWorkspace: (

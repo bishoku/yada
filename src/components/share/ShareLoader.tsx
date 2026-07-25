@@ -15,10 +15,11 @@ export const ShareLoader: React.FC = () => {
   const [shareData, setShareData] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check hash for share data
-    const hash = window.location.hash;
-    if (hash.startsWith('#share=')) {
-      const data = hash.substring(7);
+    // Check href/hash/search for share data payload
+    const href = window.location.href;
+    const match = href.match(/share=([^&]+)/);
+    if (match && match[1]) {
+      const data = decodeURIComponent(match[1]);
       setShareData(data);
       attemptLoad(data);
     }
@@ -30,8 +31,14 @@ export const ShareLoader: React.FC = () => {
     try {
       const payload = await extractShareData(data, providedPin);
 
-      // Clear hash to prevent reloading same data if user refreshes later
-      window.history.replaceState(null, '', window.location.pathname);
+      // Check if URL has embed parameter or is in iframe BEFORE modifying history state
+      const isEmbedUrl = window.self !== window.top || window.location.href.includes('embed');
+
+      // Preserve ?embed=true if present in URL
+      const newUrl = isEmbedUrl 
+        ? `${window.location.pathname}?embed=true` 
+        : window.location.pathname;
+      window.history.replaceState(null, '', newUrl);
 
       if (payload.logicalData && payload.visualData) {
         // Switch to the correct view if one is provided
@@ -39,7 +46,7 @@ export const ShareLoader: React.FC = () => {
             useAppStore.getState().setView(payload.currentView);
         }
 
-        loadSharedDiagram(payload.logicalData, payload.visualData);
+        loadSharedDiagram(payload.logicalData, payload.visualData, undefined, isEmbedUrl);
         setShareData(null);
       } else {
         throw new Error(language === 'tr' ? 'Diyagram verisi geçersiz veya bozuk.' : 'Diagram data is invalid or corrupt.');
