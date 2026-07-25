@@ -70,8 +70,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
         usePin && pin.length >= 4 ? pin : undefined
       );
 
-      // Create full URL
-      const baseUrl = window.location.origin + window.location.pathname;
+      // In Tauri desktop app, window.location.origin is localhost — use production URL instead
+      const isTauriApp = '__TAURI_INTERNALS__' in window;
+      const baseUrl = isTauriApp
+        ? 'https://bishoku.github.io/yada/'
+        : window.location.origin + window.location.pathname;
       const url = `${baseUrl}#share=${compressedBase64}`;
 
       if (url.length > MAX_SAFE_URL_LENGTH) {

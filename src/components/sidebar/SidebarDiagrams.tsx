@@ -4,6 +4,7 @@ import { translations } from '../../i18n/translations';
 import { Plus, Edit2, Trash2, FileJson, Check, X, ArrowRightLeft } from 'lucide-react';
 import { WorkspacePickerModal } from '../layout/WorkspacePickerModal';
 import { StorageService } from '../../services/storage';
+import { isForge } from '../../services/forgeBridge';
 
 export const SidebarDiagrams: React.FC = () => {
   const currentWorkspace = useAppStore((s) => s.currentWorkspace);
@@ -41,7 +42,7 @@ export const SidebarDiagrams: React.FC = () => {
 
   const t = translations[language];
 
-  if (!currentWorkspace) return null;
+  if (!currentWorkspace || isForge()) return null;
 
   const handleCreate = () => {
     setCreateDiagramModalOpen(true);

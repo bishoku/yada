@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "type": "rich",
+  "provider_name": "YADA",
+  "provider_url": "https://bishoku.github.io/yada/",
+  "title": "YADA Interactive Architecture Diagram",
+  "author_name": "YADA",
+  "author_url": "https://bishoku.github.io/yada/",
+  "width": 800,
+  "height": 480,
+  "html": "<iframe src=\"https://bishoku.github.io/yada/?embed=true\" width=\"100%\" height=\"480\" frameborder=\"0\" allowfullscreen style=\"border: none; border-radius: 12px;\"></iframe>"
+}

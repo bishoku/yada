@@ -129,6 +129,23 @@ export const useAppStore = create<AppState>()((set, get, store) => {
   };
 });
 
+export const setDiagramDataInStore = (logicalData: any, visualData: any, autoPlay: boolean = false) => {
+  const schedules = calculateSchedules(
+    logicalData.sequences || [],
+    visualData.timelines || {},
+    logicalData.edges || [],
+    logicalData.nodes || []
+  );
+  useAppStore.setState({
+    logicalData,
+    visualData,
+    schedules,
+    isDirty: false,
+    isPlaying: autoPlay && ((logicalData.sequences || []).length > 0),
+    currentTime: 0,
+  });
+};
+
 // ── Shared Save Logic ─────────────────────────────────────────────────────
 let isSavingLock = false;
 

@@ -9,8 +9,10 @@ import { CustomComponentTemplate } from '../../types';
 import { CustomSvgRenderer } from '../canvas/CustomSvgRenderer';
 import { NodeRegistry } from '../../registry/NodeRegistry';
 import { SidebarDiagrams } from '../sidebar/SidebarDiagrams';
+import { isForge } from '../../services/forgeBridge';
 
 export const SidebarLeft: React.FC = () => {
+  const isForgeMode = isForge();
   const language = useAppStore((s) => s.language);
   const startDrag = useAppStore((s) => s.startDrag);
   const pendingDrop = useAppStore((s) => s.pendingDrop);
@@ -202,7 +204,7 @@ export const SidebarLeft: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        <SidebarDiagrams />
+        {!isForgeMode && <SidebarDiagrams />}
         
         <div className="space-y-2">
           <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider pl-1">

@@ -45,7 +45,49 @@ export default defineConfig(async () => ({
       }
     })
   ],
-  base: process.env.VITE_BASE || "/",
+  base: process.env.VITE_TARGET === 'forge' ? './' : (process.env.VITE_BASE || '/'),
+
+  // ── Build Optimization: Split heavy dependencies into separate chunks ───
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          // React core — cached across all pages
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+            return 'react-vendor';
+          }
+          // Diagram engine — needed for both view and edit
+          if (id.includes('node_modules/@xyflow/')) {
+            return 'flow-engine';
+          }
+          // Export tools — only needed when user exports GIF/MP4/WebM
+          if (id.includes('gif.js') || id.includes('gifenc') || id.includes('webm-muxer') || id.includes('mp4-muxer') || id.includes('html-to-image')) {
+            return 'export-tools';
+          }
+          // Archive/compression — only for .dproj import/export and sharing
+          if (id.includes('jszip') || id.includes('lz-string')) {
+            return 'archive';
+          }
+          // Technology icon set — only for editor sidebar
+          if (id.includes('devicons-react')) {
+            return 'icons-devicons';
+          }
+          // Lucide icons — used across many components
+          if (id.includes('lucide-react')) {
+            return 'icons-lucide';
+          }
+          // Graph layout — only for auto-layout in editor
+          if (id.includes('dagre')) {
+            return 'graph-layout';
+          }
+          // Tauri desktop plugins — never used in Confluence
+          if (id.includes('@tauri-apps/') || id.includes('tauri-plugin-oauth')) {
+            return 'tauri-plugins';
+          }
+        }
+      }
+    }
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

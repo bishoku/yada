@@ -275,6 +275,10 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         futureStates: [],
         rightSidebarOpen: true,
         timelineOpen: true,
+        isPlaying: false,
+        currentTime: 0,
+        activeSequenceIds: [],
+        selectedSequenceId: null,
       });
     } catch (err) {
       console.error('Error switching diagram:', err);

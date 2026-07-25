@@ -9,6 +9,29 @@ const SequenceDiagramCanvas = lazy(() => import('../sequence/SequenceDiagramCanv
 export const SharedDiagramLayout: React.FC = () => {
   const viewMode = useAppStore((s) => s.viewMode);
 
+  // Check if embedded inside an iframe or accessed with ?embed=true
+  const isEmbed = window.self !== window.top || window.location.search.includes('embed=true') || window.location.search.includes('mode=embed');
+
+  if (isEmbed) {
+    return (
+      <div className="h-screen w-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none transition-colors duration-300">
+        <div className="flex-1 min-h-0 relative overflow-hidden">
+          {viewMode === 'freeform' ? (
+            <DiagramCanvas />
+          ) : (
+            <Suspense fallback={
+              <div className="flex items-center justify-center w-full h-full text-slate-400 dark:text-slate-600">
+                <div className="animate-pulse text-sm font-medium">Loading Diagram...</div>
+              </div>
+            }>
+              <SequenceDiagramCanvas />
+            </Suspense>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen w-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none transition-colors duration-300">
       
@@ -45,4 +68,5 @@ export const SharedDiagramLayout: React.FC = () => {
     </div>
   );
 };
+
 export default SharedDiagramLayout;

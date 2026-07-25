@@ -31,7 +31,6 @@ import { ClearCanvasModal } from './ClearCanvasModal';
 import { DragGhost } from './DragGhost';
 import { StickyNoteEditorModal } from './StickyNoteEditorModal';
 import { getDefaultHandles } from '../../utils/portUtils';
-import { ActiveAttributesPopover } from './ActiveAttributesPopover';
 import { generateEdgeId, generateSeqId } from '../../utils/idGenerator';
 
 
@@ -136,6 +135,20 @@ const FlowWrapper: React.FC = () => {
   const { visualDataRef } = useCanvasSync(setRfNodes, setRfEdges);
   useCanvasDrop(wrapperRef, screenToFlowPosition, setRfNodes);
   useCanvasShortcuts(closeMenu, handleCancelActiveEdge);
+
+  const activeDiagramId = useAppStore((s) => s.activeDiagramId);
+  const currentWorkspacePath = useAppStore((s) => s.currentWorkspace?.path);
+  const layoutVersion = useAppStore((s) => s.layoutVersion);
+
+  // Auto fitView on diagram open, load, tab switch, or layout change
+  useEffect(() => {
+    if (rfNodes.length > 0) {
+      const timer = setTimeout(() => {
+        fitView({ padding: 0.2, duration: 300 });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [rfNodes.length === 0, activeDiagramId, currentWorkspacePath, layoutVersion, fitView]);
   
   // Focus on node from external triggers (e.g., SidebarRight)
   useEffect(() => {
@@ -782,6 +795,8 @@ const FlowWrapper: React.FC = () => {
         onNodeDragStop={onNodeDragStop}
         className="w-full h-full"
         style={{ backgroundColor: bgColor || undefined }}
+        fitView
+        fitViewOptions={{ padding: 0.2 }}
         proOptions={{ hideAttribution: true }}
       >
         {gridVisible && (
@@ -834,16 +849,18 @@ const FlowWrapper: React.FC = () => {
       )}
 
       {/* Floating Clear Canvas Button (Bottom Right) */}
-      <div className="absolute bottom-4 right-14 z-40 flex items-center export-exclude">
-        <button
-          onClick={() => setShowClearModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 shadow-md transition-all active:scale-95 cursor-pointer font-sans"
-          title={t.clearCanvasTooltip}
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          <span>{t.clearBtn}</span>
-        </button>
-      </div>
+      {!isReadOnly && (
+        <div className="absolute bottom-4 right-14 z-40 flex items-center export-exclude">
+          <button
+            onClick={() => setShowClearModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 shadow-md transition-all active:scale-95 cursor-pointer font-sans"
+            title={t.clearCanvasTooltip}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>{t.clearBtn}</span>
+          </button>
+        </div>
+      )}
 
       {/* Clear Canvas Confirmation Modal */}
       <ClearCanvasModal
@@ -867,9 +884,6 @@ const FlowWrapper: React.FC = () => {
 
       {/* Sticky Note Editor Modal */}
       <StickyNoteEditorModal />
-
-      {/* Simulation active attributes popover overlay */}
-      <ActiveAttributesPopover />
     </div>
 
   );

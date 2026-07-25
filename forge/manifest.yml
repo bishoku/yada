@@ -1,0 +1,37 @@
+modules:
+  macro:
+    - key: yada-confluence-macro
+      title: YADA Architecture Diagram
+      description: Interactive architecture diagramming and flow simulation for Confluence
+      resource: main
+      resolver:
+        function: resolver
+
+  confluence:fullPage:
+    - key: yada-fullpage-editor
+      title: YADA Architecture Editor
+      resource: main
+      resolver:
+        function: resolver
+      routePrefix: yada-editor
+
+  function:
+    - key: resolver
+      handler: index.handler
+
+resources:
+  - key: main
+    path: static/build
+
+permissions:
+  scopes:
+    - storage:app
+  content:
+    styles:
+      - 'unsafe-inline'
+    scripts:
+      - 'unsafe-eval'
+app:
+  id: ari:cloud:ecosystem::app/acde7742-acb9-4f7e-bc37-dd0ff63a341b
+  runtime:
+    name: nodejs22.x

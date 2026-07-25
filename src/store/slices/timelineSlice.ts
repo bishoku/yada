@@ -40,7 +40,7 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   timelineHeight: 250,
   loopPlayback: true,
 
-  startPlayback: () => set({ isPlaying: true, selectedSequenceId: null }),
+  startPlayback: () => set({ isPlaying: true, currentTime: 0, selectedSequenceId: null }),
   pausePlayback: () => set({ isPlaying: false }),
   stopPlayback: () => set({ isPlaying: false, currentTime: 0, activeSequenceIds: [] }),
   toggleLoopPlayback: () => set((state) => ({ loopPlayback: !state.loopPlayback })),

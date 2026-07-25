@@ -2,7 +2,11 @@ import { IStorageDriver, StorageMode } from './storage/types';
 import { TauriDriver } from './storage/drivers/TauriDriver';
 import { LocalStorageDriver } from './storage/drivers/LocalStorageDriver';
 import { FileSystemAccessDriver } from './storage/drivers/FileSystemAccessDriver';
+import { ForgeDriver } from './storage/drivers/ForgeDriver';
 import { IDBHandleService } from './storage/idbHandle';
+
+import { isForge } from './forgeBridge';
+export { isForge };
 
 export const isTauri = () => {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
@@ -15,7 +19,10 @@ class StorageManager implements IStorageDriver {
   private mode: StorageMode;
 
   constructor() {
-    if (isTauri()) {
+    if (isForge()) {
+      this.activeDriver = new ForgeDriver();
+      this.mode = 'forge';
+    } else if (isTauri()) {
       this.activeDriver = new TauriDriver();
       this.mode = 'tauri';
     } else {

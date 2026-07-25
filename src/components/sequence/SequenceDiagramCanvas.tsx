@@ -60,6 +60,19 @@ function SeqFlowWrapper() {
     };
   }, [fitView]);
 
+  const activeDiagramId = useAppStore((s) => s.activeDiagramId);
+  const currentWorkspacePath = useAppStore((s) => s.currentWorkspace?.path);
+
+  // Auto fitView on sequence diagram load or diagram switch
+  useEffect(() => {
+    if (rfNodes.length > 0) {
+      const timer = setTimeout(() => {
+        fitView({ padding: 0.2, duration: 250 });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [rfNodes.length === 0, activeDiagramId, currentWorkspacePath, fitView]);
+
   const isBgDark = bgColor ? isColorDark(bgColor) : theme !== 'light';
   const dotColor = isBgDark ? 'rgba(148, 163, 184, 0.25)' : 'rgba(100, 116, 139, 0.25)';
 

@@ -1,4 +1,4 @@
-export type StorageMode = 'tauri' | 'localstorage' | 'fs-access';
+export type StorageMode = 'tauri' | 'localstorage' | 'fs-access' | 'forge';
 
 export interface IStorageDriver {
   getMode(): StorageMode;
