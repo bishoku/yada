@@ -64,6 +64,9 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
     }
   };
 
+  const baseUrl = import.meta.env.BASE_URL || './';
+  const showcaseUrl = `${baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`}diagram.html`;
+
   return (
     <div className="w-full md:w-1/2 p-4 sm:p-6 md:p-8 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between h-full min-h-0 md:min-h-[550px]">
       {/* ── Top Area: Logo & Recent Workspaces ── */}
@@ -240,7 +243,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
           </p>
 
           <a
-            href="/diagram.html"
+            href={showcaseUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full mt-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm shadow-indigo-600/20 cursor-pointer group"
