@@ -6,6 +6,7 @@ import { ActiveNodeProperties } from '../../../types';
 import { useAppStore } from '../../../store/useAppStore';
 import { KeyValueEditor } from './KeyValueEditor';
 import { DeviconSelector } from './DeviconSelector';
+import { NodeRegistry } from '../../../registry/NodeRegistry';
 
 export type NodePropertiesFormRef = { submit: () => void; cancel: () => void };
 
@@ -194,14 +195,13 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
         <div className="flex flex-col gap-1">
           <Label>{tr('Tip', 'Type')}</Label>
           <CompactSelect value={type} onChange={(e) => { setType(e.target.value); preview({ t: e.target.value }); }}>
-            <option value="client">{tr('İstemci (Client)', 'Client')}</option>
-            <option value="load_balancer">{tr('Yük Dengeleyici', 'Load Balancer')}</option>
-            <option value="gateway">API Gateway</option>
-            <option value="firewall">{tr('Güvenlik Duvarı', 'Firewall / WAF')}</option>
-            <option value="server">{tr('Uygulama Sunucusu', 'App Server')}</option>
-            <option value="database">{tr('Veritabanı (SQL)', 'Database')}</option>
-            <option value="cache">{tr('Önbellek (Redis)', 'Cache Store')}</option>
-            <option value="queue">{tr('Mesaj Kuyruğu', 'Message Queue')}</option>
+            {Object.values(NodeRegistry)
+              .filter((def) => def.category === 'standard')
+              .map((def) => (
+                <option key={def.type} value={def.type}>
+                  {tr(def.name.tr, def.name.en)}
+                </option>
+              ))}
           </CompactSelect>
         </div>
       )}

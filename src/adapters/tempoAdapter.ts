@@ -270,21 +270,38 @@ export const tempoAdapter: DiagramAdapter = {
       }
 
       if (!matchedCustomRule) {
+        const lowerName = serviceName.toLowerCase();
         const isDb = serviceSpans.some(s => 
           Object.keys(s.attributes).some(k => k.startsWith('db.'))
-        ) || serviceName.toLowerCase().includes('db') || serviceName.toLowerCase().includes('database') || serviceName.toLowerCase().includes('redis');
+        ) || lowerName.includes('db') || lowerName.includes('database') || lowerName.includes('redis');
 
         if (isDb) {
-          nodeType = 'database';
+          if (lowerName.includes('redis') || lowerName.includes('cache') || lowerName.includes('memcached')) {
+            nodeType = 'cache';
+          } else {
+            nodeType = 'database';
+          }
+        } else if (lowerName.includes('s3') || lowerName.includes('storage') || lowerName.includes('bucket') || lowerName.includes('blob')) {
+          nodeType = 'storage';
+        } else if (lowerName.includes('auth') || lowerName.includes('keycloak') || lowerName.includes('iam') || lowerName.includes('identity')) {
+          nodeType = 'auth';
+        } else if (lowerName.includes('search') || lowerName.includes('elastic') || lowerName.includes('opensearch') || lowerName.includes('vector')) {
+          nodeType = 'search';
+        } else if (lowerName.includes('event') || lowerName.includes('pubsub') || lowerName.includes('bus')) {
+          nodeType = 'event_bus';
         } else if (
-          serviceName.toLowerCase().includes('queue') || 
-          serviceName.toLowerCase().includes('rabbitmq') || 
-          serviceName.toLowerCase().includes('kafka') || 
-          serviceSpans.some(s => s.name.toLowerCase().includes('queue') || s.name.toLowerCase().includes('kafka') || s.name.toLowerCase().includes('publish') || s.name.toLowerCase().includes('consume'))
+          lowerName.includes('queue') || 
+          lowerName.includes('rabbitmq') || 
+          lowerName.includes('kafka') || 
+          serviceSpans.some(s => s.name.toLowerCase().includes('queue') || s.name.toLowerCase().includes('publish') || s.name.toLowerCase().includes('consume'))
         ) {
           nodeType = 'queue';
+        } else if (lowerName.includes('worker') || lowerName.includes('lambda') || lowerName.includes('function') || lowerName.includes('job')) {
+          nodeType = 'worker';
+        } else if (lowerName.includes('cdn') || lowerName.includes('cloudfront') || lowerName.includes('cloudflare')) {
+          nodeType = 'cdn';
         } else if (
-          serviceName.toLowerCase().includes('gateway') || 
+          lowerName.includes('gateway') || 
           serviceSpans.some(s => s.name.toLowerCase().includes('gateway'))
         ) {
           nodeType = 'gateway';

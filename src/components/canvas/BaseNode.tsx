@@ -115,16 +115,26 @@ export const getContrastingTextColors = (bgColor: string) => {
 const getIcon = (type: string, colorClass: string, isIconOnly: boolean, customColor?: string) => {
   const def = getNodeDefinition(type);
   const sizeClass = isIconOnly ? 'w-[80%] h-[80%]' : 'w-8 h-8';
-  const isHex = customColor?.startsWith('#') || customColor?.startsWith('rgba') || customColor?.startsWith('rgb');
-  const isPredefined = customColor && !isHex && !customColor.includes(' ');
-  const finalColorClass = isPredefined ? (themeStyles[customColor]?.text ?? colorClass) : (customColor?.includes(' ') ? customColor : colorClass);
-  const className = `${sizeClass} ${isHex ? '' : finalColorClass} transition-all duration-300`;
+  const targetColor = customColor || colorClass || def?.colorClass || 'text-indigo-500';
+  const isHexOrColor = targetColor.startsWith('#') || targetColor.startsWith('rgb') || targetColor.startsWith('hsl');
+  
+  let className = `${sizeClass} transition-all duration-300`;
+  let style: React.CSSProperties | undefined = undefined;
+
+  if (isHexOrColor) {
+    style = { color: targetColor, stroke: targetColor };
+  } else if (themeStyles[targetColor]) {
+    className += ` ${themeStyles[targetColor].text}`;
+  } else {
+    className += ` ${targetColor}`;
+  }
+
   const extraProps = {
     className,
-    style: isHex ? { color: customColor } : undefined,
+    style,
   };
 
-  if (def) {
+  if (def && def.icon) {
     return React.cloneElement(def.icon as React.ReactElement, extraProps as any);
   }
   return React.cloneElement(getDefaultIcon(colorClass) as React.ReactElement, extraProps as any);
@@ -341,10 +351,12 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
                 />
               );
             }
-            const defaultIconColor = isBorderOnly
+            const isWhiteOrUndefinedBg = !activeBgHex || activeBgHex === '#ffffff' || activeBgHex === 'white';
+            const defaultIconColor = (isBorderOnly && !isWhiteOrUndefinedBg)
               ? activeBgHex
-              : (contrastColors ? contrastColors.iconColor : '#ffffff');
-            return getIcon(type, defaultIconColor, displayMode === 'icon-only', customStyles.iconColor || (isBorderOnly ? activeBgHex : (contrastColors ? contrastColors.iconColor : undefined)));
+              : (contrastColors ? contrastColors.iconColor : style.text);
+            const overrideColor = customStyles.iconColor || ((isBorderOnly && !isWhiteOrUndefinedBg) ? activeBgHex : (contrastColors ? contrastColors.iconColor : undefined));
+            return getIcon(type, defaultIconColor, displayMode === 'icon-only', overrideColor);
           })()}
         </div>
 
