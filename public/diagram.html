@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Microservice Architecture Patterns Showcase — Powered by YADA</title>
+  <meta name="description"
+    content="Interactive simulations of 5 essential microservice architectural patterns including SAGA, CQRS, Event Sourcing, BFF, and Transactional Outbox.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --bg-card: rgba(15, 23, 42, 0.75);
+      --bg-card-hover: rgba(30, 41, 59, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.3);
+
+      --accent-primary: #6366f1;
+      --accent-primary-glow: rgba(99, 102, 241, 0.25);
+      --accent-secondary: #06b6d4;
+      --accent-amber: #f59e0b;
+      --accent-emerald: #10b981;
+      --accent-rose: #f43f5e;
+
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.08) 0%, transparent 45%);
+      background-attachment: fixed;
+    }
+
+    /* Header Navbar */
+    header {
+      border-bottom: 1px solid var(--border-color);
+      backdrop-filter: blur(16px);
+      background: rgba(7, 9, 14, 0.85);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+    }
+
+    .nav-container {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--accent-primary-glow);
+      flex-shrink: 0;
+    }
+
+    .brand-logo svg {
+      width: 24px;
+      height: 24px;
+      fill: none;
+      stroke: #fff;
+      stroke-width: 2.2;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      white-space: nowrap;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--accent-emerald);
+      box-shadow: 0 0 8px var(--accent-emerald);
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 2rem;
+      width: 100%;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Pattern Selector Tabs */
+    .pattern-tabs {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x mandatory;
+    }
+
+    .pattern-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      scroll-snap-align: start;
+      flex-shrink: 0;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(6, 182, 212, 0.15));
+      border-color: var(--border-accent);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .tab-btn .tab-icon {
+      font-size: 1.1rem;
+    }
+
+    /* Grid Layout for Viewport & Details */
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.5rem;
+      min-height: 680px;
+    }
+
+    /* Simulation Viewport Card */
+    .viewport-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      position: relative;
+    }
+
+    .viewport-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: rgba(15, 23, 42, 0.9);
+      border-bottom: 1px solid var(--border-color);
+      gap: 10px;
+    }
+
+    .viewport-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .win-btn {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+
+    .win-close {
+      background: #f43f5e;
+    }
+
+    .win-min {
+      background: #f59e0b;
+    }
+
+    .win-max {
+      background: #10b981;
+    }
+
+    .viewport-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .viewport-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .action-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .iframe-wrapper {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      min-height: 580px;
+      background: #090d16;
+    }
+
+    iframe.yada-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* Loader Overlay */
+    .loader-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(9, 13, 22, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 10;
+      transition: opacity 0.4s ease;
+    }
+
+    .loader-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(99, 102, 241, 0.2);
+      border-top-color: var(--accent-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loader-text {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Pattern Details Card Sidebar */
+    .details-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      overflow-y: auto;
+      max-height: 680px;
+    }
+
+    .details-header {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pattern-tag {
+      align-self: flex-start;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tag-saga {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .tag-cqrs {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .tag-eventsourcing {
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .tag-bff {
+      background: rgba(236, 72, 153, 0.15);
+      color: #f472b6;
+      border: 1px solid rgba(236, 72, 153, 0.3);
+    }
+
+    .tag-outbox {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .details-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.2;
+      color: #fff;
+    }
+
+    .details-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .section-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-subtle);
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-color);
+    }
+
+    /* Sequence Flow List */
+    .flow-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.825rem;
+      line-height: 1.4;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.02);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      font-weight: 700;
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-text strong {
+      color: var(--text-main);
+    }
+
+    /* Benefits Grid */
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .benefit-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      font-size: 0.775rem;
+    }
+
+    .benefit-item .label {
+      color: var(--text-subtle);
+      font-size: 0.7rem;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .benefit-item .val {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    /* Fullscreen Modal Override */
+    .viewport-card.fullscreen {
+      position: fixed;
+      inset: 12px;
+      z-index: 1000;
+      max-height: none;
+    }
+
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-subtle);
+      margin-top: auto;
+    }
+
+    footer a {
+      color: var(--accent-primary);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* ── Responsive Mobile Styles ── */
+    @media (max-width: 1200px) {
+      .showcase-grid {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+
+      .details-card {
+        max-height: none;
+        overflow-y: visible;
+      }
+    }
+
+    @media (max-width: 768px) {
+      header {
+        padding: 0.75rem 1rem;
+      }
+
+      .nav-container {
+        gap: 8px;
+      }
+
+      .brand {
+        gap: 8px;
+      }
+
+      .brand-logo {
+        width: 32px;
+        height: 32px;
+      }
+
+      .brand-logo svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .brand-title {
+        font-size: 0.95rem;
+      }
+
+      .brand-subtitle {
+        font-size: 0.65rem;
+      }
+
+      .badge {
+        padding: 3px 8px;
+        font-size: 0.68rem;
+      }
+
+      main {
+        padding: 0.75rem;
+        gap: 1rem;
+      }
+
+      .pattern-tabs {
+        padding: 4px;
+        gap: 6px;
+      }
+
+      .tab-btn {
+        padding: 8px 12px;
+        font-size: 0.78rem;
+      }
+
+      .iframe-wrapper {
+        min-height: 380px;
+        height: 55vh;
+        max-height: 500px;
+      }
+
+      .details-card {
+        padding: 1rem;
+        gap: 1rem;
+      }
+
+      .details-title {
+        font-size: 1.15rem;
+      }
+
+      footer {
+        padding: 1rem;
+        font-size: 0.75rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .viewport-header {
+        padding: 10px 12px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .viewport-title-group {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .viewport-title {
+        font-size: 0.725rem;
+      }
+
+      .viewport-actions {
+        width: 100%;
+        display: flex;
+        gap: 6px;
+      }
+
+      .action-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 6px 8px;
+        font-size: 0.7rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .brand-subtitle {
+        display: none;
+      }
+
+      .badge {
+        font-size: 0.65rem;
+      }
+
+      .tab-btn {
+        padding: 7px 10px;
+        font-size: 0.75rem;
+        gap: 4px;
+      }
+
+      .benefits-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .viewport-card.fullscreen {
+        inset: 0;
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Header Navbar -->
+  <header>
+    <div class="nav-container">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">Microservices Architecture Showcase</span>
+          <span class="brand-subtitle">Interactive Real-Time Flow Simulations powered by YADA</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <span class="badge">
+          <span class="badge-dot"></span>
+          5 Live Interactive Simulations
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Showcase Content -->
+  <main>
+    <!-- Pattern Navigation Tabs -->
+    <nav class="pattern-tabs" aria-label="Architecture Patterns">
+      <button class="tab-btn active" data-pattern="saga">
+        <span class="tab-icon">⚡</span>
+        SAGA Pattern
+      </button>
+      <button class="tab-btn" data-pattern="cqrs">
+        <span class="tab-icon">🔀</span>
+        CQRS Pattern
+      </button>
+      <button class="tab-btn" data-pattern="eventsourcing">
+        <span class="tab-icon">📜</span>
+        Event Sourcing
+      </button>
+      <button class="tab-btn" data-pattern="bff">
+        <span class="tab-icon">📱</span>
+        BFF Pattern
+      </button>
+      <button class="tab-btn" data-pattern="outbox">
+        <span class="tab-icon">📦</span>
+        Transactional Outbox
+      </button>
+    </nav>
+
+    <!-- Showcase Grid -->
+    <div class="showcase-grid">
+
+      <!-- Simulation Viewport -->
+      <div class="viewport-card" id="viewportCard">
+        <div class="viewport-header">
+          <div class="viewport-title-group">
+            <div class="window-controls">
+              <span class="win-btn win-close"></span>
+              <span class="win-btn win-min"></span>
+              <span class="win-btn win-max"></span>
+            </div>
+            <span class="viewport-title" id="viewportTitle">yada-simulation://saga-pattern</span>
+          </div>
+
+          <div class="viewport-actions">
+            <button class="action-btn" id="reloadBtn" title="Reload Simulation">
+              🔄 Reset Flow
+            </button>
+            <button class="action-btn" id="fullscreenBtn" title="Toggle Fullscreen Viewport">
+              ⛶ Expand
+            </button>
+            <a class="action-btn" id="openExternalLink" href="#" target="_blank" rel="noopener"
+              title="Open Full Editor in YADA">
+              ↗ YADA Editor
+            </a>
+          </div>
+        </div>
+
+        <div class="iframe-wrapper">
+          <div class="loader-overlay" id="loaderOverlay">
+            <div class="spinner"></div>
+            <span class="loader-text">Initializing YADA Interactive Simulation...</span>
+          </div>
+          <iframe id="yadaFrame" class="yada-frame" src="" allow="autoplay; fullscreen"></iframe>
+        </div>
+      </div>
+
+      <!-- Pattern Details Card -->
+      <div class="details-card" id="detailsCard">
+        <div class="details-header">
+          <span class="pattern-tag tag-saga" id="patternTag">Distributed Transactions</span>
+          <h2 class="details-title" id="patternTitle">SAGA Pattern</h2>
+          <p class="details-desc" id="patternDesc">
+            Orchestrates complex multi-service transactions with automated compensation workflows on step failures.
+          </p>
+        </div>
+
+        <div class="section-title">Step-by-Step Flow</div>
+        <ul class="flow-list" id="flowList">
+          <!-- Populated by JavaScript -->
+        </ul>
+
+        <div class="section-title">Pattern Characteristics</div>
+        <div class="benefits-grid" id="benefitsGrid">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    Designed for <strong>YADA Architecture Simulation Engine</strong> &bull; Interactive Microservices Patterns
+    Visualizer
+  </footer>
+
+  <!-- Pattern Metadata Data Model -->
+  <script>
+    const PATTERN_DATA = {
+      saga: {
+        id: "saga",
+        name: "SAGA Pattern",
+        tag: "Distributed Transactions",
+        tagClass: "tag-saga",
+        description: "Manages distributed transactions across microservices by executing local transactions sequentially. If a step fails, the orchestrator triggers compensating transactions to roll back previous state changes.",
+        url: "https://bishoku.github.io/yada/?embed=true#share=N4IgNg9g5glgxgQzAEQQFwSAXKAznACwFMBbBANSICdcYIA7bAJgBoR6IATI3bAbVAxO2dgFo4YGEXpoQbNAE8ADkRESpMuewQlVWEAFFRAYQgldVOEQAEAWQgAjGGBsBBJUpABfFoOH76USgAdy1FFREodCJghAUteh09EFcABQBJawBxaNj4nz8RXFFcBCiw5WTcIjg0OkY2RN0RAGVXLNdrZBhcNCoYBwBXNCJOawB5S2JeqnQIKm9fECERQPnCCoj9aqoAN2oEpJFJ7iprNo67BESoA7YlBCppNHT-EGLS8oLlt8DeiDgAGtNlVqPsFo0jvp0vR9jJ5gpzmD4Kp7o9nq8iiUyphvisAqIHvF5JUimC7tpmvpUnFdDIkXsUVoHk8ZJjttivkt8WJcAQYJ4SVt3uSIZTkgAxQZgABmzjAdLQDN2TLRrJebw+OMWhQJnAcohgsJBIk46AQDgQ1UOVJAMLhaARXQAQjqfqtRPrCXETfozRhLdbIbaaQpFS63TzAl6+QLfSB-RarajxSIpbL5eHkK68b9REQHUNeELkgBHQZECs25IXToGB3WZ2DXDWAAUAGkEDLAQgAJTeAC6bFGt14WAE7v0RAAjFpcBBBpYiOyxOpnmFHrcNR6Qloeq5cAp6HBsDKkNV7lQII64BAwCIABIAFSfqRaWm4+H6SjqDBEqXGFon2sAB6XZpxA+ZTmLEAlCvFQqDqHhsGALxcxEIgmDnBclxXQJd3kTciG3Al1gIPdcAPI8TywM8wAvWCrxvO9IgAJVSYwPx4OBv1-Rh9BaDBEJOagWm1dCpwAZmwxcrDw0QyI3Kgt3k-4gQoqjj1Pc8iEva8ARY-QoHYzi2E-HiBT41oRiUaxpywaxWJ4clrHSEYSF4CSQCIAAWGTcLzNTgUI5TiPkr0jV2DTDy02idL05j7wEgBFAAZLiv0s+oRAAVVSZBXCfAxrCC84DGAp4dn2MYAF5rD6KsvKIABWfy5LzRSQpUvMiWi6jtPo3TGP028kpAYyOIyiyf2ygSbOsJgHOMAgiOsYxm0dCxIzeIgADY2uXHqfS6sK8y9Xq2H3GKaLohi4JGwyQBaNKpt42a7QAORaAxWOAolFQAfSeW8qGEJqAHYDvkzqQCE7qPVjQVlko66BrupiDLGibTITbi3r-OaiFsySHO6XAHjQQhrBpIEylUJqAA4ocC-kkbh06PRjVm+ti26hvuxLWhesy8aygnPu+36StZwGACtHG2jCAE5mY9GH2ZIsQC2eIseZohr+Yx0aRE7btMBFzKZvF1JBgcSQ+QmUHqFMEglBcEZOHrdcvCHEVy2kKwxwnHlcFnNheiJj7BhIBwDiwadh04W4VxnPW0aGnpWIXehOCfb9sANrzcCw8ObKjmO49Ybyk8OjCS+RzSbvi5Gs8GHO87jOLBqL6TS8j6PY4WLBJMT5Odt7hvUa7hjM+z3P86wQvuU1Py+6UcvB+wHzR9rqdV8n-rp4z3BW-bhel91d5WrXje4+aneU+vg-eeb2e2-nzuL8nd59pvge492g-Hav9n5N0GpdE+c8O6eEXlQCsRdIZ-wrkPcGQCMKINAenCBp8P4wK-iHJmSDN5YAZmgqchDMFH2wVA8+cCiBFxVkQuOSsyHeUYZQg21D37QPTj7HwIAVS4EGEgVAGAULgDiAuNABga5jlAKnHA39U7hxwlYB81xOAuBEA4a8m0sDNQAAxKS3OonOWj9COiUPooxao6gSCIE+Uk+hKqyHDgQCAwRXBUCvKEWBFY2CjXmCIRY3ksKKJ5JhA6pjNHJH6FAAgaBrHGOItE8x4AiAykSYY5kjw7EuEccKKAVAlAnjcR4rxPiC50P4UQaS4Tx5RI0WkyxSSTpoFSckFwmTWmwVyfAfJTjxrFNKe8dxnjvEeKqfA4cfl6kYX3vOWSRAOkiDiQknpGsVn6C6VkmxvTEL9IcYM3ApZ7xlPGZUvx9DhytTmVOJ+iylxbJAGs3ZyT2lNM6Rkt5tjDkFOSEUkpc4xkVMmVcmp+07neRAY8tRnzVkwHiT82GREPlmK+d07Jvz7H-KKKc4F5SJm+KXt5SGUKiAYNhcs+F+gdFoD0VilFoU0UxJEDsnpLI8lHMKcMglFywUkqIEzclFCqXPNeRs1Fzz2WMs5X845+LzmguJdU4cKtyXsLFTSkAdKGV7M2dqmVey5U4sGT2M2fLlVTPofwxAsIrTiIAF4QDMNgacAA6cGzVdpKyVpJAxBifV+oDag3p-FQAAA83U+s9QYwxfqGZK2nJJJghjSEgHiNY-hRShDkB6AMcxfN+FgEkcMD6XBkKKMCGuTQULq2SHXGwKNWBRBK3dc1BmqbdoGPBrtac4Nk0MwMemzNyaDFsGCEINA5EsBMCYNvEAxBEUJOwM1Ku07SDJCNJwRFEAtBwA2mYQSCgXByOGpwQYtR0i3n4i8ogCBajMivBeq9N7TCQCeP4Qu-D8K+Mvr+rQzbW3ts7d6ntfaB2SSHSO7AUHwbtt2lBtdAaDGSUkguydnBp3MHnWwJdSLV3ruILaTdswwDCACYekgx7T3iPui+l4N6RAIGCDBejl7GMMHffMUY1q0Lh05JgKFWpyhNtgwGtgo6JMgEw9hrAu1DF4aIMu2Qw8h1sEdTCbgQGE6w2I8kHQm8f0KSmOIqMJmNhieHuOjNbrFMyanTOudC78Mrv0URzdzHkH7qozRytoB2OvvFrLBAuxzbno49erjd4eNfuqcZoKZnAo3mCiAZtkl7OZv9ROxzOGXPKYI+5+Q+mvOb0o-8ajihaOKMC5x29UA916QY1F+g3HP18eM71Ot3piRpdg5luzNnZNOdw4ugrbm13Fc8-oQzFID0Vb82e2rLWihwSNFAJ9XBItvpi+18FCXubdcRoB-rNnM1MHBkN3Ls7RuudU5NvT02QCzbFPNzai26PPu2+LJQChp1-ia991ru3eP7caJ6A0kUkuc0h8aKz04A0M3dT5PtzUoMo+nGjhmgDbPx2yw5rDI38sqcI1N20V4gwgDe0eqr-mItBdvUoCAvQik8EVfTurbXQffvB+dH03W+e9ebQj4dyPUfo-F9jyTzAUfusxxL+XDMMc4+G3lpTJOiuPfJ8zlM1PKsnrp8tpj+gmcs8quzo30WP3c-i7zg0x2Bf2+5vDxHYvFcY6xzjrLu1druqVkwf1vb-eB59Tlwnauxsa4exu7XlO9cfZq19hnIhTdoFZycs5HOWtc7i-A4z2sZC626wXtAusrMKbO4Rq74ebvE8K9Hkr+gVR3mIj5hbtOltJ7qyIc1PZNvNZ29b3PNrGjXiIIJ6HAQx8T6s-jzN1e5Pzps3dt1CP+OwxgLoSQ9A6eh3EdUf2x5d7vDDgmRc6BZrTh8tJ7gJbzvSeuJvi-DB7DcFWTQuMl0ZDUESGAVIV5A4z0RgI1VMQBnxXwWhqZAJgIwIIIoJqAWxWxjAnhohHZTh+wzJz8rJZ1DEDF19i598iBD92oih64L1ZhsDpwmAb8iA79sAbNH8yA+JX9kgOAqAyBM8jQRgqBf9-8AQeAgCiAQCRAYQYA6gkAYBHV1tzh2hOhJhCAeA+hn96BrADB6BYAd8PwsDZpU0A18C6k8AiCKwj8VxcAJ5yDlC3Vr8bNb9+cGD6An9mCK139uF84v9uDeCACBDxFgDQDaxzh5p7JHJnI9gbB7RngnRBIARUsLDsDdC8D+FcBZlDDiDj8kitCKDL9qCbDaC7C2BGDlCWCXCz5P9lhv8eCkA+DACfChDQDUhmc08nhnpUoHJUpojXJYQIiqBERkphEZAxDetYidDsj8DbkUjjCSDtgn4hiCYr8aC6CsB7DHD6gijnEP8kYuCf9KivDcBBDhCBJZCAiiYFoHJXBhh3F+hHUbBQxwxloiIMjLCcC9DEjIVxiA40iQEZj+IqD5i8jnsHCmCVjnC1jXDSjNiKi-8di9i6iGjWdmiHIYQdglQ7jQprA85rhShah6hrBUoRwKQvicNnjw4yU3iTDNQMECT45rCRYFiljASX9gSXl1i9xyjPD+Ddiaj9inpDjBJjiSY0S4lbgzgWhWYlBpCyYKZLMz9MiCZ4j8DhVSTJj3gKFKSficjaT8iATCjGSrxQSNjWTtj2ToT-xYSmi0oloUCRhzhRTpDUoLRaC0SrQYjtDZSRjEj1VFS0j2FVTsiaS-iCinC38p92CkAWSPDDTqjFFfD-xbZ7YCA0DnYzA3ZiJRgvZ6RHRrBTY+9MCZT+I5T19rgOAMA+Iz0izx9PghN-1p8KytBiAEBThWhDiaR6Uf8tAdFOBM0QBjBngyNJDRhrAyJFCKD5hrBbwoIjRogWwd0ZgBhhh+yI4lBcB3UAAdegAwCNGoOclsW8V2aQUoOodQkqGyFsBgawa4REKqFEawM8ZwRcIgd1OcWncRS0IEIpOeNrEQAAYgMRlH7SYHCx0SdioA-P0E-JlGaiViIAMQcDCFqJApAE-MwiFRlD2RlAYDQAlB0GcE7JhG4K0DQpkBaD7LdSrkAtOFYnrJgGbGwHTQgAeDgAGPoL92akSKEjQCfE3z0Bs2kFzk4uwF9V9XyLADyFwDzVoDtj0G-VtUXHVDzRiFNBgDKFmBIG8CAA",
+        steps: [
+          "Client submits order payload via HTTPS POST /v1/orders to API Gateway",
+          "Gateway routes gRPC call to initialize Order SAGA Manager orchestrator",
+          "SAGA Step 1: Reserves item stock via gRPC call to Inventory Service",
+          "SAGA Step 2: Authorizes & locks payment charge in Payment Service DB",
+          "SAGA Step 3: Triggers fulfillment & dispatch task in Fulfillment Service DB",
+          "SAGA Completion: Emits OrderCompletedEvent to Kafka event bus for async downstream subscribers"
+        ],
+        benefits: {
+          consistency: "Eventual Consistency",
+          coordination: "Centralized Orchestrator",
+          rollback: "Compensating Transactions",
+          latency: "Low / Non-blocking"
+        }
+      },
+
+      cqrs: {
+        id: "cqrs",
+        name: "CQRS Pattern",
+        tag: "Data Isolation",
+        tagClass: "tag-cqrs",
+        description: "Separates read and write operations into distinct models. Write models focus strictly on business validation and transactional speed, while Read models pre-compute denormalized views for sub-5ms search & queries.",
+        url: "https://bishoku.github.io/yada/?embed=true#share=N4IgNg9g5glgxgQzAEQQFwSAXKAznACwFMBbBANSICdcYIA7bAJgBoR6IATI3bAbVAxO2dgFo4YGEXpoQbNAE8ADkRESpMuewQlVWEAHUiAIwAEqXAWMQEVTqYCCSpVqVUIKqmim8cAXz8WQWF9elEoAHctRRURKHQiCIQFLXodPRAHAAUASVMAcQSklLY3D2pvHmxgAKCQIRFcUQiqGDRVeWUM3CI4bwZU9JEDVvbTAFkuIjBTAAoAYQgSMnp7AGUMOABrAEoQQOCRMLgSYU7Y-R6qADdqQd0RAHk7alNF5YRV0zXqa-gOkBKWzSNA5EIgJotNqqA71cFhKHtUScYzRLoiTjoBDGBA9e4ZEbQ8wAITmWQguDQUCoRDWAEUADJ7WENUKiLYIABmHLRFxAAEcAK5EYX4kTIJYIGD0UwAUVuMlMxMFuDmAGkuRzmXVWRDRDSEGcQDFur1+ow2GkHvoAEpEQ0TKYzWZ04VUBTfTa7fY6+GiXAKehwXmmm53S1DfRZdwAKzNdBla0DcFMBggVC24cBwJkYMa+vtwhZfoNnGRqPOGUxGBxeIj1pAP1shFMADJTHaHTlVkQAB5zWVgXHeODaw5soXUErG9GXX5Zq0ZZ7cKimV1T76-f6uHOg8FNUv7AC6bCInCgVSwAjhIiIAEYtLgIIKqHAiHm2eoQdFbBe90dwiiNgYFwBwAyDbBOSQHpSncNAIDgCAwBEAAJAAVNCsjWLRuHwVolHNEQskeNY0NMAB6dMV1VBYlhWTgxxvfQiCYR9n1fd8-UiH8qD-D8xBOI0QLA5NIOgohYIgeDEOQ-QoBtLJ5hwng4Hwwj9HmA12mXah3non1xxAIgAGY2JfN9+OOU4eL4v1ESIcstGE8DgywKCwBgwE4IQpCRHpBllLwmACITEQcgAOTWWUbTI6V4NMKjqFwAB9MhKTuYtbwAFjMjjLPEaz5F-Ih-zZDluUwYDQJc7A0CoYVJOk3z9A1CrAtU4L1JALJBWMSRLFMHSqE0+12k4eVv0y5iAFZcosv1yp5IreJK-KaqqkSIKwOqGq8qSfNkkBWqWkBcI6kKBg0hhcEFXRzElaU5QVNBeCmoyADY5s4gD1uNYrSrEUtHI2mq3PExqDpEG1ZVI9q1NC-QIuQWUAA0KMSmhyM4BCDKYoyAHYvvyr9NGW2yAO4kHRLBjyJL2prDvQzDsLYM74cukB8llMjKJeGgAH5KXQFUAF4ED6GBbjmdd3UY3UiAADiJrigL+laAbCSd3Sc6rqfczyygZuIFKU1mVPZxh9CbV8CCG3AZZSN6iAATmVgCtenDB1fyoGUR1zbXP1unDch20YbQuHOoRkAADEHFIzdmwINc3Q9WYAB5ppIXBmRPCEiEnINL2vXVcAfNh0qUcLbuMO4sDvU9z2+5jy-qXWtqDqqbWfVY0Pw2r6qIN7cFYiv2irmu69YIym-4lj-dBzu2+7wVe-77bB+H0yx6ICeSFrqhsGMxuLzn7e24DsTaa7nvOD74KB+FYecp3veD+wLKT+boyX4v0GdrpiBFea8H40x6MPWar9q77zrtNL+c9IF-2pgAm+q877ryDsPT6UDJ6HywO9eB4IiDYKQR3cGy9b73xcBvJ+vpGiExwTAvB+NCG3gYaQwO5CgGUPXgA4eStGHvywArVhzEBEcKvp5bhaCqGPyHnQy4rtBF12dqIoySiJFgMAbgYB6DQF8KPIEEAfwbpIFQBgao4BkjPjQLKJuvhQD3ksfLVuT5zJEBQp8TgYAMjWDQPBEgWAmCIK9n+TxqwfEiHgkoIJiCgReHgD4tCs4QA0kpI+AgEAIgOCoO4KIND5FGVYjgPG88K7sTfOE7xGRWhQAIGgLA00AAMNkSpVMifoHxnIGnNJ3AkiQRBkl8mpEoYMFdMnZNyVkuRRiTLOKIefNxHF2k1JgHUnpLSyZtK8R08ARBumNM2dmfpSSUm4H5MhcZWScl5JmaeHKJT5a-yWZUnZvipIBMOa0tAKyokeC+aUWwI5Tl8kWpVCEEybnTIKbM2ajyiGIJeR4t5IgukbO+b8-QtT6kAuOcCwZKSwUZOuVM-JfDTyfXhbeEhSLMWpLWTi3pWyfkov0NE3F8T8VDJqTwWQVzJm3JhaeQmVLmLsNpaykAfjPn4xCf9Ol7L3rsM5YkglfI0l8ohSSwV5KjJK1FXqr6dLsXouZXStFHKgWqu5XEKgoziUCuhbql28zbwaIlRE1Z6zcWhO2Z61F+zTV4utSkjVDqoVks3kYxA9Bri4ksQALwgEsbAd4AB0xl8bvWMkwBWWUFZMGdtmppTTj7ZktqAXs2B8a5rTe9AtTTnZMDvFm52JbVEgBSFgUQd4sppsLVlUtztjJNIVtNfNzs7wKyMdSIQ5AQIwD6noTBbAhwKBseFKYDiBKSG-Aa44u7SYgCrd26aaam0K2MsZBWWamDNuaU0ghnbsDO2dmm-GCth3TWMu9aa+MmnfrLREIQaACDMCYJ-EAxAGWyEadPUDpAMjSk4GsiAWg4AqgCRsBQPjt1lE4IKPoOREKW1SfaPorh3AEaIyRxYkAaQhF1Sh3ASg12TG4BifZCBBRgE1XBdACMmlsAIG83wJdwTsqZRCIQGRolaAgJyTkPRYPNLeia3FtAONYpg-JxTynsCqYUVKj5SwsCysfDJkQ0qU1sAU0pkq1bppvQtVJzTGQ0W6fsypppb1rOBOCRZrTxn-E2ZAHZ-TsS-CGMtIBV1bJKbHuwKIM9F6r03veneu8D6n1duMlldNzsFbvWdv++tg7jKTrYMBzgoHwOQeg+sgz8HiANkQ1QJARoMOUiWNh3Dlj8OEdBCRkQCAIi8EktRobDA6PpjPHc06IFWPJHY1WLjPG+NSQE5dITUHRP8EMoq8Vlm2UeE8xFpVamYMaeO-Sxrtm9MOcOb5kzgTXM3b82dx7hnDIuaOW5gN3TPvebeuygLFcbtyfu155gTnot6nsnF+HowAQnpHTtrt70dvVdq1gHNO2Gv1NTQrHbCbuzcBPT2+QLWMg6HfkYqyIRDIM60Ce5taasrTULfjSd+N8b5aaTWuBz6sCDqqyBsDQSIPCaIDpuDVPEMjaYehzDPXFB9ZKQNmjHMWOtHoFASjXBBvEem0hWbjGo0xfso5fdzRkfA0S-g5pbAu2vvfZ+4y37f3-sA2LmrEu731Zl41uXxpqciHcHWEAXWsNq8vKATXU3SNKApFSNJFyDeTeN-QGbDGZn0-ZJqTANuiVsBPUqt9SrOdXuMned6vbc3O+YP+99+WFbE8vYW0tT7sf+6l1BoPhOQ8IYbH8JCDm2DR9VzhuPe1M-Df0CX2fRvaOm9zzCoxB5CyI834aFnR8S2N9x0wLH4uj7H+l7L3NJOyd9iSw3UPCv9C04yjF0GTP-SiVLx-dH3-fc44DxfsHpzvLg2M-ofBPiriQL1jPgnlnnEGhhNsvibvRnNuvjFh7IjprKnHviLj-vXP+n-r3oHrLsAQ-qAUrhAd1lAbHnhlRkgaRtjNsFmLASvigebk-Pnr7KiDblwTgb+ngc0n2n+llPlllM7NNHeCWvjPfj3nVoAYPqQcPjUhSACJPtQdPrQYblrqRiQAwFAFwBWEvtoTnqgXwvTlJA5HAPyDQJgRYeINYeNg7pemeh+neHeHlplhBu9DlkfPluekViVo+nmkOjIafrEvjgPrBu4T5kYt4LoJIPQDPmXJYj0IXPNI0K3ARu1upL2gfqdNMMkNgDtp8DAGQOaCtuHjwg-MBDINQGkGANGAhDwNuu0L2LBiAEzFhKYMRAnLzNRHMISGMHpF4nsKzC+FtpbMEiWrUBCMUngAXMKEXPxCPDhOMTkcfjttwGukUWwCUWUQmBUVilUS4DUe0FQPUY0W+LgC0X2O0cMV8BsOLFsFgN0e4FcbQHrvdGQI9PcUaFkRMTDtMRvqZCUqkYsekZcOfP8esXkVsYUVgMUfQKURMYcakscU5LUecUgJcc0ZYq0e0eSJSNSLSIyC8RFFFDFKYHFBAKYFbh4HETAAmmeKYDWH1mMdkQjHekCRXA8vMWkd-LgL-NCQjHeBsWbNsQibsUifsQwKiRwFQGQJcvUJiRcW8biSUviURL1P1MnENCNAkPYEQM9CyTScdOCsKZdFMTERXHCnyeCQKYghaZbKKbCQUV2oicieUVMEcOmIqRiWcaqU0dcXibcURLGPGAwKmOmJmFQC8YsPQDdCQNKFAKYGaaYEad+OyQCeEdaRCJSnadIBCXmasRyZdC6ZsW6TsSAHsSid6UcTIv3KcXUdiWqcGRqaGfoIOMOPAD0EnC8QAKpKDVjJmmC+zSC+lICMnMl-CJAlnZlcm5m4AioFlLH7jsJOmpqDoVkSkekyn0ConuANnVHKkBktlBk3FtGoQYRdFcw8wYy4CCwYBoCizizeBSyzCdj2AOyjGnRrGckPozG4D6orlFlAVzkwnbnwm7m1lBaHkgInEnnNkNGtkXntEOyehPEvErzeCfHWwtgOzgX-nckQiuygkLGFkCkaIbn1xin5E7lSmekHF1lolHkIVxRIU4ltmgCamdlDiUg9n2g2wvExzDjfC9TJbZwdiFhSUsbXQAjUULkBBGKfAcBPkJjbqqWWEOG2FIhWE2HS6Gh1wgDzB0g2hrDdHoABlaDWCcBdqNi7y2AJCqiDFECmC6FbE0SIQfCrA5ymCcjuAkBSUOjuXTA0Raw+A7BpoAA69AjwIUSZTJqo9kLJBAh5dSSggoaAbYpg627WogUElIpgvZNsVJPYKgPYMgYACgaaj4seliOI2w1It8OeIgAAxE0pyC2kwOCtYHzC1foK1ZIcYIVq3Pif1SAK1SxIrJyEcpyAwGgCJUmVVWFJiVoHNTIGsFOamtPL1SuDaIaDACqNgCImFkCHAG0O6eek5mPECmhKUXoDttIHfPdS+q+h2kgMULgPOrQEunntGi+DSDIPOrOfoChggNSDoPsEAA",
+        steps: [
+          "Client submits write command POST /orders to API Gateway",
+          "Command Service validates business logic & executes INSERT on write-optimized PostgreSQL DB",
+          "Command Service publishes OrderCreatedEvent to Kafka event bus",
+          "Projection Sync Worker consumes Kafka event stream asynchronously",
+          "Sync Worker updates read-denormalized Elasticsearch index and Redis cache",
+          "Client queries GET /orders?status=active; Query Service fetches sub-5ms results from Elasticsearch"
+        ],
+        benefits: {
+          consistency: "Async Projection Sync",
+          coordination: "Command / Query Split",
+          readLatency: "< 5ms Search",
+          scale: "Independent Read/Write Scaling"
+        }
+      },
+
+      eventsourcing: {
+        id: "eventsourcing",
+        name: "Event Sourcing",
+        tag: "Immutable Ledger",
+        tagClass: "tag-eventsourcing",
+        description: "Stores state as a sequence of immutable domain events instead of mutating database rows directly. Enables complete audit logging, state replaying, and time-travel analytics.",
+        url: "https://bishoku.github.io/yada/?embed=true#share=N4IgNg9g5glgxgQzAEQQFwSAXKAznACwFMBbBANSICdcYIA7bAJgBoR6IATI3bAbVAxO2dgFo4YGEXpoQbNAE8ADkRESpMuewQlVWEAFkIAIxhgiAAgCiogMIQSuqnEsBBJUq1KqEFVTRSvDgAvsEsgsL69KJQAO5aiioiUOhEsQgKWvQ6eiCuAAoAkhYA4qnpmWzevtQBPNjAoeEgQiK4ovXyyrm4RHABDFk5IlYAbtJoFgDKEACuzjD0UBb5YOgAZhBUJCBhESLRBAj0nOZUCd1t1OPnbNm6IgDyVNxUFvaOx5wWABJfZ14EFQJoVIiB2vU9i0wdEiOMZLg0FtVF0kvpOOgEMYEL0hg99O4VCdRI96GAFNZ4ZMpkjgbtmq0oqJqgArC5o8HXah43L5HwsvoDegWABkFgASkQlGsKVYlosUSAlECQWCIbwoYyxIhCIrErkdcQeSIptklLgCBBJrYELqLAAKSWcGC4ACU9P2TOBCE4ogQShg7J6XNu2nxIElPumGDQbiKHuhBz92XJATgvFRuQxGGxuLuw30BlSVBgSBgAC8iN9yFJYrgHUYlhBkAAhd3BAC6bCrUHqWAEif0RAAjFpcHNnERQUn1BMEkDe2hp0y4loXa5cAp6HBsOskL0qj4kXAIGARD8ACoX-JTLTcfAlpRCkT5R5TC8WAD0o2Hn62r1wT8YFjEgMyVHw-DqIJGk1MEiCYMcJxcZcxFXeQFyIJcYVEI4TgBNh103bdd33IhDytCATzPfQoHFfJbDvHg4EfZ8CQ8aROEKEDXE4bhODGOdYJEIgAGZEPmZDsNw05uXQqhFxQ2EqURZE11wDctx3LA9zAA9wIoqiTQARQAGUYh8YCfOhGH0QoADkpiscUP3si9HgsOEJgAfURb0diEocABZxMnRSOmU2k9QwrCk1ZNSNOIrA0CoWYyP049TxEABpBB1gAa0wNh72YyzWJAGk-MpCYLBM6ALAvBAzATLUiAAVhCyTYv5ed5MwsLDUVQjNJI3S0uqDLqIjKwpnycySqswZ9AAdRLWNo1SaYzQtK0NQZOCADYOqnbC4rkhTsOOJAFDTMChsSnS9PGyjMv0cVpovOaWOskQAFUlGzSwi1jEsy0rata12z0QCIAB2I7+skOczr67C0JadSiK0h6xqPZ7Jsva9byKpivsWkASisD9v1-f9qEA4cAAYmE-AgXVpTIAuhgAOeHUfiZGYq9IgfT9AN4sxkbHtxwyaLohjiYshabJAAAxTDCGeV5XCgKBgRSWNmrggBOXmk29X1-UDAX+ttI0CIx4btNI8iJpEN6Zs+0rvv0EpMIlKUZSrda1vtAAeJhQPbLtOQAR1S7c+wHLVcFHNhESlOzZhIYxuSwYdu04XsUJHcXHex+3xTmE4L0fbBktSzncAQtPYyUTPs9z1hocL47hOb9GEqx530cr2Zq9rpKUqIRuxJbjOs5z84sBEgui7g2eB4lp3RorqvOBryy66nxvgrntuF9zwLV97oLS8S+u0pdUfx8P7fekb9qz-bxfsFa6-i8-pvMuw8n57wPp4SeDc9ptEOl-C+S99r-wOnfIeO8R5gIng-RucM4EdyXjDJBwkcFAPuiA3Az996YOPtA-QuAea4J-lgLmhChz0JIagvSoCx6UNflgmh4ITYMNzkbFh0NBHsMlo-chGDeHHw7GEEAowXSzCQKgDADRwAZDmGgKwPdoLQ1HDgQcBijp-DwrkYwVokQkCwEwQBGBepoDMTJEQSIlC2MAcqfw8BzAXkuPoYEiIxyWliK4KgPh4iQLSlRLYIh6TQwQkYlq-dxwSSIM48wIgSxQAIGgLArUGY9UXBk3I5h1h5IKYCbxEgiB+I5LrJQO404hLCREo+UDoZiSSevUx-xcjZNyfkwpAsSkiDKRU4ZSogRpl8f48EMczzNIgKE8Jyz2nT27MFbpwlT7giQukvpIhLFoGsUMopmFRkBJgDkiZVSZm1LmQVfKhVwQtNWZEvh0N2rbKHIA1Jk5LkgAGbckZhz9DjLOVUaZPiHkckCbIJZKy2lRIUUQQ6PzoawL2WkwFxzTmVNBeY1xvhIVTOqbMuFPAEWvOWa0tZKLuxwwxbDXpRL9B4ocFgGG-cHHFLBSANxXKN5ePuXU-pVLgm0vees1FPNmVsP+S4QFwLSW8oufyiFBKyWirmQ0ppNKkX0s+UQE2zLxGKoOWygVJKtVqqcfyjlNitUiphWKrJErEV0o+cfBRiB6CjBxBo8sEAHDYGHAAOhXlMmyoAAAe2B9rDlauGwKDM03pozQzfOIBMgeKYOGmGmai0M1ago3WQgay0GMJkt+GzNEKG0XZLgfZQDRFnJoDFbbEaaDYPGrAohk0iS5oFRNrUh0jqTUOghOaE0MzYLEIQaACDMCYFfEAxBrm5N-l3JdpBciLGdFACAWg4CzBUiQGkChzD6OqJwWY-RCgnmVt6foXgfB3ofU++wkBgSRE+c6XA0oMhGG4CIbge5ZhgGpUedA3s53rr6UEJOYJBVatoKB-QbitAQHWOsXosghmcxVWhoQ-TN3Upw3hzCv8Gac0dVylJpGjlWNDWwSj+HsDcs5pqyZ6HSlEHKdh3DHHCP8Po3YscTH2UsZ2Gx4T1GPGdgUdEVcnaYj8xAH20Qq7w2jvHXp4diao25qYFzeDC7OBLpXWujdNzt3yGIOGPdVAkDCDYKe89l7r0aNvfepcT6RAIDrG+rgfnH0MG-ciP91CQAAaAwoEDWYBMIEg9Bq0sHFrwekt5-sUNBUww3nx4lng5NUYIwVoj5HSVFauXZ0rImCl0Zk9VqTIBHVCbKzR7jAmQXgla+MjrDXaP8MFRJtOrWsP1YU3YpTacOj6OTvNrQfaRJprYLmsz87F3LuXkwLLRByPMH2vB8shQThEC09m3d4YdA-2UzhPpS8oaHEe8t7Aqb1uzq25ZnbTBV1sFs1u-JO7HO5Fu7JEAHnrFeZbfpD9-myZHpC-D8L9BIu-plfduKanTqafe-B3Nw5C3fas7Y-766Dt2eBw5vdgW8EnrPdDxQOXQC+c-WTJQ11LSMHIijr9p4ouY7uOFCYKk6Rqc8giSKb2sD7RhoFXTk7DNK5HZ9rARt9rhqNkwVbMN9ra91-rqNFnSd-Zs5ToHrUQe04CRAPMkPGcOBhze99YWAv6CUHbtAuseALOR27iLAuMcovuwNDRWo2220VH2uXCuDMTrHYZtXpnmEgBN798ngOCNW5p+GOAChjgM888z2HbOEfPqrC6f37O0dB6rELsQ5tRaBjU03y2MvWpc3zYbg3DM9fa7Xbm1qw4RLhuV4nhPQ6ScZ-N4d6nArQd05-u5x3F6S8u9CzXsDlE8oQ7L6j9H9eQ-C8uqmeAC2LopmuufmXgUYZG3DTrvv+un-9+M9gESMMYa6d7-31-0709rMAcLds9rdwwfB7cocnd18fNXct99ASAGAj1OBjBq9y9D9osG5lMrQiAltO0cClte0w0GZw0-4Z1l4v8f9X8X9dcADttmAuYo0s8w19pS0FEAhdBJB6BYcU4NFeg45pBOpaFU5Yt5gMsbJhxU14NuAZRmA1sQBjgYAyAhREsskZESsWgZBqAUw+RKIeB9FYxY0CMQACYbwVg3wqZaYaAgIQJ6x7QeJOIQILwIAbR-B3QioxDWI7E00mhwREk8AiABCE4UIm47xPDvZhw9tpCiBZCsB4NFDlDrJVDbduFwE1wtCqAdCfAXBcADCLtjCPgyAThfhHssB3hvQAglgLBNZqAuJSAHCg5JdqU70XMvCClaMFFcAukAigihDwQN4WjxCw0ojiZYj4j6AlDxDkigV1D0jgYsi9DciNFDDjD8gvcfcphTIyj7JHJnILBFgkR9jHBZgcxzAPIqQfJkphZZNRDWjvY-sfDOitkej44+jcBdlBjWJIj5CZCMhsBxjJiVDm0DgtgyBFlND5ikBdCci8ijCTQridBFhlh-QiRvhIBlhDjdCBR+hrJrB5RuCwi7jFpvCOi05vkXjBCb5wRAFPiIiRjYsYi-i4i2AEipjgSUiX4NCDjtCoTsj9Dlj8i3ZK9cAyi-pswkSLBEQNpcAtpLRJgbhaAGALBRhAp+5aTiSojfDcB0UKTgi1QsV1SJD6Tfjc0ATEiGBpifBUja4CIMiFiYSBS4TCwkDmwWxRT-pYMqiEAdY9YNpzZlTawLBOBKIs4kZbihiydHi04mVdS3jiFDSw0pDRimSzS2SMMZjrTD5bTISwBoT+SjEVjzwrwzCKZLCXg6ZPxGZmZWYxcKR7Q1Y0BCALBXBZhnRJhaooB3Dwy2iozwQ5VYyqS6FCSIzvjoixiWSJjzT6BLTZjsyeTcy+SliCzBTXphZvgaQNoChCgyi8zciJSjJUoqBKhuz7j2itTTUByQjxEEy85jTGTTSJzASkj2SMzOS5j5zdzYTjCnQXRtj6ApSZBNp-RtpJhJRkopAA0wAHRw5I5hyvDNTfDjgOAYxrJ9FkLcDYcI8CDOgKcfRc4QABJAKZgJIkStBLFOBc1yoYxLAXQLATwSAlATig5jAKRgR4sJSlCSATisQzimjcBw0AAdegXQpRe8OihwaUTCSwFLNsiwZKRqKCsUDg3A+S8YKCxAZUUwSQKCcNMcEvDRbEOAPKXWPedHEQAAYgZnWCJyYBeUsXLKoDMv0HMv2hEn2n2msoSHyKcpAHMvgiIC5nWEmU2BkBVkRPJBEDO2Bi0BCrQCmArD0EiLYHsteHFB9BgDPWwFT18FtGAlNN01LRbmmQvCUL0Hgw4hKvxCNmqpEQULAAqFwErRgGrT0CwV8NPXCQmBrDSDA1LF1h0F2CAA",
+        steps: [
+          "Client issues POST command to append new domain event",
+          "Order Command Handler appends event to immutable PostgreSQL Event Store",
+          "Event Store streams new tail entry to Projection & Replay Engine",
+          "Projection Engine builds updated state snapshot & writes to Redis",
+          "Projection Engine updates MongoDB aggregate read view",
+          "Client queries audit history; Read State API returns instant snapshot from Redis (<2ms)"
+        ],
+        benefits: {
+          consistency: "Immutable Log",
+          coordination: "Event Tail Streaming",
+          audit: "100% Complete Audit Trail",
+          features: "Time-Travel Replay"
+        }
+      },
+
+      bff: {
+        id: "bff",
+        name: "Backend-For-Frontend",
+        tag: "API Gateway & Routing",
+        tagClass: "tag-bff",
+        description: "Provides customized API endpoints tailored specifically for each client type (Mobile Apps vs Desktop Web). Eliminates over-fetching and reduces mobile network roundtrips.",
+        url: "https://bishoku.github.io/yada/?embed=true#share=N4IgNg9g5glgxgQzAEQQFwSAXKAznACwFMBbBANSICdcYIA7bAJgBoR6IATI3bAbVAxO2dgFoSEAEYwwREGzQBPAA5ysIOGBhF6aeewQk1IGAHkAygAIA9JYCC9TlQhDLAWSkyi95cpABfFkFhdXpRAHciSX0lVRFNbV19ekNjZB4AazQIZUsAJSIEODRLAAUIKgwwAKCTELEkaIUVY0gETgB9SSQEejhqZNSRAFFOKG8AGQh2ywAhHr7qSwAKADkAcQBJVYANAEoa4JFcUUkAMzOYluOiYrpGNhSjEXm4DJ1OUQAxCu-nXQ+lgAKtoqIc6iIwuczuIpFc4upcNQAG4DR5DdQeaSyOZfL4rCYwKAENCRIkkywAKXMplWBzYygQVB0aE29RO0PBQkhpwuESi8OMSKoqLB6Oe6gA6lFcfjlusqAhlAQAIoTSzrdBEcIIRT0kCM5m6NnHXmXQJHRHieDOQU3O4MQYSkAAYQq3mQEDIMHo7htEGFyPgPC59TCAFdhXbESi0QZnQBVYX2OBwCDh3SWcwo4P6Q0sk1Wkj+0M8xB6ZoIkCBuNPYwu9BIaCWABklk29FRugqiizOf6eaZBfZ1rgtotENComZaej1djYvjxjsm3yty9Rkc6HulmG9Fg9DkDKHxpHxbHEFLU84TRAsWMnEb3SRTrSszzzlUlW0vBw-n8AC6bBEGMIZYAIk4gEQACM+i4OmVD9IWYgSNiR53ky4ysmGoiNPoMC4HYuCKH02BnEgSIMs42RptU6gABJAkCpTmPo3D4FQMDKGg9wiOswxAjYqFeNYZxECBH45NQPFgcA-61Ny6hEEwcEIUhOF4QomFENhPLQrCt4EURJFwGRFFEFREA0RAdEgIxzFsTwY5cTxjrqKUzgAB69liXhrgAjuGPB6BOilQQAzKp4aIUQyFQnyqExNpulTpGcZGcRpFYORYCUQa1EQLRIhQHkpQuo5HEubx6jrDpSbUG6JCMsUHkQGcXhXlBAAsUUxXFZoGUlVBYf15b4YRmWmdl5mWdZtklWVFXOdx1UgLVaBAjk6QUZ1RAAKy9epPKRLeGDDTp-WaSYE0mWZuUWflVmFTZIj2SxS2cStbkgKUFiCdYUCKsq-nVKF9REAAbIdsUaWAp3Jf1+kneNxlZTleXKAVRUMUxpQfVV32td5ljSpIGpA6qEy7QA7NDiN8sjWnnSlYgzpebAZbd033bNz3zaV5VsOxy2uYwNU6aU1DwSkWgAF4gV84nCGDIhEAAHHTOFpYuZ0jThN4o5Nd0Y1jL3qOYar419YsgOYwwTMMLqCZjbUdSrSkAJya2W6BDXrPIGxzN1ozNj1zSIFtU0LTmfaLEf247zvOJw4bFLwgFsEigU6P0v4QWFuCwZnaBEMoqzhiQkgDFg0HAaByEwYbXPow9BF5OmjhAp92BoFQQXu9WKnF6X5eV9XrBQfX4ND9dqNTS3QftxmnBd1xPd90QA+4JFw9lxXVdglg4V1+MDc77PRvc3lbcdyv3dYL3-cKeyPW76PB-YMfk+n+Dr8X83ocb7L1Xn4B+G8t4HTfvvauXUT4w1VpA-+IcebXSXp3e+j9N7P2OFDKBY9D57TgQ3XBSD56ANwGgu+a8wFP0tNWWmeCP5YAhkQ8GDDSHG1bhQ2+ID160MgrgDWjDq7U1YarIRHCr5cMobwmhWC6G4C9sIw+ojv7wM9k3ZB19uHAIweAgCgQQBBlwOGJAqAMDYFAGAXU6Y0CjHGL+UAjccCQUbpnNSRB6K9E4LIEQnFiRoCwHtAADH7HSXjHC+PULIM4gSQmDm-JoIgQJrjqGZLgCs1YCAQHCHYKgzhwh8IerRCoIgahQRUi4sKyloYRJ8cYfxJIgmhKZlhOpUTwBEFic0hJPEkkpKrOkzJuBsm5PyTkophiiCRSqeDc+8For9HaQ08kcSWkYWZsskQMS1m9PgLIAZxhAbKFMpnUZeSCmTOAj1WZqs-4LJilstJqyemtPCd4jpOzXkGiZH0g5qSQDHNOVknJFyJlyKmQdW5SlEEPKWR8lZATvm63eZE1oXTdnHkSf8wZwU4LnPGYUiFwEobQqgiQuFniEV+JefEt5aAnmdO6XSn52LkkAqGfi0FhKrlQVpmSog7DKWMsaZijZbTqXRIxd8w0fz2VViBVysZlziVQQ1gKiRwrJUgFFci5KjKvkstlfs+VQoQZKrBUSzBUyvYCqUdWDxIraXrJRQy7Vhr1nGv6QC3A5qzncpVdawxiBOwIEcSAWWEAvTYGggAOi-oyMWoBPLYA9kwD2sbYEgEUMwamcbqaGMBkIcgBEYCSCiS3Qx1jFC2NWFwWSKFPBRLoWEYSvi2ApqwMEtgOaa5dW7SAcIQg0AEGYEwLNxBVnYD2hPEdpBjA+k4ESdmGhIzZBIOYJQshw0uxTsUTYaYbbMiKJk3dqdWSHrdJAZkIQg2PH5NEMlYRGYgE7QO3t4V+1sCHZwEdY6J1ECnUE2dxBnSLuXfoOAa6vSbsUNuyxj090Xu+se4okkkMHoYFe90t7wGGLCHhJ9uE4b6E7UwCG77mBfsHcO0dWAmDjrYJOgJ06QPztVkYRUYBhBsCgxkmDW6G1nv3YekQCBwi8Eshhy9NkcOTMMRyC4CGC5mlI6xyjWAPYDp-X+o+wSB3MZJJ-ajssOzcE7aIWud5QPGEMB-fDA1EpEf0olDt2BqO9pCd+2j-6mOAZY8BhQNmxP4Mg9Bjdgmd3J3PZhm2nBCrvEXMJ5D9BsM3vk-epGApnMMwFG5rAHnmDhW0z5+jjGQCGb0IF6z7H1B2bjHx9dsH4MuOS7FvxhQ0NSZizJ69EkIUKdHLaMlJxzy2ny2rCjPbp0ld-XR4rBn-NGYK0wAdpnHBEAs1Zudzp6tggc9rZTWsoz5cKwV2bumGMAaAzOoLtWQB7bC-xiLcGhPRZE99KAK62u9bkwN+9Y0iNjVOxp6CasLt0au35m7bHduhd4+F5rb2uA9e+gAKwQMiTA3WPupdk+l-7rN1xHZ5GzNT53ptH1W95ubvmKtLaq7dmrcOP4I+e0jqLKPcciGUIoEdjoccpbS-1u9YgDZEcDq+mNTBoLhVjRDNN5G9oQwhl1ZXlPoLQQzYQmjtOa7hQ9tDgLHsv47YaQGdCjWBOvc59J76ygAxoEBjwP1iHUd4767hp+IAl24GUNWjw3ARDcHIuGMAmTqLbjcsE-DVkiCqafXH1T+XwrQS6rG4JEMmBqzVqtj2FGFdq1Ub2rqXUIaxugkwame1oLBI9tBamwTis6503Rrqasv6VZjZn+Sd4YBGC0IecNhcENZyCosZCI+hbRSj2LNP+no7VuYAvh79B++z8D+b3Ra8OYAioDLVqudw0l08lVkAvkcT8X+m2ogoklZsRn3HejISY8KcqXgIg2cJ-shninRUT-K8V9uAl8u02Beh19RZN8-EeFu5d8S598kBD8eBj9Nsz87AJhZh8hbEfQoBLBsh3Am1vBZg8QH9-9qomAX9e9t5R9P9x8jpERz4-9Z8Y1+0B1gDdRsAB1wCyBID61oDt8-A4DqAD9nAj8EMT8z9SgmQkBZAwBLAFoXRLBFY0BCBLB6oqAyhnB2p20fdH9yDKCFMbkP8v96Dqw-4mCADWDF8ODQDV8ID7goC0kYCd8TA98RDCpkDxDUCRApCuNZD5CBYlCdJVDNpchtpcpSDmDn99MqCoVjC6D1FqxEELDqp582CiAQCuC18eCHC+CnCBD8I3DEDRDPCXEJCRBSZLAXQtAWQyg-obBAYlQCAQZLAVQgoqAc1p8yC3IKCYiFNSV4ic5EjcASEUi3JAD0jMiwDsiN88idVnDBDXD4D3CxCyjvD1B0DMCl4eJ9w8CIASYZRiD8RNQS4dROjdDuixZejX9M5+VBjv9jh2Exi58rCfcMibCsj7CGBHD5iCihCECwAkDcAUDT8KjDi8RyYmi1Q1x4IwBRQqiZDIin9riqD1V7jTDBEkTUjVtJiPjpivj6AfjnA-iljhDiiPDgSvDQT3JHdndI5Wj2jex1DNDXZ4MuioiGM+jM5bV0Thj7VnjpcgD3je1Picjvi5jiT0EXCfRljyTVjQByiaSMk6ToS2jqBexWokMESqhoAsSeicT-xDFegOAMBRZw0TT49ORE8S5k96d2hq4QBXh3hHAlCKglD-gS4XTlgjj9RJAuBe0QB0gl1ywQJZRcBLAzg3SL9vA2xKiEgWRcBY0AAdegOwKAZ3KALUcM+LcIegDJY9EgSwQMYMcMtsEZJUHgSwHIHiMgOQxkODaYTgRMuCQTBDboN4QGW+NLEQAAYkkHOGpk4HWT9KoG4CoG7PUB7NuHbw9ntQkInJAB7Mzy6mmVvEjN0C+EMBkADI7HgP0HXLQHMBgHlmlzYBHLHLyHaBgEjGwDVjYByCKBgCUE4NjTVgUzOg2n7zUAHQ+BBAlFnNnLALADONwBLVoHLTUCDWDWiiNDQBLW1GDxgAQEaJIACCAA",
+        steps: [
+          "Mobile Client issues GET /mobile/feed to Edge Load Balancer",
+          "ALB routes request to Mobile BFF (optimized for lightweight JSON)",
+          "Mobile BFF executes parallel gRPC calls to User Service & Catalog Service",
+          "Desktop Web Portal sends POST /graphql to Web BFF Gateway",
+          "Web BFF triggers AI Recommendation Engine for detailed personalized feed",
+          "Microservices execute underlying SQL queries against Shared Database Cluster"
+        ],
+        benefits: {
+          consistency: "Per-Client API Shape",
+          coordination: "BFF Aggregation Layer",
+          bandwidth: "Minimizes Over-Fetching",
+          flexibility: "Decoupled Client Releases"
+        }
+      },
+
+      outbox: {
+        id: "outbox",
+        name: "Transactional Outbox",
+        tag: "Guaranteed Messaging",
+        tagClass: "tag-outbox",
+        description: "Solves the dual-write problem by saving domain entity changes and event payloads inside the SAME database transaction. A CDC relay (Debezium) tails the WAL log and safely publishes to Kafka.",
+        url: "https://bishoku.github.io/yada/?embed=true#share=N4IgNg9g5glgxgQzAEQQFwSAXKAznACwFMBbBANSICdcYIA7bAJgBoR6IATI3bAbVAxO2dgFo4YGEXpoQbNAE8ADkRESpMuewQlVWEAHUiAIwAEAYWJwA1hACuaUwEElSkAF8Wg4fvqioAO5aiioiUOhEAQgKWvQ6eiBOAAoAkqYA4hFRMZ7eIriinBBkMIzyygm4RHBodGXauiIA8lTcVKYAsvBUEFVUAG7wRKbIxQilHl4gQiJ+EK3UwRX51P2LbHGN+i1tpgDKq0NaSghU0mgpPiAFRSWMudNXfpzGovZoxhAAHkuh+pzoBDGBBVWLxERJXpoKBnPYARQAMqYABQ7ai4UwAalMTQcny+pgAKkCwEQAJSTPL6ApnMDRX6Vaq1BhgrYgczIcymABkOLx31MACUiHSFESpFRKY9ZoUTEQAF4wOwkBkrAbrBoJDlc3EfAXC0Uo5ByxXKilsE5nGSXfKiWn0h4zXyiawIABmrtV+gAjnYiH7WQkAKJrGSmABCPWs1BRAGl3a6KY6rgVcHZjPgqDBjOivdcmXVAyJRgF6Lg0GcdPt05ns7nkzLSv08301pKNuD9Cl6KG0PMxV04D1W0cLadzjbqaI0xmh3WaFKnWJSOMwC3VhrNgkAHIQWpu+DoOr7Q5wVRjq0XFPTmtznML9wAXTYRE4UB4-CpICIAEYtLh7CoM9JzEdRzmCU53yvGVAi0GBcCcXAFHoOBsDdJAqgtHo+zgCA130AAJQlCSSPYtG4WslGZRh9CSJo9kJUwAHp+h-Jj5jaXgsIgFQqFqD8cHcBt9CIJh-0A4Cnn8IJ5EgohoOdDiNXgxDkNQrB0LATCQCUbCIFw-CQCgQUknMcieDnKjC30cxKzQIg0UlYTvwAZnEuwgKIEC5gWdsQAwKgoO8wpXnefE4IQpCULQjCiG4nC8JEeEEXMyjqJEH9nD7Eh4CJL4sFMFJtz2INBUYpT2l5MLvkXK4iAAFnczzgpeN5+R+WTAvklqTSVFU2BUqL1IrP14v0xKbM5VLLPS-RhQQThTEhcsYR4UwDCcJEEWgWqRCIABWJrJJlbgc1Nfr-LkhSxFdD1MAGyK1OwEa4p0vSDJEeM7umrMrJZWj00kXACFMPtTAAcgqgA6Ihe1wcHdpEgA2I6vKk06FT6iCuuu55QvaiLVOijTYrGj79GSn6YD+miQAAVSSZAnEJINTGqgkSsY3T9J4KpOAAXhexHvwAdlR4Lbs9TqgqkptCaG56qFGt693GwyvqlkAKJm6z2QYNNdBxXzbKICJhGcogAA5xakyX7sunHgpXGA1weonhqV17uYS9WE3t7XftmvWy2VYZHJNs2PGffNfWkM9eCwARpWpP82HLIglG3ZV72wH8XzfNG9tT6ZHuJzTtPgwV7HoThCV+xW-Wc3AxLT+zM+zxYsFYb8C5A0T5aekmtNeyvq9r+usBepu3NbjOs5IHOsBc-P3z7meS-dmLh4equ7BruvqYbogm8a2f24Xzv6pXwuRNPjeFcnz2d7Hg+3CHqom8Os-58X-br77r+99B4vWfnvceh937HymEuXAKNv4d0lFgJG-86pwKAWXUmJdd77wnlPaBKYxbwIvogkWKC9qEPQR7ZWo8wGvy3h-fB+RrZEMXqQnuq86rMMoUfUBOCIHl2Po+TwIBBhpiQKgDA2BQCineEGAuCdQC-ikcnb8xcAIeTPARBANdSQiE+GgbKWB9oAAZsZQS0TohIfYlBGNMReWoEgiCEmWPoM45Z-wEAgAEJwVAehBEfsrAy8wRCTG-GJHAKj+5pwkkQCxnBdGuJgFAAgaBbFmPknEhJ4AiBulSSY44pwHGkmcX8IyVAlCoTTp47xvivFH2EUQNyESlyNNRpkhIWZkl5LsQ7cx2j4kJFJLktJ9j4DFJcdcb0rtrjVJ8X4+pL5GrNLqnfdRnl2kiE6SkkZvSMn9KyUM7pBS+JjKcRMtxsgqleLmXUgJUDvyHWWXtQBazNH7ISPowx+TpZ7MsSIaxOzLRFLOaUu2Hjrm1P8Xg78KMnnIzae8kQhydkBT6X8xJXTAWFNOSUyoUzwU1PmXchpYs4WiwReikAWyjk-LQBs-QyLvk6WxY43FIgwVXMJbc6FVtlEtK4a82JiKMXbKZai35AykU5Jpcyk5rKJkcpmRColU9hGIB7CCZR8oIDFFzlDZezKaKgB+EvS2SMob1QAJz1RFvtS1lsmD7RckwW1bAYhYB-Jay1UNjG+vqi5JGSNLY-iYKGkWwiYRCHIPBbMCSBHCJkQ4XcFFlF+DApoMlabJDgTYCa0QP4oZIx-D+FyTqRbFpFpa4x9VfXd3dTWtgAQhBoAIMwJgV8QDECSSk7A+1u4ttIAkUonAkkQC0HAOw5Zih7EUKSBRKtOB2BqCkXCtNKw1GOD0Rdy7V3mDwvMV89ThF+Fgpm6SWg80FqLSWstFaq01uMXW5gxjLZQxFkG-a+1LaWv2p6pGJjLaNuba2ru7a2Bdq6b2-txA2SDqoEgYQbAJ1TpIDOhQc7lHc23RcVdIgEABC4gupdOGGB7sgGcHwqq06FDGBMMlNxaP1BNUwH9+rLb1SLU69jnGA1utzsWoDnAW3MDNeBog3bZAepMWweU3ZuCXvkDBhIOgc7HreL5PlUkKoXuwA2kA7rpMgCbUJkDoaO0QZ7UY6Dg68PEPHZO7KaGMMRKw8Rld-1ri6VKFATdXA3O7v3RRo9GwQptT1Car8eMwvhVzdgf9xi+MeqYAlozwG23mfE5BqzimbOuN6OeEAyHHOzoEqAVzO6PNKChKtXA+LuLYfc-QMjB7KOeyEtR+07qvw0hFPSWLHrfXmp-Fxjjw2XLcbzvpuLyDUsmewC5X1YmJO5yRil2TNciAKf8kp2zqmQsY3Oppk6vVlQ6awHpgzKXjPCdAxl5b2Xtu5ZACpjURXp0lfneVkjtMig2A1F9xrzWgvErU2Cs9iqTXxcSwtq7aXbtLay32nLbJBh4XkvZlDTnStEYq7TRVAOAvkcPSD6jM5az3nnTAm8s4swU7Oz+P1UMxsTZG0jJ9Xd31M9Z8zjj3drsgYW3drLTBVsybk5t7A+bkfKbs2puWZ65b9Yu722Hc34edsy5ZpHj22Qvb8m91DH3MNbv8x5qAY76um6a4F4nVHlwlHwpF0QztpkmuVx60Xs2btmYR1r6zuu7NIYc+99D2OCeVYUC2lklvcdA9t2149e4iDRZqpmpPKeOogBNTDxLNa+dw5MQaizkmQ2W3a-5GAuhJD0Gx7gP8ESqixxQjfa4xdF3wdmj+B9bBuCimfSl7RlejwMA6FwDpL964DRkNQOIYAkg9HjvO+yXxJMgCIiRPYS16KMRYmxCqGJkQR3skbNo5otYeWHzRR1vry-N2UY3v0zeQJ357xfzvyWUu9-pFgAf9Ah-UVH24E2Qn0Pin3sioFn3nx5lwCX021X0chPAGCGAKnDCIFgHoD-3oCgCymKFyjrm0VwAQBqELFfw72smv2MVvyaTwCICb2OmpHXnb0v1zm7y1l63dV-3-zqEAPH1oUn2mGnwgKQCgMX2UWX1X2WmhFhERAKj2G81JBwJyjgCJHgzLCIOohRH3yxDZnalBhJHJHIjf3IJMUoOEVwCWRoLoJb3MMMLIP+hDUWzYL7x-zYEHzIAALH1mHmDIGmVKHAMgIX15jELgOLBOxIAsE5AKnmhHSwKWmqzcXWizHslECcGIAWlMG2mwORA2gRDPyYNmgoNv0eUsMf3oOuEAXyOsgcM-3YOwE4PcO4M8N8G8KQDgkEICOgNgJXxEANGiD5HC1MBDHOFBggFMA1gQAhmhlhnOHhhGKUHgFsOYK7hMNv1hRKLjmsLQUqPsI-x71qJcOez-waJHyaKpRALcDAJn2EMCJgOCO6NoniKIGSgKg6FOGsH6PxCFC8SWhuL5kWIKI-1v1JXWKfwIX+KqN2KcO-3qMvx4K8KoB8LaP8OuM6LuNX27F7H7EQMGDPAKj3RDhyliPDjslfFMGmM0FIKWMKLMOtgb1oNKOsK4W2JomqL2OcJhI8KAOaIRNaMuKELn1+LRJEF3H3EPA0IOCQNxJPBrm8wsGD10HaCDAd3BP+mpOEW0Q4AwGonnU1OT3ZiO2aOSP1LEwWk7hAHwLUOIIYCQA+IFCSHQH8K0E+E4HdRAHSDsFOG0XsjWkXSQFEACCSOGFXVoHThQgUChgAB16A9gEA1gMRjBJ1SheYySZAYBFAeQdCBjyTHBShTBMpIBEAwARhwxQZVDCCrT6AWBQZiB6BTBOsMRBgJjtQRixi-YoZ-wStlFgQbAYQx4gcRAABiYxN0H8EWJge2T4Y2QLQclyYwB1N0NBcQ-s-QAc0SK2N0HpN0BgNAAAMR0BdldO7HAK0C3JkDkPlD0BDTYEnLaEFAWiVATkAxAB4iILTI4Khh-TMICjQEJErz0BS2kFrj-OwC9S9VcLAGyFwGjVoGMASVVTVQ8kvGjUiBEBHQQBhB0A8CAA",
+        steps: [
+          "Client submits order payload to API Gateway",
+          "Order Service opens 1 Atomic PostgreSQL Transaction: INSERTS into orders AND INSERTS into outbox table",
+          "Debezium CDC Relay reads Postgres Write-Ahead Log (WAL) for new outbox records",
+          "Debezium publishes event payload to Kafka topic 'order.events'",
+          "Debezium marks outbox row as processed in PostgreSQL",
+          "Inventory & Email Notification microservices consume event asynchronously from Kafka"
+        ],
+        benefits: {
+          consistency: "Guaranteed At-Least-Once",
+          coordination: "Transactional CDC Relay",
+          atomicity: "1 Local DB Transaction",
+          reliability: "Zero Lost Events"
+        }
+      }
+    };
+
+    // DOM Elements
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const yadaFrame = document.getElementById('yadaFrame');
+    const loaderOverlay = document.getElementById('loaderOverlay');
+    const viewportCard = document.getElementById('viewportCard');
+    const viewportTitle = document.getElementById('viewportTitle');
+    const openExternalLink = document.getElementById('openExternalLink');
+    const reloadBtn = document.getElementById('reloadBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+    const patternTag = document.getElementById('patternTag');
+    const patternTitle = document.getElementById('patternTitle');
+    const patternDesc = document.getElementById('patternDesc');
+    const flowList = document.getElementById('flowList');
+    const benefitsGrid = document.getElementById('benefitsGrid');
+
+    let currentPatternKey = 'saga';
+
+    // Switch Pattern Function
+    function loadPattern(key) {
+      if (!PATTERN_DATA[key]) return;
+      currentPatternKey = key;
+      const data = PATTERN_DATA[key];
+
+      // Update Active Tab UI
+      tabBtns.forEach(btn => {
+        if (btn.dataset.pattern === key) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // Show Loader Overlay
+      loaderOverlay.classList.remove('hidden');
+
+      // Update Viewport Title & External Link
+      viewportTitle.textContent = `yada-simulation://${data.id}-pattern`;
+      openExternalLink.href = data.url.replace('?embed=true', '');
+
+      // Force full iframe document re-mount by clearing src first
+      // (Browsers ignore src updates when only the #hash part changes on identical origins)
+      yadaFrame.src = 'about:blank';
+      setTimeout(() => {
+        yadaFrame.src = data.url;
+      }, 30);
+
+      // Update Details Sidebar
+      patternTag.textContent = data.tag;
+      patternTag.className = `pattern-tag ${data.tagClass}`;
+      patternTitle.textContent = data.name;
+      patternDesc.textContent = data.description;
+
+      // Populate Sequence Steps
+      flowList.innerHTML = data.steps.map((step, idx) => `
+        <li class="flow-step">
+          <span class="step-num">${idx + 1}</span>
+          <span class="step-text">${step}</span>
+        </li>
+      `).join('');
+
+      // Populate Benefits Grid
+      benefitsGrid.innerHTML = Object.entries(data.benefits).map(([k, v]) => `
+        <div class="benefit-item">
+          <span class="label">${k.toUpperCase()}</span>
+          <span class="val">${v}</span>
+        </div>
+      `).join('');
+    }
+
+    // Hide loader when iframe finishes loading
+    yadaFrame.addEventListener('load', () => {
+      // Don't hide overlay when iframe is temporarily at about:blank
+      if (yadaFrame.src.includes('yada')) {
+        setTimeout(() => {
+          loaderOverlay.classList.add('hidden');
+        }, 400);
+      }
+    });
+
+    // Tab Event Listeners
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.pattern;
+        if (key !== currentPatternKey) {
+          loadPattern(key);
+        }
+      });
+    });
+
+    // Reset Flow Button
+    reloadBtn.addEventListener('click', () => {
+      const data = PATTERN_DATA[currentPatternKey];
+      if (data) {
+        loaderOverlay.classList.remove('hidden');
+        yadaFrame.src = 'about:blank';
+        setTimeout(() => {
+          yadaFrame.src = data.url;
+        }, 30);
+      }
+    });
+
+    // Toggle Fullscreen
+    fullscreenBtn.addEventListener('click', () => {
+      viewportCard.classList.toggle('fullscreen');
+      fullscreenBtn.textContent = viewportCard.classList.contains('fullscreen') ? 'Exit Fullscreen' : '⛶ Expand';
+    });
+
+    // Initialize Default Pattern
+    loadPattern('saga');
+  </script>
+</body>
+
+</html>

@@ -30,7 +30,7 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
   const t = translations[language];
 
   return (
-    <div className="w-full md:w-1/2 p-8 bg-slate-100/10 dark:bg-slate-950/20 flex flex-col justify-between">
+    <div className="w-full md:w-1/2 p-4 sm:p-6 md:p-8 bg-slate-100/10 dark:bg-slate-950/20 flex flex-col justify-between">
       <div>
         <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-6 flex items-center gap-2">
           <FolderPlus className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />

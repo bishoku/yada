@@ -77,10 +77,11 @@ Two layers — **both required**. Logical (what components exist and communicate
 - LR layout: source=`right:50`, target=`left:50`. TB layout: source=`bottom:50`, target=`top:50`.
 
 **TimelineTiming**: `{ sequenceId, duration(ms), delay(ms), animationMode?, repeatParticleCount?, internalProcess?: { text, duration } }`
-- `delay` = cumulative start time. **Sequential**: `delay[i] = delay[i-1] + duration[i-1]`. **Parallel**: same `delay`.
+- `delay` = step-local wait delay (ms). **Do NOT accumulate previous step durations into `delay`**. Each step's delay is independent (e.g., `delay: 0` to start immediately when predecessor finishes, or `delay: 300` for a brief pause at that node before triggering the step).
 - `animationMode`: `'normal'` | `'roundTrip'` | `'repeat'` (stored in visual timeline timing).
 - `repeatParticleCount`: particle count when animationMode is `'repeat'`.
-- Duration guide: internal 500-800ms, HTTP 800-1200ms, DB 500-1000ms, external 1000-2000ms, async publish 300-600ms.
+- **Tooltip & Internal Process Durations (Critical for User Readability)**: `internalProcess.duration` controls how long tooltip info text remains visible at a node. **Set generous durations (1500ms – 3000ms minimum)** so users have enough time to comfortably read tooltips and step descriptions.
+- **Duration Guide**: internal process / tooltip: `1500–3000ms`, edge transit (`duration`): `1000–2000ms`, DB query: `1200–2000ms`.
 
 ### 📝 Sticky Notes (Visual Annotations)
 
@@ -105,11 +106,29 @@ Sticky notes are purely visual annotations. They belong exclusively in VisualDat
 
 ## Layout & Grid Guidelines
 
-### 📐 Standard Grid Layout (Avoid Node Overlap)
-For clean Left-to-Right (LR) diagrams:
-- **Columns (X)**: Col 0 = `0`, Col 1 = `350`, Col 2 = `700`, Col 3 = `1050`
-- **Rows (Y)**: Row 0 = `0`, Row 1 = `150`, Row 2 = `300`
-- Node dimensions: Default `224×52px`. Spacing ensures 100px+ gap.
+### 📐 Dynamic Layout Representation (LLM Choice)
+
+Do **NOT** force every diagram into a rigid Left-to-Right layout. Choose the layout orientation (LR, TB, or Composite) that best fits the natural structure of the architecture being visualized:
+
+| Layout Style | Best For | Flow Direction | Handle Strategy |
+|---|---|---|---|
+| **Left-to-Right (LR)** | Pipelines, stream processing, sequential service-to-service chains | Left $\rightarrow$ Right (Col X increases) | `sourceHandle: "right:50"`, `targetHandle: "left:50"` |
+| **Top-to-Bottom (TB)** | Tiered architectures (Client $\rightarrow$ Gateway $\rightarrow$ Service $\rightarrow$ DB), tree hierarchies, stack flows | Top $\rightarrow$ Bottom (Row Y increases) | `sourceHandle: "bottom:50"`, `targetHandle: "top:50"` |
+| **Composite (Hybrid LR + TB)** | Complex microservices where primary flow is LR, but databases/caches/brokers branch TB vertically from their service nodes | Primary: Left $\rightarrow$ Right<br>Secondary: Top $\rightarrow$ Bottom | Match relative positions:<br>• Rightward: `"right:50"` $\rightarrow$ `"left:50"`<br>• Downward: `"bottom:50"` $\rightarrow$ `"top:50"`<br>• Upward: `"top:50"` $\rightarrow$ `"bottom:50"`<br>• Leftward: `"left:50"` $\rightarrow$ `"right:50"` |
+
+### 📐 Standard Grid Coordinates
+
+Ensure generous spacing (100px+ gap) so nodes never overlap:
+
+- **LR Layout Grid**:
+  - **Columns (X)**: Col 0 = `0`, Col 1 = `350`, Col 2 = `700`, Col 3 = `1050`
+  - **Rows (Y)**: Row 0 = `0`, Row 1 = `150`, Row 2 = `300`
+- **TB Layout Grid**:
+  - **Columns (X)**: Col 0 = `0`, Col 1 = `300`, Col 2 = `600`
+  - **Rows (Y)**: Row 0 = `0`, Row 1 = `180`, Row 2 = `360`, Row 3 = `540`
+- **Composite Layout Grid**:
+  - Primary services placed across Columns X (`0`, `350`, `700`...).
+  - Auxiliary nodes (Databases, Caches, Event Brokers) placed directly above (Y = `-150`) or below (Y = `150`) their associated service.
 
 ### ⚠️ Section Child Coordinates (Critical)
 Nodes with `parentId` use **section-relative coordinates** — (0,0) is the section's top-left corner:
@@ -120,16 +139,18 @@ child.y = absolute_canvas_y - section.y
 Section bounds must enclose all children: `section.width ≥ child.x + child.width + 40`, same for height.
 
 ### ⚠️ Handle Consistency (Critical)
-Always use standard handle IDs (`"right:50"`, `"left:50"`, `"top:50"`, `"bottom:50"`) unless specifically adding a custom `handles` array to the node. Do NOT invent custom handle names.
+Always use standard handle IDs (`"right:50"`, `"left:50"`, `"top:50"`, `"bottom:50"`) unless specifically adding a custom `handles` array to the node. Match handle orientation to relative node placement. Do NOT invent custom handle names.
 
 ## ⚠️ AI Agent Pre-Flight Checklist (Run Before Export)
 
 1. `schemaVersion` is `2` in `diagram.json` and `logicalData`.
 2. Every node ID in `logicalData.nodes` exists in `visualData.layoutNodes`.
 3. Sticky notes exist ONLY in `visualData.annotations` and `visualData.layoutNodes` (NOT in `logicalData.nodes`).
-4. Handles use exact standard format (`"right:50"`, `"left:50"`, `"top:50"`, `"bottom:50"`).
-5. Sequential step timelines accumulate `delay`: `delay[i] = delay[i-1] + duration[i-1]`.
-6. For Magic Link output: share payload includes `currentView: "diagram"` alongside `logicalData` and `visualData`.
+4. Handles use exact standard format (`"right:50"`, `"left:50"`, `"top:50"`, `"bottom:50"`) and match relative node positioning.
+5. Step timelines use per-step wait delay (`delay` is local to each step — **DO NOT accumulate previous step durations**).
+6. Tooltip and internalProcess durations are set to at least **1500ms – 3000ms** so users have enough time to read them.
+7. Layout orientation (LR, TB, or Composite) is explicitly chosen to provide the clearest visualization for the given architecture.
+8. For Magic Link output: share payload includes `currentView: "diagram"` alongside `logicalData` and `visualData`.
 
 ## Building the .dproj
 
@@ -223,11 +244,11 @@ through LLM context wastes thousands of tokens on unreadable compressed noise.
       "e5":{"id":"e5","sourceHandle":"top:50","targetHandle":"bottom:50","particleType":"kafka","showArrow":true}
     },
     "timelines":{
-      "s1":{"sequenceId":"s1","duration":800,"delay":0,"animationMode":"roundTrip","internalProcess":{"text":"Routing","duration":300}},
-      "s2":{"sequenceId":"s2","duration":600,"delay":800,"animationMode":"roundTrip","internalProcess":{"text":"INSERT order","duration":300}},
-      "s3":{"sequenceId":"s3","duration":400,"delay":1400,"animationMode":"normal"},
-      "s4":{"sequenceId":"s4","duration":500,"delay":1800,"animationMode":"normal"},
-      "s5":{"sequenceId":"s5","duration":400,"delay":2300,"animationMode":"normal"}
+      "s1":{"sequenceId":"s1","duration":1200,"delay":0,"animationMode":"roundTrip","internalProcess":{"text":"Routing POST /order","duration":2000}},
+      "s2":{"sequenceId":"s2","duration":1000,"delay":0,"animationMode":"roundTrip","internalProcess":{"text":"INSERT into Order DB","duration":2000}},
+      "s3":{"sequenceId":"s3","duration":800,"delay":0,"animationMode":"normal","internalProcess":{"text":"Publish OrderCreated","duration":1800}},
+      "s4":{"sequenceId":"s4","duration":800,"delay":0,"animationMode":"normal","internalProcess":{"text":"Consume OrderCreated","duration":1800}},
+      "s5":{"sequenceId":"s5","duration":800,"delay":0,"animationMode":"normal"}
     }
   }
 }

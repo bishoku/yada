@@ -55,16 +55,16 @@ export const WelcomeScreen: React.FC = () => {
   } = useWelcome();
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-6 relative overflow-hidden select-none transition-colors duration-300">
+    <div className="min-h-screen w-full flex flex-col items-center justify-start sm:justify-center bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-3 sm:p-6 md:p-8 relative overflow-y-auto select-none transition-colors duration-300">
       {/* Decorative gradients */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[60%] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-violet-600/10 blur-[120px] pointer-events-none" />
 
       {/* Preferences Toggle Button */}
-      <div className="absolute top-6 right-6 z-30">
+      <div className="w-full max-w-5xl flex justify-end sm:block z-30 mb-2 sm:mb-0">
         <button
           onClick={() => setShowPrefModal(true)}
-          className="p-2.5 bg-white/80 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200 dark:border-slate-800/80 rounded-xl cursor-pointer shadow-sm transition-all flex items-center gap-1.5"
+          className="sm:absolute sm:top-6 sm:right-6 p-2 sm:p-2.5 bg-white/80 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200 dark:border-slate-800/80 rounded-xl cursor-pointer shadow-sm transition-all flex items-center gap-1.5"
           title={t.appPrefTitle}
         >
           <Settings className="w-4 h-4" />
@@ -72,7 +72,7 @@ export const WelcomeScreen: React.FC = () => {
         </button>
       </div>
 
-      <div className="w-full max-w-5xl bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-250 dark:border-slate-800/80 rounded-2xl shadow-xl dark:shadow-2xl overflow-hidden flex flex-col md:flex-row z-10 min-h-[550px] transition-all">
+      <div className="w-full max-w-5xl bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-250 dark:border-slate-800/80 rounded-2xl shadow-xl dark:shadow-2xl overflow-hidden flex flex-col md:flex-row z-10 min-h-0 md:min-h-[550px] transition-all">
         {/* Left Side: Recent Workspaces */}
         <WorkspaceList
           recentWorkspaces={recentWorkspaces}

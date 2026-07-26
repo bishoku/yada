@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  ChevronDown, Upload, FolderOpen, HardDrive, Edit, Download, Trash2, Info, Activity, Sparkles, ArrowRight, RotateCcw
+  ChevronDown, Upload, FolderOpen, HardDrive, Edit, Download, Trash2, Info, Activity, Sparkles, RotateCcw, ExternalLink
 } from 'lucide-react';
 import { WorkspaceMeta } from '../../../types';
 import { DiagramAdapter } from '../../../adapters/types';
 import { translations } from '../../../i18n/translations';
-import { SAMPLE_DIAGRAMS, SampleDiagramItem } from '../../../data/sampleDiagrams';
-import { extractShareData } from '../../../utils/shareUtils';
 import { useAppStore } from '../../../store/useAppStore';
 
 interface WorkspaceListProps {
@@ -43,7 +41,6 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   onSelectAdapter,
 }) => {
   const t = translations[language];
-  const [isSamplesOpen, setIsSamplesOpen] = useState(false);
 
   const formatPath = (fullPath: string) => {
     if (fullPath.length > 40) {
@@ -67,34 +64,19 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
     }
   };
 
-  const handleSelectSample = async (sample: SampleDiagramItem) => {
-    try {
-      const payload = await extractShareData(sample.encodedData);
-      if (payload.logicalData && payload.visualData) {
-        if (payload.currentView) {
-          useAppStore.getState().setView(payload.currentView);
-        }
-        const title = language === 'tr' ? sample.name : sample.nameEn;
-        useAppStore.getState().loadSharedDiagram(payload.logicalData, payload.visualData, title);
-      }
-    } catch (err) {
-      console.error('Failed to load sample diagram:', err);
-    }
-  };
-
   return (
-    <div className="w-full md:w-1/2 p-6 md:p-8 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between h-full min-h-[550px]">
+    <div className="w-full md:w-1/2 p-4 sm:p-6 md:p-8 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between h-full min-h-0 md:min-h-[550px]">
       {/* ── Top Area: Logo & Recent Workspaces ── */}
       <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-        <div className="flex items-center gap-2 mb-5">
-          <img src="pwa-icon.png" className="h-10 w-10" alt="YADA Icon" />
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-400 dark:from-indigo-200 dark:via-indigo-100 dark:to-slate-200 bg-clip-text text-transparent">
+        <div className="flex items-center gap-2 mb-4 sm:mb-5">
+          <img src="pwa-icon.png" className="h-8 w-8 sm:h-10 sm:w-10" alt="YADA Icon" />
+          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-400 dark:from-indigo-200 dark:via-indigo-100 dark:to-slate-200 bg-clip-text text-transparent">
             {t.welcomeTitle}
           </h1>
         </div>
 
         {/* ── Recent Workspaces Header ── */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 font-semibold text-xs uppercase tracking-wider">
             <span>{t.recentWorkspaces}</span>
             <button
@@ -181,15 +163,15 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
             </p>
           </div>
         ) : (
-          <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
+          <div className="space-y-1.5 max-h-[180px] sm:max-h-[220px] overflow-y-auto pr-1">
             {recentWorkspaces.map((ws) => (
               <div
                 key={ws.path}
-                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/40 hover:border-indigo-500/40 border border-slate-200/80 dark:border-slate-800/80 rounded-xl transition-all duration-200 group flex items-center justify-between"
+                className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/40 hover:border-indigo-500/40 border border-slate-200/80 dark:border-slate-800/80 rounded-xl transition-all duration-200 group flex items-center justify-between gap-2"
               >
                 <div
                   onClick={() => onLoadRecent(ws.path)}
-                  className="flex-1 min-w-0 pr-2 cursor-pointer"
+                  className="flex-1 min-w-0 cursor-pointer"
                 >
                   <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors text-xs truncate">
                     {ws.name}
@@ -202,12 +184,12 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <div className="text-right text-[9px] text-slate-400 hidden sm:block">
                     <div className="font-medium">{formatDate(ws.lastAccessed)}</div>
                   </div>
 
-                  <div className="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-0.5 opacity-80 sm:opacity-60 sm:group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => onRenameWorkspace(ws)}
                       title={t.rename}
@@ -240,76 +222,36 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
         )}
       </div>
 
-      {/* ── Bottom Section: Sample Architecture Diagrams Drawer (Expands Upwards) ── */}
-      <div className="mt-auto pt-3 border-t border-slate-200 dark:border-slate-800/80 flex flex-col justify-end">
-        {/* Sample Diagram Cards (Rendered ABOVE button when open) */}
-        {isSamplesOpen && (
-          <div className="mb-3 space-y-2 max-h-[240px] overflow-y-auto pr-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            {SAMPLE_DIAGRAMS.map((sample) => (
-              <div
-                key={sample.id}
-                onClick={() => handleSelectSample(sample)}
-                className="group relative p-3 bg-slate-50 dark:bg-slate-950/60 hover:bg-white dark:hover:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 hover:border-indigo-500/50 dark:hover:border-indigo-500/50 rounded-xl transition-all duration-200 cursor-pointer shadow-2xs hover:shadow-md flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
-                      {language === 'tr' ? sample.name : sample.nameEn}
-                    </span>
-                    <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md border shrink-0 ${sample.badgeColor}`}>
-                      {sample.badge}
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                    {language === 'tr' ? sample.description : sample.descriptionEn}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/50">
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {sample.tags.map((tag) => (
-                      <span key={tag} className="text-[9px] text-slate-400 dark:text-slate-500 bg-slate-200/50 dark:bg-slate-800/60 px-1.5 py-0.5 rounded font-mono">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 group-hover:translate-x-0.5 transition-transform">
-                    <span>{language === 'tr' ? 'İncele' : 'Inspect'}</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Collapsible Header Button */}
-        <button
-          onClick={() => setIsSamplesOpen(!isSamplesOpen)}
-          className="w-full flex items-center justify-between p-2 hover:bg-slate-100/60 dark:hover:bg-slate-900/60 rounded-xl transition-colors cursor-pointer group"
-        >
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-            <span>{t.sampleDiagramsTitle || (language === 'tr' ? 'Örnek Mimari Diyagramlar' : 'Sample Architecture Diagrams')}</span>
-            <span className="text-[9px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full font-bold lowercase tracking-normal border border-indigo-500/20">
-              {SAMPLE_DIAGRAMS.length} {language === 'tr' ? 'örnek' : 'samples'}
+      {/* ── Bottom Section: Architecture Showcase Link Card ── */}
+      <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800/80 flex flex-col gap-2.5">
+        <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-br from-indigo-500/10 via-slate-100/60 to-cyan-500/10 dark:from-indigo-950/40 dark:via-slate-900/60 dark:to-cyan-950/30 border border-indigo-500/20 dark:border-indigo-500/30 shadow-xs flex flex-col gap-2 transition-all hover:border-indigo-500/40">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+              <Sparkles className="w-4 h-4 text-indigo-500 shrink-0" />
+              <span>{t.showcaseTitle}</span>
+            </div>
+            <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 shrink-0">
+              Showcase
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
-              {isSamplesOpen 
-                ? (language === 'tr' ? 'Daralt' : 'Collapse') 
-                : (language === 'tr' ? 'Göster & Önizle' : 'Expand & Preview')}
-            </span>
-            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isSamplesOpen ? 'rotate-180' : ''}`} />
-          </div>
-        </button>
+          <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            {t.showcaseSub}
+          </p>
+
+          <a
+            href="/diagram.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full mt-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-sm shadow-indigo-600/20 cursor-pointer group"
+          >
+            <span>{t.showcaseButton}</span>
+            <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </a>
+        </div>
 
         {/* Info Footer Note */}
-        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/50 text-[11px] text-slate-400 flex items-center gap-1.5">
+        <div className="pt-0.5 text-[11px] text-slate-400 flex items-center gap-1.5">
           <Info className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
           <span>{t.physicalStoreNote}</span>
         </div>
@@ -317,3 +259,4 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
     </div>
   );
 };
+
