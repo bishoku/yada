@@ -49,10 +49,12 @@ export const useCanvasDrop = (
 
       const newNode: Node = toRfNode({ id: nodeId, type, name: uniqueName }, visualNode);
 
-      setRfNodes((nds) => isSection ? [newNode, ...nds] : [...nds, newNode]);
-      
       if (isStickyNote) {
-        // Find a safe start time (currentTime or 0)
+        // For sticky notes, do NOT call setRfNodes directly.
+        // addStickyNote updates the store → useCanvasSync's subscriber fires →
+        // buildRfNodesFromState rebuilds rfNodes from scratch (including all existing
+        // annotations). Calling setRfNodes here races with that rebuild and caused
+        // the first note to be replaced by the second on every subsequent drop.
         const currentTime = useAppStore.getState().currentTime;
         const startTime = currentTime;
         const endTime = startTime + 5000; // Default 5 seconds duration
@@ -77,6 +79,7 @@ export const useCanvasDrop = (
         };
         addStickyNote(visualNode, annotation);
       } else {
+        setRfNodes((nds) => isSection ? [newNode, ...nds] : [...nds, newNode]);
         const logicalNode = { id: nodeId, type, name: uniqueName };
         addNode(logicalNode, visualNode);
       }
@@ -86,5 +89,5 @@ export const useCanvasDrop = (
 
     el.addEventListener('mouseup', handleMouseUp);
     return () => el.removeEventListener('mouseup', handleMouseUp);
-  }, [screenToFlowPosition, setRfNodes, addNode, cancelDrag, wrapperRef]);
+  }, [screenToFlowPosition, setRfNodes, addNode, addStickyNote, cancelDrag, wrapperRef]);
 };

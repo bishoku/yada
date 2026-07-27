@@ -1,6 +1,8 @@
 import { toPng, toCanvas, getFontEmbedCSS } from 'html-to-image';
 // @ts-ignore — gifenc ships ESM-only; types are inferred at runtime
 import { GIFEncoder, quantize, applyPalette } from 'gifenc';
+import { Muxer as WebmMuxer, ArrayBufferTarget as WebmArrayBufferTarget } from 'webm-muxer';
+import { Muxer as Mp4Muxer, ArrayBufferTarget as Mp4ArrayBufferTarget } from 'mp4-muxer';
 import { useAppStore } from '../store/useAppStore';
 import { save } from '@tauri-apps/plugin-dialog';
 import { writeFile } from '@tauri-apps/plugin-fs';
@@ -34,6 +36,29 @@ const restoreUIElements = (elements: NodeListOf<Element>) => {
   });
 };
 
+/**
+ * Injects a global stylesheet that sets box-shadow: none on every element.
+ *
+ * WHY: html-to-image clones the DOM, then copies getComputedStyle() from each
+ * original element to the clone as inline styles. If we manipulate individual
+ * element.style properties on the original, html-to-image's copyComputedStyle
+ * step can overwrite them with the Tailwind class values. Injecting a <style>
+ * at highest specificity (* { box-shadow: none !important }) ensures that
+ * getComputedStyle() already returns 'none' when html-to-image reads it,
+ * so the clone also gets 'none' written as its inline style.
+ */
+const suppressShadows = (): HTMLStyleElement => {
+  const style = document.createElement('style');
+  style.dataset.exportNoshadow = '1';
+  style.textContent = '* { box-shadow: none !important; }';
+  document.head.appendChild(style);
+  return style;
+};
+
+const restoreShadows = (el: HTMLStyleElement): void => {
+  el.remove();
+};
+
 // ─────────────────────────────────────────────────────────────
 // PNG Export
 // ─────────────────────────────────────────────────────────────
@@ -48,6 +73,9 @@ export const exportToPng = async (
   }
 
   const elementsToHide = hideUIElements();
+  // Inject a global stylesheet to suppress box-shadow during capture.
+  // See suppressShadows() for why CSS injection beats per-element manipulation.
+  const shadowStyle = suppressShadows();
 
   try {
     const customBg = useAppStore.getState().visualData?.canvas?.bgColor;
@@ -88,6 +116,7 @@ export const exportToPng = async (
       a.click();
     }
   } finally {
+    restoreShadows(shadowStyle);
     restoreUIElements(elementsToHide);
   }
 };
@@ -161,6 +190,10 @@ const captureFrames = async (
       // on every frame without re-downloading. skipFonts is intentionally NOT used
       // here — it caused html-to-image to fall back to a system font with different
       // character metrics, making edge label text wrap at wrong break points.
+      //
+      // Suppress box-shadow during capture via global CSS injection.
+      // See suppressShadows() for why this beats per-element manipulation.
+      const shadowStyle = suppressShadows();
       const raw = await toCanvas(node, {
         pixelRatio,
         fontEmbedCSS,
@@ -170,6 +203,7 @@ const captureFrames = async (
         style: { transform: 'scale(1)', transformOrigin: 'top left' },
         filter: (domNode) => !shouldExcludeNode(domNode as HTMLElement),
       });
+      restoreShadows(shadowStyle);
 
       // Scale to target output size.
       // When pixelRatio > 1 and scale ≤ 1, this is supersampling: the higher-res
@@ -344,8 +378,6 @@ const encodeWithWebCodecs = async (
   onProgress: (pct: number) => void,
   scale: number = 1
 ): Promise<Blob> => {
-  const { Muxer, ArrayBufferTarget } = await import('webm-muxer');
-
   // Probe codec support: prefer VP9 (better compression), fall back to VP8
   type CodecPair = { enc: string; mux: 'V_VP9' | 'V_VP8' };
   const candidates: CodecPair[] = [
@@ -365,8 +397,8 @@ const encodeWithWebCodecs = async (
   }
   if (!codec) throw new Error('No supported WebCodecs video codec found.');
 
-  const target  = new ArrayBufferTarget();
-  const muxer   = new Muxer({
+  const target  = new WebmArrayBufferTarget();
+  const muxer   = new WebmMuxer({
     target,
     video: { codec: codec.mux, width, height, frameRate: fps },
     firstTimestampBehavior: 'strict',
@@ -436,19 +468,21 @@ const encodeWithWebCodecsMp4 = async (
   onProgress: (pct: number) => void,
   scale: number = 1
 ): Promise<Blob> => {
-  const { Muxer, ArrayBufferTarget } = await import('mp4-muxer');
-
   // Ensure even dimensions (H.264 requirement)
   const encWidth  = width  % 2 === 0 ? width  : width  + 1;
   const encHeight = height % 2 === 0 ? height : height + 1;
 
   const effectiveBitrate = scale > 1 ? Math.round(BITRATES[quality] * scale) : BITRATES[quality];
 
-  // Probe H.264 codec support — try multiple profiles
+  // Probe H.264 codec support — try multiple profiles from broadest to narrowest.
+  // avc1.4d001f = Main Profile L3.1 — best balance of compatibility vs quality.
+  // avc1.42001f = Baseline L3.1 — broadest support (no B-frames, limited features).
+  // avc1.640028 = High L4.0 — best compression but least compatible.
   const h264Candidates = [
-    'avc1.42001f', // Baseline L3.1 — broadest hardware support
-    'avc1.4d0028', // Main L4.0 — good balance
-    'avc1.640028', // High L4.0 — best compression
+    'avc1.4d001f', // Main L3.1  — first choice
+    'avc1.42001f', // Baseline L3.1
+    'avc1.4d0028', // Main L4.0
+    'avc1.640028', // High L4.0
   ];
 
   let codecStr: string | undefined;
@@ -458,14 +492,17 @@ const encodeWithWebCodecsMp4 = async (
         codec: c, width: encWidth, height: encHeight,
         bitrate: effectiveBitrate,
         framerate: fps,
+        // Use no-preference so the platform picks the best available path
+        // (hardware or software). 'prefer-hardware' fails on WKWebView.
+        hardwareAcceleration: 'no-preference',
       });
       if (probe.supported) { codecStr = c; break; }
     } catch { /* some WebViews throw instead of returning unsupported */ }
   }
   if (!codecStr) throw new Error('H.264 encoding not supported.');
 
-  const target = new ArrayBufferTarget();
-  const muxer = new Muxer({
+  const target = new Mp4ArrayBufferTarget();
+  const muxer = new Mp4Muxer({
     target,
     video: { codec: 'avc', width: encWidth, height: encHeight },
     firstTimestampBehavior: 'strict',
@@ -493,13 +530,17 @@ const encodeWithWebCodecsMp4 = async (
     });
 
     encoder.configure({
-      codec:                 codecStr!,
-      width:                 encWidth,
-      height:                encHeight,
-      bitrate:               effectiveBitrate,
-      framerate:             fps,
-      hardwareAcceleration:  'prefer-hardware',
-      latencyMode:           'quality',
+      codec:   codecStr!,
+      width:   encWidth,
+      height:  encHeight,
+      bitrate: effectiveBitrate,
+      framerate: fps,
+      // 'no-preference' lets the platform choose hardware or software encoding.
+      // 'prefer-hardware' causes 'Encoding task failed' on WKWebView/macOS
+      // when the hardware encoder cannot handle the RGBA→YUV conversion.
+      hardwareAcceleration: 'no-preference',
+      // Do not set latencyMode — default ('realtime') is more widely supported
+      // than 'quality', which is unimplemented in some WebView versions.
     });
 
     (async () => {
@@ -660,19 +701,36 @@ export const exportToVideo = async (
     let format: 'mp4' | 'webm' = 'mp4';
 
     if (supportsWebCodecs()) {
+      // Diagnostic: probe H.264 support upfront so we can log the exact reason
+      // if MP4 encoding is unavailable (helps diagnose WebM fallback issues).
+      const h264DiagProbe = await VideoEncoder.isConfigSupported({
+        codec: 'avc1.42001f',
+        width,
+        height,
+        bitrate: 3_000_000,
+        framerate: fps,
+      }).catch((e) => ({ supported: false, _error: e }));
+      if (!(h264DiagProbe as any).supported) {
+        console.warn(
+          '[Video Export] H.264 (avc1.42001f) not supported on this platform — will fall back to WebM.',
+          h264DiagProbe
+        );
+      }
+
       try {
         blob = await encodeWithWebCodecsMp4(frames, width, height, fps, quality, onProgress, scale);
       } catch (mp4Err) {
-        console.warn('[Video Export] H.264/MP4 failed, trying VP9/WebM:', mp4Err);
+        console.error('[Video Export] H.264/MP4 encoding failed:', mp4Err);
         format = 'webm';
         try {
           blob = await encodeWithWebCodecs(frames, width, height, fps, quality, onProgress, scale);
         } catch (webmErr) {
-          console.warn('[Video Export] VP9/WebM failed, falling back to MediaRecorder:', webmErr);
+          console.error('[Video Export] VP9/WebM encoding failed:', webmErr);
           blob = await encodeWithMediaRecorder(frames, width, height, quality, onProgress, scale);
         }
       }
     } else {
+      console.warn('[Video Export] WebCodecs API not available — using MediaRecorder (WebM only).');
       format = 'webm';
       blob = await encodeWithMediaRecorder(frames, width, height, quality, onProgress, scale);
     }
