@@ -7,17 +7,10 @@ export const useStickyNoteVisibility = (id: string) => {
 
   if (!annotation) return { isVisible: false, opacity: 0 };
 
-  // If set to always visible, fully visible
-  if (annotation.alwaysVisible) return { isVisible: true, opacity: annotation.style.opacity || 1 };
+  // If set to always visible or in design mode (not playing simulation), sticky note remains visible
+  if (annotation.alwaysVisible || !isPlaying) return { isVisible: true, opacity: annotation.style.opacity || 1 };
 
-  // Check against current time
+  // During simulation playback, check against current time range
   const inRange = currentTime >= annotation.startTime && currentTime <= annotation.endTime;
-
-  if (isPlaying) {
-    return { isVisible: inRange, opacity: inRange ? (annotation.style.opacity || 1) : 0 };
-  } else {
-    // In design mode (not playing)
-    // Only visible if currently in range
-    return { isVisible: inRange, opacity: inRange ? (annotation.style.opacity || 1) : 0 };
-  }
+  return { isVisible: inRange, opacity: inRange ? (annotation.style.opacity || 1) : 0 };
 };

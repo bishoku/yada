@@ -1,7 +1,17 @@
 import { useAppStore } from '../store/useAppStore';
 
 export function generateNodeId(type: string): string {
-  const existingIds = new Set(useAppStore.getState().logicalData.nodes.map(n => n.id));
+  const state = useAppStore.getState();
+  const existingIds = new Set<string>();
+
+  state.logicalData.nodes.forEach((n) => existingIds.add(n.id));
+  if (state.visualData.layoutNodes) {
+    Object.keys(state.visualData.layoutNodes).forEach((id) => existingIds.add(id));
+  }
+  if (state.visualData.annotations) {
+    Object.keys(state.visualData.annotations).forEach((id) => existingIds.add(id));
+  }
+
   const cleanType = type.toLowerCase().replace(/[^a-z0-9]/g, '');
   let counter = 1;
   let newId = `n-${cleanType}-${counter}`;

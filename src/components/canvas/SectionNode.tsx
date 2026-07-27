@@ -24,6 +24,12 @@ const sideToPosition = (side: PortSide): Position => {
 };
 
 const themeStyles: Record<string, { border: string; bg: string; label: string; glow: string }> = {
+  white: {
+    border: 'border-slate-300/80 dark:border-slate-600/70',
+    bg: 'bg-white/40 dark:bg-slate-900/40',
+    label: 'bg-slate-100/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600',
+    glow: 'shadow-slate-200/50 dark:shadow-slate-700/30',
+  },
   slate: {
     border: 'border-slate-400/60 dark:border-slate-500/50',
     bg: 'bg-slate-100/20 dark:bg-slate-800/15',
@@ -68,6 +74,35 @@ const themeStyles: Record<string, { border: string; bg: string; label: string; g
   },
 };
 
+const getCustomHexStyles = (hex: string) => {
+  let cleanHex = hex.trim();
+  if (/^#([0-9a-f]{3})$/i.test(cleanHex)) {
+    cleanHex = '#' + cleanHex[1] + cleanHex[1] + cleanHex[2] + cleanHex[2] + cleanHex[3] + cleanHex[3];
+  }
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(cleanHex);
+  if (!match) return null;
+  const r = parseInt(match[1], 16);
+  const g = parseInt(match[2], 16);
+  const b = parseInt(match[3], 16);
+
+  return {
+    borderStyle: {
+      borderColor: `rgba(${r}, ${g}, ${b}, 0.5)`,
+    },
+    bgStyle: {
+      backgroundColor: `rgba(${r}, ${g}, ${b}, 0.10)`,
+    },
+    labelStyle: {
+      backgroundColor: `rgba(${r}, ${g}, ${b}, 0.20)`,
+      borderColor: `rgba(${r}, ${g}, ${b}, 0.4)`,
+      color: `rgb(${r}, ${g}, ${b})`,
+    },
+    glowStyle: {
+      boxShadow: `0 4px 20px rgba(${r}, ${g}, ${b}, 0.25)`,
+    },
+  };
+};
+
 export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selected }) => {
   const name = data?.name ?? 'Section';
   const themeKey = useAppStore((s: any) => s.visualData.layoutNodes[id]?.theme ?? 'slate');
@@ -92,6 +127,8 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
 
   const handles = useMemo(() => resolveHandles(nodeHandles), [nodeHandles]);
   const isActive = useSectionAnimation(id);
+
+  const customHex = useMemo(() => themeKey.startsWith('#') ? getCustomHexStyles(themeKey) : null, [themeKey]);
   const style = themeStyles[themeKey] ?? themeStyles.slate;
 
   return (
@@ -108,21 +145,31 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
       />
 
       {/* Section Label — Top-left corner */}
-      <div className={`absolute -top-[22px] left-3 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider 
-                        rounded-t-lg border border-b-0 z-10 select-none whitespace-nowrap
-                        ${style.label}`}>
+      <div 
+        className={`absolute -top-[22px] left-3 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider 
+                    rounded-t-lg border border-b-0 z-10 select-none whitespace-nowrap
+                    ${customHex ? '' : style.label}`}
+        style={customHex ? customHex.labelStyle : undefined}
+      >
         {name}
       </div>
 
       {/* Section Container */}
-      <div className={`w-full h-full rounded-xl border-2 border-dashed backdrop-blur-[1px] transition-all duration-300
-                        ${style.border} ${style.bg}
-                        ${isActive 
-                          ? 'ring-2 ring-emerald-500/30 dark:ring-emerald-400/20 border-emerald-500/60 dark:border-emerald-400/40 shadow-lg ' + style.glow
-                          : selected 
-                            ? 'ring-2 ring-indigo-500/20 shadow-md ' + style.glow
-                            : ''
-                        }`}>
+      <div 
+        className={`w-full h-full rounded-xl border-2 border-dashed backdrop-blur-[1px] transition-all duration-300
+                    ${customHex ? '' : `${style.border} ${style.bg}`}
+                    ${isActive 
+                      ? 'ring-2 ring-emerald-500/30 dark:ring-emerald-400/20 border-emerald-500/60 dark:border-emerald-400/40 shadow-lg ' + (customHex ? '' : style.glow)
+                      : selected 
+                        ? 'ring-2 ring-indigo-500/20 shadow-md ' + (customHex ? '' : style.glow)
+                        : ''
+                    }`}
+        style={customHex ? {
+          ...customHex.borderStyle,
+          ...customHex.bgStyle,
+          ...(isActive || selected ? customHex.glowStyle : {}),
+        } : undefined}
+      >
         {/* Child nodes are rendered by ReactFlow via parentId — this area is just the background */}
       </div>
 

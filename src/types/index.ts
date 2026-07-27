@@ -105,6 +105,8 @@ export interface VisualNode {
     borderColor?: string;
     borderStyle?: 'solid' | 'dashed' | 'dotted';
     borderRadius?: number;
+    borderOnly?: boolean;
+    iconColor?: string;
     productIcon?: string;
     productIconColored?: boolean;
     productIconWordmark?: boolean;

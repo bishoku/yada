@@ -112,17 +112,21 @@ export const getContrastingTextColors = (bgColor: string) => {
   };
 };
 
-const getIcon = (type: string, colorClass: string, isIconOnly: boolean, customColor?: string) => {
+const getIcon = (type: string, colorClass: string, isIconOnly: boolean, customColor?: string, iconPx?: number) => {
   const def = getNodeDefinition(type);
-  const sizeClass = isIconOnly ? 'w-[80%] h-[80%]' : 'w-8 h-8';
+  const sizeClass = isIconOnly ? 'w-[80%] h-[80%]' : '';
   const targetColor = customColor || colorClass || def?.colorClass || 'text-indigo-500';
   const isHexOrColor = targetColor.startsWith('#') || targetColor.startsWith('rgb') || targetColor.startsWith('hsl');
   
   let className = `${sizeClass} transition-all duration-300`;
-  let style: React.CSSProperties | undefined = undefined;
+  let style: React.CSSProperties | undefined = (!isIconOnly && iconPx) ? { width: `${iconPx}px`, height: `${iconPx}px` } : undefined;
+
+  if (!isIconOnly && !iconPx) {
+    className += ' w-8 h-8';
+  }
 
   if (isHexOrColor) {
-    style = { color: targetColor, stroke: targetColor };
+    style = { ...style, color: targetColor, stroke: targetColor };
   } else if (themeStyles[targetColor]) {
     className += ` ${themeStyles[targetColor].text}`;
   } else {
@@ -198,6 +202,25 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
   const style = themeStyles[themeKey] ?? themeStyles.indigo;
   const customTemplate = libraryComponents.find((c: any) => c.componentId === type);
 
+  // Dimension and proportional scaling calculations
+  const nodeWidth = visualNode?.width ?? (isVertical ? 52 : 224);
+  const nodeHeight = visualNode?.height ?? (isVertical ? 224 : 52);
+
+  const baseW = isVertical ? 52 : 224;
+  const baseH = isVertical ? 224 : 52;
+  const scale = useMemo(() => {
+    return Math.max(0.5, Math.min(4.0, Math.min(nodeWidth / baseW, nodeHeight / baseH)));
+  }, [nodeWidth, nodeHeight, baseW, baseH]);
+
+  const iconBoxSize = Math.round(36 * scale);
+  const iconPx = Math.round(30 * scale);
+  const dividerH = Math.round(28 * scale);
+  const titleFontSize = Math.max(8, Math.round(12 * scale));
+  const subtitleFontSize = Math.max(7, Math.round(10 * scale));
+  const cardPaddingX = Math.round(16 * scale);
+  const cardPaddingY = Math.round(12 * scale);
+  const cardGap = Math.round((isVertical ? 12 : 10) * scale);
+
   // The node background color is directly set from customStyles or the chosen component color
   const activeBgHex = useMemo(() => {
     return customStyles.backgroundColor || getThemeHexColor(themeKey);
@@ -221,6 +244,11 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
     borderColor: harmoniousBorder,
     borderStyle: customStyles.borderStyle || undefined,
     borderRadius: customStyles.borderRadius ? `${customStyles.borderRadius}px` : undefined,
+    paddingLeft: displayMode === 'icon-only' ? 0 : `${cardPaddingX}px`,
+    paddingRight: displayMode === 'icon-only' ? 0 : `${cardPaddingX}px`,
+    paddingTop: displayMode === 'icon-only' ? 0 : `${cardPaddingY}px`,
+    paddingBottom: displayMode === 'icon-only' ? 0 : `${cardPaddingY}px`,
+    gap: `${cardGap}px`,
   };
 
   return (
@@ -297,7 +325,7 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
         } ${displayMode === 'icon-only'
             ? `bg-transparent border-transparent ${selected ? 'ring-2 ring-indigo-500/50' : ''}`
             : `border-2 shadow-md dark:shadow-xl ${
-                isVertical ? 'flex-col px-2 py-4 gap-3' : 'flex-row px-4 py-3 gap-2.5'
+                isVertical ? 'flex-col' : 'flex-row'
               } ${
                 isProcessing
                   ? 'ring-4 ring-emerald-400/40 border-emerald-400'
@@ -311,9 +339,8 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
       >
         {/* Icon */}
         <div
-          className={`flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 ${
-            displayMode === 'icon-only' ? 'w-full h-full' : 'w-9 h-9'
-          }`}
+          className="flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300"
+          style={displayMode === 'icon-only' ? { width: '100%', height: '100%' } : { width: `${iconBoxSize}px`, height: `${iconBoxSize}px` }}
         >
           {(() => {
             if (customStyles.productIcon) {
@@ -325,7 +352,7 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
                   !!customStyles.productIconWordmark
                 );
                 if (IconComponent) {
-                  const size = displayMode === 'icon-only' ? '80%' : 30;
+                  const size = displayMode === 'icon-only' ? '80%' : iconPx;
                   const isColored = customStyles.productIconColored !== false;
                   const isHex = customStyles.iconColor?.startsWith('#');
                   const finalIconColor = isHex
@@ -356,15 +383,18 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
               ? activeBgHex
               : (contrastColors ? contrastColors.iconColor : style.text);
             const overrideColor = customStyles.iconColor || ((isBorderOnly && !isWhiteOrUndefinedBg) ? activeBgHex : (contrastColors ? contrastColors.iconColor : undefined));
-            return getIcon(type, defaultIconColor, displayMode === 'icon-only', overrideColor);
+            return getIcon(type, defaultIconColor, displayMode === 'icon-only', overrideColor, iconPx);
           })()}
         </div>
 
         {/* Divider (only for horizontal layout with text) */}
         {displayMode === 'default' && !isVertical && (
           <div
-            className="w-px h-7 shrink-0 self-center transition-colors"
-            style={{ backgroundColor: isBorderOnly ? 'rgba(148, 163, 184, 0.3)' : (contrastColors ? contrastColors.divider : 'rgba(255,255,255,0.25)') }}
+            className="w-px shrink-0 self-center transition-colors"
+            style={{
+              height: `${dividerH}px`,
+              backgroundColor: isBorderOnly ? 'rgba(148, 163, 184, 0.3)' : (contrastColors ? contrastColors.divider : 'rgba(255,255,255,0.25)')
+            }}
           />
         )}
 
@@ -380,17 +410,31 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
             } : {}}
           >
             <div
-              className={`font-bold text-xs truncate transition-colors ${isBorderOnly ? 'text-slate-800 dark:text-slate-200' : ''}`}
-              style={isBorderOnly ? undefined : { color: contrastColors ? contrastColors.text : '#ffffff' }}
+              className={`font-bold truncate transition-colors ${isBorderOnly ? 'text-slate-800 dark:text-slate-200' : ''}`}
+              style={{
+                fontSize: `${titleFontSize}px`,
+                color: isBorderOnly ? undefined : (contrastColors ? contrastColors.text : '#ffffff')
+              }}
             >
               {name}
             </div>
-            <div
-              className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 transition-colors ${isBorderOnly ? 'text-slate-400 dark:text-slate-500' : ''}`}
-              style={isBorderOnly ? undefined : { color: contrastColors ? contrastColors.subtext : 'rgba(255,255,255,0.75)' }}
-            >
-              {customTemplate ? customTemplate.category : type}
-            </div>
+            {(() => {
+              const displaySubtitle = customStyles.customType !== undefined
+                ? customStyles.customType
+                : (customTemplate ? customTemplate.category : type);
+              if (!displaySubtitle || displaySubtitle.trim() === '') return null;
+              return (
+                <div
+                  className={`font-bold uppercase tracking-wider mt-0.5 transition-colors ${isBorderOnly ? 'text-slate-400 dark:text-slate-500' : ''}`}
+                  style={{
+                    fontSize: `${subtitleFontSize}px`,
+                    color: isBorderOnly ? undefined : (contrastColors ? contrastColors.subtext : 'rgba(255,255,255,0.75)')
+                  }}
+                >
+                  {displaySubtitle}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>

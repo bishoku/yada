@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Laptop, Network, Server, Database, Zap, Cpu, SquareDashedBottom, Route, Rows, Shield, StickyNote,
-  HardDrive, Radio, Workflow, KeyRound, Search, Cloud, Globe2
+  HardDrive, Radio, Workflow, KeyRound, Search, Cloud, Globe2, Brain, Bot
 } from 'lucide-react';
 
 export type ComponentCategory = 'standard' | 'section' | 'custom' | 'annotation';
@@ -134,6 +134,22 @@ export const NodeRegistry: Record<string, NodeDefinition> = {
     defaultName: 'ExternalAPI',
     icon: <Cloud className="w-4 h-4" />,
     colorClass: 'text-slate-400',
+    category: 'standard'
+  },
+  llm: {
+    type: 'llm',
+    name: { en: 'LLM Model', tr: 'Yapay Zeka Modeli (LLM)' },
+    defaultName: 'LLM',
+    icon: <Brain className="w-4 h-4" />,
+    colorClass: 'text-purple-500',
+    category: 'standard'
+  },
+  ai_agent: {
+    type: 'ai_agent',
+    name: { en: 'AI Agent', tr: 'Yapay Zeka Ajanı (AI Agent)' },
+    defaultName: 'AIAgent',
+    icon: <Bot className="w-4 h-4" />,
+    colorClass: 'text-indigo-500',
     category: 'standard'
   },
   section: {

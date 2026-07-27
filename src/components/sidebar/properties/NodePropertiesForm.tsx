@@ -63,13 +63,6 @@ const CompactInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (pro
   );
 };
 
-/** Compact select */
-const CompactSelect: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => (
-  <select
-    {...props}
-    className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 cursor-pointer"
-  />
-);
 
 /** Thin section divider */
 const Divider: React.FC<{ label?: string }> = ({ label }) => (
@@ -190,84 +183,118 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
         )}
       </div>
 
-      {/* Type (not for sections) */}
+      {/* Type / Subtitle Label (not for sections) */}
       {!isSection && (
         <div className="flex flex-col gap-1">
-          <Label>{tr('Tip', 'Type')}</Label>
-          <CompactSelect value={type} onChange={(e) => { setType(e.target.value); preview({ t: e.target.value }); }}>
+          <Label>{tr('Bileşen Tipi', 'Component Type')}</Label>
+          <CompactInput
+            value={
+              customStyles.customType !== undefined
+                ? customStyles.customType
+                : (NodeRegistry[type] ? tr(NodeRegistry[type].name.tr, NodeRegistry[type].name.en) : type)
+            }
+            onChange={(e) => {
+              const val = e.target.value;
+              
+              // Check if val matches a built-in NodeRegistry definition (by type ID or translated name)
+              const matchedDef = Object.values(NodeRegistry).find(
+                (def) =>
+                  def.category === 'standard' &&
+                  (def.type.toLowerCase() === val.trim().toLowerCase() ||
+                   def.name.tr.toLowerCase() === val.trim().toLowerCase() ||
+                   def.name.en.toLowerCase() === val.trim().toLowerCase())
+              );
+
+              let nextType = type;
+              const nextStyles = { ...customStyles, customType: val };
+
+              if (matchedDef) {
+                nextType = matchedDef.type;
+                setType(nextType);
+                // Clear devicon/product icon overrides so default icon of matchedDef is shown
+                delete nextStyles.productIcon;
+                delete nextStyles.productIconColored;
+                delete nextStyles.productIconWordmark;
+              }
+
+              setCustomStyles(nextStyles);
+              preview({ t: nextType, cs: nextStyles });
+            }}
+            placeholder={tr('Bileşen tipi (boş bırakılabilir)', 'Component type (can be empty)')}
+            list="built-in-component-types"
+          />
+          <datalist id="built-in-component-types">
             {Object.values(NodeRegistry)
               .filter((def) => def.category === 'standard')
               .map((def) => (
-                <option key={def.type} value={def.type}>
-                  {tr(def.name.tr, def.name.en)}
-                </option>
+                <option key={def.type} value={tr(def.name.tr, def.name.en)} />
               ))}
-          </CompactSelect>
+          </datalist>
         </div>
       )}
 
       {/* Theme color — 4x2 Preset Grid + Custom Color Row */}
-      {!isSection && (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <Label>{tr('Bileşen Rengi', 'Component Color')}</Label>
-          </div>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <Label>{tr('Bileşen Rengi', 'Component Color')}</Label>
+        </div>
 
-          {/* 4x2 Presets Grid */}
-          <div className="grid grid-cols-4 gap-2">
-            {THEME_COLORS.map((c) => (
-              <button
-                key={c}
-                onClick={() => {
-                  setTheme(c);
+        {/* 4x2 Presets Grid */}
+        <div className="grid grid-cols-4 gap-2">
+          {THEME_COLORS.map((c) => (
+            <button
+              key={c}
+              onClick={() => {
+                setTheme(c);
+                const s = { ...customStyles };
+                delete s.iconColor;
+                delete s.backgroundColor;
+                delete s.borderColor;
+                setCustomStyles(s);
+                preview({ th: c, cs: s });
+              }}
+              className={`h-5 rounded-full ${BG[c]} hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center justify-center ${
+                theme === c ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-105 shadow-sm' : ''
+              }`}
+              title={c}
+            />
+          ))}
+        </div>
+
+        {/* Custom Color Picker Row */}
+        <div className="flex items-center justify-between pt-0.5">
+          <Label>{tr('Özel Renk Paleti', 'Custom Color')}</Label>
+          <div className="flex items-center gap-2">
+            {theme.startsWith('#') && (
+              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                {theme}
+              </span>
+            )}
+            <div
+              className={`w-5 h-5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 ${
+                theme.startsWith('#') ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
+              }`}
+              title={tr('Özel Renk Seçici', 'Custom Color Picker')}
+            >
+              <input
+                type="color"
+                value={theme.startsWith('#') ? theme : '#4f46e5'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setTheme(val);
                   const s = { ...customStyles };
                   delete s.iconColor;
                   delete s.backgroundColor;
                   delete s.borderColor;
                   setCustomStyles(s);
-                  preview({ th: c, cs: s });
+                  preview({ th: val, cs: s });
                 }}
-                className={`h-5 rounded-full ${BG[c]} hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center justify-center ${
-                  theme === c ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-105 shadow-sm' : ''
-                }`}
-                title={c}
+                className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 p-0 bg-transparent"
               />
-            ))}
-          </div>
-
-          {/* Custom Color Picker Row */}
-          <div className="flex items-center justify-between pt-0.5">
-            <Label>{tr('Özel Renk Paleti', 'Custom Color')}</Label>
-            <div className="flex items-center gap-2">
-              {theme.startsWith('#') && (
-                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">
-                  {theme}
-                </span>
-              )}
-              <div
-                className={`w-5 h-5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 ${
-                  theme.startsWith('#') ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
-                }`}
-                title={tr('Özel Renk Seçici', 'Custom Color Picker')}
-              >
-                <input
-                  type="color"
-                  value={theme.startsWith('#') ? theme : '#4f46e5'}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setTheme(val);
-                    const s = { ...customStyles };
-                    delete s.iconColor;
-                    delete s.backgroundColor;
-                    delete s.borderColor;
-                    setCustomStyles(s);
-                    preview({ th: val, cs: s });
-                  }}
-                  className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 p-0 bg-transparent"
-                />
-              </div>
             </div>
           </div>
+        </div>
+        {!isSection && (
           <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/60 mt-0.5">
             <Label>{tr('Sadece Çerçeve Rengi', 'Border Only')}</Label>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -285,10 +312,10 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
               <div className="w-8 h-4 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600" />
             </label>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {!isSection && <Divider />}
+      <Divider />
 
       {/* Display mode + Rotation — side by side */}
       {!isSection && (

@@ -95,7 +95,32 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     set((state) => {
       const originalLogicalNode = state.logicalData.nodes.find((n) => n.id === id);
       const originalVisualNode = state.visualData.layoutNodes[id];
-      if (!originalLogicalNode || !originalVisualNode) return {};
+      const originalAnnotation = state.visualData.annotations?.[id];
+
+      if (!originalVisualNode) return {};
+
+      if (!originalLogicalNode && originalAnnotation) {
+        const cloneId = generateNodeId('sticky_note');
+        const clonedVisualNode: VisualNode = {
+          ...originalVisualNode,
+          id: cloneId,
+          x: originalVisualNode.x + 30,
+          y: originalVisualNode.y + 30,
+        };
+        const clonedAnnotation = {
+          ...originalAnnotation,
+          id: cloneId,
+          header: `${originalAnnotation.header || 'Note'} (Copy)`,
+        };
+        const layoutNodes = { ...state.visualData.layoutNodes, [cloneId]: clonedVisualNode };
+        const annotations = { ...state.visualData.annotations, [cloneId]: clonedAnnotation };
+        return {
+          visualData: { ...state.visualData, layoutNodes, annotations },
+          isDirty: true,
+        };
+      }
+
+      if (!originalLogicalNode) return {};
 
       const cloneId = generateNodeId(originalLogicalNode.type);
       

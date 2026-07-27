@@ -22,6 +22,18 @@ export const useCanvasDrop = (
       const current = useAppStore.getState().pendingDrop;
       if (!current) return;
 
+      const el = wrapperRef.current;
+      if (!el) return;
+
+      const rect = el.getBoundingClientRect();
+      const isInsideCanvas =
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom;
+
+      if (!isInsideCanvas) return;
+
       const { type, name } = current;
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
       const nodeId = generateNodeId(type);
@@ -36,10 +48,23 @@ export const useCanvasDrop = (
 
       console.log(`[Canvas] Placing "${name}" at flow (${x.toFixed(0)}, ${y.toFixed(0)})`);
 
-      const visualNode = { id: nodeId, x, y, width, height, theme: 'white', ...(isSection ? { zIndex: -1 } : {}) };
+      const visualNode = {
+        id: nodeId,
+        x,
+        y,
+        width,
+        height,
+        theme: 'white',
+        customStyles: { borderOnly: false },
+        ...(isSection ? { zIndex: -1 } : {})
+      };
       
       // Calculate unique name with index
-      const existingNames = useAppStore.getState().logicalData.nodes.map(n => n.name);
+      const state = useAppStore.getState();
+      const logicalNames = state.logicalData.nodes.map((n) => n.name);
+      const annotationNames = Object.values(state.visualData.annotations || {}).map((a) => a.header);
+      const existingNames = [...logicalNames, ...annotationNames];
+
       let index = 1;
       let uniqueName = `${name} ${index}`;
       while (existingNames.includes(uniqueName)) {
@@ -50,11 +75,6 @@ export const useCanvasDrop = (
       const newNode: Node = toRfNode({ id: nodeId, type, name: uniqueName }, visualNode);
 
       if (isStickyNote) {
-        // For sticky notes, do NOT call setRfNodes directly.
-        // addStickyNote updates the store → useCanvasSync's subscriber fires →
-        // buildRfNodesFromState rebuilds rfNodes from scratch (including all existing
-        // annotations). Calling setRfNodes here races with that rebuild and caused
-        // the first note to be replaced by the second on every subsequent drop.
         const currentTime = useAppStore.getState().currentTime;
         const startTime = currentTime;
         const endTime = startTime + 5000; // Default 5 seconds duration
@@ -75,7 +95,7 @@ export const useCanvasDrop = (
           },
           startTime,
           endTime,
-          alwaysVisible: false
+          alwaysVisible: true
         };
         addStickyNote(visualNode, annotation);
       } else {
@@ -87,7 +107,7 @@ export const useCanvasDrop = (
       cancelDrag();
     };
 
-    el.addEventListener('mouseup', handleMouseUp);
-    return () => el.removeEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mouseup', handleMouseUp, { capture: true });
+    return () => window.removeEventListener('mouseup', handleMouseUp, { capture: true });
   }, [screenToFlowPosition, setRfNodes, addNode, addStickyNote, cancelDrag, wrapperRef]);
 };

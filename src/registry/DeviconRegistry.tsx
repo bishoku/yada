@@ -54,6 +54,12 @@ import {
   // Firewall / WAF / Security
   CloudflareOriginal, CloudflarePlain, CloudflareOriginalWordmark, CloudflarePlainWordmark,
   
+  // Atlassian
+  JiraOriginal, JiraPlain, JiraOriginalWordmark, JiraPlainWordmark,
+  BitbucketOriginal, BitbucketOriginalWordmark,
+  BambooOriginal, BambooOriginalWordmark,
+  ConfluenceOriginal, ConfluencePlain, ConfluenceOriginalWordmark, ConfluencePlainWordmark,
+  
   // Other / Frontend / Studio / Tooling
   GraphqlPlain, GraphqlPlainWordmark,
   ApollographqlOriginal, ApollographqlOriginalWordmark,
@@ -577,6 +583,46 @@ export const allDevicons: DeviconItem[] = [
       plain: PrismaOriginal,
       coloredWordmark: PrismaOriginalWordmark,
       plainWordmark: PrismaOriginalWordmark,
+    }
+  },
+  {
+    id: 'jira',
+    name: 'Jira',
+    components: {
+      colored: JiraOriginal,
+      plain: JiraPlain,
+      coloredWordmark: JiraOriginalWordmark,
+      plainWordmark: JiraPlainWordmark,
+    }
+  },
+  {
+    id: 'bitbucket',
+    name: 'Bitbucket',
+    components: {
+      colored: BitbucketOriginal,
+      plain: BitbucketOriginal,
+      coloredWordmark: BitbucketOriginalWordmark,
+      plainWordmark: BitbucketOriginalWordmark,
+    }
+  },
+  {
+    id: 'bamboo',
+    name: 'Bamboo',
+    components: {
+      colored: BambooOriginal,
+      plain: BambooOriginal,
+      coloredWordmark: BambooOriginalWordmark,
+      plainWordmark: BambooOriginalWordmark,
+    }
+  },
+  {
+    id: 'confluence',
+    name: 'Confluence',
+    components: {
+      colored: ConfluenceOriginal,
+      plain: ConfluencePlain,
+      coloredWordmark: ConfluenceOriginalWordmark,
+      plainWordmark: ConfluencePlainWordmark,
     }
   }
 ];

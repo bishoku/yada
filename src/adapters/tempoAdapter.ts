@@ -281,6 +281,10 @@ export const tempoAdapter: DiagramAdapter = {
           } else {
             nodeType = 'database';
           }
+        } else if (lowerName.includes('llm') || lowerName.includes('gpt') || lowerName.includes('openai') || lowerName.includes('claude') || lowerName.includes('ollama') || lowerName.includes('gemini')) {
+          nodeType = 'llm';
+        } else if (lowerName.includes('agent') || lowerName.includes('ai-agent') || lowerName.includes('ai_agent')) {
+          nodeType = 'ai_agent';
         } else if (lowerName.includes('s3') || lowerName.includes('storage') || lowerName.includes('bucket') || lowerName.includes('blob')) {
           nodeType = 'storage';
         } else if (lowerName.includes('auth') || lowerName.includes('keycloak') || lowerName.includes('iam') || lowerName.includes('identity')) {

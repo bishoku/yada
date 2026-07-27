@@ -1065,8 +1065,13 @@ export const generateStandaloneHtml = (
         if (displayMode !== 'icon-only') {
           const infoDiv = document.createElement('div');
           infoDiv.className = 'node-info';
-          infoDiv.innerHTML = \`<div class="node-name">\${node.name}</div>
-            <div class="node-type">\${customTemplate ? customTemplate.category : node.type}</div>\`;
+          const visualNode = diagramData.visualData?.layoutNodes?.[node.id];
+          const customType = visualNode?.customStyles?.customType;
+          const displaySubtitle = customType !== undefined ? customType : (customTemplate ? customTemplate.category : node.type);
+          const subtitleHtml = (displaySubtitle && displaySubtitle.trim() !== '')
+            ? \`<div class="node-type">\${displaySubtitle}</div>\`
+            : '';
+          infoDiv.innerHTML = \`<div class="node-name">\${node.name}</div>\${subtitleHtml}\`;
           card.appendChild(infoDiv);
         }
 

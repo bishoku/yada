@@ -134,7 +134,7 @@ const FlowWrapper: React.FC = () => {
   // ── Custom Hooks ──────────────────────────────────────────────────────────
   const { visualDataRef } = useCanvasSync(setRfNodes, setRfEdges);
   useCanvasDrop(wrapperRef, screenToFlowPosition, setRfNodes);
-  useCanvasShortcuts(closeMenu, handleCancelActiveEdge);
+  useCanvasShortcuts(closeMenu, handleCancelActiveEdge, rfNodes, setRfNodes, rfEdges, setRfEdges);
 
   const activeDiagramId = useAppStore((s) => s.activeDiagramId);
   const currentWorkspacePath = useAppStore((s) => s.currentWorkspace?.path);
