@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { FileDown, Check, Film, Image, ChevronRight, Zap } from 'lucide-react';
+import { FileDown, Check, Film, Image, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../../../store/useAppStore';
 
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onExportGif: (fps: number, quality: number, scale: number, skipStatic: boolean) => void;
-  onExportVideo: (fps: number, quality: 'low' | 'medium' | 'high', scale: number) => void;
+  onExportGif: (fps: number, quality: number, scale: number) => void;
+  onExportVideo: (fps: number, quality: 'low' | 'medium' | 'high', scale: number, mode: 'canvas' | 'screen') => void;
 }
 
 type Tab = 'gif' | 'video';
@@ -46,12 +46,12 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
   const [gifFps,       setGifFps]       = useState(12);
   const [gifQuality,   setGifQuality]   = useState(70);
   const [gifScale,     setGifScale]     = useState(0.75);
-  const [skipStatic,   setSkipStatic]   = useState(true);
 
   // ── Video settings ──
   const [videoFps,     setVideoFps]     = useState(30);
   const [videoQuality, setVideoQuality] = useState<VideoQuality>('medium');
   const [videoScale,   setVideoScale]   = useState(1);
+  const [videoEngine,  setVideoEngine]  = useState<'canvas' | 'screen'>('canvas');
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -79,9 +79,9 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
 
   const handleExport = () => {
     if (tab === 'gif') {
-      onExportGif(gifFps, gifQuality, gifScale, skipStatic);
+      onExportGif(gifFps, gifQuality, gifScale);
     } else {
-      onExportVideo(videoFps, videoQuality, videoScale);
+      onExportVideo(videoFps, videoQuality, videoScale, videoEngine);
     }
     onClose();
   };
@@ -192,31 +192,6 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
               </p>
             </div>
 
-            {/* Skip static frames */}
-            <div className="flex items-center justify-between py-2.5 px-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700/60">
-              <div>
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-amber-500" />
-                  {tr('Skip Static Frames', 'Statik Kareleri Atla')}
-                </p>
-                <p className="text-[9px] text-slate-400 mt-0.5">
-                  {tr('Merges identical frames (best for diagrams)', 'Aynı kareleri birleştirir (diyagramlar için ideal)')}
-                </p>
-              </div>
-              <button
-                onClick={() => setSkipStatic(!skipStatic)}
-                className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer shrink-0 ${
-                  skipStatic ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                    skipStatic ? 'translate-x-4' : 'translate-x-0.5'
-                  }`}
-                />
-              </button>
-            </div>
-
             {/* Size hint */}
             <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500">
               <ChevronRight className="w-3 h-3 shrink-0" />
@@ -303,16 +278,65 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
               </p>
             </div>
 
+            {/* Rendering Engine Mode Selection */}
+            <div>
+              <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
+                {tr('Export Engine Mode', 'Dışa Aktarma Motoru')}
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setVideoEngine('canvas')}
+                  className={`flex flex-col items-start p-2.5 rounded-xl cursor-pointer transition-all border text-left ${
+                    videoEngine === 'canvas'
+                      ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                  }`}
+                >
+                  <span className="text-xs font-bold flex items-center gap-1">
+                    ⚡ {tr('Fast Canvas 2D', 'Hızlı Canvas 2D')}
+                  </span>
+                  <span className={`text-[9px] mt-0.5 ${videoEngine === 'canvas' ? 'text-violet-200' : 'text-slate-400'}`}>
+                    {tr('Ultra fast, vector-sharp', 'Ultra hızlı, vektörel netlik')}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setVideoEngine('screen')}
+                  className={`flex flex-col items-start p-2.5 rounded-xl cursor-pointer transition-all border text-left ${
+                    videoEngine === 'screen'
+                      ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                  }`}
+                >
+                  <span className="text-xs font-bold flex items-center gap-1">
+                    🎥 {tr('DOM Capture', 'DOM Ekran Kaydı')}
+                  </span>
+                  <span className={`text-[9px] mt-0.5 ${videoEngine === 'screen' ? 'text-violet-200' : 'text-slate-400'}`}>
+                    {tr('Exact screen replica', 'Birebir ekran kopyası')}
+                  </span>
+                </button>
+              </div>
+            </div>
+
             {/* Info box */}
             <div className="rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200/60 dark:border-violet-800/40 p-3 text-[10px] text-violet-700 dark:text-violet-400 space-y-1">
               <p className="font-semibold">
-                {tr('About MP4 export', 'MP4 dışa aktarma hakkında')}
+                {videoEngine === 'canvas'
+                  ? tr('About Canvas 2D Export', 'Canvas 2D Dışa Aktarma Hakkında')
+                  : tr('About DOM Screen Capture', 'DOM Ekran Kaydı Hakkında')}
               </p>
               <p className="text-violet-600/80 dark:text-violet-500">
-                {tr(
-                  'Uses hardware-accelerated H.264 encoding for fast export. MP4 plays everywhere — phones, browsers, media players. 5–20× smaller than GIF.',
-                  'Hızlı dışa aktarma için donanım hızlandırmalı H.264 kodlama kullanır. MP4 her yerde oynar — telefon, tarayıcı, medya oynatıcı. GIF\'ten 5–20× daha küçük.'
-                )}
+                {videoEngine === 'canvas'
+                  ? tr(
+                      'Renders using high-speed Canvas 2D engine. 50–100× faster export with crisp vector lines and hardware acceleration.',
+                      'Yüksek hızlı Canvas 2D motoru ile oluşturulur. Vektörel çizgiler ve donanım hızlandırması ile 50–100× daha hızlı.'
+                    )
+                  : tr(
+                      'Captures the exact DOM view frame-by-frame in real-time. Ideal when exact visual fidelity including HTML/CSS effects is required.',
+                      'Gerçek zamanlı olarak DOM görüntüsünü birebir kaydeder. HTML/CSS efektleri dahil birebir görsel sadakat gerektiğinde idealdir.'
+                    )}
               </p>
             </div>
           </div>

@@ -139,8 +139,7 @@ export const TopBar: React.FC = () => {
   const handleExportGif = async (
     fps: number,
     quality: number,
-    scale: number,
-    skipStatic: boolean
+    scale: number
   ) => {
     try {
       setExportMode('gif');
@@ -150,12 +149,9 @@ export const TopBar: React.FC = () => {
       const schedValues = Object.values(schedules);
       const maxDuration = schedValues.length > 0 ? Math.max(...schedValues.map(s => s.end)) + 500 : 2000;
 
-      window.dispatchEvent(new CustomEvent('export:fitview'));
-      await new Promise(r => setTimeout(r, 150)); // Wait for React Flow to fit the view
-
       await exportToGif(
         '.react-flow', maxDuration, defaultName, language,
-        fps, quality, scale, skipStatic,
+        fps, quality, scale,
         (progress) => setExportProgress(progress)
       );
     } catch (err) {
@@ -169,24 +165,35 @@ export const TopBar: React.FC = () => {
     }
   };
 
-  const handleExportVideo = async (fps: number, quality: 'low' | 'medium' | 'high', scale: number = 1) => {
+  const handleExportVideo = async (
+    fps: number,
+    quality: 'low' | 'medium' | 'high',
+    scale: number = 1,
+    mode: 'canvas' | 'screen' = 'canvas'
+  ) => {
     try {
       setExportMode('video');
       setExportProgress(0);
-      const defaultName = `${currentWorkspace?.name || 'diagram'}.webm`;
+      const defaultName = `${currentWorkspace?.name || 'diagram'}.${mode === 'screen' ? 'webm' : 'mp4'}`;
       const schedules = useAppStore.getState().schedules as Record<string, { start: number, end: number }>;
       const schedValues = Object.values(schedules);
       const maxDuration = schedValues.length > 0 ? Math.max(...schedValues.map(s => s.end)) + 500 : 2000;
 
-      window.dispatchEvent(new CustomEvent('export:fitview'));
-      await new Promise(r => setTimeout(r, 150)); // Wait for React Flow to fit the view
-
-      await exportToVideo(
-        '.react-flow', maxDuration, defaultName, language,
-        fps, quality,
-        (progress) => setExportProgress(progress),
-        scale
-      );
+      if (mode === 'screen') {
+        const { exportToVideoScreenCapture } = await import('../../utils/exportMedia');
+        await exportToVideoScreenCapture(
+          '.react-flow', maxDuration, defaultName, language,
+          fps, quality,
+          (progress) => setExportProgress(progress)
+        );
+      } else {
+        await exportToVideo(
+          '.react-flow', maxDuration, defaultName, language,
+          fps, quality,
+          (progress) => setExportProgress(progress),
+          scale
+        );
+      }
     } catch (err) {
       console.error('Error exporting Video:', err);
       openAlert({
