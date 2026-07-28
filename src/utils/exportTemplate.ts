@@ -996,7 +996,7 @@ export const generateStandaloneHtml = (
         if (displayMode !== 'icon-only') {
           const infoDiv = document.createElement('div');
           infoDiv.className = 'node-info';
-          const visualNode = diagramData.visualData?.layoutNodes?.[node.id];
+          const visualNode = initialData.visualData?.layoutNodes?.[node.id];
           const customType = visualNode?.customStyles?.customType;
           const displaySubtitle = customType !== undefined ? customType : (customTemplate ? customTemplate.category : node.type);
           const subtitleHtml = (displaySubtitle && displaySubtitle.trim() !== '')

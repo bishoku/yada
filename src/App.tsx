@@ -217,7 +217,7 @@ function App() {
   }
 
   // Check if loading a shared URL or embed URL
-  const isShareOrEmbedUrl = window.location.href.includes('share=') || window.location.href.includes('embed');
+  const isShareOrEmbedUrl = window.location.href.includes('share=') || window.location.href.includes('ref=') || window.location.href.includes('embed');
 
   // ── Desktop/Web Welcome Screen ──────────────────────────────────────────
   if (!currentWorkspace && viewMode !== 'import-preview' && !isForgeMode && !isShareOrEmbedUrl) {

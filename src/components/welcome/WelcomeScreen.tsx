@@ -8,6 +8,7 @@ import { DeleteConfirmationModal } from './components/DeleteConfirmationModal';
 import { RenameWorkspaceModal } from './components/RenameWorkspaceModal';
 import { ImportConflictsModal } from './components/ImportConflictsModal';
 import { TextImportModal } from './TextImportModal';
+import { RefImportModal } from './components/RefImportModal';
 import { availableAdapters } from '../../adapters';
 
 export const WelcomeScreen: React.FC = () => {
@@ -54,6 +55,8 @@ export const WelcomeScreen: React.FC = () => {
     handleCancelConflicts,
   } = useWelcome();
 
+  const [showRefImport, setShowRefImport] = React.useState(false);
+
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-start sm:justify-center bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-3 sm:p-6 md:p-8 relative overflow-y-auto select-none transition-colors duration-300">
       {/* Decorative gradients */}
@@ -98,6 +101,7 @@ export const WelcomeScreen: React.FC = () => {
               setActiveTextModalAdapter(adapter);
             }
           }}
+          onRefImport={() => setShowRefImport(true)}
         />
 
         {/* Right Side: Create Workspace Form */}
@@ -170,6 +174,11 @@ export const WelcomeScreen: React.FC = () => {
             setViewMode('import-preview');
           }}
         />
+      )}
+
+      {/* Ref Import Modal */}
+      {showRefImport && (
+        <RefImportModal onClose={() => setShowRefImport(false)} />
       )}
     </div>
   );

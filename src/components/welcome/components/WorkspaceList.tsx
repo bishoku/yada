@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  ChevronDown, Upload, FolderOpen, HardDrive, Edit, Download, Trash2, Info, Activity, Sparkles, RotateCcw, ExternalLink
+  ChevronDown, Upload, FolderOpen, HardDrive, Edit, Download, Trash2, Info, Activity, Sparkles, RotateCcw, ExternalLink, Link2
 } from 'lucide-react';
 import { WorkspaceMeta } from '../../../types';
 import { DiagramAdapter } from '../../../adapters/types';
@@ -22,6 +22,7 @@ interface WorkspaceListProps {
   onDelete: (ws: WorkspaceMeta) => void;
   onImportDproj: () => void;
   onSelectAdapter: (adapter: DiagramAdapter) => void;
+  onRefImport: () => void;
 }
 
 export const WorkspaceList: React.FC<WorkspaceListProps> = ({
@@ -39,6 +40,7 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
   onDelete,
   onImportDproj,
   onSelectAdapter,
+  onRefImport,
 }) => {
   const t = translations[language];
 
@@ -130,6 +132,17 @@ export const WorkspaceList: React.FC<WorkspaceListProps> = ({
                         Import {adapter.name}
                       </button>
                     ))}
+                    <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+                    <button
+                      onClick={() => {
+                        setShowImportMenu(false);
+                        onRefImport();
+                      }}
+                      className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                    >
+                      <Link2 className="w-3.5 h-3.5 text-indigo-500" />
+                      {language === 'tr' ? 'Referans Kodu ile İçe Aktar' : 'Import by Reference Code'}
+                    </button>
                   </div>
                 </>
               )}
