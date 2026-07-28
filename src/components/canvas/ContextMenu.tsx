@@ -1,4 +1,4 @@
-import { Trash2, X, Info, Clock, Copy } from 'lucide-react';
+import { Trash2, X, Info, Clock, Copy, FolderOutput } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { translations } from '../../i18n/translations';
 import { generateSeqId } from '../../utils/idGenerator';
@@ -15,9 +15,10 @@ interface ContextMenuProps {
   onClose: () => void;
   onDelete: (e: React.MouseEvent) => void;
   onClone: (e: React.MouseEvent) => void;
+  onUnparent?: (e: React.MouseEvent) => void;
 }
 
-export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelete, onClone }) => {
+export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelete, onClone, onUnparent }) => {
   const logicalData = useAppStore((state) => state.logicalData);
   const language = useAppStore((state) => state.language);
   const maxSteps = useAppStore((state) => state.maxSteps);
@@ -27,6 +28,9 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelet
   const t = translations[language];
 
   if (!menu) return null;
+
+  const targetNode = menu.type === 'node' ? logicalData.nodes.find((n) => n.id === menu.id) : null;
+  const hasParent = !!targetNode?.parentId;
 
   return (
     <div
@@ -94,6 +98,17 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelet
             </button>
           )}
         </>
+      )}
+
+      {/* Unparent Action (Only for Nodes inside a section) */}
+      {menu.type === 'node' && hasParent && onUnparent && (
+        <button
+          onClick={onUnparent}
+          className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all duration-200 w-full text-left cursor-pointer"
+        >
+          <FolderOutput className="w-4 h-4 text-indigo-500" />
+          <span>{language === 'tr' ? 'Section\'dan Çıkar' : 'Remove from Section'}</span>
+        </button>
       )}
 
       {/* Clone Action (Only for Nodes) */}

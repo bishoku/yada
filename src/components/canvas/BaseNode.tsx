@@ -239,6 +239,19 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
     return getHarmoniousBorderColor(activeBgHex);
   }, [customStyles.borderColor, activeBgHex, isBorderOnly]);
 
+  const iconLabelPos = customStyles.iconLabelPosition ?? 'none';
+
+  let iconOnlyFlexClass = 'items-center justify-center';
+  if (displayMode === 'icon-only') {
+    switch (iconLabelPos) {
+      case 'bottom': iconOnlyFlexClass = 'flex-col items-center justify-center gap-1'; break;
+      case 'top': iconOnlyFlexClass = 'flex-col-reverse items-center justify-center gap-1'; break;
+      case 'right': iconOnlyFlexClass = 'flex-row items-center justify-center gap-1.5'; break;
+      case 'left': iconOnlyFlexClass = 'flex-row-reverse items-center justify-center gap-1.5'; break;
+      default: iconOnlyFlexClass = 'items-center justify-center'; break;
+    }
+  }
+
   const containerStyle: React.CSSProperties = {
     backgroundColor: (displayMode === 'icon-only' || isBorderOnly) ? undefined : activeBgHex,
     borderColor: harmoniousBorder,
@@ -318,13 +331,13 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
       {/* Node card */}
       <div
         style={containerStyle}
-        className={`w-full h-full rounded-xl flex items-center justify-center transition-all duration-200 ${
+        className={`w-full h-full rounded-xl flex transition-all duration-200 ${
           isBorderOnly ? 'bg-white dark:bg-slate-900' : ''
         } ${
           contrastColors ? '' : 'text-slate-800 dark:text-slate-100'
         } ${displayMode === 'icon-only'
-            ? `bg-transparent border-transparent ${selected ? 'ring-2 ring-indigo-500/50' : ''}`
-            : `border-2 shadow-md dark:shadow-xl ${
+            ? `bg-transparent border-transparent ${iconOnlyFlexClass} ${selected ? 'ring-2 ring-indigo-500/50' : ''}`
+            : `items-center justify-center border-2 shadow-md dark:shadow-xl ${
                 isVertical ? 'flex-col' : 'flex-row'
               } ${
                 isProcessing
@@ -340,7 +353,14 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
         {/* Icon */}
         <div
           className="flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300"
-          style={displayMode === 'icon-only' ? { width: '100%', height: '100%' } : { width: `${iconBoxSize}px`, height: `${iconBoxSize}px` }}
+          style={displayMode === 'icon-only'
+            ? (iconLabelPos === 'none'
+                ? { width: '100%', height: '100%' }
+                : iconLabelPos === 'top' || iconLabelPos === 'bottom'
+                  ? { height: '65%', width: '100%' }
+                  : { width: '50%', height: '100%' })
+            : { width: `${iconBoxSize}px`, height: `${iconBoxSize}px` }
+          }
         >
           {(() => {
             if (customStyles.productIcon) {
@@ -386,6 +406,16 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
             return getIcon(type, defaultIconColor, displayMode === 'icon-only', overrideColor, iconPx);
           })()}
         </div>
+
+        {/* Icon-only Label Position */}
+        {displayMode === 'icon-only' && iconLabelPos !== 'none' && (
+          <div
+            className="font-bold text-slate-800 dark:text-slate-200 select-none whitespace-nowrap px-1.5 py-0.5 rounded-md bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs border border-slate-200/60 dark:border-slate-800/60 shadow-xs shrink-0"
+            style={{ fontSize: `${Math.max(9, Math.round(11 * scale))}px` }}
+          >
+            {name}
+          </div>
+        )}
 
         {/* Divider (only for horizontal layout with text) */}
         {displayMode === 'default' && !isVertical && (

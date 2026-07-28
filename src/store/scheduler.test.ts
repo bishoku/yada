@@ -118,7 +118,9 @@ describe('calculateSchedules', () => {
     expect(schedules['seq-1']).toEqual({ start: 0, end: 1800 });
   });
 
-  it('should handle nested sections correctly', () => {
+  it('should treat edges targeting sections as normal edges (no subflow)', () => {
+    // With the simplified scheduler, edges targeting a section node are
+    // treated identically to any other edge — no subflow nesting occurs.
     const sequences: SequenceStep[] = [
       { id: 'seq-entry', stepNumber: 1, edgeId: 'edge-entry', isAsync: false, isRoundTrip: false },
       { id: 'seq-internal', stepNumber: 2, edgeId: 'edge-internal', isAsync: false, isRoundTrip: false },
@@ -140,66 +142,52 @@ describe('calculateSchedules', () => {
 
     const schedules = calculateSchedules(sequences, timelines, edges, nodes);
 
-    // seq-entry: starts at 0, arrival at 1000. It targets the section container itself.
-    // The subflow (seq-internal) starts after seq-entry's arrival (1000) + delay (100) = 1100.
-    // seq-internal ends at 1100 + 800 = 1900.
-    // The total end of the section entry step is extended to cover the full duration of the section's execution.
-    expect(schedules['seq-entry']).toEqual({ start: 0, end: 1900 });
+    // seq-entry is a normal edge: start=0, end=0+1000=1000
+    expect(schedules['seq-entry']).toEqual({ start: 0, end: 1000 });
+    // seq-internal is an independent root-level step (no longer nested as subflow).
+    // It starts after globalFloor (1000) + delay (100) = 1100, ends at 1100+800=1900.
     expect(schedules['seq-internal']).toEqual({ start: 1100, end: 1900 });
   });
 
   it('independent parallel chains should not block each other across step groups', () => {
-    // Reproduces the user-reported bug:
-    // Client fires step-1 to Section-1 (which has a slow internal subflow)
-    // AND step-1 to Gateway-2 (a fast independent chain).
-    // Gateway-2 → Server-2 is step-2 and should start as soon as
-    // Client → Gateway-2 finishes — NOT after Section-1's subflow.
+    // Source-chain dependency ensures that each step starts based on when
+    // its source node was last targeted, not on a global barrier.
     const sequences: SequenceStep[] = [
       // Step 1 — parallel
-      { id: 'seq-entry-section', stepNumber: 1, edgeId: 'edge-client-section', isAsync: false, isRoundTrip: false },
-      { id: 'seq-client-gw2',   stepNumber: 1, edgeId: 'edge-client-gw2',    isAsync: false, isRoundTrip: false },
-      // Step 2 — sequenced inside section (nested automatically)
-      { id: 'seq-gw1-srv1',     stepNumber: 2, edgeId: 'edge-gw1-srv1',      isAsync: false, isRoundTrip: false },
-      // Step 2 — independent chain from Gateway-2
-      { id: 'seq-gw2-srv2',     stepNumber: 2, edgeId: 'edge-gw2-srv2',      isAsync: false, isRoundTrip: false },
+      { id: 'seq-client-srv-a', stepNumber: 1, edgeId: 'edge-client-srv-a', isAsync: false, isRoundTrip: false },
+      { id: 'seq-client-gw-b',  stepNumber: 1, edgeId: 'edge-client-gw-b',  isAsync: false, isRoundTrip: false },
+      // Step 2 — independent chains
+      { id: 'seq-gw-b-srv-c',   stepNumber: 2, edgeId: 'edge-gw-b-srv-c',   isAsync: false, isRoundTrip: false },
     ];
     const timelines: Record<string, TimelineTiming> = {
-      'seq-entry-section': { sequenceId: 'seq-entry-section', duration: 2000, delay: 0 },
-      'seq-client-gw2':    { sequenceId: 'seq-client-gw2',    duration: 1000, delay: 0 },
-      'seq-gw1-srv1':      { sequenceId: 'seq-gw1-srv1',      duration: 1000, delay: 0 },
-      'seq-gw2-srv2':      { sequenceId: 'seq-gw2-srv2',      duration: 1000, delay: 0 },
+      'seq-client-srv-a': { sequenceId: 'seq-client-srv-a', duration: 2000, delay: 0 },
+      'seq-client-gw-b':  { sequenceId: 'seq-client-gw-b',  duration: 1000, delay: 0 },
+      'seq-gw-b-srv-c':   { sequenceId: 'seq-gw-b-srv-c',   duration: 1000, delay: 0 },
     };
     const edges: LogicalEdge[] = [
-      { id: 'edge-client-section', sourceId: 'node-client',  targetId: 'section-1',   isAsync: false },
-      { id: 'edge-client-gw2',     sourceId: 'node-client',  targetId: 'node-gw2',    isAsync: false },
-      { id: 'edge-gw1-srv1',       sourceId: 'node-gw1',     targetId: 'node-srv1',   isAsync: false },
-      { id: 'edge-gw2-srv2',       sourceId: 'node-gw2',     targetId: 'node-srv2',   isAsync: false },
+      { id: 'edge-client-srv-a', sourceId: 'node-client', targetId: 'node-srv-a', isAsync: false },
+      { id: 'edge-client-gw-b',  sourceId: 'node-client', targetId: 'node-gw-b',  isAsync: false },
+      { id: 'edge-gw-b-srv-c',   sourceId: 'node-gw-b',  targetId: 'node-srv-c',  isAsync: false },
     ];
     const nodes: LogicalNode[] = [
       { id: 'node-client', type: 'client',  name: 'Client' },
-      { id: 'section-1',   type: 'section', name: 'Section 1' },
-      { id: 'node-gw1',    type: 'gateway', name: 'Gateway 1', parentId: 'section-1' },
-      { id: 'node-srv1',   type: 'server',  name: 'Server 1',  parentId: 'section-1' },
-      { id: 'node-gw2',    type: 'gateway', name: 'Gateway 2' },
-      { id: 'node-srv2',   type: 'server',  name: 'Server 2' },
+      { id: 'node-srv-a',  type: 'server',  name: 'Server A' },
+      { id: 'node-gw-b',   type: 'gateway', name: 'Gateway B' },
+      { id: 'node-srv-c',  type: 'server',  name: 'Server C' },
     ];
 
     const schedules = calculateSchedules(sequences, timelines, edges, nodes);
 
     // Step 1 both start at t=0 (parallel)
-    expect(schedules['seq-entry-section'].start).toBe(0);
-    expect(schedules['seq-client-gw2'].start).toBe(0);
-    expect(schedules['seq-client-gw2'].end).toBe(1000);
+    expect(schedules['seq-client-srv-a'].start).toBe(0);
+    expect(schedules['seq-client-srv-a'].end).toBe(2000);
+    expect(schedules['seq-client-gw-b'].start).toBe(0);
+    expect(schedules['seq-client-gw-b'].end).toBe(1000);
 
-    // seq-gw1-srv1 is nested under seq-entry-section (Gateway1 parentId=section-1)
-    // It starts at arrival of seq-entry-section (t=2000) and ends at t=3000
-    expect(schedules['seq-gw1-srv1'].start).toBe(2000);
-    expect(schedules['seq-gw1-srv1'].end).toBe(3000);
-
-    // seq-gw2-srv2 sources from node-gw2, which was targeted by seq-client-gw2.
-    // It should start as soon as seq-client-gw2 finishes (t=1000),
-    // NOT at t=2000 (when Section-1's subflow finishes).
-    expect(schedules['seq-gw2-srv2'].start).toBe(1000);
-    expect(schedules['seq-gw2-srv2'].end).toBe(2000);
+    // seq-gw-b-srv-c sources from node-gw-b, which was targeted by seq-client-gw-b.
+    // It starts as soon as seq-client-gw-b finishes (t=1000),
+    // NOT at t=2000 (the global floor from the slow Server-A chain).
+    expect(schedules['seq-gw-b-srv-c'].start).toBe(1000);
+    expect(schedules['seq-gw-b-srv-c'].end).toBe(2000);
   });
 });

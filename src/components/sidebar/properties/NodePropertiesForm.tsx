@@ -236,7 +236,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
       {/* Theme color — 4x2 Preset Grid + Custom Color Row */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <Label>{tr('Bileşen Rengi', 'Component Color')}</Label>
+          <Label>{isSection ? tr('Kenarlık Rengi', 'Border Color') : tr('Bileşen Rengi', 'Component Color')}</Label>
         </div>
 
         {/* 4x2 Presets Grid */}
@@ -315,6 +315,312 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
         )}
       </div>
 
+      {/* Section Visual Controls */}
+      {isSection && (
+        <div className="flex flex-col gap-2.5 pt-1">
+          <Divider label={tr('Section Görsel Ayarları', 'Section Visual Settings')} />
+
+          {/* Section Title Mode (Tag vs Banner vs None) */}
+          <div className="flex flex-col gap-1">
+            <Label>{tr('Başlık Görünüm Modu', 'Title Mode')}</Label>
+            <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
+              {[
+                { id: 'inline', label: tr('Etiket', 'Inline Tag') },
+                { id: 'header', label: tr('Başlık Bandı', 'Header Banner') },
+                { id: 'none', label: tr('Yok (Gizli)', 'None') },
+              ].map((m) => {
+                const currentMode = customStyles.sectionTitleMode ?? 'inline';
+                const active = currentMode === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      const s = { ...customStyles, sectionTitleMode: m.id as 'inline' | 'header' | 'none' };
+                      setCustomStyles(s);
+                      preview({ cs: s });
+                    }}
+                    className={`flex-1 py-1 text-[10px] rounded-md font-semibold transition-colors leading-none ${
+                      active
+                        ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
+                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section Title Alignment (only when title is visible) */}
+          {customStyles.sectionTitleMode !== 'none' && (
+            <div className="flex flex-col gap-2">
+              {/* Title Edge Selection */}
+              <div className="flex flex-col gap-1">
+                <Label>{tr('Başlık Konumu', 'Title Edge')}</Label>
+                <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
+                  {[
+                    { id: 'top', label: '↑' },
+                    { id: 'right', label: '→' },
+                    { id: 'bottom', label: '↓' },
+                    { id: 'left', label: '←' },
+                  ].map((e) => {
+                    const currentEdge = customStyles.sectionTitleEdge ?? 'top';
+                    const active = currentEdge === e.id;
+                    return (
+                      <button
+                        key={e.id}
+                        onClick={() => {
+                          const s = { ...customStyles, sectionTitleEdge: e.id as 'top' | 'right' | 'bottom' | 'left' };
+                          setCustomStyles(s);
+                          preview({ cs: s });
+                        }}
+                        className={`flex-1 py-1 text-[10px] rounded-md font-semibold transition-colors leading-none ${
+                          active
+                            ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
+                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        }`}
+                      >
+                        {e.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Title Alignment */}
+              <div className="flex flex-col gap-1">
+                <Label>{tr('Başlık Hizalaması', 'Title Alignment')}</Label>
+                <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
+                  {[
+                    { id: 'left', label: tr('Sol', 'Start') },
+                    { id: 'center', label: tr('Orta', 'Center') },
+                    { id: 'right', label: tr('Sağ', 'End') },
+                  ].map((a) => {
+                    const currentAlign = customStyles.sectionTitleAlign ?? 'left';
+                    const active = currentAlign === a.id;
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => {
+                          const s = { ...customStyles, sectionTitleAlign: a.id as 'left' | 'center' | 'right' };
+                          setCustomStyles(s);
+                          preview({ cs: s });
+                        }}
+                        className={`flex-1 py-1 text-[10px] rounded-md font-semibold transition-colors leading-none ${
+                          active
+                            ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
+                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        }`}
+                      >
+                        {a.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Header Color Palette & Custom Picker (only if sectionTitleMode === 'header') */}
+          {customStyles.sectionTitleMode === 'header' && (
+            <div className="flex flex-col gap-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200/60 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <Label>{tr('Header Bandı Rengi', 'Header Color')}</Label>
+                {customStyles.headerBgColor && (
+                  <button
+                    onClick={() => {
+                      const s = { ...customStyles };
+                      delete s.headerBgColor;
+                      setCustomStyles(s);
+                      preview({ cs: s });
+                    }}
+                    className="text-[10px] text-slate-400 hover:text-rose-500 underline"
+                    title={tr('Sıfırla', 'Reset')}
+                  >
+                    {tr('Sıfırla', 'Reset')}
+                  </button>
+                )}
+              </div>
+
+              {/* 4x2 Presets Grid */}
+              <div className="grid grid-cols-4 gap-2">
+                {THEME_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => {
+                      const s = { ...customStyles, headerBgColor: c };
+                      setCustomStyles(s);
+                      preview({ cs: s });
+                    }}
+                    className={`h-5 rounded-full ${BG[c]} hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center justify-center ${
+                      customStyles.headerBgColor === c ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-105 shadow-sm' : ''
+                    }`}
+                    title={c}
+                  />
+                ))}
+              </div>
+
+              {/* Custom Header Color Picker */}
+              <div className="flex items-center justify-between pt-0.5 border-t border-slate-200/40 dark:border-slate-800/80">
+                <Label>{tr('Özel Header Rengi', 'Custom Header Color')}</Label>
+                <div className="flex items-center gap-2">
+                  {customStyles.headerBgColor?.startsWith('#') && (
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                      {customStyles.headerBgColor}
+                    </span>
+                  )}
+                  <div
+                    className={`w-5 h-5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 ${
+                      customStyles.headerBgColor?.startsWith('#') ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
+                    }`}
+                    title={tr('Özel Header Renk Seçici', 'Custom Header Color Picker')}
+                  >
+                    <input
+                      type="color"
+                      value={customStyles.headerBgColor?.startsWith('#') ? customStyles.headerBgColor : '#4f46e5'}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const s = { ...customStyles, headerBgColor: val };
+                        setCustomStyles(s);
+                        preview({ cs: s });
+                      }}
+                      className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 p-0 bg-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section Border Style (dashed / solid / dotted) */}
+          <div className="flex flex-col gap-1">
+            <Label>{tr('Kenarlık Çizgisi Stili', 'Border Style')}</Label>
+            <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
+              {[
+                { id: 'dashed', label: tr('Kesikli', 'Dashed') },
+                { id: 'solid', label: tr('Düz', 'Solid') },
+                { id: 'dotted', label: tr('Noktalı', 'Dotted') },
+              ].map((b) => {
+                const currentBorder = customStyles.borderStyle ?? 'dashed';
+                const active = currentBorder === b.id;
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => {
+                      const s = { ...customStyles, borderStyle: b.id as 'solid' | 'dashed' | 'dotted' };
+                      setCustomStyles(s);
+                      preview({ cs: s });
+                    }}
+                    className={`flex-1 py-1 text-[10px] rounded-md font-semibold transition-colors leading-none ${
+                      active
+                        ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
+                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    {b.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section Background Color & Opacity */}
+          <div className="flex flex-col gap-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200/60 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <Label>{tr('Arka Plan Rengi', 'Background Color')}</Label>
+              {customStyles.backgroundColor && (
+                <button
+                  onClick={() => {
+                    const s = { ...customStyles };
+                    delete s.backgroundColor;
+                    setCustomStyles(s);
+                    preview({ cs: s });
+                  }}
+                  className="text-[10px] text-slate-400 hover:text-rose-500 underline"
+                  title={tr('Sıfırla', 'Reset')}
+                >
+                  {tr('Sıfırla', 'Reset')}
+                </button>
+              )}
+            </div>
+
+            {/* 4x2 Presets Grid */}
+            <div className="grid grid-cols-4 gap-2">
+              {THEME_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => {
+                    const s = { ...customStyles, backgroundColor: c };
+                    setCustomStyles(s);
+                    preview({ cs: s });
+                  }}
+                  className={`h-5 rounded-full ${BG[c]} hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center justify-center ${
+                    customStyles.backgroundColor === c ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-105 shadow-sm' : ''
+                  }`}
+                  title={c}
+                />
+              ))}
+            </div>
+
+            {/* Custom Background Color Picker */}
+            <div className="flex items-center justify-between pt-0.5 border-t border-slate-200/40 dark:border-slate-800/80">
+              <Label>{tr('Özel Arka Plan Rengi', 'Custom Background Color')}</Label>
+              <div className="flex items-center gap-2">
+                {customStyles.backgroundColor?.startsWith('#') && (
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                    {customStyles.backgroundColor}
+                  </span>
+                )}
+                <div
+                  className={`w-5 h-5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 ${
+                    customStyles.backgroundColor?.startsWith('#') ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
+                  }`}
+                  title={tr('Özel Arka Plan Renk Seçici', 'Custom Background Color Picker')}
+                >
+                  <input
+                    type="color"
+                    value={customStyles.backgroundColor?.startsWith('#') ? customStyles.backgroundColor : '#1e293b'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const s = { ...customStyles, backgroundColor: val };
+                      setCustomStyles(s);
+                      preview({ cs: s });
+                    }}
+                    className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 p-0 bg-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Opacity Slider */}
+            <div className="flex flex-col gap-1 pt-1 border-t border-slate-200/40 dark:border-slate-800/80">
+              <div className="flex items-center justify-between">
+                <Label>{tr('Arka Plan Opaklığı', 'Background Opacity')}</Label>
+                <span className="text-[10px] font-mono font-semibold text-slate-600 dark:text-slate-300">
+                  {Math.round((customStyles.bgOpacity ?? 0.15) * 100)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={customStyles.bgOpacity ?? 0.15}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  const s = { ...customStyles, bgOpacity: val };
+                  setCustomStyles(s);
+                  preview({ cs: s });
+                }}
+                className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+              />
+            </div>
+          </div>
+
+        </div>
+      )}
+
       <Divider />
 
       {/* Display mode + Rotation — side by side */}
@@ -367,6 +673,43 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Icon-only Label Position (when displayMode === 'icon-only') */}
+      {!isSection && displayMode === 'icon-only' && (
+        <div className="flex flex-col gap-1 pt-1">
+          <Label>{tr('İkon İsim Hizalaması', 'Icon Label Position')}</Label>
+          <div className="grid grid-cols-5 gap-1 bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
+            {[
+              { id: 'none', label: tr('Yok', 'None') },
+              { id: 'top', label: tr('Üst', 'Top') },
+              { id: 'bottom', label: tr('Alt', 'Bottom') },
+              { id: 'left', label: tr('Sol', 'Left') },
+              { id: 'right', label: tr('Sağ', 'Right') },
+            ].map((p) => {
+              const currentPos = customStyles.iconLabelPosition ?? 'none';
+              const active = currentPos === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    const s = { ...customStyles, iconLabelPosition: p.id as 'none' | 'top' | 'bottom' | 'left' | 'right' };
+                    setCustomStyles(s);
+                    preview({ cs: s });
+                  }}
+                  className={`py-1 text-[9px] rounded-md font-semibold transition-colors leading-none ${
+                    active
+                      ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
+                      : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

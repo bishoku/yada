@@ -102,6 +102,7 @@ export interface VisualNode {
   rotation?: number;
   customStyles?: {
     backgroundColor?: string;
+    bgOpacity?: number;
     borderColor?: string;
     borderStyle?: 'solid' | 'dashed' | 'dotted';
     borderRadius?: number;
@@ -110,6 +111,12 @@ export interface VisualNode {
     productIcon?: string;
     productIconColored?: boolean;
     productIconWordmark?: boolean;
+    iconLabelPosition?: 'none' | 'top' | 'bottom' | 'left' | 'right';
+    sectionTitleMode?: 'inline' | 'header' | 'none';
+    sectionTitleEdge?: 'top' | 'right' | 'bottom' | 'left';
+    sectionTitleAlign?: 'left' | 'center' | 'right';
+    headerBgImage?: string;
+    headerBgColor?: string;
   };
 }
 
@@ -198,12 +205,21 @@ export interface ActiveNodeProperties {
   rotation?: number;
   customStyles?: {
     backgroundColor?: string;
+    bgOpacity?: number;
     borderColor?: string;
     borderStyle?: 'solid' | 'dashed' | 'dotted';
     borderRadius?: number;
+    borderOnly?: boolean;
+    iconColor?: string;
     productIcon?: string;
     productIconColored?: boolean;
     productIconWordmark?: boolean;
+    iconLabelPosition?: 'none' | 'top' | 'bottom' | 'left' | 'right';
+    sectionTitleMode?: 'inline' | 'header' | 'none';
+    sectionTitleEdge?: 'top' | 'right' | 'bottom' | 'left';
+    sectionTitleAlign?: 'left' | 'center' | 'right';
+    headerBgImage?: string;
+    headerBgColor?: string;
   };
   isNew?: boolean;
   properties?: Record<string, unknown>;

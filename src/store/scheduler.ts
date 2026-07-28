@@ -4,7 +4,7 @@ export const calculateSchedules = (
   sequences: SequenceStep[],
   timelines: Record<string, TimelineTiming>,
   edges: LogicalEdge[] = [],
-  nodes: LogicalNode[] = []
+  _nodes: LogicalNode[] = []
 ): Record<string, { start: number; end: number }> => {
   const sortedSeqs = [...sequences].sort((a, b) => a.stepNumber - b.stepNumber);
   const schedules: Record<string, { start: number; end: number }> = {};
@@ -12,14 +12,8 @@ export const calculateSchedules = (
   if (sortedSeqs.length === 0) return schedules;
 
   const edgeMap = new Map(edges.map(e => [e.id, e]));
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
-
-  // Identify section nodes
-  const sectionIds = new Set(nodes.filter(n => n.type === 'section').map(n => n.id));
 
   // Resolve source/target node IDs for each sequence step
-  // Note: direction field has been removed from SequenceStep.
-  // isRoundTrip implies a return trip A→B→A without needing explicit direction.
   const seqNodes = new Map<string, { src: string; tgt: string }>();
   sortedSeqs.forEach(seq => {
     const edge = edgeMap.get(seq.edgeId);
@@ -33,7 +27,7 @@ export const calculateSchedules = (
   const nested = new Set<string>();
   const activeRTTargets = new Map<string, string>(); // nodeId -> round-trip stepId that targets it
 
-  // Phase 1: RT nesting (existing logic)
+  // RT nesting: round-trip steps can have nested children
   sortedSeqs.forEach(seq => {
     const { src } = seqNodes.get(seq.id)!;
     const parentId = src ? activeRTTargets.get(src) : undefined;
@@ -50,93 +44,19 @@ export const calculateSchedules = (
     }
   });
 
-  // Phase 2: Section nesting — edges whose source AND target are children of a section
-  // become children of the step that targets that section
-  const sectionEntrySteps = new Map<string, string>(); // sectionId -> stepId that targets it
-  
-  sortedSeqs.forEach(seq => {
-    const { tgt } = seqNodes.get(seq.id)!;
-    if (tgt && sectionIds.has(tgt)) {
-      sectionEntrySteps.set(tgt, seq.id);
-    }
-  });
-
-  // Find edges that originate from inside a section
-  // Any edge whose SOURCE node is a child of a section becomes part of that section's subflow
-  sortedSeqs.forEach(seq => {
-    if (nested.has(seq.id)) return; // Already nested
-    const edge = edgeMap.get(seq.edgeId);
-    if (!edge) return;
-    
-    const fromNode = nodeMap.get(edge.sourceId);
-    if (!fromNode) return;
-    
-    // If the source node is a child of a section that has an entry step
-    if (fromNode.parentId && sectionIds.has(fromNode.parentId)) {
-      const sectionId = fromNode.parentId;
-      const parentStepId = sectionEntrySteps.get(sectionId);
-      if (parentStepId && parentStepId !== seq.id) {
-        nested.add(seq.id);
-        if (!childrenOf.has(parentStepId)) childrenOf.set(parentStepId, []);
-        childrenOf.get(parentStepId)!.push(seq);
-      }
-    }
-  });
-
-
-
-  // Recursive: process a step and all its nested children, return total end time
+  // Process a step and all its nested children, return total end time
   function processStep(seq: SequenceStep, startTime: number): number {
     const timing = timelines[seq.id] || { sequenceId: seq.id, duration: 1000, delay: 0 };
     const duration = timing.duration ?? 1000;
     const children = childrenOf.get(seq.id) || [];
 
-    // Case 1: Simple step with no children and not round-trip
+    // Simple step (no children, not round-trip)
     if (!seq.isRoundTrip && children.length === 0) {
       schedules[seq.id] = { start: startTime, end: startTime + duration };
       return startTime + duration;
     }
 
-    // Case 2: Section-targeting step (has children from internal edges)
-    // The step's animation reaches the section, then internal edges play as subflow
-    if (!seq.isRoundTrip && children.length > 0) {
-      const arrivalTime = startTime + duration;
-      
-      // Process internal edges (subflow) starting from arrival time
-      const childGroups: Record<number, SequenceStep[]> = {};
-      children.forEach(c => {
-        if (!childGroups[c.stepNumber]) childGroups[c.stepNumber] = [];
-        childGroups[c.stepNumber].push(c);
-      });
-
-      let childReadyTime = arrivalTime;
-      let latestSyncEnd = arrivalTime;
-
-      Object.keys(childGroups).map(Number).sort((a, b) => a - b).forEach(gn => {
-        const group = childGroups[gn];
-        const snapshot = childReadyTime;
-        group.forEach(child => {
-          const childTiming = timelines[child.id] || { sequenceId: child.id, duration: 1000, delay: 0 };
-          const childDelay = childTiming.delay ?? 0;
-          const childStart = snapshot + childDelay;
-          const childEnd = processStep(child, childStart);
-          if (!child.isAsync) {
-            if (childEnd > childReadyTime) childReadyTime = childEnd;
-            if (childEnd > latestSyncEnd) latestSyncEnd = childEnd;
-          }
-        });
-      });
-
-      // If the incoming edge is async, the main flow returns at arrivalTime (not waiting for subflow)
-      // But the section's total end includes the subflow completion
-      schedules[seq.id] = { start: startTime, end: latestSyncEnd };
-      
-      // For async edges, the "blocking" end is just the arrival time
-      // The scheduler uses isAsync flag at the root level to decide whether to wait
-      return seq.isAsync ? arrivalTime : latestSyncEnd;
-    }
-
-    // Case 3: Round-trip step (existing logic, may also have children)
+    // Round-trip step (may also have children from RT nesting)
     const halfTransit = duration / 2;
     const forwardReach = startTime + halfTransit;
     const ipDur = timing.internalProcess ? (timing.internalProcess.duration ?? 1000) : 0;
@@ -192,12 +112,12 @@ export const calculateSchedules = (
   // chains that have no explicit source dependency.
   //
   // Example where this matters:
-  //   Step 1:  Client → Section-1 (duration 2000ms, includes subflow)
-  //   Step 1:  Client → Gateway-2 (duration 1000ms, independent chain)
-  //   Step 2:  Gateway-2 → Server-2
+  //   Step 1:  Client → Server-A (duration 2000ms)
+  //   Step 1:  Client → Gateway-B (duration 1000ms, independent chain)
+  //   Step 2:  Gateway-B → Server-C
   //
-  // Old: Gateway-2 → Server-2 waited until Section-1's subflow finished (t=2000)
-  // New: Gateway-2 → Server-2 starts as soon as Client → Gateway-2 finishes (t=1000)
+  // Without source-chain: Gateway-B → Server-C waits for Server-A (t=2000)
+  // With source-chain: Gateway-B → Server-C starts at t=1000 (its own predecessor)
 
   const rootSteps = sortedSeqs.filter(seq => !nested.has(seq.id));
   const rootGroups: Record<number, SequenceStep[]> = {};

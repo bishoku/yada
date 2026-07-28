@@ -12,7 +12,7 @@ const buildRfNodesFromState = (logicalData: any, visualData: any): Node[] => {
 
   const logicalRfNodes: Node[] = sortedLogical.map((ln) => {
     const vn = visualData.layoutNodes[ln.id] ?? { x: 0, y: 0 };
-    return toRfNode(ln, vn);
+    return toRfNode(ln, vn, logicalData.nodes);
   });
 
   const annotations = visualData.annotations || {};

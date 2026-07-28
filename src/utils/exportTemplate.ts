@@ -683,20 +683,13 @@ export const generateStandaloneHtml = (
       return \`<svg width="100%" height="100%" viewBox="0 0 \${width} \${height}" xmlns="http://www.w3.org/2000/svg">\${svgContent}</svg>\`;
     }
 
-    // Schedule Math Calculations (Recursive nesting tree with round-trip and section support)
+    // Schedule Math Calculations (Recursive nesting tree with round-trip support)
     function calculateSchedules(logicalData, timelines) {
       const sortedSeqs = [...logicalData.sequences].sort((a, b) => a.stepNumber - b.stepNumber);
       const schedules = [];
       
       const edgeMap = {};
       logicalData.edges.forEach(e => { edgeMap[e.id] = e; });
-
-      const nodeMap = {};
-      (logicalData.nodes || []).forEach(n => { nodeMap[n.id] = n; });
-
-      // Identify section nodes
-      const sectionIds = {};
-      (logicalData.nodes || []).forEach(n => { if (n.type === 'section') sectionIds[n.id] = true; });
 
       // Resolve source/target for each step
       const seqNodes = {};
@@ -712,7 +705,7 @@ export const generateStandaloneHtml = (
       const nested = {};
       const activeRTTargets = {};
 
-      // Phase 1: RT nesting
+      // RT nesting
       sortedSeqs.forEach(seq => {
         const src = seqNodes[seq.id].src;
         const parentId = src ? activeRTTargets[src] : undefined;
@@ -729,38 +722,13 @@ export const generateStandaloneHtml = (
         }
       });
 
-      // Phase 2: Section nesting
-      const sectionEntrySteps = {};
-      sortedSeqs.forEach(seq => {
-        const tgt = seqNodes[seq.id].tgt;
-        if (tgt && sectionIds[tgt]) {
-          sectionEntrySteps[tgt] = seq.id;
-        }
-      });
-
-      sortedSeqs.forEach(seq => {
-        if (nested[seq.id]) return;
-        const edge = edgeMap[seq.edgeId];
-        if (!edge) return;
-        const fromNode = nodeMap[edge.sourceId];
-        if (!fromNode) return;
-        if (fromNode.parentId && sectionIds[fromNode.parentId]) {
-          const parentStepId = sectionEntrySteps[fromNode.parentId];
-          if (parentStepId && parentStepId !== seq.id) {
-            nested[seq.id] = true;
-            if (!childrenOf[parentStepId]) childrenOf[parentStepId] = [];
-            childrenOf[parentStepId].push(seq);
-          }
-        }
-      });
-
-      // Recursive: process a step and its nested children
+      // Process a step and its nested children
       function processStep(seq, startTime) {
         const tConf = timelines[seq.id] || { duration: 1000, delay: 0 };
         const duration = tConf.duration ?? 1000;
         const children = childrenOf[seq.id] || [];
 
-        // Case 1: Simple step (no children, not round-trip)
+        // Simple step (no children, not round-trip)
         if (!seq.isRoundTrip && children.length === 0) {
           const internalProcess = tConf.internalProcess ? {
             text: tConf.internalProcess.text,
@@ -779,44 +747,7 @@ export const generateStandaloneHtml = (
           return startTime + duration;
         }
 
-        // Case 2: Section-targeting step (has children, not round-trip)
-        if (!seq.isRoundTrip && children.length > 0) {
-          const arrivalTime = startTime + duration;
-          const childGroups = {};
-          children.forEach(c => {
-            if (!childGroups[c.stepNumber]) childGroups[c.stepNumber] = [];
-            childGroups[c.stepNumber].push(c);
-          });
-
-          let childReadyTime = arrivalTime;
-          let latestSyncEnd = arrivalTime;
-
-          Object.keys(childGroups).map(Number).sort((a, b) => a - b).forEach(gn => {
-            const group = childGroups[gn];
-            const snapshot = childReadyTime;
-            group.forEach(child => {
-              const childTiming = timelines[child.id] || { duration: 1000, delay: 0 };
-              const childDelay = childTiming.delay ?? 0;
-              const childStart = snapshot + childDelay;
-              const childEnd = processStep(child, childStart);
-              if (!child.isAsync) {
-                if (childEnd > childReadyTime) childReadyTime = childEnd;
-                if (childEnd > latestSyncEnd) latestSyncEnd = childEnd;
-              }
-            });
-          });
-
-          schedules.push({
-            id: seq.id, stepNumber: seq.stepNumber, edgeId: seq.edgeId,
-            direction: seq.direction || 'forward', isRoundTrip: false,
-            isAsync: seq.isAsync || false, start: startTime,
-            mainEnd: startTime + duration, end: latestSyncEnd,
-            duration: duration, internalProcess: null
-          });
-          return seq.isAsync ? arrivalTime : latestSyncEnd;
-        }
-
-        // Case 3: Round-trip
+        // Round-trip
         const halfTransit = duration / 2;
         const forwardReach = startTime + halfTransit;
         const ipDur = tConf.internalProcess ? (tConf.internalProcess.duration ?? 1000) : 0;

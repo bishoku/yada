@@ -9,24 +9,38 @@ export const useSectionAnimation = (sectionId: string) => {
       const currentTime = state.currentTime;
       if (currentTime === prevState.currentTime && 
           state.logicalData === prevState.logicalData && 
-          state.visualData === prevState.visualData) {
+          state.schedules === prevState.schedules) {
         return;
       }
 
       let active = false;
       try {
-        const schedules = state.schedules;
+        const { schedules, logicalData: { nodes, edges, sequences } } = state;
         
-        const targetSeqs = state.logicalData.sequences.filter((s: any) => {
-          const edge = state.logicalData.edges.find((e: any) => e.id === s.edgeId);
-          return edge && edge.targetId === sectionId;
-        });
-        
-        for (const seq of targetSeqs) {
-          const sched = schedules[seq.id];
-          if (sched && currentTime >= sched.start && currentTime < sched.end) {
-            active = true;
-            break;
+        const getDescendantNodeIds = (parentId: string, result = new Set<string>()): Set<string> => {
+          const children = nodes.filter((n: any) => n.parentId === parentId);
+          for (const child of children) {
+            result.add(child.id);
+            getDescendantNodeIds(child.id, result);
+          }
+          return result;
+        };
+
+        const descendantIds = getDescendantNodeIds(sectionId);
+
+        const relevantEdgeIds = new Set(
+          edges
+            .filter((e: any) => descendantIds.has(e.sourceId) || descendantIds.has(e.targetId))
+            .map((e: any) => e.id)
+        );
+
+        for (const seq of sequences) {
+          if (relevantEdgeIds.has(seq.edgeId)) {
+            const sched = schedules[seq.id];
+            if (sched && currentTime >= sched.start && currentTime < sched.end) {
+              active = true;
+              break;
+            }
           }
         }
       } catch (err) {

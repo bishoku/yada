@@ -202,3 +202,51 @@ export const extractShareData = async (compressedData: string, pin?: string): Pr
   }
   return JSON.parse(decompressed);
 };
+
+// ============================================
+// Cloud Share (Cloudflare Workers + KV)
+// ============================================
+
+const SHARE_API_URL = import.meta.env.VITE_SHARE_API_URL || '';
+
+/**
+ * Uploads diagram data to Cloudflare KV via Worker and returns a short reference ID.
+ * If a PIN is provided, data is encrypted before upload — the Worker never sees plaintext.
+ */
+export const uploadShare = async (jsonData: any, pin?: string): Promise<string> => {
+  const payload = pin
+    ? await prepareShareData(jsonData, pin)
+    : JSON.stringify(jsonData);
+
+  const response = await fetch(`${SHARE_API_URL}/share`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: payload,
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to upload share data');
+  }
+
+  const result = await response.json();
+  return result.id;
+};
+
+/**
+ * Fetches diagram data from Cloudflare KV by reference ID.
+ * Returns the raw string (may be encrypted if PIN was used).
+ */
+export const fetchShare = async (id: string): Promise<string> => {
+  const response = await fetch(`${SHARE_API_URL}/share/${id}`);
+
+  if (response.status === 404) {
+    throw new Error('SHARE_EXPIRED');
+  }
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch share data');
+  }
+
+  return response.text();
+};

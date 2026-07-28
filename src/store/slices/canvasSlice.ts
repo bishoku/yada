@@ -282,7 +282,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
       // Filter out deleted node, and also clean up parentId for any children
       const nodes = state.logicalData.nodes
         .filter((n) => n.id !== id)
-        .map((n) => (n.parentId === id ? { ...n, parentId: undefined } : n));
+        .map((n) => (n.parentId === id ? { ...n, parentId: deletedNode?.parentId } : n));
 
       const deletedEdgeIds = state.logicalData.edges
         .filter((e) => e.sourceId === id || e.targetId === id)
@@ -583,8 +583,9 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     children.forEach(child => {
       const cv = state.visualData.layoutNodes[child.id];
       if (!cv) return;
-      const cw = cv.width ?? 224;
-      const ch = cv.height ?? 52;
+      const isChildSection = child.type === 'section';
+      const cw = cv.width ?? (isChildSection ? 400 : 224);
+      const ch = cv.height ?? (isChildSection ? 300 : 52);
       minX = Math.min(minX, cv.x);
       minY = Math.min(minY, cv.y);
       maxX = Math.max(maxX, cv.x + cw);
@@ -618,6 +619,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
   deleteSectionWithChoice: (sectionId, deleteChildren) => {
     get().pushToHistory();
     set((state) => {
+      const sectionLogical = state.logicalData.nodes.find(n => n.id === sectionId);
       const sectionVisual = state.visualData.layoutNodes[sectionId];
 
       let nodes: typeof state.logicalData.nodes;
@@ -626,7 +628,11 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
       const timelines = { ...state.visualData.timelines };
 
       if (deleteChildren) {
-        const childIds = state.logicalData.nodes.filter(n => n.parentId === sectionId).map(n => n.id);
+        const collectDescendants = (parentId: string): string[] => {
+          const children = state.logicalData.nodes.filter(n => n.parentId === parentId);
+          return children.flatMap(c => [c.id, ...collectDescendants(c.id)]);
+        };
+        const childIds = collectDescendants(sectionId);
         const allDeleteIds = new Set([sectionId, ...childIds]);
         nodes = state.logicalData.nodes.filter(n => !allDeleteIds.has(n.id));
 
@@ -662,7 +668,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
                 y: sectionVisual.y + childVisual.y
               };
             }
-            return { ...n, parentId: undefined };
+            return { ...n, parentId: sectionLogical?.parentId };
           }
           return n;
         });

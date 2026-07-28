@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { extractShareData } from '../../utils/shareUtils';
+import { extractShareData, fetchShare } from '../../utils/shareUtils';
 import { useAppStore } from '../../store/useAppStore';
 import { Lock, FileWarning, Loader2, ArrowRight } from 'lucide-react';
 import { translations } from '../../i18n/translations';
@@ -15,42 +15,64 @@ export const ShareLoader: React.FC = () => {
   const [shareData, setShareData] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check href/hash/search for share data payload
     const href = window.location.href;
-    const match = href.match(/share=([^&]+)/);
-    if (match && match[1]) {
-      const data = decodeURIComponent(match[1]);
+
+    // New format: #ref=<shortId> (Cloudflare KV)
+    const refMatch = href.match(/ref=([A-Za-z0-9]{6,12})/);
+    if (refMatch && refMatch[1]) {
+      loadFromCloud(refMatch[1]);
+      return;
+    }
+
+    // Legacy format: #share=<compressedData> (backward compat)
+    const shareMatch = href.match(/share=([^&]+)/);
+    if (shareMatch && shareMatch[1]) {
+      const data = decodeURIComponent(shareMatch[1]);
       setShareData(data);
       attemptLoad(data);
     }
   }, []);
 
+  /** Loads diagram data from Cloudflare KV by reference ID */
+  const loadFromCloud = async (refId: string) => {
+    setIsLoading(true);
+    setShareData(refId);
+    setError(null);
+
+    try {
+      const rawData = await fetchShare(refId);
+
+      // If data was PIN-encrypted, it starts with 'ENC:' — prompt for PIN
+      if (rawData.startsWith('ENC:')) {
+        setShareData(rawData);
+        setNeedsPin(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // No PIN — parse JSON directly
+      const payload = JSON.parse(rawData);
+      applyDiagram(payload);
+    } catch (err: any) {
+      if (err.message === 'SHARE_EXPIRED') {
+        setError(t.shareExpiredError);
+      } else if (err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+        setError(t.cloudShareError);
+      } else {
+        setError(err.message || t.shareGenericError);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /** Attempts to load diagram from inline share data (legacy URL format + PIN unlock) */
   const attemptLoad = async (data: string, providedPin?: string) => {
     setIsLoading(true);
     setError(null);
     try {
       const payload = await extractShareData(data, providedPin);
-
-      // Check if URL has embed parameter or is in iframe BEFORE modifying history state
-      const isEmbedUrl = window.self !== window.top || window.location.href.includes('embed');
-
-      // Preserve ?embed=true if present in URL
-      const newUrl = isEmbedUrl 
-        ? `${window.location.pathname}?embed=true` 
-        : window.location.pathname;
-      window.history.replaceState(null, '', newUrl);
-
-      if (payload.logicalData && payload.visualData) {
-        // Switch to the correct view if one is provided
-        if (payload.currentView) {
-            useAppStore.getState().setView(payload.currentView);
-        }
-
-        loadSharedDiagram(payload.logicalData, payload.visualData, undefined, isEmbedUrl);
-        setShareData(null);
-      } else {
-        throw new Error(language === 'tr' ? 'Diyagram verisi geçersiz veya bozuk.' : 'Diagram data is invalid or corrupt.');
-      }
+      applyDiagram(payload);
     } catch (err: any) {
       if (err.message === 'PIN_REQUIRED') {
         setNeedsPin(true);
@@ -69,6 +91,30 @@ export const ShareLoader: React.FC = () => {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  /** Common diagram application logic — handles embed mode, view switching, and history cleanup */
+  const applyDiagram = (payload: any) => {
+    // Check if URL has embed parameter or is in iframe BEFORE modifying history state
+    const isEmbedUrl = window.self !== window.top || window.location.href.includes('embed');
+
+    // Preserve ?embed=true if present in URL
+    const newUrl = isEmbedUrl 
+      ? `${window.location.pathname}?embed=true` 
+      : window.location.pathname;
+    window.history.replaceState(null, '', newUrl);
+
+    if (payload.logicalData && payload.visualData) {
+      // Switch to the correct view if one is provided
+      if (payload.currentView) {
+          useAppStore.getState().setView(payload.currentView);
+      }
+
+      loadSharedDiagram(payload.logicalData, payload.visualData, undefined, isEmbedUrl);
+      setShareData(null);
+    } else {
+      throw new Error(language === 'tr' ? 'Diyagram verisi geçersiz veya bozuk.' : 'Diagram data is invalid or corrupt.');
     }
   };
 

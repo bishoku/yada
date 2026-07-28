@@ -9,10 +9,19 @@ export const useSectionDrag = () => {
 
   const onNodeDragStop = useCallback(
     (_event: any, draggedNode: Node) => {
-      // Don't parent sections to other sections
-      if (draggedNode.type === 'sectionNode') return;
-
       const state = useAppStore.getState();
+
+      const isAncestorOf = (potentialChild: string, nodeId: string): boolean => {
+        const logicalNodes = state.logicalData.nodes;
+        let current: string | undefined = nodeId;
+        while (current) {
+          if (current === potentialChild) return true;
+          const node = logicalNodes.find(n => n.id === current);
+          current = node?.parentId;
+        }
+        return false;
+      };
+
       const sections = state.logicalData.nodes.filter(n => n.type === 'section');
       const draggedLogical = state.logicalData.nodes.find(n => n.id === draggedNode.id);
       if (!draggedLogical) return;
@@ -65,6 +74,9 @@ export const useSectionDrag = () => {
       const currentParent = draggedLogical.parentId ?? null;
 
       if (targetSection && targetSection !== currentParent) {
+        if (draggedNode.type === 'sectionNode' && isAncestorOf(draggedNode.id, targetSection)) {
+          return;
+        }
         // Entering a new section — convert absolute position to relative
         const sv = state.visualData.layoutNodes[targetSection];
         if (sv) {

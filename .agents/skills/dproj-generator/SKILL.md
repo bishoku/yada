@@ -46,7 +46,7 @@ Two layers — **both required**. Logical (what components exist and communicate
 **LogicalNode**: `{ id, type, name, parentId?, properties? }`
 - `type` must be one of: `client` | `load_balancer` | `gateway` | `server` | `database` | `cache` | `queue` | `firewall` | `section`
 - `server` is the catch-all for any microservice/backend. Do NOT invent types.
-- `parentId` references a `section` node for grouping.
+- `parentId` references a `section` node for grouping. **Nested sections are supported** — a section can have `parentId` pointing to another section.
 
 **LogicalEdge**: `{ id, sourceId, targetId, isAsync, protocol?, description?, properties? }`
 - `isAsync: true` = fire-and-forget/event; `false` = synchronous request.
@@ -66,10 +66,7 @@ Two layers — **both required**. Logical (what components exist and communicate
 ```
 
 **VisualNode**: `{ id, x, y, width?(224), height?(52), theme?, zIndex?, handles?, displayMode?, rotation?, customStyles? }`
-- Themes: `indigo`(clients) | `emerald`(gateways) | `rose`(databases) | `amber`(servers) | `violet`(queues) | `cyan`(caches)
-- Section nodes: `zIndex: -1`, sized to enclose children + 40px padding.
 - `handles`: array of `{ id, side, offset }`. If omitted, the node gets 4 default handles (`top:50`, `right:50`, `bottom:50`, `left:50`).
-- **Rich Icons (`customStyles`)**: Set `productIcon` (e.g. `'postgresql'`, `'redis'`, `'kafka'`, `'docker'`, `'kubernetes'`, `'aws'`, `'react'`, `'java'`, `'python'`, `'go'`, `'mongodb'`, `'rabbitmq'`) and `productIconColored: true` for stunning visuals.
 
 **VisualEdge**: `{ id, sourceHandle?, targetHandle?, particleType?, showArrow?(true), color? }`
 - Handles format: `"side:offset"` e.g. `"right:50"`, `"top:25"`. Offset = 0-100%.
@@ -77,13 +74,148 @@ Two layers — **both required**. Logical (what components exist and communicate
 - LR layout: source=`right:50`, target=`left:50`. TB layout: source=`bottom:50`, target=`top:50`.
 
 **TimelineTiming**: `{ sequenceId, duration(ms), delay(ms), animationMode?, repeatParticleCount?, internalProcess?: { text, duration } }`
-- `delay` = step-local wait delay (ms). **Do NOT accumulate previous step durations into `delay`**. Each step's delay is independent (e.g., `delay: 0` to start immediately when predecessor finishes, or `delay: 300` for a brief pause at that node before triggering the step).
-- `animationMode`: `'normal'` | `'roundTrip'` | `'repeat'` (stored in visual timeline timing).
+- `delay` = step-local wait delay (ms). **Do NOT accumulate previous step durations into `delay`**. Each step's delay is independent.
+- `animationMode`: `'normal'` | `'roundTrip'` | `'repeat'`.
 - `repeatParticleCount`: particle count when animationMode is `'repeat'`.
-- **Tooltip & Internal Process Durations (Critical for User Readability)**: `internalProcess.duration` controls how long tooltip info text remains visible at a node. **Set generous durations (1500ms – 3000ms minimum)** so users have enough time to comfortably read tooltips and step descriptions.
+- **Tooltip & Internal Process Durations**: `internalProcess.duration` controls tooltip visibility. **Set generous durations (1500ms – 3000ms minimum)**.
 - **Duration Guide**: internal process / tooltip: `1500–3000ms`, edge transit (`duration`): `1000–2000ms`, DB query: `1200–2000ms`.
 
-### 📝 Sticky Notes (Visual Annotations)
+---
+
+## 🎨 Visual Design System (Premium Diagrams)
+
+Every diagram MUST look visually premium. Use the styling system below deliberately — generic defaults are NOT acceptable.
+
+### Node Themes
+
+Assign themes by architectural role for instant visual semantics:
+
+| Theme | Hex | Best For |
+|---|---|---|
+| `indigo` | `#6366f1` | Clients, frontends, user-facing |
+| `emerald` | `#10b981` | Gateways, load balancers, entry points |
+| `amber` | `#f59e0b` | Services, microservices, workers |
+| `rose` | `#f43f5e` | Databases, persistent stores |
+| `violet` | `#8b5cf6` | Queues, event buses, message brokers |
+| `cyan` | `#06b6d4` | Caches, CDNs, in-memory stores |
+| `slate` | `#64748b` | Infrastructure, firewalls, generic |
+| `white` | `#ffffff` | Neutral, minimal style |
+
+Custom hex values (e.g. `"#2563eb"`) are also supported as theme values.
+
+### 🖼️ Product Icons (Rich Node Visuals)
+
+Use `customStyles.productIcon` + `productIconColored: true` for branded technology icons. Available icons:
+
+**Cloud & Infra**: `aws`, `azure`, `gcp`, `docker`, `kubernetes`, `cloudflare`, `nginx`, `envoy`, `traefik`
+**Languages**: `java`, `go`, `python`, `rust`, `ruby`, `csharp`, `php`, `nodejs`, `dotnet`
+**Databases**: `postgresql`, `mysql`, `mongodb`, `cassandra`, `mariadb`, `sqlite`, `oracle`, `supabase`
+**Messaging**: `kafka`, `rabbitmq`
+**Caching/Search**: `redis`, `memcached`, `elasticsearch`
+**Frameworks**: `spring`, `rails`, `prisma`, `graphql`
+**Monitoring**: `grafana`, `prometheus`, `kibana`
+**CI/CD**: `bamboo`, `bitbucket`, `jira`, `confluence`
+**Other**: `firebase`, `apollo`, `chrome`, `firefox`, `safari`, `android`, `apple`, `linux`, `windows`
+
+Set `productIconWordmark: true` for text-based logo variants where available.
+
+### Node customStyles Reference
+
+```json
+{
+  "productIcon": "postgresql",
+  "productIconColored": true,
+  "productIconWordmark": false,
+  "backgroundColor": "#hex",
+  "bgOpacity": 0.15,
+  "borderColor": "#hex",
+  "borderStyle": "solid | dashed | dotted",
+  "borderRadius": 8,
+  "borderOnly": false,
+  "iconColor": "#hex",
+  "iconLabelPosition": "none | top | bottom | left | right"
+}
+```
+
+### 📦 Section Styling (Domain Boundaries)
+
+Sections group related nodes into visual containers. Style them deliberately:
+
+#### Section Themes
+Sections use the same theme palette as nodes. Use color-coding to differentiate domains:
+- `emerald` for public-facing boundaries
+- `indigo` for internal service domains
+- `violet` for event/messaging domains
+- `rose` for data layer boundaries
+- `amber` for compute/worker domains
+
+#### Section Title Placement (`customStyles`)
+
+Titles can be placed on **any of the 4 edges** with configurable alignment:
+
+```json
+{
+  "sectionTitleMode": "inline | header | none",
+  "sectionTitleEdge": "top | right | bottom | left",
+  "sectionTitleAlign": "left | center | right",
+  "borderStyle": "dashed | solid | dotted",
+  "bgOpacity": 0.08,
+  "headerBgColor": "#hex or theme-name",
+  "backgroundColor": "#hex"
+}
+```
+
+| Property | Values | Description |
+|---|---|---|
+| `sectionTitleMode` | `inline` (default), `header`, `none` | `inline` = floating tag on edge, `header` = solid banner strip, `none` = hidden |
+| `sectionTitleEdge` | `top` (default), `right`, `bottom`, `left` | Which edge the title appears on |
+| `sectionTitleAlign` | `left` (default), `center`, `right` | Alignment along the chosen edge (maps to start/center/end) |
+| `borderStyle` | `dashed` (default), `solid`, `dotted` | Section border line style |
+| `bgOpacity` | `0.0 – 1.0` | Background fill opacity (lower = more transparent, 0.05–0.15 recommended) |
+| `headerBgColor` | hex or theme name | Solid fill color for header banner mode |
+
+**Text direction for side edges:**
+- **Left edge**: Text flows bottom → top
+- **Right edge**: Text flows top → bottom
+- **Top/Bottom edges**: Normal horizontal text
+
+**Premium styling tips:**
+- Use `"sectionTitleMode": "header"` with `"sectionTitleEdge": "left"` for a vertical sidebar label (elegant domain labeling).
+- Use `"borderStyle": "solid"` + low `bgOpacity` (0.05-0.10) for clean modern boundaries.
+- Mix `"sectionTitleEdge": "left"` for outer domain sections and `"top"` for inner subsections (nested sections).
+- Set `"headerBgColor"` to the section theme color for a branded banner.
+
+#### Nested Sections
+Sections can contain other sections. Use `parentId` to nest:
+```json
+{"id": "s-outer", "type": "section", "name": "Platform"},
+{"id": "s-inner", "type": "section", "name": "Core Services", "parentId": "s-outer"}
+```
+- Inner sections use **parent-relative coordinates** (same as child nodes).
+- Z-index is automatic: root sections = -1, depth 1 = 0, depth 2 = 1, etc.
+- Outer section must be sized to enclose inner sections + padding.
+
+### 🎯 Premium Design Patterns
+
+Apply these patterns to elevate visual quality:
+
+**1. Consistent Color Coding**: All nodes of the same type share the same theme. All services = `amber`, all databases = `rose`, etc.
+
+**2. Icon-First Nodes**: Every node should have a `productIcon` when a matching technology exists. This turns generic boxes into recognizable branded components.
+
+**3. Section as Domain Context**: Use sections with `header` mode and side-edge titles to create clear bounded contexts. Color-code sections to match their domain's role.
+
+**4. Edge Particles**: Match particle types to protocols — `rest` for HTTP, `kafka` for Kafka events, `sql` for DB queries, `grpc` for gRPC calls, `graphql` for GraphQL.
+
+**5. Color-Coded Edges**: Use `color` on VisualEdge for critical paths (e.g. `"#ef4444"` for error flows, `"#22c55e"` for success paths).
+
+**6. Generous Spacing**: Minimum 100px gap between nodes, 40px padding inside sections. Dense layouts look cluttered.
+
+**7. Annotations**: Use dark-themed sticky notes (`backgroundColor: "#0f172a"`, `borderColor: "#6366f1"`) for architectural notes, pattern labels, or flow descriptions.
+
+---
+
+## 📝 Sticky Notes (Visual Annotations)
 
 Sticky notes are purely visual annotations. They belong exclusively in VisualData and require **both**:
 
@@ -112,9 +244,9 @@ Do **NOT** force every diagram into a rigid Left-to-Right layout. Choose the lay
 
 | Layout Style | Best For | Flow Direction | Handle Strategy |
 |---|---|---|---|
-| **Left-to-Right (LR)** | Pipelines, stream processing, sequential service-to-service chains | Left $\rightarrow$ Right (Col X increases) | `sourceHandle: "right:50"`, `targetHandle: "left:50"` |
-| **Top-to-Bottom (TB)** | Tiered architectures (Client $\rightarrow$ Gateway $\rightarrow$ Service $\rightarrow$ DB), tree hierarchies, stack flows | Top $\rightarrow$ Bottom (Row Y increases) | `sourceHandle: "bottom:50"`, `targetHandle: "top:50"` |
-| **Composite (Hybrid LR + TB)** | Complex microservices where primary flow is LR, but databases/caches/brokers branch TB vertically from their service nodes | Primary: Left $\rightarrow$ Right<br>Secondary: Top $\rightarrow$ Bottom | Match relative positions:<br>• Rightward: `"right:50"` $\rightarrow$ `"left:50"`<br>• Downward: `"bottom:50"` $\rightarrow$ `"top:50"`<br>• Upward: `"top:50"` $\rightarrow$ `"bottom:50"`<br>• Leftward: `"left:50"` $\rightarrow$ `"right:50"` |
+| **Left-to-Right (LR)** | Pipelines, stream processing, sequential chains | Left → Right | `sourceHandle: "right:50"`, `targetHandle: "left:50"` |
+| **Top-to-Bottom (TB)** | Tiered architectures, tree hierarchies | Top → Bottom | `sourceHandle: "bottom:50"`, `targetHandle: "top:50"` |
+| **Composite (Hybrid)** | Complex microservices with mixed flows | Primary LR + Secondary TB | Match relative positions |
 
 ### 📐 Standard Grid Coordinates
 
@@ -138,6 +270,8 @@ child.y = absolute_canvas_y - section.y
 ```
 Section bounds must enclose all children: `section.width ≥ child.x + child.width + 40`, same for height.
 
+For **nested sections**, inner section coordinates are relative to the outer section's top-left corner (same rule).
+
 ### ⚠️ Handle Consistency (Critical)
 Always use standard handle IDs (`"right:50"`, `"left:50"`, `"top:50"`, `"bottom:50"`) unless specifically adding a custom `handles` array to the node. Match handle orientation to relative node placement. Do NOT invent custom handle names.
 
@@ -149,8 +283,10 @@ Always use standard handle IDs (`"right:50"`, `"left:50"`, `"top:50"`, `"bottom:
 4. Handles use exact standard format (`"right:50"`, `"left:50"`, `"top:50"`, `"bottom:50"`) and match relative node positioning.
 5. Step timelines use per-step wait delay (`delay` is local to each step — **DO NOT accumulate previous step durations**).
 6. Tooltip and internalProcess durations are set to at least **1500ms – 3000ms** so users have enough time to read them.
-7. Layout orientation (LR, TB, or Composite) is explicitly chosen to provide the clearest visualization for the given architecture.
-8. For Magic Link output: share payload includes `currentView: "diagram"` alongside `logicalData` and `visualData`.
+7. Layout orientation (LR, TB, or Composite) is explicitly chosen to provide the clearest visualization.
+8. Every node has a `productIcon` if a matching technology icon exists in the registry.
+9. Sections have deliberate title placement (`sectionTitleEdge`, `sectionTitleMode`, `sectionTitleAlign`).
+10. For Magic Link output: share payload includes `currentView: "diagram"` alongside `logicalData` and `visualData`.
 
 ## Building the .dproj
 
@@ -196,7 +332,7 @@ through LLM context wastes thousands of tokens on unreadable compressed noise.
 
 ⚠️ **Size limit**: URLs over 32,000 characters may not work reliably in all browsers. The script exits with an error when this limit is exceeded — in that case, fall back to `.dproj` output using `pack_dproj.py`.
 
-## Complete Example: 3-Service Flow with Event Bus
+## Complete Example: Premium Microservices Architecture
 
 ```json
 {
@@ -204,51 +340,64 @@ through LLM context wastes thousands of tokens on unreadable compressed noise.
   "logicalData": {
     "schemaVersion": 2,
     "nodes": [
+      {"id":"n-client","type":"client","name":"Web Client"},
       {"id":"n-gw","type":"gateway","name":"API Gateway"},
-      {"id":"n-order","type":"server","name":"Order Service","parentId":"s-svc"},
-      {"id":"n-bus","type":"queue","name":"Event Bus"},
-      {"id":"n-pay","type":"server","name":"Payment Service","parentId":"s-svc"},
-      {"id":"n-db","type":"database","name":"Order DB"},
-      {"id":"s-svc","type":"section","name":"Services"}
+      {"id":"s-core","type":"section","name":"Core Domain"},
+      {"id":"n-order","type":"server","name":"Order Service","parentId":"s-core"},
+      {"id":"n-pay","type":"server","name":"Payment Service","parentId":"s-core"},
+      {"id":"s-data","type":"section","name":"Data Layer"},
+      {"id":"n-db","type":"database","name":"PostgreSQL","parentId":"s-data"},
+      {"id":"n-cache","type":"cache","name":"Redis","parentId":"s-data"},
+      {"id":"n-bus","type":"queue","name":"Kafka"}
     ],
     "edges": [
-      {"id":"e1","sourceId":"n-gw","targetId":"n-order","isAsync":false,"protocol":"HTTP","description":"POST /order"},
-      {"id":"e2","sourceId":"n-order","targetId":"n-db","isAsync":false,"protocol":"SQL","description":"INSERT"},
-      {"id":"e3","sourceId":"n-order","targetId":"n-bus","isAsync":true,"protocol":"Kafka","description":"OrderCreated"},
-      {"id":"e4","sourceId":"n-bus","targetId":"n-pay","isAsync":true,"protocol":"Kafka","description":"Consume"},
-      {"id":"e5","sourceId":"n-pay","targetId":"n-bus","isAsync":true,"protocol":"Kafka","description":"PaymentDone"}
+      {"id":"e1","sourceId":"n-client","targetId":"n-gw","isAsync":false,"protocol":"HTTPS","description":"User Request"},
+      {"id":"e2","sourceId":"n-gw","targetId":"n-order","isAsync":false,"protocol":"gRPC","description":"CreateOrder"},
+      {"id":"e3","sourceId":"n-order","targetId":"n-db","isAsync":false,"protocol":"SQL","description":"INSERT order"},
+      {"id":"e4","sourceId":"n-order","targetId":"n-cache","isAsync":false,"protocol":"Redis","description":"Cache order"},
+      {"id":"e5","sourceId":"n-order","targetId":"n-bus","isAsync":true,"protocol":"Kafka","description":"OrderCreated"},
+      {"id":"e6","sourceId":"n-bus","targetId":"n-pay","isAsync":true,"protocol":"Kafka","description":"ProcessPayment"}
     ],
     "sequences": [
       {"id":"s1","stepNumber":1,"edgeId":"e1","isAsync":false,"isRoundTrip":true},
       {"id":"s2","stepNumber":2,"edgeId":"e2","isAsync":false,"isRoundTrip":true},
-      {"id":"s3","stepNumber":3,"edgeId":"e3","isAsync":true},
-      {"id":"s4","stepNumber":4,"edgeId":"e4","isAsync":true},
-      {"id":"s5","stepNumber":5,"edgeId":"e5","isAsync":true}
+      {"id":"s3","stepNumber":3,"edgeId":"e3","isAsync":false,"isRoundTrip":true},
+      {"id":"s4","stepNumber":3,"edgeId":"e4","isAsync":false,"isRoundTrip":true},
+      {"id":"s5","stepNumber":4,"edgeId":"e5","isAsync":true},
+      {"id":"s6","stepNumber":5,"edgeId":"e6","isAsync":true}
     ]
   },
   "visualData": {
-    "canvas":{"zoom":0.9,"pan":{"x":50,"y":50},"gridVisible":true},
+    "canvas":{"zoom":0.85,"pan":{"x":80,"y":60},"gridVisible":true},
     "layoutNodes":{
-      "n-gw":   {"id":"n-gw",   "x":0,  "y":100,"width":224,"height":52,"theme":"emerald"},
-      "n-order":{"id":"n-order","x":350,"y":0,  "width":224,"height":52,"theme":"amber","customStyles":{"productIcon":"spring","productIconColored":true}},
-      "n-bus":  {"id":"n-bus",  "x":350,"y":200,"width":224,"height":52,"theme":"violet","customStyles":{"productIcon":"kafka","productIconColored":true}},
-      "n-pay":  {"id":"n-pay",  "x":700,"y":200,"width":224,"height":52,"theme":"amber","customStyles":{"productIcon":"go","productIconColored":true}},
-      "n-db":   {"id":"n-db",   "x":700,"y":0,  "width":224,"height":52,"theme":"rose","customStyles":{"productIcon":"postgresql","productIconColored":true}},
-      "s-svc":  {"id":"s-svc",  "x":310,"y":-50,"width":660,"height":340,"zIndex":-1,"theme":"amber"}
+      "n-client":{"id":"n-client","x":0,"y":120,"width":224,"height":52,"theme":"indigo","customStyles":{"productIcon":"chrome","productIconColored":true}},
+      "n-gw":{"id":"n-gw","x":350,"y":120,"width":224,"height":52,"theme":"emerald","customStyles":{"productIcon":"nginx","productIconColored":true}},
+      "s-core":{"id":"s-core","x":680,"y":0,"width":540,"height":300,"zIndex":-1,"theme":"amber","customStyles":{"sectionTitleMode":"header","sectionTitleEdge":"left","sectionTitleAlign":"center","borderStyle":"solid","bgOpacity":0.08,"headerBgColor":"amber"}},
+      "n-order":{"id":"n-order","x":40,"y":40,"width":224,"height":52,"theme":"amber","customStyles":{"productIcon":"spring","productIconColored":true}},
+      "n-pay":{"id":"n-pay","x":40,"y":200,"width":224,"height":52,"theme":"amber","customStyles":{"productIcon":"java","productIconColored":true}},
+      "s-data":{"id":"s-data","x":680,"y":370,"width":540,"height":180,"zIndex":-1,"theme":"rose","customStyles":{"sectionTitleMode":"header","sectionTitleEdge":"left","sectionTitleAlign":"center","borderStyle":"solid","bgOpacity":0.06,"headerBgColor":"rose"}},
+      "n-db":{"id":"n-db","x":40,"y":40,"width":224,"height":52,"theme":"rose","customStyles":{"productIcon":"postgresql","productIconColored":true}},
+      "n-cache":{"id":"n-cache","x":300,"y":40,"width":224,"height":52,"theme":"cyan","customStyles":{"productIcon":"redis","productIconColored":true}},
+      "n-bus":{"id":"n-bus","x":350,"y":340,"width":224,"height":52,"theme":"violet","customStyles":{"productIcon":"kafka","productIconColored":true}}
     },
     "layoutEdges":{
       "e1":{"id":"e1","sourceHandle":"right:50","targetHandle":"left:50","particleType":"rest","showArrow":true},
-      "e2":{"id":"e2","sourceHandle":"right:50","targetHandle":"left:50","particleType":"sql","showArrow":true},
-      "e3":{"id":"e3","sourceHandle":"bottom:50","targetHandle":"top:50","particleType":"kafka","showArrow":true},
-      "e4":{"id":"e4","sourceHandle":"right:50","targetHandle":"left:50","particleType":"kafka","showArrow":true},
-      "e5":{"id":"e5","sourceHandle":"top:50","targetHandle":"bottom:50","particleType":"kafka","showArrow":true}
+      "e2":{"id":"e2","sourceHandle":"right:50","targetHandle":"left:50","particleType":"grpc","showArrow":true},
+      "e3":{"id":"e3","sourceHandle":"bottom:50","targetHandle":"top:50","particleType":"sql","showArrow":true},
+      "e4":{"id":"e4","sourceHandle":"bottom:50","targetHandle":"top:50","particleType":"dot","showArrow":true},
+      "e5":{"id":"e5","sourceHandle":"left:50","targetHandle":"right:50","particleType":"kafka","showArrow":true},
+      "e6":{"id":"e6","sourceHandle":"top:50","targetHandle":"bottom:50","particleType":"kafka","showArrow":true}
     },
     "timelines":{
-      "s1":{"sequenceId":"s1","duration":1200,"delay":0,"animationMode":"roundTrip","internalProcess":{"text":"Routing POST /order","duration":2000}},
-      "s2":{"sequenceId":"s2","duration":1000,"delay":0,"animationMode":"roundTrip","internalProcess":{"text":"INSERT into Order DB","duration":2000}},
-      "s3":{"sequenceId":"s3","duration":800,"delay":0,"animationMode":"normal","internalProcess":{"text":"Publish OrderCreated","duration":1800}},
-      "s4":{"sequenceId":"s4","duration":800,"delay":0,"animationMode":"normal","internalProcess":{"text":"Consume OrderCreated","duration":1800}},
-      "s5":{"sequenceId":"s5","duration":800,"delay":0,"animationMode":"normal"}
+      "s1":{"sequenceId":"s1","duration":1200,"delay":0,"animationMode":"roundTrip","internalProcess":{"text":"HTTPS → API Gateway routing","duration":2000}},
+      "s2":{"sequenceId":"s2","duration":1000,"delay":0,"animationMode":"roundTrip","internalProcess":{"text":"gRPC CreateOrder call","duration":2000}},
+      "s3":{"sequenceId":"s3","duration":1200,"delay":0,"animationMode":"roundTrip","internalProcess":{"text":"INSERT INTO orders","duration":2500}},
+      "s4":{"sequenceId":"s4","duration":800,"delay":0,"animationMode":"roundTrip","internalProcess":{"text":"SET order:cache","duration":1500}},
+      "s5":{"sequenceId":"s5","duration":1000,"delay":0,"animationMode":"normal","internalProcess":{"text":"Publish OrderCreated event","duration":2000}},
+      "s6":{"sequenceId":"s6","duration":1000,"delay":0,"animationMode":"normal","internalProcess":{"text":"Consume → ProcessPayment","duration":2000}}
+    },
+    "annotations":{
+      "note-arch":{"id":"note-arch","header":"Architecture Pattern","body":"Event-Driven Microservices\nwith CQRS separation\n\n• Sync: gRPC service mesh\n• Async: Kafka event bus\n• Cache: Redis for hot data","style":{"backgroundColor":"#0f172a","borderColor":"#6366f1","textColor":"#e2e8f0","fontFamily":"Inter","fontSize":11,"borderRadius":10,"opacity":0.95},"startTime":0,"endTime":9999,"alwaysVisible":true}
     }
   }
 }

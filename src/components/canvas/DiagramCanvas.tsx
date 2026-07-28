@@ -605,6 +605,25 @@ const FlowWrapper: React.FC = () => {
     closeMenu();
   }, [menu, cloneNode, closeMenu]);
 
+  const handleUnparentElement = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!menu || menu.type !== 'node') return;
+    const state = useAppStore.getState();
+    const ln = state.logicalData.nodes.find((n) => n.id === menu.id);
+    if (ln?.parentId) {
+      pushToHistory();
+      const parentVisual = state.visualData.layoutNodes[ln.parentId];
+      const visual = state.visualData.layoutNodes[menu.id];
+      if (parentVisual && visual) {
+        const absX = visual.x + parentVisual.x;
+        const absY = visual.y + parentVisual.y;
+        state.updateNodePosition(menu.id, absX, absY);
+      }
+      state.setNodeParent(menu.id, null);
+    }
+    closeMenu();
+  }, [menu, pushToHistory, closeMenu]);
+
 
 
   const onPaneClick = useCallback(() => {
@@ -880,6 +899,7 @@ const FlowWrapper: React.FC = () => {
         onClose={closeMenu}
         onDelete={handleDeleteElement}
         onClone={handleCloneElement}
+        onUnparent={handleUnparentElement}
       />
 
       {/* Sticky Note Editor Modal */}

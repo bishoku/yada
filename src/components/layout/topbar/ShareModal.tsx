@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Share2, Lock, Copy, CheckCircle2, AlertCircle, ExternalLink, Eye } from 'lucide-react';
+import { Share2, Lock, Copy, CheckCircle2, AlertCircle, ExternalLink, Eye, Link2, Loader2 } from 'lucide-react';
 import { useAppStore } from '../../../store/useAppStore';
-import { prepareShareData } from '../../../utils/shareUtils';
+import { uploadShare } from '../../../utils/shareUtils';
 import { translations } from '../../../i18n/translations';
 
 interface ShareModalProps {
@@ -35,19 +35,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
-  // MAX URL length for safe sharing is generally around 8000 characters.
-  const MAX_SAFE_URL_LENGTH = 8000;
-
+  // Clear stale link when options change (don't auto-generate)
   useEffect(() => {
-    if (usePin && pin.length < 4) {
-      setShareUrl('');
-      setError(null);
-      return;
-    }
-    const timer = setTimeout(() => {
-      generateLink();
-    }, 300);
-    return () => clearTimeout(timer);
+    setShareUrl('');
+    setError(null);
+    setCopied(false);
   }, [usePin, pin, useEmbed]);
 
   const generateLink = async () => {
@@ -64,7 +56,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
         currentView
       };
 
-      const compressedBase64 = await prepareShareData(
+      // Upload to Cloudflare KV and get a short reference ID
+      const refId = await uploadShare(
         sharePayload,
         usePin && pin.length >= 4 ? pin : undefined
       );
@@ -76,30 +69,48 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
         : window.location.origin + window.location.pathname;
 
       const embedParam = useEmbed ? '?embed=true' : '';
-      const url = `${baseUrl}${embedParam}#share=${compressedBase64}`;
+      const url = `${baseUrl}${embedParam}#ref=${refId}`;
 
-      if (url.length > MAX_SAFE_URL_LENGTH) {
-        setError(t.urlTooLongError);
-      } else {
-        setShareUrl(url);
-      }
+      setShareUrl(url);
     } catch (err: any) {
-      setError(err.message || (isTr ? 'Link oluşturulurken bir hata oluştu' : 'An error occurred while generating link'));
+      if (err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+        setError(t.cloudShareError);
+      } else {
+        setError(err.message || t.shareGenericError);
+      }
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleCopy = async () => {
-    if (!shareUrl) return;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy', err);
+  const handleGenerateAndCopy = async () => {
+    if (isGenerating) return;
+
+    // If link already generated, just copy it
+    if (shareUrl) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy', err);
+      }
+      return;
     }
+
+    // Generate and then copy
+    await generateLink();
   };
+
+  // Auto-copy after link is generated
+  useEffect(() => {
+    if (shareUrl) {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {});
+    }
+  }, [shareUrl]);
 
   return createPortal(
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
@@ -201,24 +212,47 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
                 </p>
               </div>
             ) : (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={isGenerating ? (isTr ? 'Link oluşturuluyor...' : 'Generating link...') : shareUrl}
-                  className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-400 outline-none font-mono text-xs truncate"
-                />
+              <div className="space-y-3">
+                {shareUrl && (
+                  <input
+                    type="text"
+                    readOnly
+                    value={shareUrl}
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-400 outline-none font-mono text-xs truncate"
+                  />
+                )}
                 <button
-                  onClick={handleCopy}
-                  disabled={!shareUrl || isGenerating || (usePin && pin.length < 4)}
-                  className={`px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium transition-all cursor-pointer
-                    ${shareUrl && (!usePin || pin.length >= 4)
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                  onClick={handleGenerateAndCopy}
+                  disabled={isGenerating || (usePin && pin.length < 4)}
+                  className={`w-full px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium transition-all cursor-pointer
+                    ${isGenerating || (usePin && pin.length < 4)
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+                      : copied
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
                     }`}
                 >
-                  {copied ? <CheckCircle2 className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                  {copied ? t.copiedBtn : t.copyBtn}
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {isTr ? 'Oluşturuluyor...' : 'Generating...'}
+                    </>
+                  ) : copied ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      {t.copiedBtn}
+                    </>
+                  ) : shareUrl ? (
+                    <>
+                      <Copy className="w-5 h-5" />
+                      {t.copyBtn}
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="w-5 h-5" />
+                      {isTr ? 'Oluştur ve Kopyala' : 'Generate & Copy'}
+                    </>
+                  )}
                 </button>
               </div>
             )}
