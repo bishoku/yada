@@ -495,18 +495,33 @@ const encodeWithWebCodecsMp4 = async (
 
   const effectiveBitrate = scale > 1 ? Math.round(BITRATES[quality] * scale) : BITRATES[quality];
 
-  // Probe H.264 codec support — try multiple profiles from broadest to narrowest.
-  // avc1.42e01f = Constrained Baseline L3.1 — default for Safari & macOS WKWebView
-  // avc1.42001f = Baseline L3.1 — Chrome/Edge standard
-  // avc1.4d001f = Main L3.1 — High compatibility
-  const h264Candidates = [
-    'avc1.42e01f', // Constrained Baseline L3.1 (Safari/WKWebView)
-    'avc1.42001f', // Baseline L3.1 (Chrome/Edge)
-    'avc1.42001e', // Baseline L3.0
-    'avc1.4d001f', // Main L3.1
-    'avc1.4d0028', // Main L4.0
-    'avc1.640028', // High L4.0
-  ];
+  // Dynamically build H.264 profile candidates based on frame resolution.
+  // Standard 1080p uses Level 4.0/3.1 (avc1.42e028 / avc1.42e01f).
+  // High-DPI / 2K / 4K (scale 1.5× / 2.0×) requires Level 5.1/4.1 (avc1.640033 / avc1.4d0033).
+  const totalPixels = encWidth * encHeight;
+  const isHighRes = encWidth > 2048 || encHeight > 2048 || totalPixels > 2_073_600;
+
+  const h264Candidates = isHighRes
+    ? [
+        'avc1.640033', // High Profile Level 5.1 (4K support up to 4096x2304 @ 60fps)
+        'avc1.4d0033', // Main Profile Level 5.1
+        'avc1.42e033', // Constrained Baseline Level 5.1
+        'avc1.640029', // High Profile Level 4.1 (2K @ 60fps)
+        'avc1.4d0029', // Main Profile Level 4.1
+        'avc1.42e029', // Constrained Baseline Level 4.1
+        'avc1.640028', // High Profile Level 4.0 (1080p @ 60fps)
+        'avc1.4d0028', // Main Profile Level 4.0
+        'avc1.42e028', // Constrained Baseline Level 4.0
+        'avc1.42e01f', // Constrained Baseline Level 3.1
+      ]
+    : [
+        'avc1.42e028', // Constrained Baseline Level 4.0 (1080p @ 60fps)
+        'avc1.42e01f', // Constrained Baseline Level 3.1 (Safari/WKWebView standard)
+        'avc1.42001f', // Baseline Level 3.1 (Chrome/Edge standard)
+        'avc1.4d0028', // Main Profile Level 4.0
+        'avc1.640028', // High Profile Level 4.0
+        'avc1.42001e', // Baseline Level 3.0
+      ];
 
   let codecStr: string | undefined;
   for (const c of h264Candidates) {
@@ -520,9 +535,9 @@ const encodeWithWebCodecsMp4 = async (
       if (probe.supported) { codecStr = c; break; }
     } catch { /* WebView strict probe fallback */ }
   }
-  // Default to universal Safari/Chrome H.264 profile if probing was ambiguous
+  // Default to appropriate resolution profile if probing was ambiguous
   if (!codecStr) {
-    codecStr = 'avc1.42e01f';
+    codecStr = isHighRes ? 'avc1.640033' : 'avc1.42e028';
   }
 
   const target = new Mp4ArrayBufferTarget();
