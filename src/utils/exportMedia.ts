@@ -168,6 +168,7 @@ const captureFramesCanvasAsync = async (
   const { logicalData, visualData, libraryComponents } = store;
   const isDark = document.documentElement.classList.contains('dark');
   const theme: 'light' | 'dark' = isDark ? 'dark' : 'light';
+  const appTheme = (store as any).theme || theme;
 
   const schedules: Schedule[] = calculateSchedules(logicalData, visualData.timelines || {});
   const bounds = calculateViewportBounds(logicalData, visualData);
@@ -224,6 +225,7 @@ const captureFramesCanvasAsync = async (
       schedules,
       currentTime: time,
       theme,
+      appTheme,
       canvasWidth: bounds.width,
       canvasHeight: bounds.height,
       skipBackground: true, // Don't redraw background inside diagram bounds
@@ -806,33 +808,6 @@ export const exportToVideoScreenCapture = async (
     const width  = Math.round(node.clientWidth / 2) * 2;
     const height = Math.round(node.clientHeight / 2) * 2;
 
-    // Create a capture canvas that we'll paint DOM snapshots onto
-    const captureCanvas = document.createElement('canvas');
-    captureCanvas.width  = width;
-    captureCanvas.height = height;
-    const captureCtx = captureCanvas.getContext('2d')!;
-
-    const stream = (captureCanvas as any).captureStream(fps) as MediaStream;
-    const videoTrack = stream.getVideoTracks()[0] as any;
-
-    const effectiveBitrate = BITRATES[quality] || BITRATES.medium;
-    const mimeType = [
-      'video/webm;codecs=vp9',
-      'video/webm;codecs=vp8',
-      'video/webm',
-    ].find(t => MediaRecorder.isTypeSupported(t)) ?? 'video/webm';
-
-    const chunks: Blob[] = [];
-    const recorder = new MediaRecorder(stream, {
-      mimeType,
-      videoBitsPerSecond: effectiveBitrate,
-    });
-    recorder.ondataavailable = (e: BlobEvent) => {
-      if (e.data?.size > 0) chunks.push(e.data);
-    };
-
-
-
     const { toCanvas, getFontEmbedCSS } = await import('html-to-image');
     const fontEmbedCSS = await getFontEmbedCSS(node).catch(() => '');
 
@@ -840,55 +815,77 @@ export const exportToVideoScreenCapture = async (
     const isDark = document.documentElement.classList.contains('dark');
     const bgColor = customBg || (isDark ? '#0f172a' : '#f8fafc');
 
-    await new Promise<void>(async (resolve, reject) => {
-      recorder.onstop = () => resolve();
-      recorder.onerror = () => reject(new Error('MediaRecorder error'));
-      recorder.start();
+    const stepMs = 1000 / fps;
+    const totalFrames = Math.max(1, Math.ceil(maxDuration / stepMs));
+    const frames: { canvas: HTMLCanvasElement; delay: number }[] = [];
 
-      const stepMs = 1000 / fps;
-      const totalFrames = Math.max(1, Math.ceil(maxDuration / stepMs));
+    // Phase 1: Capture frames (0-55%)
+    for (let frame = 0; frame <= totalFrames; frame++) {
+      const time = Math.min(frame * stepMs, maxDuration);
+      store.setCurrentTime(time);
 
-      for (let frame = 0; frame <= totalFrames; frame++) {
-        const time = Math.min(frame * stepMs, maxDuration);
-        store.setCurrentTime(time);
+      // Wait for React Flow DOM to update its state & positions
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-        // Wait for React Flow DOM to update its state & positions
-        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      // Capture actual HTML DOM snapshot exactly as rendered on screen
+      const rawCanvas = await toCanvas(node, {
+        pixelRatio: 1,
+        fontEmbedCSS,
+        backgroundColor: bgColor,
+        width: node.clientWidth,
+        height: node.clientHeight,
+        style: { transform: 'scale(1)', transformOrigin: 'top left' },
+        filter: (domNode) => !shouldExcludeNode(domNode as HTMLElement),
+      });
 
-        // Capture actual HTML DOM snapshot exactly as rendered on screen
-        const rawCanvas = await toCanvas(node, {
-          pixelRatio: 1,
-          fontEmbedCSS,
-          backgroundColor: bgColor,
-          width: node.clientWidth,
-          height: node.clientHeight,
-          style: { transform: 'scale(1)', transformOrigin: 'top left' },
-          filter: (domNode) => !shouldExcludeNode(domNode as HTMLElement),
-        });
+      const captureCanvas = document.createElement('canvas');
+      captureCanvas.width = width;
+      captureCanvas.height = height;
+      const captureCtx = captureCanvas.getContext('2d')!;
+      captureCtx.drawImage(rawCanvas, 0, 0, width, height);
 
-        captureCtx.clearRect(0, 0, width, height);
-        captureCtx.drawImage(rawCanvas, 0, 0, width, height);
+      frames.push({ canvas: captureCanvas, delay: stepMs });
 
-        if (typeof videoTrack.requestFrame === 'function') {
-          videoTrack.requestFrame();
+      onProgress(Math.floor((frame / totalFrames) * 55));
+      // Yield so UI updates progress bar
+      if (frame % 5 === 0) await new Promise((r) => setTimeout(r, 0));
+    }
+
+    // Phase 2: Encode (55-100%)
+    let blob: Blob;
+    let format: 'mp4' | 'webm' = 'mp4';
+    const scale = 1;
+
+    if (supportsWebCodecs()) {
+      try {
+        blob = await encodeWithWebCodecsMp4(frames, width, height, fps, quality, onProgress, scale);
+        format = 'mp4';
+      } catch (mp4Err) {
+        console.warn('[Video Export Screen Capture] H.264/MP4 encoding failed, falling back to WebM:', mp4Err);
+        format = 'webm';
+        try {
+          blob = await encodeWithWebCodecs(frames, width, height, fps, quality, onProgress, scale);
+        } catch (webmErr) {
+          console.warn('[Video Export Screen Capture] VP9/WebM encoding failed, falling back to MediaRecorder:', webmErr);
+          blob = await encodeWithMediaRecorder(frames, width, height, quality, onProgress, scale);
         }
-
-        onProgress(Math.floor((frame / totalFrames) * 100));
-        // Yield so UI updates progress bar
-        if (frame % 5 === 0) await new Promise((r) => setTimeout(r, 0));
       }
+    } else {
+      console.warn('[Video Export Screen Capture] WebCodecs API not available — using MediaRecorder.');
+      format = 'webm';
+      blob = await encodeWithMediaRecorder(frames, width, height, quality, onProgress, scale);
+    }
 
-      recorder.stop();
-    });
-
-    const blob = new Blob(chunks, { type: mimeType });
-    const saveName = defaultName.replace(/\.(webm|mp4)$/i, '.webm');
+    // Phase 3: Save
+    const ext = format === 'mp4' ? 'mp4' : 'webm';
+    const filterName = format === 'mp4' ? 'MP4 Video' : 'WebM Video';
+    const saveName = defaultName.replace(/\.(webm|mp4)$/i, `.${ext}`);
 
     if (isTauri()) {
       const selectedPath = await save({
         title: language === 'tr' ? 'Video Olarak Kaydet' : 'Save as Video',
         defaultPath: saveName,
-        filters: [{ name: 'WebM Video', extensions: ['webm'] }],
+        filters: [{ name: filterName, extensions: [ext] }],
       });
       if (selectedPath) {
         const bytes = new Uint8Array(await blob.arrayBuffer());

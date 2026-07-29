@@ -1,4 +1,5 @@
 import { LogicalDiagram, VisualDiagram, CustomComponentTemplate } from '../types';
+import { getThemeEdgeColors } from './themeUtils';
 
 export interface CanvasRenderOptions {
   logicalData: LogicalDiagram;
@@ -7,6 +8,8 @@ export interface CanvasRenderOptions {
   schedules: Schedule[];
   currentTime: number;
   theme: 'light' | 'dark';
+  /** Full app theme for accurate edge/node colors (optional, defaults to theme) */
+  appTheme?: string;
   canvasWidth: number;
   canvasHeight: number;
   skipBackground?: boolean;
@@ -424,9 +427,45 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: n
   ctx.closePath();
 }
 
+function hexToRgb(hex: string): string {
+  let h = hex.trim();
+  if (/^#([0-9a-f]{3})$/i.test(h)) {
+    h = '#' + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
+  }
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(h);
+  if (!m) return '100, 116, 139';
+  return `${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}`;
+}
+
+/** Word-wrap text into lines that fit within maxWidth. Respects explicit newlines. */
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const result: string[] = [];
+  const paragraphs = text.split('\n');
+  for (const para of paragraphs) {
+    if (para.trim() === '') { result.push(''); continue; }
+    const words = para.split(/\s+/);
+    let line = '';
+    for (const word of words) {
+      const testLine = line ? `${line} ${word}` : word;
+      if (ctx.measureText(testLine).width > maxWidth && line) {
+        result.push(line);
+        line = word;
+      } else {
+        line = testLine;
+      }
+    }
+    if (line) result.push(line);
+  }
+  return result;
+}
+
 export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: CanvasRenderOptions): void {
-  const { logicalData, visualData, libraryComponents: _libraryComponents, schedules, currentTime, theme, canvasWidth, canvasHeight, skipBackground } = options;
+  const { logicalData, visualData, libraryComponents: _libraryComponents, schedules, currentTime, theme, appTheme, canvasWidth, canvasHeight, skipBackground } = options;
   const isDark = theme === 'dark';
+  
+  // Resolve theme-aware edge colors
+  const effectiveAppTheme = appTheme || theme;
+  const themeEdgeColors = getThemeEdgeColors(effectiveAppTheme);
   
   if (!skipBackground) {
     const bgColor = visualData.canvas?.bgColor || (isDark ? '#0b0f19' : '#f1f5f9');
@@ -503,32 +542,230 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
     const vis = visualData.layoutNodes[section.id];
     if (!vis) continue;
     const absPos = getAbsolutePos(section.id, logicalData, visualData);
+    const cs = vis.customStyles ?? {};
     
     ctx.save();
     const isProcessing = processingNodes.has(section.id);
-    let borderColor = isProcessing ? '#10b981' : (themeColors[vis.theme || 'slate'] || '#64748b');
-    let bgOpacity = vis.customStyles?.bgOpacity ?? 0.1;
     
+    // Resolve border color: customStyles.borderColor > theme hex > preset
+    const themeHex = vis.theme?.startsWith('#') ? vis.theme : (themeColors[vis.theme || 'slate'] || '#64748b');
+    const borderColor = isProcessing ? '#10b981' : (cs.borderColor || themeHex);
+    
+    // Resolve background fill color: customStyles.backgroundColor > theme
+    const bgHex = cs.backgroundColor
+      ? (cs.backgroundColor.startsWith('#') ? cs.backgroundColor : (themeColors[cs.backgroundColor] || themeHex))
+      : themeHex;
+    const bgOpacity = cs.bgOpacity ?? 0.15;
+    
+    // Draw background fill
     ctx.globalAlpha = bgOpacity;
-    ctx.fillStyle = borderColor;
+    ctx.fillStyle = bgHex;
     roundRect(ctx, absPos.x, absPos.y, absPos.width, absPos.height, 12);
     ctx.fill();
     ctx.globalAlpha = 1;
     
+    // Draw border
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = isProcessing ? 3 : 2;
-    if (vis.customStyles?.borderStyle !== 'solid') {
-      ctx.setLineDash(vis.customStyles?.borderStyle === 'dotted' ? [2, 4] : [6, 6]);
+    if (cs.borderStyle !== 'solid') {
+      ctx.setLineDash(cs.borderStyle === 'dotted' ? [2, 4] : [6, 6]);
     }
+    roundRect(ctx, absPos.x, absPos.y, absPos.width, absPos.height, 12);
     ctx.stroke();
     ctx.setLineDash([]);
     
-    // Label
-    ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
-    ctx.font = 'bold 10px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(section.name.toUpperCase(), absPos.x + 12, absPos.y - 22);
+    // Section label configuration
+    const titleMode = cs.sectionTitleMode ?? 'inline'; // 'inline' | 'header'
+    const titleEdge = cs.sectionTitleEdge ?? 'top';     // 'top' | 'right' | 'bottom' | 'left'
+    const titleAlign = cs.sectionTitleAlign ?? 'left';   // 'left' | 'center' | 'right'
+    const labelText = section.name.toUpperCase();
+    
+    if (titleMode === 'header') {
+      // ── Header banner mode ──
+      const headerBgColor = cs.headerBgColor
+        ? (cs.headerBgColor.startsWith('#') ? cs.headerBgColor : (themeColors[cs.headerBgColor] || themeHex))
+        : themeHex;
+      
+      // Determine contrasting text color via YIQ luminance
+      const hMatch = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(
+        headerBgColor.length === 4
+          ? '#' + headerBgColor[1] + headerBgColor[1] + headerBgColor[2] + headerBgColor[2] + headerBgColor[3] + headerBgColor[3]
+          : headerBgColor
+      );
+      let headerTextColor = '#ffffff';
+      if (hMatch) {
+        const yiq = (parseInt(hMatch[1], 16) * 299 + parseInt(hMatch[2], 16) * 587 + parseInt(hMatch[3], 16) * 114) / 1000;
+        headerTextColor = yiq > 165 ? '#0f172a' : '#ffffff';
+      }
+      
+      const headerH = 28;
+      const headerFont = `bold 10px "Outfit", sans-serif`;
+      
+      if (titleEdge === 'top' || titleEdge === 'bottom') {
+        const hy = titleEdge === 'top' ? absPos.y : absPos.y + absPos.height - headerH;
+        
+        // Header background
+        ctx.fillStyle = headerBgColor;
+        if (titleEdge === 'top') {
+          roundRect(ctx, absPos.x, hy, absPos.width, headerH, [12, 12, 0, 0]);
+        } else {
+          roundRect(ctx, absPos.x, hy, absPos.width, headerH, [0, 0, 12, 12]);
+        }
+        ctx.fill();
+        
+        // Header text
+        ctx.fillStyle = headerTextColor;
+        ctx.font = headerFont;
+        ctx.textBaseline = 'middle';
+        if (titleAlign === 'center') {
+          ctx.textAlign = 'center';
+          ctx.fillText(labelText, absPos.x + absPos.width / 2, hy + headerH / 2);
+        } else if (titleAlign === 'right') {
+          ctx.textAlign = 'right';
+          ctx.fillText(labelText, absPos.x + absPos.width - 12, hy + headerH / 2);
+        } else {
+          ctx.textAlign = 'left';
+          ctx.fillText(labelText, absPos.x + 12, hy + headerH / 2);
+        }
+      } else {
+        // Left or right vertical header
+        const headerW = 28;
+        const hx = titleEdge === 'left' ? absPos.x : absPos.x + absPos.width - headerW;
+        
+        // Header background
+        ctx.fillStyle = headerBgColor;
+        if (titleEdge === 'left') {
+          roundRect(ctx, hx, absPos.y, headerW, absPos.height, [12, 0, 0, 12]);
+        } else {
+          roundRect(ctx, hx, absPos.y, headerW, absPos.height, [0, 12, 12, 0]);
+        }
+        ctx.fill();
+        
+        // Vertical text
+        ctx.save();
+        ctx.fillStyle = headerTextColor;
+        ctx.font = headerFont;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const tx = hx + headerW / 2;
+        let ty: number;
+        if (titleAlign === 'center') {
+          ty = absPos.y + absPos.height / 2;
+        } else if (titleAlign === 'right') {
+          ty = titleEdge === 'left' ? absPos.y + 12 + ctx.measureText(labelText).width / 2 : absPos.y + absPos.height - 12 - ctx.measureText(labelText).width / 2;
+        } else {
+          ty = titleEdge === 'left' ? absPos.y + absPos.height - 12 - ctx.measureText(labelText).width / 2 : absPos.y + 12 + ctx.measureText(labelText).width / 2;
+        }
+        
+        ctx.translate(tx, ty);
+        ctx.rotate(titleEdge === 'left' ? -Math.PI / 2 : Math.PI / 2);
+        ctx.fillText(labelText, 0, 0);
+        ctx.restore();
+      }
+    } else {
+      // ── Inline label mode ──
+      // Label background pill
+      const labelBg = themeHex;
+      ctx.font = `bold 10px "Outfit", sans-serif`;
+      const labelW = ctx.measureText(labelText).width + 20;
+      const labelH = 20;
+      
+      let lx: number, ly: number;
+      let labelRounding: number[];
+      
+      if (titleEdge === 'bottom') {
+        ly = absPos.y + absPos.height;
+        if (titleAlign === 'center') lx = absPos.x + (absPos.width - labelW) / 2;
+        else if (titleAlign === 'right') lx = absPos.x + absPos.width - labelW - 12;
+        else lx = absPos.x + 12;
+        labelRounding = [0, 0, 8, 8];
+      } else if (titleEdge === 'left') {
+        // Vertical inline - draw as rotated pill
+        ctx.save();
+        const pillX = absPos.x - labelH;
+        if (titleAlign === 'center') {
+          ly = absPos.y + absPos.height / 2;
+        } else if (titleAlign === 'right') {
+          ly = absPos.y + 12;
+        } else {
+          ly = absPos.y + absPos.height - 12;
+        }
+        
+        ctx.translate(pillX + labelH / 2, ly);
+        ctx.rotate(-Math.PI / 2);
+        
+        // Pill background
+        ctx.fillStyle = isDark ? `rgba(${hexToRgb(labelBg)}, 0.20)` : `rgba(${hexToRgb(labelBg)}, 0.15)`;
+        roundRect(ctx, -ctx.measureText(labelText).width / 2 - 10, -labelH / 2, labelW, labelH, 8);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(${hexToRgb(labelBg)}, 0.4)`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        // Text
+        ctx.fillStyle = labelBg;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labelText, 0, 0);
+        ctx.restore();
+        ctx.restore();
+        continue; // Skip the standard label draw below
+      } else if (titleEdge === 'right') {
+        // Vertical inline right
+        ctx.save();
+        const pillX = absPos.x + absPos.width;
+        if (titleAlign === 'center') {
+          ly = absPos.y + absPos.height / 2;
+        } else if (titleAlign === 'right') {
+          ly = absPos.y + absPos.height - 12;
+        } else {
+          ly = absPos.y + 12;
+        }
+        
+        ctx.translate(pillX + labelH / 2, ly);
+        ctx.rotate(Math.PI / 2);
+        
+        // Pill background
+        ctx.fillStyle = isDark ? `rgba(${hexToRgb(labelBg)}, 0.20)` : `rgba(${hexToRgb(labelBg)}, 0.15)`;
+        roundRect(ctx, -ctx.measureText(labelText).width / 2 - 10, -labelH / 2, labelW, labelH, 8);
+        ctx.fill();
+        ctx.strokeStyle = `rgba(${hexToRgb(labelBg)}, 0.4)`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        // Text
+        ctx.fillStyle = labelBg;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labelText, 0, 0);
+        ctx.restore();
+        ctx.restore();
+        continue;
+      } else {
+        // Top (default)
+        ly = absPos.y - labelH;
+        if (titleAlign === 'center') lx = absPos.x + (absPos.width - labelW) / 2;
+        else if (titleAlign === 'right') lx = absPos.x + absPos.width - labelW - 12;
+        else lx = absPos.x + 12;
+        labelRounding = [8, 8, 0, 0];
+      }
+      
+      // Pill background
+      ctx.fillStyle = isDark ? `rgba(${hexToRgb(labelBg)}, 0.20)` : `rgba(${hexToRgb(labelBg)}, 0.15)`;
+      roundRect(ctx, lx, ly, labelW, labelH, labelRounding!);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(${hexToRgb(labelBg)}, 0.4)`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      
+      // Label text
+      ctx.fillStyle = labelBg;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labelText, lx + labelW / 2, ly + labelH / 2);
+    }
+    
     ctx.restore();
   }
 
@@ -544,13 +781,16 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
     ctx.bezierCurveTo(coords.c1x, coords.c1y, coords.c2x, coords.c2y, coords.tX, coords.tY);
     
     if (edge.isAsync) ctx.setLineDash([5, 5]);
-    ctx.strokeStyle = isActive ? '#6366f1' : (visualData.layoutEdges?.[edge.id]?.color || (isDark ? '#1e293b' : '#e2e8f0'));
+    const ve = visualData.layoutEdges?.[edge.id];
+    const customEdgeColor = ve?.color;
+    const activeColor = customEdgeColor || themeEdgeColors.activeColor;
+    const inactiveColor = customEdgeColor || (isDark ? '#1e293b' : '#e2e8f0');
+    ctx.strokeStyle = isActive ? activeColor : inactiveColor;
     ctx.lineWidth = isActive ? 3.5 : 2;
     ctx.stroke();
     ctx.setLineDash([]);
 
     // Arrowhead
-    const ve = visualData.layoutEdges?.[edge.id];
     if (ve?.showArrow !== false) {
       // rough tangent calculation at t=1
       const p2x = coords.c2x, p2y = coords.c2y, p3x = coords.tX, p3y = coords.tY;
@@ -610,18 +850,30 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
     
     ctx.save();
     
+    const nodeCsv = vis.customStyles ?? {};
+    const nodeThemeHex = themeColors[vis.theme || 'slate'] || '#64748b';
+    const isBorderOnly = nodeCsv.borderOnly !== false;
+    
+    // Resolve custom node bg color
+    const nodeBgHex = nodeCsv.backgroundColor
+      ? (nodeCsv.backgroundColor.startsWith('#') ? nodeCsv.backgroundColor : (themeColors[nodeCsv.backgroundColor] || nodeThemeHex))
+      : nodeThemeHex;
+    
+    // Resolve custom border color
+    const nodeBorderColor = nodeCsv.borderColor || nodeThemeHex;
+    
     if (isProcessing) {
       ctx.shadowBlur = 15;
       ctx.shadowColor = '#10b981';
       ctx.strokeStyle = '#10b981';
     } else if (isActive) {
       ctx.shadowBlur = 15;
-      ctx.shadowColor = '#6366f1';
-      ctx.strokeStyle = '#6366f1';
+      ctx.shadowColor = themeEdgeColors.activeColor;
+      ctx.strokeStyle = themeEdgeColors.activeColor;
     } else {
       ctx.shadowBlur = 15;
       ctx.shadowColor = isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)';
-      ctx.strokeStyle = themeColors[vis.theme || 'slate'] || '#64748b';
+      ctx.strokeStyle = nodeBorderColor;
       ctx.globalAlpha = 0.6; // Border opacity
     }
 
@@ -629,6 +881,11 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
       ctx.fillStyle = 'transparent';
       ctx.strokeStyle = 'transparent';
       ctx.shadowColor = 'transparent';
+    } else if (isBorderOnly) {
+      ctx.fillStyle = isDark ? '#0f172a' : '#ffffff';
+    } else if (nodeCsv.backgroundColor) {
+      // Custom solid background
+      ctx.fillStyle = nodeBgHex;
     } else {
       ctx.fillStyle = isDark ? '#0f172a' : '#ffffff';
     }
@@ -645,35 +902,128 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
     const iconBoxSize = Math.round(36 * scale);
     
     if (vis.displayMode !== 'icon-only') {
+      // Determine if we need contrasting text for solid custom background
+      const hasSolidBg = !isBorderOnly && !!nodeCsv.backgroundColor;
+      let textColor = isDark ? '#f8fafc' : '#0f172a';
+      let subTextColor = isDark ? '#94a3b8' : '#475569';
+      
+      if (hasSolidBg) {
+        // Compute YIQ contrast
+        const bgRgb = hexToRgb(nodeBgHex);
+        const [rs, gs, bs] = bgRgb.split(', ').map(Number);
+        const yiq = (rs * 299 + gs * 587 + bs * 114) / 1000;
+        textColor = yiq > 165 ? '#0f172a' : '#f8fafc';
+        subTextColor = yiq > 165 ? '#475569' : '#94a3b8';
+      }
+      
       // Icon Box
-      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+      ctx.fillStyle = hasSolidBg ? 'rgba(255,255,255,0.1)' : (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)');
       const bx = absPos.x + 8 * scale;
       const by = absPos.y + (absPos.height - iconBoxSize) / 2;
       roundRect(ctx, bx, by, iconBoxSize, iconBoxSize, 8);
       ctx.fill();
       
-      const iconColor = themeColors[vis.theme || 'slate'] || '#64748b';
+      const iconColor = hasSolidBg ? textColor : (themeColors[vis.theme || 'slate'] || '#64748b');
       renderNodeIcon(ctx, node.type, bx + (iconBoxSize - 24 * scale) / 2, by + (iconBoxSize - 24 * scale) / 2, 24 * scale, iconColor);
       
       // Text
-      ctx.fillStyle = isDark ? '#f8fafc' : '#0f172a';
+      ctx.fillStyle = textColor;
       const titleFontSize = Math.max(8, Math.round(13 * scale));
       ctx.font = `600 ${titleFontSize}px "Outfit", sans-serif`;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'bottom';
       ctx.fillText(node.name, bx + iconBoxSize + 12 * scale, absPos.y + absPos.height / 2 + 2);
       
-      ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
+      ctx.fillStyle = subTextColor;
       const subFontSize = Math.max(7, Math.round(9 * scale));
       ctx.font = `700 ${subFontSize}px sans-serif`;
       ctx.textBaseline = 'top';
       ctx.fillText(node.type.toUpperCase(), bx + iconBoxSize + 12 * scale, absPos.y + absPos.height / 2 + 4);
     } else {
-      // Icon only
-      const bx = absPos.x + (absPos.width - iconBoxSize) / 2;
-      const by = absPos.y + (absPos.height - iconBoxSize) / 2;
-      const iconColor = themeColors[vis.theme || 'slate'] || '#64748b';
-      renderNodeIcon(ctx, node.type, bx, by, iconBoxSize, iconColor);
+      // Icon only mode
+      const iconLabelPos = nodeCsv.iconLabelPosition ?? 'none';
+      
+      // Resolve icon color: customStyles.iconColor > theme-based color
+      // DOM logic: borderOnly && !isWhiteOrUndefined → activeBgHex, else fallback to dark text
+      const isWhiteTheme = !vis.theme || vis.theme === 'white';
+      let iconColor: string;
+      if (nodeCsv.iconColor) {
+        iconColor = nodeCsv.iconColor;
+      } else if (isWhiteTheme) {
+        iconColor = isDark ? '#94a3b8' : '#334155';
+      } else {
+        iconColor = nodeThemeHex;
+      }
+      
+      if (iconLabelPos === 'none') {
+        // Icon centered, no label
+        const bx = absPos.x + (absPos.width - iconBoxSize) / 2;
+        const by = absPos.y + (absPos.height - iconBoxSize) / 2;
+        renderNodeIcon(ctx, node.type, bx, by, iconBoxSize, iconColor);
+      } else {
+        // Icon with label
+        const labelFontSize = Math.max(9, Math.round(11 * scale));
+        ctx.font = `700 ${labelFontSize}px "Outfit", sans-serif`;
+        const labelText = node.name;
+        const labelWidth = ctx.measureText(labelText).width + 12; // 6px padding each side
+        const labelHeight = labelFontSize + 8; // 4px padding top/bottom
+        
+        if (iconLabelPos === 'bottom' || iconLabelPos === 'top') {
+          // Vertical layout: icon + label stacked
+          const gap = 4 * scale;
+          const totalH = iconBoxSize + gap + labelHeight;
+          const startY = absPos.y + (absPos.height - totalH) / 2;
+          
+          const iconY = iconLabelPos === 'bottom' ? startY : startY + labelHeight + gap;
+          const labelY = iconLabelPos === 'bottom' ? startY + iconBoxSize + gap : startY;
+          
+          const bx = absPos.x + (absPos.width - iconBoxSize) / 2;
+          renderNodeIcon(ctx, node.type, bx, iconY, iconBoxSize, iconColor);
+          
+          // Label pill background
+          const lx = absPos.x + (absPos.width - labelWidth) / 2;
+          ctx.fillStyle = isDark ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)';
+          roundRect(ctx, lx, labelY, labelWidth, labelHeight, 6);
+          ctx.fill();
+          ctx.strokeStyle = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.6)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          
+          // Label text
+          ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+          ctx.font = `700 ${labelFontSize}px "Outfit", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(labelText, absPos.x + absPos.width / 2, labelY + labelHeight / 2);
+        } else {
+          // Horizontal layout: icon + label side by side
+          const gap = 6 * scale;
+          const totalW = iconBoxSize + gap + labelWidth;
+          const startX = absPos.x + (absPos.width - totalW) / 2;
+          
+          const iconX = iconLabelPos === 'right' ? startX : startX + labelWidth + gap;
+          const labelX = iconLabelPos === 'right' ? startX + iconBoxSize + gap : startX;
+          
+          const by = absPos.y + (absPos.height - iconBoxSize) / 2;
+          renderNodeIcon(ctx, node.type, iconX, by, iconBoxSize, iconColor);
+          
+          // Label pill background
+          const ly = absPos.y + (absPos.height - labelHeight) / 2;
+          ctx.fillStyle = isDark ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)';
+          roundRect(ctx, labelX, ly, labelWidth, labelHeight, 6);
+          ctx.fill();
+          ctx.strokeStyle = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.6)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          
+          // Label text
+          ctx.fillStyle = isDark ? '#e2e8f0' : '#1e293b';
+          ctx.font = `700 ${labelFontSize}px "Outfit", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(labelText, labelX + labelWidth / 2, ly + labelHeight / 2);
+        }
+      }
     }
 
     // Handles
@@ -745,58 +1095,62 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
 
       // Text
       ctx.fillStyle = style.textColor;
-      ctx.font = `bold ${style.fontSize || 14}px ${style.fontFamily || 'sans-serif'}`;
+      const fontSize = style.fontSize || 14;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      if (note.header) {
-        ctx.fillText(note.header, absPos.x + 8, absPos.y + 4);
+      
+      const textPadX = 8;
+      const headerBandH = 24;
+      const maxTextWidth = absPos.width - textPadX * 2;
+      
+      // Draw header text (centered within the header band)
+      let bodyStartY = absPos.y + 8;
+      if (note.header && style.headerColor) {
+        ctx.font = `bold ${fontSize}px ${style.fontFamily || 'sans-serif'}`;
+        ctx.fillText(note.header, absPos.x + textPadX, absPos.y + (headerBandH - fontSize) / 2, maxTextWidth);
+        bodyStartY = absPos.y + headerBandH + 6; // after header band + gap
+      } else if (note.header) {
+        ctx.font = `bold ${fontSize}px ${style.fontFamily || 'sans-serif'}`;
+        ctx.fillText(note.header, absPos.x + textPadX, absPos.y + 6, maxTextWidth);
+        bodyStartY = absPos.y + fontSize + 14;
       }
-      ctx.font = `${style.fontSize || 14}px ${style.fontFamily || 'sans-serif'}`;
-      ctx.fillText(note.body, absPos.x + 8, absPos.y + (style.headerColor ? 28 : 8));
+      
+      // Word-wrap body text
+      ctx.font = `${fontSize}px ${style.fontFamily || 'sans-serif'}`;
+      const bodyLines = wrapText(ctx, note.body, maxTextWidth);
+      const lineHeight = fontSize * 1.4;
+      const availableH = absPos.y + absPos.height - bodyStartY - 8;
+      const maxLines = Math.max(1, Math.floor(availableH / lineHeight));
+      
+      ctx.save();
+      // Clip to note bounds to prevent overflow
+      ctx.beginPath();
+      ctx.rect(absPos.x, absPos.y, absPos.width, absPos.height);
+      ctx.clip();
+      
+      for (let li = 0; li < Math.min(bodyLines.length, maxLines); li++) {
+        ctx.fillText(bodyLines[li], absPos.x + textPadX, bodyStartY + li * lineHeight, maxTextWidth);
+      }
+      ctx.restore();
       
       ctx.restore();
     }
   }
 
   // Draw Particles
-  for (const { s, seq } of activeSequences) {
-    const edge = logicalData.edges.find(e => e.id === seq.edgeId);
-    if (!edge) continue;
-    const coords = calculateBezierCoords(edge, logicalData, visualData);
-    if (!coords) continue;
-    
-    const elapsed = currentTime - s.start;
-    let actualProgress = 0;
-    
-    if (s.isRoundTrip) {
-      const transitHalf = s.duration / 2;
-      const returnStartElapsed = (s.end - s.start) - transitHalf;
-      if (elapsed < transitHalf) {
-        actualProgress = Math.min(Math.max(elapsed / transitHalf, 0), 1);
-      } else if (elapsed < returnStartElapsed) {
-        actualProgress = 1.0;
-      } else {
-        const returnElapsed = elapsed - returnStartElapsed;
-        actualProgress = 1.0 - Math.min(Math.max(returnElapsed / transitHalf, 0), 1);
-      }
-    } else {
-      actualProgress = Math.min(Math.max(elapsed / s.duration, 0), 1);
-    }
-    
-    const pointProgress = seq.direction === 'reverse' ? (1 - actualProgress) : actualProgress;
-    const pt = getBezierPoint(pointProgress, coords.sX, coords.sY, coords.c1x, coords.c1y, coords.c2x, coords.c2y, coords.tX, coords.tY);
-    
+  // Helper to draw a single particle ball
+  const drawParticle = (pt: { x: number; y: number }, stepNum: number, particleColor: string, glowColor: string) => {
     ctx.save();
     // Glow
     ctx.beginPath();
     ctx.arc(pt.x, pt.y, 16, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(129, 140, 248, 0.3)';
+    ctx.fillStyle = glowColor;
     ctx.fill();
     
     // Main Ball
     ctx.beginPath();
     ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
-    ctx.fillStyle = '#4f46e5';
+    ctx.fillStyle = particleColor;
     ctx.fill();
     
     // Center
@@ -810,8 +1164,63 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
     ctx.font = '900 8.5px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(seq.stepNumber.toString(), pt.x, pt.y + 0.5);
+    ctx.fillText(stepNum.toString(), pt.x, pt.y + 0.5);
     ctx.restore();
+  };
+  
+  // Resolve particle colors from theme
+  const particleMainColor = themeEdgeColors.activeColor;
+  const particleGlowColor = `rgba(${hexToRgb(particleMainColor)}, 0.3)`;
+
+  for (const { s, seq } of activeSequences) {
+    const edge = logicalData.edges.find(e => e.id === seq.edgeId);
+    if (!edge) continue;
+    const coords = calculateBezierCoords(edge, logicalData, visualData);
+    if (!coords) continue;
+    
+    const elapsed = currentTime - s.start;
+    const timing = visualData.timelines?.[seq.id];
+    const stepDuration = timing?.duration ?? s.duration;
+    const effectiveMode = timing?.animationMode ?? (s.isRoundTrip ? 'roundTrip' : 'normal');
+    
+    if (effectiveMode === 'repeat') {
+      // Multiple particles cycling along the edge
+      const count = timing?.repeatParticleCount ?? 1;
+      const cycleDuration = stepDuration;
+      
+      for (let i = 0; i < count; i++) {
+        const offset = (i / count) * cycleDuration;
+        if (elapsed < offset) continue;
+        
+        const particleElapsed = ((elapsed - offset) % cycleDuration + cycleDuration) % cycleDuration;
+        const progress = Math.max(0, Math.min(1, particleElapsed / cycleDuration));
+        const pointProgress = seq.direction === 'reverse' ? (1 - progress) : progress;
+        const pt = getBezierPoint(pointProgress, coords.sX, coords.sY, coords.c1x, coords.c1y, coords.c2x, coords.c2y, coords.tX, coords.tY);
+        drawParticle(pt, seq.stepNumber, particleMainColor, particleGlowColor);
+      }
+    } else {
+      // Normal or roundTrip — single particle
+      let actualProgress = 0;
+      
+      if (effectiveMode === 'roundTrip' || s.isRoundTrip) {
+        const transitHalf = stepDuration / 2;
+        const returnStartElapsed = (s.end - s.start) - transitHalf;
+        if (elapsed < transitHalf) {
+          actualProgress = Math.min(Math.max(elapsed / transitHalf, 0), 1);
+        } else if (elapsed < returnStartElapsed) {
+          actualProgress = 1.0;
+        } else {
+          const returnElapsed = elapsed - returnStartElapsed;
+          actualProgress = 1.0 - Math.min(Math.max(returnElapsed / transitHalf, 0), 1);
+        }
+      } else {
+        actualProgress = Math.min(Math.max(elapsed / stepDuration, 0), 1);
+      }
+      
+      const pointProgress = seq.direction === 'reverse' ? (1 - actualProgress) : actualProgress;
+      const pt = getBezierPoint(pointProgress, coords.sX, coords.sY, coords.c1x, coords.c1y, coords.c2x, coords.c2y, coords.tX, coords.tY);
+      drawParticle(pt, seq.stepNumber, particleMainColor, particleGlowColor);
+    }
   }
 
   // Draw Tooltips
