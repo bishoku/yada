@@ -56,9 +56,21 @@ export const RightSidebarShell: React.FC = () => {
     stepNumber: number, _direction: 'forward' | 'reverse', isRoundTrip: boolean,
     animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number,
     properties?: Record<string, unknown>,
+    connectionType?: import('../../types').EdgeConnectionType,
+    strokeWidth?: number,
+    lineStyle?: import('../../types').EdgeLineStyle,
+    arrowStart?: import('../../types').EdgeArrowType,
+    arrowEnd?: import('../../types').EdgeArrowType,
+    gradientColor?: string,
+    labelPosition?: number,
+    glowIntensity?: import('../../types').EdgeGlowIntensity
   ) => {
     // Update logical fields (protocol, isAsync, description, properties) and visual fields (particleType, etc.)
-    updateEdgeDetails(id, protocol, isAsync, description, duration, delay, tooltipText, tooltipDuration, particleType, showArrow, color, properties);
+    updateEdgeDetails(
+      id, protocol, isAsync, description, duration, delay, tooltipText, tooltipDuration,
+      particleType, showArrow, color, properties, connectionType, strokeWidth, lineStyle,
+      arrowStart, arrowEnd, gradientColor, labelPosition, glowIntensity
+    );
 
     const seq = logicalData.sequences.find((s) => s.edgeId === id);
     if (seq) {

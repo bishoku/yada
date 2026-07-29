@@ -269,6 +269,14 @@ const FlowWrapper: React.FC = () => {
         particleType: ve?.particleType ?? 'dot',
         showArrow: ve?.showArrow ?? false,
         color: ve?.color ?? '',
+        connectionType: ve?.connectionType,
+        strokeWidth: ve?.strokeWidth,
+        lineStyle: ve?.lineStyle,
+        arrowStart: ve?.arrowStart,
+        arrowEnd: ve?.arrowEnd,
+        gradientColor: ve?.gradientColor,
+        labelPosition: ve?.labelPosition,
+        glowIntensity: ve?.glowIntensity,
         properties: le.properties ?? {},
       });
       setActiveNodeProperties(null);

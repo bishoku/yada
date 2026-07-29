@@ -41,7 +41,15 @@ export interface CanvasSlice {
     particleType?: ParticleType,
     showArrow?: boolean,
     color?: string,
-    properties?: Record<string, unknown>
+    properties?: Record<string, unknown>,
+    connectionType?: import('../../types').EdgeConnectionType,
+    strokeWidth?: number,
+    lineStyle?: import('../../types').EdgeLineStyle,
+    arrowStart?: import('../../types').EdgeArrowType,
+    arrowEnd?: import('../../types').EdgeArrowType,
+    gradientColor?: string,
+    labelPosition?: number,
+    glowIntensity?: import('../../types').EdgeGlowIntensity
   ) => void;
   setNodeParent: (nodeId: string, parentId: string | null) => void;
   autoResizeSection: (sectionId: string) => void;
@@ -515,7 +523,15 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     particleType?: ParticleType,
     showArrow?: boolean,
     color?: string,
-    properties?: Record<string, unknown>
+    properties?: Record<string, unknown>,
+    connectionType?: import('../../types').EdgeConnectionType,
+    strokeWidth?: number,
+    lineStyle?: import('../../types').EdgeLineStyle,
+    arrowStart?: import('../../types').EdgeArrowType,
+    arrowEnd?: import('../../types').EdgeArrowType,
+    gradientColor?: string,
+    labelPosition?: number,
+    glowIntensity?: import('../../types').EdgeGlowIntensity
   ) => {
     set((state) => {
       // Update logical layer: protocol, isAsync, description, properties
@@ -528,11 +544,24 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
         s.edgeId === id ? { ...s, isAsync } : s
       );
 
-      // Update visual edge layer: particleType, showArrow, color
+      // Update visual edge layer: particleType, showArrow, color + new styling properties
       const existingVisualEdge = state.visualData.layoutEdges[id] ?? { id };
       const layoutEdges = {
         ...state.visualData.layoutEdges,
-        [id]: { ...existingVisualEdge, particleType, showArrow, color }
+        [id]: {
+          ...existingVisualEdge,
+          particleType,
+          showArrow,
+          color,
+          connectionType,
+          strokeWidth,
+          lineStyle,
+          arrowStart,
+          arrowEnd,
+          gradientColor,
+          labelPosition,
+          glowIntensity,
+        }
       };
 
       // Update timeline layer: duration, delay, tooltip

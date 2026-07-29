@@ -21,7 +21,15 @@ interface PropertiesViewProps {
     particleType: ParticleType | undefined, showArrow: boolean, color: string,
     stepNumber: number, direction: 'forward' | 'reverse', isRoundTrip: boolean,
     animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number,
-    properties?: Record<string, unknown>
+    properties?: Record<string, unknown>,
+    connectionType?: import('../../types').EdgeConnectionType,
+    strokeWidth?: number,
+    lineStyle?: import('../../types').EdgeLineStyle,
+    arrowStart?: import('../../types').EdgeArrowType,
+    arrowEnd?: import('../../types').EdgeArrowType,
+    gradientColor?: string,
+    labelPosition?: number,
+    glowIntensity?: import('../../types').EdgeGlowIntensity
   ) => void;
   onCancelEdge: () => void;
   /** Swaps the source and target of the selected edge */
@@ -128,10 +136,22 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
     particleType: ParticleType, showArrow: boolean, color: string,
     stepNumber: number, _direction: 'forward' | 'reverse', isRoundTrip: boolean,
     animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number,
-    properties?: Record<string, unknown>
+    properties?: Record<string, unknown>,
+    connectionType?: import('../../types').EdgeConnectionType,
+    strokeWidth?: number,
+    lineStyle?: import('../../types').EdgeLineStyle,
+    arrowStart?: import('../../types').EdgeArrowType,
+    arrowEnd?: import('../../types').EdgeArrowType,
+    gradientColor?: string,
+    labelPosition?: number,
+    glowIntensity?: import('../../types').EdgeGlowIntensity
   ) => {
     // Logical: protocol, isAsync, description, properties — Visual: duration, delay, tooltip, particleType, etc.
-    updateEdgeDetails(id, protocol, isAsync, description, duration, delay, tooltipText, tooltipDuration, particleType, showArrow, color, properties);
+    updateEdgeDetails(
+      id, protocol, isAsync, description, duration, delay, tooltipText, tooltipDuration,
+      particleType, showArrow, color, properties, connectionType, strokeWidth, lineStyle,
+      arrowStart, arrowEnd, gradientColor, labelPosition, glowIntensity
+    );
     const seq = useAppStore.getState().logicalData.sequences.find((s) => s.edgeId === id);
     if (seq) {
       if (seq.stepNumber !== stepNumber) setSequenceStepOrder(seq.id, stepNumber);

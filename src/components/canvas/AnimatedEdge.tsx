@@ -1,10 +1,18 @@
 import React, { useRef, memo, useMemo } from 'react';
-import { EdgeProps, EdgeLabelRenderer } from '@xyflow/react';
+import {
+  EdgeProps,
+  EdgeLabelRenderer,
+  getBezierPath,
+  getSmoothStepPath,
+  getStraightPath,
+  Position,
+} from '@xyflow/react';
 import { useAppStore } from '../../store/useAppStore';
 import { useEdgeAnimation } from './hooks';
 import { AnimationParticle } from './ParticleSvg';
 import { resolveParticleType } from '../../config/particles';
 import { getThemeEdgeColors } from '../../utils/themeUtils';
+import { EdgeArrowType, EdgeConnectionType, EdgeGlowIntensity, EdgeLineStyle } from '../../types';
 
 interface ParallelBezierParams {
   sourceX: number;
@@ -64,8 +72,6 @@ function getParallelBezierPath({
 
 /**
  * Generates a prominent loop path for self-referencing edges (source === target).
- * The loop exits from the source handle, arcs outward, and returns to the target handle.
- * The arc direction and size adapt to which handles are used.
  */
 function getSelfLoopPath(
   sourceX: number,
@@ -77,19 +83,15 @@ function getSelfLoopPath(
   siblingIndex: number,
   _siblingCount: number,
 ): [string, number, number] {
-  // Base loop radius — grows with sibling index to prevent overlap
   const baseRadius = 70;
   const siblingStep = 35;
   const radius = baseRadius + siblingIndex * siblingStep;
 
-  // Determine the outward direction based on source handle position
   const srcSide = sourcePosition as string;
   const tgtSide = targetPosition as string;
 
-  // If source and target handles are on the same side, create a U-loop on that side
   if (srcSide === tgtSide) {
-    // Both handles on same side — separate them vertically/horizontally
-    const gap = 20; // spread between the two endpoints
+    const gap = 20;
     let sx = sourceX, sy = sourceY, tx = targetX, ty = targetY;
     let c1x: number, c1y: number, c2x: number, c2y: number;
 
@@ -127,11 +129,9 @@ function getSelfLoopPath(
     return [path, labelX, labelY];
   }
 
-  // Different sides — create an L-shaped loop going outward from both handles
   let c1x = sourceX, c1y = sourceY;
   let c2x = targetX, c2y = targetY;
 
-  // Extend control points outward from their respective sides
   switch (srcSide) {
     case 'top':    c1y -= radius; break;
     case 'bottom': c1y += radius; break;
@@ -150,6 +150,42 @@ function getSelfLoopPath(
   const labelX = 0.125 * sourceX + 0.375 * c1x + 0.375 * c2x + 0.125 * targetX;
   const labelY = 0.125 * sourceY + 0.375 * c1y + 0.375 * c2y + 0.125 * targetY;
   return [path, labelX, labelY];
+}
+
+/** Helper to render SVG marker shapes */
+function renderMarkerShape(type: EdgeArrowType, color: string, isStart = false) {
+  if (type === 'none') return null;
+
+  switch (type) {
+    case 'triangle':
+      return isStart
+        ? <path d="M8,0 L8,6 L0,3 z" fill={color} />
+        : <path d="M0,0 L0,6 L8,3 z" fill={color} />;
+    case 'open':
+      return isStart
+        ? <path d="M8,0 L0,3 L8,6" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        : <path d="M0,0 L8,3 L0,6" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />;
+    case 'diamond':
+      return <path d="M0,3 L4,0 L8,3 L4,6 z" fill={color} stroke={color} strokeWidth="0.5" />;
+    case 'circle':
+      return <circle cx="4" cy="3" r="2.8" fill={color} stroke={color} strokeWidth="0.5" />;
+    default:
+      return null;
+  }
+}
+
+/** Helper to map lineStyle to strokeDasharray */
+function getDashArray(lineStyle?: EdgeLineStyle, isAsync?: boolean): string | undefined {
+  if (lineStyle) {
+    switch (lineStyle) {
+      case 'solid': return undefined;
+      case 'dashed': return '8,4';
+      case 'dotted': return '3,4';
+      case 'longDash': return '16,6';
+      case 'dashDot': return '12,4,3,4';
+    }
+  }
+  return isAsync ? '5,5' : undefined;
 }
 
 export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
@@ -199,9 +235,18 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
     offset = -offset;
   }
 
-  // Use dedicated self-loop path when source === target
-  const [edgePath, labelX, labelY] = isSelfLoop
-    ? getSelfLoopPath(
+  const connectionType: EdgeConnectionType = ve?.connectionType ?? 'bezier';
+  const sx = isReversed ? targetX : sourceX;
+  const sy = isReversed ? targetY : sourceY;
+  const sPos = (isReversed ? targetPosition : sourcePosition) as Position;
+  const tx = isReversed ? sourceX : targetX;
+  const ty = isReversed ? sourceY : targetY;
+  const tPos = (isReversed ? sourcePosition : targetPosition) as Position;
+
+  // Compute path based on connectionType
+  let [edgePath, defaultLabelX, defaultLabelY] = useMemo<[string, number, number]>(() => {
+    if (isSelfLoop) {
+      return getSelfLoopPath(
         sourceX,
         sourceY,
         sourcePosition,
@@ -210,22 +255,95 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
         targetPosition,
         siblingIndex >= 0 ? siblingIndex : 0,
         siblingCount,
-      )
-    : getParallelBezierPath({
-        sourceX: isReversed ? targetX : sourceX,
-        sourceY: isReversed ? targetY : sourceY,
-        sourcePosition: isReversed ? targetPosition : sourcePosition,
-        targetPosition: isReversed ? sourcePosition : targetPosition,
-        targetX: isReversed ? sourceX : targetX,
-        targetY: isReversed ? sourceY : targetY,
+      );
+    }
+
+    if (offset !== 0 && connectionType === 'bezier') {
+      return getParallelBezierPath({
+        sourceX: sx,
+        sourceY: sy,
+        sourcePosition: sPos,
+        targetPosition: tPos,
+        targetX: tx,
+        targetY: ty,
         offset,
       });
+    }
+
+    switch (connectionType) {
+      case 'smoothstep': {
+        const [p, lx, ly] = getSmoothStepPath({
+          sourceX: sx,
+          sourceY: sy,
+          sourcePosition: sPos,
+          targetX: tx,
+          targetY: ty,
+          targetPosition: tPos,
+          borderRadius: 12,
+        });
+        return [p, lx, ly];
+      }
+      case 'step': {
+        const [p, lx, ly] = getSmoothStepPath({
+          sourceX: sx,
+          sourceY: sy,
+          sourcePosition: sPos,
+          targetX: tx,
+          targetY: ty,
+          targetPosition: tPos,
+          borderRadius: 0,
+        });
+        return [p, lx, ly];
+      }
+      case 'straight': {
+        const [p, lx, ly] = getStraightPath({
+          sourceX: sx,
+          sourceY: sy,
+          targetX: tx,
+          targetY: ty,
+        });
+        return [p, lx, ly];
+      }
+      case 'bezier':
+      default: {
+        const [p, lx, ly] = getBezierPath({
+          sourceX: sx,
+          sourceY: sy,
+          sourcePosition: sPos,
+          targetX: tx,
+          targetY: ty,
+          targetPosition: tPos,
+        });
+        return [p, lx, ly];
+      }
+    }
+  }, [isSelfLoop, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, siblingIndex, siblingCount, offset, connectionType, sx, sy, sPos, tx, ty, tPos]);
+
   const pathRef = useRef<SVGPathElement>(null);
 
-  // Use our custom hook to abstract animation calculation
+  // Custom hook for animation calculation
   const { particlePos, particlePositions, isAnimating, isSelected, isAsync, seqsForEdge, activeStepNumber } = useEdgeAnimation(id, pathRef);
 
-  // Build step labels string, e.g. "1- [HTTP]" or "1, 2- [gRPC]"
+  // Label positioning along path (default 50%)
+  const labelPosPercent = ve?.labelPosition ?? 50;
+  const labelPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  if (pathRef.current && labelPosPercent !== 50) {
+    try {
+      const totalLen = pathRef.current.getTotalLength();
+      const pt = pathRef.current.getPointAtLength((labelPosPercent / 100) * totalLen);
+      labelPosRef.current = { x: pt.x, y: pt.y };
+    } catch {
+      labelPosRef.current = null;
+    }
+  } else {
+    labelPosRef.current = null;
+  }
+
+  const labelX = labelPosRef.current ? labelPosRef.current.x : defaultLabelX;
+  const labelY = labelPosRef.current ? labelPosRef.current.y : defaultLabelY;
+
+  // Build step labels string
   const stepNums = seqsForEdge
     .map((s) => s.stepNumber)
     .sort((a, b) => a - b)
@@ -236,7 +354,6 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const appTheme = useAppStore((s) => s.theme);
   const themeColors = useMemo(() => getThemeEdgeColors(appTheme), [appTheme]);
 
-  // Read visual properties from VisualEdge (not from LogicalEdge)
   const hasCustomColor = !!(ve?.color);
   const customColor = ve?.color || themeColors.defaultColor;
   const activeColor = hasCustomColor ? ve!.color! : themeColors.activeColor;
@@ -245,40 +362,92 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   if (isAnimating || isSelected) isEdgeActive = true;
 
   const strokeColor = isEdgeActive ? activeColor : customColor;
-
   const particleType = resolveParticleType(ve?.particleType);
-  const showArrow = ve?.showArrow ?? false;
 
-  // Build unique marker IDs per edge+state so the arrowhead color matches the stroke.
-  const markerId = showArrow ? `arrow-${id}-${isEdgeActive ? 'active' : 'idle'}` : undefined;
-  // Arrow fill always equals the stroke color — single source of truth.
-  const markerFill = strokeColor;
+  // Arrowheads
+  const showArrowLegacy = ve?.showArrow ?? false;
+  const arrowEndType: EdgeArrowType = ve?.arrowEnd ?? (showArrowLegacy ? 'triangle' : 'none');
+  const arrowStartType: EdgeArrowType = ve?.arrowStart ?? 'none';
+
+  const markerEndId = arrowEndType !== 'none' ? `arrow-end-${id}-${isEdgeActive ? 'active' : 'idle'}` : undefined;
+  const markerStartId = arrowStartType !== 'none' ? `arrow-start-${id}-${isEdgeActive ? 'active' : 'idle'}` : undefined;
+
+  // Stroke width
+  const baseStrokeWidth = ve?.strokeWidth ?? 2;
+  const currentStrokeWidth = isEdgeActive ? Math.max(4, baseStrokeWidth + 1.5) : baseStrokeWidth;
+
+  // Dash pattern
+  const strokeDasharray = getDashArray(ve?.lineStyle, isAsync);
+
+  // Gradient
+  const hasGradient = !!(ve?.gradientColor);
+  const gradientId = hasGradient ? `grad-${id}-${isEdgeActive ? 'active' : 'idle'}` : undefined;
+  const finalStroke = hasGradient ? `url(#${gradientId})` : strokeColor;
+
+  // Glow intensity
+  const glowIntensity: EdgeGlowIntensity = ve?.glowIntensity ?? (isEdgeActive ? 'subtle' : 'none');
+  let filterStyle: string | undefined = undefined;
+
+  switch (glowIntensity) {
+    case 'subtle':
+      filterStyle = `drop-shadow(0 0 4px ${strokeColor}aa)`;
+      break;
+    case 'strong':
+      filterStyle = `drop-shadow(0 0 8px ${strokeColor}dd)`;
+      break;
+    case 'neon':
+      filterStyle = `drop-shadow(0 0 3px ${strokeColor}) drop-shadow(0 0 10px ${strokeColor})`;
+      break;
+    case 'none':
+    default:
+      filterStyle = undefined;
+      break;
+  }
 
   return (
     <>
-      {/* Arrowhead marker definition — only rendered when showArrow is enabled */}
-      {showArrow && (
-        <defs>
+      {/* Dynamic defs for arrows & gradients */}
+      <defs>
+        {arrowEndType !== 'none' && (
           <marker
-            id={markerId}
-            markerWidth="8"
-            markerHeight="8"
-            refX="6"
+            id={markerEndId}
+            markerWidth="10"
+            markerHeight="10"
+            refX="7"
             refY="3"
             orient="auto"
             markerUnits="strokeWidth"
           >
-            <path d="M0,0 L0,6 L8,3 z" fill={markerFill} />
+            {renderMarkerShape(arrowEndType, strokeColor, false)}
           </marker>
-        </defs>
-      )}
+        )}
+        {arrowStartType !== 'none' && (
+          <marker
+            id={markerStartId}
+            markerWidth="10"
+            markerHeight="10"
+            refX="1"
+            refY="3"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            {renderMarkerShape(arrowStartType, strokeColor, true)}
+          </marker>
+        )}
+        {hasGradient && (
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={strokeColor} />
+            <stop offset="100%" stopColor={ve!.gradientColor} />
+          </linearGradient>
+        )}
+      </defs>
 
       {/* Invisible thicker path to make clicking the edge easier */}
       <path
         d={edgePath}
         fill="none"
         stroke="transparent"
-        strokeWidth={15}
+        strokeWidth={Math.max(16, currentStrokeWidth + 10)}
         className="react-flow__edge-interaction"
         style={{ cursor: 'pointer' }}
       />
@@ -288,17 +457,18 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
         ref={pathRef}
         d={edgePath}
         fill="none"
-        strokeDasharray={isAsync ? '5,5' : undefined}
-        markerEnd={showArrow ? `url(#${markerId})` : undefined}
+        strokeDasharray={strokeDasharray}
+        markerStart={markerStartId ? `url(#${markerStartId})` : undefined}
+        markerEnd={markerEndId ? `url(#${markerEndId})` : undefined}
         className="react-flow__edge-path transition-all duration-150"
         style={{
-          stroke: strokeColor,
-          strokeWidth: isEdgeActive ? 4 : 2,
-          filter: isEdgeActive ? `drop-shadow(0 0 6px ${activeColor}cc)` : undefined,
+          stroke: finalStroke,
+          strokeWidth: currentStrokeWidth,
+          filter: filterStyle,
         }}
       />
       
-      {/* Playback particles — repeat mode renders multiple, normal/roundTrip render single */}
+      {/* Playback particles */}
       {particlePositions && particlePositions.length > 0
         ? particlePositions.map((pos, idx) => (
             <g
@@ -356,4 +526,5 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
     </>
   );
 });
+
 

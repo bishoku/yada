@@ -19,7 +19,15 @@ interface EdgePropertiesFormProps {
     particleType: ParticleType | undefined, showArrow: boolean, color: string,
     stepNumber: number, direction: 'forward' | 'reverse', isRoundTrip: boolean,
     animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number,
-    properties?: Record<string, unknown>
+    properties?: Record<string, unknown>,
+    connectionType?: import('../../../types').EdgeConnectionType,
+    strokeWidth?: number,
+    lineStyle?: import('../../../types').EdgeLineStyle,
+    arrowStart?: import('../../../types').EdgeArrowType,
+    arrowEnd?: import('../../../types').EdgeArrowType,
+    gradientColor?: string,
+    labelPosition?: number,
+    glowIntensity?: import('../../../types').EdgeGlowIntensity
   ) => void;
   /** Called immediately on every field change for live canvas preview */
   onPreview: (
@@ -28,7 +36,15 @@ interface EdgePropertiesFormProps {
     particleType: ParticleType, showArrow: boolean, color: string,
     stepNumber: number, direction: 'forward' | 'reverse', isRoundTrip: boolean,
     animationMode?: 'normal' | 'roundTrip' | 'repeat', repeatParticleCount?: number,
-    properties?: Record<string, unknown>
+    properties?: Record<string, unknown>,
+    connectionType?: import('../../../types').EdgeConnectionType,
+    strokeWidth?: number,
+    lineStyle?: import('../../../types').EdgeLineStyle,
+    arrowStart?: import('../../../types').EdgeArrowType,
+    arrowEnd?: import('../../../types').EdgeArrowType,
+    gradientColor?: string,
+    labelPosition?: number,
+    glowIntensity?: import('../../../types').EdgeGlowIntensity
   ) => void;
 }
 
@@ -111,7 +127,17 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
   const [showArrow, setShowArrow] = useState(activeEdge.showArrow ?? false);
   const [color, setColor] = useState(activeEdge.color ?? DEFAULT_COLOR);
   const [properties, setProperties] = useState<Record<string, unknown>>(activeEdge.properties ?? {});
- 
+
+  // NEW Premium Styling State
+  const [connectionType, setConnectionType] = useState<import('../../../types').EdgeConnectionType>(activeEdge.connectionType ?? 'bezier');
+  const [strokeWidth, setStrokeWidth] = useState<number>(activeEdge.strokeWidth ?? 2);
+  const [lineStyle, setLineStyle] = useState<import('../../../types').EdgeLineStyle>(activeEdge.lineStyle ?? (activeEdge.isAsync ? 'dashed' : 'solid'));
+  const [arrowStart, setArrowStart] = useState<import('../../../types').EdgeArrowType>(activeEdge.arrowStart ?? 'none');
+  const [arrowEnd, setArrowEnd] = useState<import('../../../types').EdgeArrowType>(activeEdge.arrowEnd ?? (activeEdge.showArrow ? 'triangle' : 'none'));
+  const [gradientColor, setGradientColor] = useState<string>(activeEdge.gradientColor ?? '');
+  const [labelPosition, setLabelPosition] = useState<number>(activeEdge.labelPosition ?? 50);
+  const [glowIntensity, setGlowIntensity] = useState<import('../../../types').EdgeGlowIntensity>(activeEdge.glowIntensity ?? 'none');
+
   const [orig, setOrig] = useState({
     protocol: activeEdge.protocol, isAsync: activeEdge.isAsync,
     stepNumber: activeEdge.stepNumber, duration: activeEdge.duration,
@@ -124,8 +150,16 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
     animationMode: (sequenceAnimationMode ?? (sequenceRoundTrip ? 'roundTrip' : 'normal')) as 'normal' | 'roundTrip' | 'repeat',
     repeatParticleCount: sequenceRepeatParticleCount ?? 3,
     properties: activeEdge.properties ?? {},
+    connectionType: activeEdge.connectionType ?? 'bezier',
+    strokeWidth: activeEdge.strokeWidth ?? 2,
+    lineStyle: activeEdge.lineStyle ?? (activeEdge.isAsync ? 'dashed' : 'solid'),
+    arrowStart: activeEdge.arrowStart ?? 'none',
+    arrowEnd: activeEdge.arrowEnd ?? (activeEdge.showArrow ? 'triangle' : 'none'),
+    gradientColor: activeEdge.gradientColor ?? '',
+    labelPosition: activeEdge.labelPosition ?? 50,
+    glowIntensity: activeEdge.glowIntensity ?? 'none',
   });
- 
+
   useEffect(() => {
     const snap = {
       protocol: activeEdge.protocol, isAsync: activeEdge.isAsync,
@@ -139,6 +173,14 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       animationMode: (sequenceAnimationMode ?? (sequenceRoundTrip ? 'roundTrip' : 'normal')) as 'normal' | 'roundTrip' | 'repeat',
       repeatParticleCount: sequenceRepeatParticleCount ?? 3,
       properties: activeEdge.properties ?? {},
+      connectionType: activeEdge.connectionType ?? 'bezier',
+      strokeWidth: activeEdge.strokeWidth ?? 2,
+      lineStyle: activeEdge.lineStyle ?? (activeEdge.isAsync ? 'dashed' : 'solid'),
+      arrowStart: activeEdge.arrowStart ?? 'none',
+      arrowEnd: activeEdge.arrowEnd ?? (activeEdge.showArrow ? 'triangle' : 'none'),
+      gradientColor: activeEdge.gradientColor ?? '',
+      labelPosition: activeEdge.labelPosition ?? 50,
+      glowIntensity: activeEdge.glowIntensity ?? 'none',
     };
     setProtocol(snap.protocol); setIsAsync(snap.isAsync); setStepNumber(snap.stepNumber);
     setDuration(snap.duration); setDelay(snap.delay); setTooltipText(snap.tooltipText);
@@ -148,15 +190,31 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
     setFormAnimationMode(snap.animationMode);
     setFormRepeatCount(snap.repeatParticleCount);
     setProperties(snap.properties);
+    setConnectionType(snap.connectionType);
+    setStrokeWidth(snap.strokeWidth);
+    setLineStyle(snap.lineStyle);
+    setArrowStart(snap.arrowStart);
+    setArrowEnd(snap.arrowEnd);
+    setGradientColor(snap.gradientColor);
+    setLabelPosition(snap.labelPosition);
+    setGlowIntensity(snap.glowIntensity);
     setOrig(snap);
   }, [activeEdge, sequenceRoundTrip, sequenceAnimationMode, sequenceRepeatParticleCount]);
- 
+
   // Convenience: preview current values
   const preview = (o?: Partial<{
     p: string; ia: boolean; s: number; d: number | string; dl: number | string;
     tt: string; td: number | string; desc: string; pt: ParticleType; arr: boolean; clr: string;
     rt: boolean; am: 'normal' | 'roundTrip' | 'repeat'; rpc: number | string;
     props: Record<string, unknown>;
+    ct: import('../../../types').EdgeConnectionType;
+    sw: number;
+    ls: import('../../../types').EdgeLineStyle;
+    ast: import('../../../types').EdgeArrowType;
+    aed: import('../../../types').EdgeArrowType;
+    gc: string;
+    lp: number;
+    gi: import('../../../types').EdgeGlowIntensity;
   }>) => {
     const parseNum = (val: any, minVal: number, maxVal = Infinity) => {
       const n = Number(val);
@@ -176,9 +234,17 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       o?.am ?? formAnimationMode,
       parseNum(o?.rpc !== undefined ? o.rpc : formRepeatCount, 1, 10),
       o?.props ?? properties,
+      o?.ct ?? connectionType,
+      o?.sw ?? strokeWidth,
+      o?.ls ?? lineStyle,
+      o?.ast ?? arrowStart,
+      o?.aed ?? arrowEnd,
+      o?.gc !== undefined ? o.gc : gradientColor,
+      o?.lp ?? labelPosition,
+      o?.gi ?? glowIntensity,
     );
   };
- 
+
   useImperativeHandle(ref, () => ({
     submit: () => {
       const parseNum = (val: any, minVal: number, maxVal = Infinity) => {
@@ -203,7 +269,15 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
         formRoundTrip,
         formAnimationMode,
         parseNum(formRepeatCount, 1, 10),
-        properties
+        properties,
+        connectionType,
+        strokeWidth,
+        lineStyle,
+        arrowStart,
+        arrowEnd,
+        gradientColor,
+        labelPosition,
+        glowIntensity
       );
     },
     cancel: () => {
@@ -215,12 +289,23 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       setFormAnimationMode(orig.animationMode);
       setFormRepeatCount(orig.repeatParticleCount);
       setProperties(orig.properties);
+      setConnectionType(orig.connectionType);
+      setStrokeWidth(orig.strokeWidth);
+      setLineStyle(orig.lineStyle);
+      setArrowStart(orig.arrowStart);
+      setArrowEnd(orig.arrowEnd);
+      setGradientColor(orig.gradientColor);
+      setLabelPosition(orig.labelPosition);
+      setGlowIntensity(orig.glowIntensity);
       onPreview(activeEdge.id, orig.protocol, orig.isAsync, orig.duration, orig.delay,
         orig.tooltipText, orig.tooltipDuration, orig.description, orig.particleType, orig.showArrow, orig.color,
-        orig.stepNumber, 'forward', orig.roundTrip, orig.animationMode, orig.repeatParticleCount, orig.properties);
+        orig.stepNumber, 'forward', orig.roundTrip, orig.animationMode, orig.repeatParticleCount, orig.properties,
+        orig.connectionType, orig.strokeWidth, orig.lineStyle, orig.arrowStart, orig.arrowEnd, orig.gradientColor,
+        orig.labelPosition, orig.glowIntensity);
     },
   }), [activeEdge.id, protocol, isAsync, duration, delay, tooltipText, tooltipDuration,
-       description, particleType, showArrow, color, stepNumber, formRoundTrip, formAnimationMode, formRepeatCount, properties, orig, onSubmit, onPreview]);
+       description, particleType, showArrow, color, stepNumber, formRoundTrip, formAnimationMode, formRepeatCount, properties,
+       connectionType, strokeWidth, lineStyle, arrowStart, arrowEnd, gradientColor, labelPosition, glowIntensity, orig, onSubmit, onPreview]);
 
   const tr = (t: string, e: string) => lang === 'tr' ? t : e;
 
@@ -252,26 +337,8 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
         </div>
       </div>
 
-      {/* Async toggle + Arrow toggle — side by side */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="flex items-center justify-between">
-          <Label>{tr('Asenkron', 'Async')}</Label>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" checked={isAsync} onChange={(e) => { setIsAsync(e.target.checked); preview({ ia: e.target.checked }); }} className="sr-only peer" />
-            <div className="w-8 h-4 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500" />
-          </label>
-        </div>
-        <div className="flex items-center justify-between">
-          <Label>{tr('Ok Ucu', 'Arrow')}</Label>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" checked={showArrow} onChange={(e) => { setShowArrow(e.target.checked); preview({ arr: e.target.checked }); }} className="sr-only peer" />
-            <div className="w-8 h-4 bg-slate-200 dark:bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-500" />
-          </label>
-        </div>
-      </div>
-
       {/* Edge Color — 4x2 Preset Grid + Custom Color Row */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 pt-1">
         <div className="flex items-center justify-between">
           <Label>{tr('Bağlantı Rengi', 'Edge Color')}</Label>
         </div>
@@ -281,6 +348,7 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
           {EDGE_COLORS.map((ec) => (
             <button
               key={ec.key}
+              type="button"
               onClick={() => { setColor(ec.value); preview({ clr: ec.value }); }}
               className={`h-5 rounded-full ${ec.cls} hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center justify-center ${
                 color === ec.value ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-105 shadow-sm' : ''
@@ -312,6 +380,223 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
                 className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 p-0 bg-transparent"
               />
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Premium Edge Styling Section ────────────────────────────────────────── */}
+      <Divider label={tr('Çizgi & Yönlendirme Stili', 'Edge & Routing Style')} />
+
+      {/* 1. Connection Type Selector (Bezier, Smooth, Step, Straight) */}
+      <div className="flex flex-col gap-1">
+        <Label>{tr('Çizgi Tipi', 'Connection Type')}</Label>
+        <div className="grid grid-cols-4 gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+          {(
+            [
+              { id: 'bezier', label: 'Bezier', icon: 'M2,14 C8,2 12,18 18,6' },
+              { id: 'smoothstep', label: 'Smooth', icon: 'M2,16 L8,16 Q14,16 14,10 L14,4' },
+              { id: 'step', label: 'Step', icon: 'M2,16 L11,16 L11,4 M11,4 L18,4' },
+              { id: 'straight', label: 'Direct', icon: 'M3,17 L17,3' },
+            ] as const
+          ).map((ct) => (
+            <button
+              key={ct.id}
+              type="button"
+              onClick={() => {
+                setConnectionType(ct.id);
+                preview({ ct: ct.id });
+              }}
+              className={`flex flex-col items-center justify-center p-1.5 rounded-md transition-all cursor-pointer ${
+                connectionType === ct.id
+                  ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-700 font-bold'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+              title={ct.label}
+            >
+              <svg className="w-5 h-5 stroke-current fill-none stroke-[2]" viewBox="0 0 20 20">
+                <path d={ct.icon} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="text-[8px] tracking-tight mt-0.5">{ct.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 2. Line Style (Pattern) & Stroke Width */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Line Style */}
+        <div className="flex flex-col gap-1">
+          <Label>{tr('Çizgi Desen', 'Pattern')}</Label>
+          <select
+            value={lineStyle}
+            onChange={(e) => {
+              const ls = e.target.value as import('../../../types').EdgeLineStyle;
+              setLineStyle(ls);
+              preview({ ls });
+            }}
+            className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 cursor-pointer font-medium"
+          >
+            <option value="solid">Düz (Solid)</option>
+            <option value="dashed">Çizgili (Dashed)</option>
+            <option value="dotted">Noktalı (Dotted)</option>
+            <option value="longDash">Uzun Çizgili</option>
+            <option value="dashDot">Çizgi-Nokta</option>
+          </select>
+        </div>
+
+        {/* Stroke Width Slider */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <Label>{tr('Kalınlık', 'Thickness')}</Label>
+            <span className="text-[9px] font-mono text-indigo-500 font-bold">{strokeWidth}px</span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={8}
+            step={1}
+            value={strokeWidth}
+            onChange={(e) => {
+              const sw = Number(e.target.value);
+              setStrokeWidth(sw);
+              preview({ sw });
+            }}
+            className="w-full accent-indigo-600 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg cursor-pointer mt-1"
+          />
+        </div>
+      </div>
+
+      {/* 3. Arrowhead Pickers (Start & End) */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1">
+          <Label>{tr('Başlangıç Oku', 'Start Arrow')}</Label>
+          <select
+            value={arrowStart}
+            onChange={(e) => {
+              const ast = e.target.value as import('../../../types').EdgeArrowType;
+              setArrowStart(ast);
+              preview({ ast });
+            }}
+            className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 cursor-pointer font-medium"
+          >
+            <option value="none">Yok (None)</option>
+            <option value="triangle">Üçgen (Triangle)</option>
+            <option value="open">Açık Ok (Open)</option>
+            <option value="diamond">Baklava (Diamond)</option>
+            <option value="circle">Daire (Circle)</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <Label>{tr('Bitiş Oku', 'End Arrow')}</Label>
+          <select
+            value={arrowEnd}
+            onChange={(e) => {
+              const aed = e.target.value as import('../../../types').EdgeArrowType;
+              setArrowEnd(aed);
+              setShowArrow(aed !== 'none');
+              preview({ aed, arr: aed !== 'none' });
+            }}
+            className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 cursor-pointer font-medium"
+          >
+            <option value="none">Yok (None)</option>
+            <option value="triangle">Üçgen (Triangle)</option>
+            <option value="open">Açık Ok (Open)</option>
+            <option value="diamond">Baklava (Diamond)</option>
+            <option value="circle">Daire (Circle)</option>
+          </select>
+        </div>
+      </div>
+
+      {/* 4. Gradient Color & Glow Intensity */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Gradient Color */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <Label>{tr('Gradient Bitiş', 'Gradient End')}</Label>
+            {gradientColor && (
+              <button
+                type="button"
+                onClick={() => { setGradientColor(''); preview({ gc: '' }); }}
+                className="text-[8px] text-rose-500 hover:underline cursor-pointer"
+              >
+                Temizle
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0">
+              <input
+                type="color"
+                value={gradientColor || color || '#6366f1'}
+                onChange={(e) => {
+                  setGradientColor(e.target.value);
+                  preview({ gc: e.target.value });
+                }}
+                className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 p-0 bg-transparent"
+              />
+            </div>
+            <span className="text-[10px] font-mono text-slate-500 truncate">
+              {gradientColor || tr('Geçiş Yok', 'None')}
+            </span>
+          </div>
+        </div>
+
+        {/* Glow Intensity */}
+        <div className="flex flex-col gap-1">
+          <Label>{tr('Glow Efekti', 'Glow Effect')}</Label>
+          <select
+            value={glowIntensity}
+            onChange={(e) => {
+              const gi = e.target.value as import('../../../types').EdgeGlowIntensity;
+              setGlowIntensity(gi);
+              preview({ gi });
+            }}
+            className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 cursor-pointer font-medium"
+          >
+            <option value="none">Yok (Off)</option>
+            <option value="subtle">Hafif (Subtle)</option>
+            <option value="strong">Yüksek (Strong)</option>
+            <option value="neon">Neon Halo</option>
+          </select>
+        </div>
+      </div>
+
+      {/* 5. Label Position Slider */}
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between">
+          <Label>{tr('Etiket Konumu', 'Label Position')}</Label>
+          <span className="text-[9px] font-mono text-indigo-500 font-bold">%{labelPosition}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={15}
+            max={85}
+            step={5}
+            value={labelPosition}
+            onChange={(e) => {
+              const lp = Number(e.target.value);
+              setLabelPosition(lp);
+              preview({ lp });
+            }}
+            className="flex-1 accent-indigo-600 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg cursor-pointer"
+          />
+          <div className="flex gap-1 shrink-0">
+            {[25, 50, 75].map((pos) => (
+              <button
+                key={pos}
+                type="button"
+                onClick={() => { setLabelPosition(pos); preview({ lp: pos }); }}
+                className={`px-1.5 py-0.5 text-[8px] font-mono rounded border cursor-pointer ${
+                  labelPosition === pos
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                %{pos}
+              </button>
+            ))}
           </div>
         </div>
       </div>

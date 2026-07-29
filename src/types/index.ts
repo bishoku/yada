@@ -120,6 +120,11 @@ export interface VisualNode {
   };
 }
 
+export type EdgeConnectionType = 'bezier' | 'smoothstep' | 'step' | 'straight';
+export type EdgeLineStyle = 'solid' | 'dashed' | 'dotted' | 'longDash' | 'dashDot';
+export type EdgeArrowType = 'none' | 'triangle' | 'open' | 'diamond' | 'circle';
+export type EdgeGlowIntensity = 'none' | 'subtle' | 'strong' | 'neon';
+
 // NEW: Visual edge layer (moved from LogicalEdge)
 export interface VisualEdge {
   id: string;              // Matches LogicalEdge.id
@@ -128,6 +133,14 @@ export interface VisualEdge {
   particleType?: ParticleType;
   showArrow?: boolean;
   color?: string;          // Custom hex color for the edge line and arrowhead
+  connectionType?: EdgeConnectionType;
+  strokeWidth?: number;
+  lineStyle?: EdgeLineStyle;
+  arrowStart?: EdgeArrowType;
+  arrowEnd?: EdgeArrowType;
+  gradientColor?: string;
+  labelPosition?: number;  // 0-100 percentage offset along path
+  glowIntensity?: EdgeGlowIntensity;
 }
 
 export interface TimelineTiming {
@@ -238,6 +251,14 @@ export interface ActiveEdgeProperties {
   particleType?: ParticleType;
   showArrow?: boolean;
   color?: string;
+  connectionType?: EdgeConnectionType;
+  strokeWidth?: number;
+  lineStyle?: EdgeLineStyle;
+  arrowStart?: EdgeArrowType;
+  arrowEnd?: EdgeArrowType;
+  gradientColor?: string;
+  labelPosition?: number;
+  glowIntensity?: EdgeGlowIntensity;
   isNew?: boolean;
   properties?: Record<string, unknown>;
 }
@@ -448,7 +469,15 @@ export interface AppState {
     particleType?: ParticleType,
     showArrow?: boolean,
     color?: string,
-    properties?: Record<string, unknown>
+    properties?: Record<string, unknown>,
+    connectionType?: EdgeConnectionType,
+    strokeWidth?: number,
+    lineStyle?: EdgeLineStyle,
+    arrowStart?: EdgeArrowType,
+    arrowEnd?: EdgeArrowType,
+    gradientColor?: string,
+    labelPosition?: number,
+    glowIntensity?: EdgeGlowIntensity
   ) => void;
 
   // Active Selection Actions
