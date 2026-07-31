@@ -480,6 +480,7 @@ export interface AppState {
     labelPosition?: number,
     glowIntensity?: EdgeGlowIntensity
   ) => void;
+  updateEdgeWaypoints: (edgeId: string, waypoints: Array<{x: number, y: number}> | undefined) => void;
 
   // Active Selection Actions
   setActiveNodeProperties: (props: ActiveNodeProperties | null) => void;

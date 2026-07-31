@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { NodeChange, NodePositionChange, NodeDimensionsChange } from '@xyflow/react';
+import { NodeChange, NodePositionChange, NodeDimensionChange } from '@xyflow/react';
 import { useAppStore } from '../../../store/useAppStore';
 
 export interface AlignmentLine {
@@ -48,7 +48,7 @@ export const useSnapping = () => {
 
     const dimensionChanges = changes.filter(
       (c) => c.type === 'dimensions' && c.resizing && c.dimensions
-    ) as NodeDimensionsChange[];
+    ) as NodeDimensionChange[];
 
     const state = useAppStore.getState();
     const threshold = 12; // Magnetic threshold
