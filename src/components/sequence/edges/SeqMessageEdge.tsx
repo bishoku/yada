@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useRef, useEffect } from 'react';
 import { type EdgeProps, EdgeLabelRenderer } from '@xyflow/react';
 import { useAppStore } from '../../../store/useAppStore';
 import type { SeqMessageData } from '../useSequenceLayout';
@@ -48,7 +48,6 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
   const themeName    = useAppStore((s) => s.theme);
   const bgColor      = useAppStore((s) => s.visualData.canvas.bgColor);
   const isDark       = bgColor ? isColorDark(bgColor) : themeName !== 'light';
-  const currentTime  = useAppStore((s) => s.currentTime);
   const schedules    = useAppStore((s) => s.schedules);
   const timelines    = useAppStore((s) => s.visualData.timelines);
 
@@ -64,52 +63,70 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
   // This is the time the forward AND return transit each take.
   const halfTransit = timing ? timing.duration / 2 : 400;
 
-  // isActive = the parent sequence is currently running
-  const isActive = schedule != null && currentTime >= schedule.start && currentTime <= schedule.end;
-
   // ── Phase for forward edge: forward-travel vs waiting vs return-travel ─────
-  // (return edges just show dot when active + phase === 'return')
-  const phase = useMemo((): 'idle' | 'forward' | 'waiting' | 'return' => {
-    if (!schedule || !isActive) return 'idle';
-    const elapsed = currentTime - schedule.start;
+  // Derived selector: component only re-renders when phase changes, NOT every frame!
+  const phase = useAppStore((state): 'idle' | 'forward' | 'waiting' | 'return' => {
+    const t = state.currentTime;
+    if (!schedule || t < schedule.start || t > schedule.end) return 'idle';
+    
+    const elapsed = t - schedule.start;
     const total   = schedule.end - schedule.start;
+    
     if (total <= 0) return 'forward';
-
-    // forward transit occupies the first halfTransit ms of the schedule
     if (elapsed < halfTransit) return 'forward';
-
     if (!isRoundTrip) return 'waiting';
-
-    // return transit occupies the last halfTransit ms of the schedule
+    
     const returnPhaseStart = total - halfTransit;
     if (elapsed >= returnPhaseStart) return 'return';
     return 'waiting';
-  }, [schedule, isActive, currentTime, isRoundTrip, halfTransit]);
+  });
 
-  // ── Animated dot progress ─────────────────────────────────────────────────
-  const dotProgress = useMemo((): number => {
-    if (!schedule || !isActive) return 0;
-    const elapsed = currentTime - schedule.start;
-    const total   = schedule.end - schedule.start;
-    if (total <= 0) return 1;
-
-    if (isReturn) {
-      // Return dot: travels during the last halfTransit ms of the parent schedule
-      const returnPhaseStart = total - halfTransit;
-      if (elapsed < returnPhaseStart) return 0;
-      if (halfTransit <= 0) return 1;
-      return Math.min((elapsed - returnPhaseStart) / halfTransit, 1);
-    } else {
-      // Forward dot: travels during the first halfTransit ms
-      if (halfTransit <= 0) return 1;
-      return Math.min(elapsed / halfTransit, 1);
-    }
-  }, [schedule, isActive, currentTime, isReturn, halfTransit]);
-
-  // Show dot whenever we're in the correct transit phase — play OR scrub.
+  const isActive = phase !== 'idle';
   const showDot = isActive && (
     isReturn ? phase === 'return' : phase === 'forward'
   );
+
+  // ── Animated dot progress via DOM Ref (Bypasses React Render) ────────────
+  const dotRef = useRef<SVGCircleElement>(null);
+
+  useEffect(() => {
+    if (!schedule) return;
+    
+    return useAppStore.subscribe((state) => {
+      if (!dotRef.current) return;
+      const t = state.currentTime;
+      if (t < schedule.start || t > schedule.end) {
+        dotRef.current.style.display = 'none';
+        return;
+      }
+
+      const elapsed = t - schedule.start;
+      const total = schedule.end - schedule.start;
+      let dotProgress = 0;
+      let shouldShow = false;
+
+      if (isReturn) {
+        const returnPhaseStart = total - halfTransit;
+        if (elapsed >= returnPhaseStart) {
+          dotProgress = halfTransit <= 0 ? 1 : Math.min((elapsed - returnPhaseStart) / halfTransit, 1);
+          shouldShow = true;
+        }
+      } else {
+        if (elapsed < halfTransit) {
+          dotProgress = halfTransit <= 0 ? 1 : Math.min(elapsed / halfTransit, 1);
+          shouldShow = true;
+        }
+      }
+
+      if (shouldShow) {
+        dotRef.current.style.display = 'block';
+        const cx = sourceX + (targetX - sourceX) * dotProgress;
+        dotRef.current.setAttribute('cx', cx.toString());
+      } else {
+        dotRef.current.style.display = 'none';
+      }
+    });
+  }, [schedule, halfTransit, isReturn, sourceX, targetX]);
 
   // ── Colors ────────────────────────────────────────────────────────────────
   const syncColor        = isDark ? 'rgba(156, 163, 175, 0.85)' : 'rgba(71, 85, 105, 0.8)';
@@ -135,9 +152,6 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
 
   // Arrow path (always straight horizontal)
   const pathD = `M ${sourceX} ${y} L ${targetX} ${y}`;
-
-  // Dot x position along the arrow
-  const dotX = sourceX + (targetX - sourceX) * dotProgress;
 
   // ── Marker IDs (unique per edge to prevent bleed) ─────────────────────────
   const markerId = `arrow-${id}-${isDark ? 'd' : 'l'}`;
@@ -214,13 +228,13 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
       {/* ── Animated particle dot (rendered ON TOP of path, never replacing it) ── */}
       {showDot && totalLen > 0 && (
         <circle
+          ref={dotRef}
           className="seq-dot"
-          cx={dotX}
           cy={y}
           r={5}
           fill={dotColor}
           filter={`url(#${glowId})`}
-          style={{ zIndex: 10 }}
+          style={{ zIndex: 10, willChange: 'cx' }}
         />
       )}
 

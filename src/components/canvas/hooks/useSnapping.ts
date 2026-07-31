@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { NodeChange, NodePositionChange, NodeDimensionChange } from '@xyflow/react';
 import { useAppStore } from '../../../store/useAppStore';
+import throttle from 'lodash/throttle';
 
 export interface AlignmentLine {
   type: 'horizontal' | 'vertical';
@@ -15,6 +16,15 @@ export interface AlignmentLine {
 export const useSnapping = () => {
   const [alignmentLines, setAlignmentLines] = useState<AlignmentLine[]>([]);
   const [isBypassingSnap, setIsBypassingSnap] = useState(false);
+
+  // Throttle state updates to max 30fps (32ms) to prevent React render lag during drag
+  const throttledSetLines = useMemo(
+    () =>
+      throttle((lines: AlignmentLine[]) => {
+        setAlignmentLines(lines);
+      }, 32, { leading: true, trailing: true }),
+    []
+  );
 
   // Global listener for Alt/Shift to bypass snapping
   useEffect(() => {
@@ -38,7 +48,7 @@ export const useSnapping = () => {
 
   const handleSnapping = useCallback((changes: NodeChange[]) => {
     if (isBypassingSnap) {
-      setAlignmentLines([]);
+      throttledSetLines([]);
       return;
     }
 
@@ -124,7 +134,8 @@ export const useSnapping = () => {
       });
 
       // X-Axis Space Distribution
-      if (!snappedToX) {
+      // Performance optimization: skip O(N^2) space distribution if there are too many nodes
+      if (!snappedToX && otherNodes.length <= 50) {
         let snappedToSpaceX = false;
         for (let i = 0; i < otherNodes.length; i++) {
           const n1 = state.visualData.layoutNodes[otherNodes[i].id];
@@ -185,7 +196,8 @@ export const useSnapping = () => {
       }
 
       // Y-Axis Space Distribution
-      if (!snappedToY) {
+      // Performance optimization: skip O(N^2) space distribution if there are too many nodes
+      if (!snappedToY && otherNodes.length <= 50) {
         let snappedToSpaceY = false;
         for (let i = 0; i < otherNodes.length; i++) {
           const n1 = state.visualData.layoutNodes[otherNodes[i].id];
@@ -251,7 +263,7 @@ export const useSnapping = () => {
         change.positionAbsolute.x = snappedX;
         change.positionAbsolute.y = snappedY;
       }
-      setAlignmentLines(lines);
+      throttledSetLines(lines);
 
     } else if (dimensionChanges.length === 1) {
       // Handle Resizing Snapping
@@ -312,16 +324,19 @@ export const useSnapping = () => {
 
       change.dimensions!.width = snappedW;
       change.dimensions!.height = snappedH;
-      setAlignmentLines(lines);
+      throttledSetLines(lines);
 
     } else if (!changes.some((c) => (c.type === 'position' && c.dragging) || (c.type === 'dimensions' && c.resizing))) {
-      setAlignmentLines([]);
+      throttledSetLines([]);
     }
-  }, [isBypassingSnap]);
+  }, [isBypassingSnap, throttledSetLines]);
 
   return {
     alignmentLines,
     handleSnapping,
-    clearAlignmentLines: useCallback(() => setAlignmentLines([]), []),
+    clearAlignmentLines: useCallback(() => {
+      throttledSetLines.cancel();
+      setAlignmentLines([]);
+    }, [throttledSetLines]),
   };
 };

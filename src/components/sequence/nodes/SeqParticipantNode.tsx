@@ -135,15 +135,11 @@ const defaultTheme: ThemeStyle = {
 function useParticipantActivity(
   logicalId: string,
 ): { minSlot: number | null; maxSlot: number | null; isActive: boolean } {
-  const currentTime = useAppStore((s) => s.currentTime);
-  const schedules   = useAppStore((s) => s.schedules);
-  const logicalData = useAppStore((s) => s.logicalData);
-  const layoutSchedules = schedules;
-
-  return useMemo(() => {
+  const str = useAppStore((s) => {
+    const { currentTime, schedules: layoutSchedules, logicalData } = s;
     const { sequences, edges } = logicalData;
 
-    // Build slot map from time-ordered events (same logic as useSequenceLayout)
+    // Build slot map from time-ordered events
     interface SlotEvent { seqId: string; time: number; isReturn: boolean; }
     const events: SlotEvent[] = [];
     sequences.forEach((seq) => {
@@ -153,8 +149,7 @@ function useParticipantActivity(
       events.push({ seqId: seq.id, time: start, isReturn: false });
       if (seq.isRoundTrip) events.push({ seqId: seq.id, time: end, isReturn: true });
     });
-    // Must match the tiebreaker in computeSlots (useSequenceLayout):
-    // at equal timestamps, return events come BEFORE forward events.
+    
     events.sort((a, b) => a.time !== b.time ? a.time - b.time : a.isReturn ? -1 : 1);
 
     const fwdSlotMap = new Map<string, number>();
@@ -164,7 +159,6 @@ function useParticipantActivity(
       else fwdSlotMap.set(ev.seqId, idx);
     });
 
-    // For each active sequence involving this participant, determine activity slot range
     let minSlot: number | null = null;
     let maxSlot: number | null = null;
 
@@ -181,9 +175,6 @@ function useParticipantActivity(
       const isInvolved = edge.sourceId === logicalId || edge.targetId === logicalId;
       if (!isInvolved) return;
 
-      // Determine the slot range this participant is "active" for
-      // A participant is active from the fwd slot until the ret slot (if RT),
-      // or just at the fwd slot (if non-RT).
       const fwd = fwdSlotMap.get(seq.id);
       const ret = retSlotMap.get(seq.id);
 
@@ -196,12 +187,14 @@ function useParticipantActivity(
       }
     });
 
-    return {
+    return JSON.stringify({
       minSlot,
       maxSlot,
       isActive: minSlot !== null,
-    };
-  }, [logicalId, currentTime, layoutSchedules, logicalData]);
+    });
+  });
+  
+  return useMemo(() => JSON.parse(str), [str]);
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────

@@ -4,14 +4,10 @@ import { useAppStore } from '../../store/useAppStore';
 
 export const ActiveAttributesPopover: React.FC = () => {
   const language = useAppStore((s) => s.language);
-  const currentTime = useAppStore((s) => s.currentTime);
-  const schedules = useAppStore((s) => s.schedules);
-  const logicalData = useAppStore((s) => s.logicalData);
-  const visualData = useAppStore((s) => s.visualData);
-
   const [popoverExpanded, setPopoverExpanded] = useState(false);
 
-  const activeAttributes = useMemo(() => {
+  const activeAttributesStr = useAppStore((s) => {
+    const { currentTime, schedules, logicalData, visualData } = s;
     const activeNodesWithProps: Array<{ name: string; properties: Record<string, unknown> }> = [];
     const activeEdgesWithProps: Array<{ name: string; stepNumber: number; properties: Record<string, unknown> }> = [];
 
@@ -118,11 +114,15 @@ export const ActiveAttributesPopover: React.FC = () => {
       return null;
     }
 
-    return {
+    return JSON.stringify({
       nodes: activeNodesWithProps,
       edges: activeEdgesWithProps,
-    };
-  }, [currentTime, schedules, logicalData, visualData]);
+    });
+  });
+
+  const activeAttributes = useMemo(() => {
+    return activeAttributesStr ? JSON.parse(activeAttributesStr) as { nodes: any[], edges: any[] } : null;
+  }, [activeAttributesStr]);
 
   const dynamicTitle = useMemo(() => {
     if (!activeAttributes) {

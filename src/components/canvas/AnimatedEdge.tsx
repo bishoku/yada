@@ -346,8 +346,12 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
     }
   }); // Runs after every render to ensure pathRef triggers one update
 
+  // Pre-allocate refs for particles (e.g. max 5 for repeat mode)
+  const MAX_PARTICLES = 5;
+  const particleRefs = Array.from({ length: MAX_PARTICLES }).map(() => useRef<SVGGElement>(null));
+
   // Custom hook for animation calculation
-  const { particlePos, particlePositions, isAnimating, isSelected, isAsync, seqsForEdge, activeStepNumber } = useEdgeAnimation(id, pathRef);
+  const { isAnimating, isSelected, isAsync, seqsForEdge, activeStepNumber } = useEdgeAnimation(id, pathRef, particleRefs);
 
   // Label positioning along path (default 50%)
   const labelPosPercent = ve?.labelPosition ?? 50;
@@ -468,14 +472,16 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
       </defs>
 
       {/* Invisible thicker path to make clicking the edge easier */}
-      <path
-        d={edgePath}
-        fill="none"
-        stroke="transparent"
-        strokeWidth={Math.max(16, currentStrokeWidth + 10)}
-        className="react-flow__edge-interaction"
-        style={{ cursor: 'pointer' }}
-      />
+      {!isPlaying && (
+        <path
+          d={edgePath}
+          fill="none"
+          stroke="transparent"
+          strokeWidth={Math.max(16, currentStrokeWidth + 10)}
+          className="react-flow__edge-interaction export-exclude"
+          style={{ cursor: 'pointer' }}
+        />
+      )}
       
       {/* Visible edge line */}
       <path
@@ -493,40 +499,25 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
         }}
       />
       
-      {/* Playback particles */}
-      {particlePositions && particlePositions.length > 0
-        ? particlePositions.map((pos, idx) => (
-            <g
-              key={`particle-${idx}`}
-              transform={`translate(${pos.x}, ${pos.y}) rotate(${pos.rotation})`}
-              style={{ pointerEvents: 'none' }}
-            >
-              <AnimationParticle
-                type={particleType}
-                rotation={pos.rotation}
-                stepNumber={activeStepNumber}
-                color={strokeColor}
-              />
-            </g>
-          ))
-        : particlePos && (
-            <g
-              transform={`translate(${particlePos.x}, ${particlePos.y}) rotate(${particlePos.rotation})`}
-              style={{ pointerEvents: 'none' }}
-            >
-              <AnimationParticle
-                type={particleType}
-                rotation={particlePos.rotation}
-                stepNumber={activeStepNumber}
-                color={strokeColor}
-              />
-            </g>
-          )
-      }
+      {/* Playback particles using refs */}
+      {particleRefs.map((ref, idx) => (
+        <g
+          key={`particle-${idx}`}
+          ref={ref}
+          style={{ pointerEvents: 'none', display: 'none', willChange: 'transform' }}
+        >
+          <AnimationParticle
+            type={particleType}
+            rotation={0}
+            stepNumber={activeStepNumber}
+            color={strokeColor}
+          />
+        </g>
+      ))}
 
       {/* Waypoint Handles */}
       {!isPlaying && activeWaypoints.map((wp, idx) => (
-        <g key={`wp-${idx}`} className={`react-flow__edge-interaction transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
+        <g key={`wp-${idx}`} className={`react-flow__edge-interaction export-exclude transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
           <circle cx={wp.x} cy={wp.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, idx, false)} onDoubleClick={(e) => handleDoubleClick(e, idx)} className="cursor-grab active:cursor-grabbing" />
           <circle cx={wp.x} cy={wp.y} r={5} fill={activeColor} stroke="#fff" strokeWidth={1.5} style={{ pointerEvents: 'none' }} />
         </g>
@@ -545,13 +536,13 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
               const p2 = pathRef.current.getPointAtLength(totalLen * 0.67);
 
               ghosts.push(
-                <g key="ghost-0" className={`react-flow__edge-interaction transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
+                <g key="ghost-0" className={`react-flow__edge-interaction export-exclude transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
                   <circle cx={p1.x} cy={p1.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, 0, true, { x: p1.x, y: p1.y })} className="cursor-grab hover:fill-slate-500/10" />
                   <circle cx={p1.x} cy={p1.y} r={4} fill="transparent" stroke="#64748b" strokeWidth={1.5} strokeDasharray="2 2" className="pointer-events-none" />
                 </g>
               );
               ghosts.push(
-                <g key="ghost-1" className={`react-flow__edge-interaction transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
+                <g key="ghost-1" className={`react-flow__edge-interaction export-exclude transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
                   <circle cx={p2.x} cy={p2.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, 0, true, { x: p2.x, y: p2.y })} className="cursor-grab hover:fill-slate-500/10" />
                   <circle cx={p2.x} cy={p2.y} r={4} fill="transparent" stroke="#64748b" strokeWidth={1.5} strokeDasharray="2 2" className="pointer-events-none" />
                 </g>
@@ -568,7 +559,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
             // Offset the ghost point slightly to 40% instead of 50% to prevent exact overlap with labels
             const mid = { x: p1.x + (p2.x - p1.x) * 0.4, y: p1.y + (p2.y - p1.y) * 0.4 };
             ghosts.push(
-              <g key={`ghost-${i}`} className={`react-flow__edge-interaction transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
+              <g key={`ghost-${i}`} className={`react-flow__edge-interaction export-exclude transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
                 <circle cx={mid.x} cy={mid.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, i, true, mid)} className="cursor-grab hover:fill-slate-500/10" />
                 <circle cx={mid.x} cy={mid.y} r={4} fill="transparent" stroke="#64748b" strokeWidth={1.5} strokeDasharray="2 2" className="pointer-events-none" />
               </g>
