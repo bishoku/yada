@@ -141,6 +141,7 @@ export interface VisualEdge {
   gradientColor?: string;
   labelPosition?: number;  // 0-100 percentage offset along path
   glowIntensity?: EdgeGlowIntensity;
+  waypoints?: Array<{ x: number, y: number }>;
 }
 
 export interface TimelineTiming {

@@ -18,6 +18,7 @@ export interface CanvasSlice {
   deleteStickyNote: (id: string) => void;
   addEdge: (logical: LogicalEdge, visual: VisualEdge) => void;
   reconnectEdge: (edgeId: string, sourceId: string, targetId: string, sourceHandle: string, targetHandle: string) => void;
+  updateEdgeWaypoints: (edgeId: string, waypoints: Array<{x: number, y: number}> | undefined) => void;
   swapEdgeDirection: (edgeId: string) => void;
   deleteNode: (id: string) => void;
   deleteEdge: (id: string) => void;
@@ -338,6 +339,19 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
       return {
         logicalData: { nodes, edges, sequences, schemaVersion: state.logicalData.schemaVersion },
         visualData: { ...state.visualData, layoutNodes, layoutEdges, timelines, annotations },
+        isDirty: true
+      };
+    });
+  },
+
+  updateEdgeWaypoints: (edgeId, waypoints) => {
+    set((state) => {
+      const layoutEdge = state.visualData.layoutEdges[edgeId];
+      if (!layoutEdge) return {};
+      const updatedEdge = { ...layoutEdge, waypoints };
+      const layoutEdges = { ...state.visualData.layoutEdges, [edgeId]: updatedEdge };
+      return {
+        visualData: { ...state.visualData, layoutEdges },
         isDirty: true
       };
     });

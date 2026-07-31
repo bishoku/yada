@@ -1,4 +1,4 @@
-import React, { useRef, memo, useMemo } from 'react';
+import React, { useRef, memo, useMemo, useState, useEffect } from 'react';
 import {
   EdgeProps,
   EdgeLabelRenderer,
@@ -12,6 +12,8 @@ import { useEdgeAnimation } from './hooks';
 import { AnimationParticle } from './ParticleSvg';
 import { resolveParticleType } from '../../config/particles';
 import { getThemeEdgeColors } from '../../utils/themeUtils';
+import { getWaypointPath, getSplineWaypointPath } from './utils/waypointRouting';
+import { useWaypointInteraction } from './hooks/useWaypointInteraction';
 import { EdgeArrowType, EdgeConnectionType, EdgeGlowIntensity, EdgeLineStyle } from '../../types';
 
 interface ParallelBezierParams {
@@ -197,10 +199,12 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
     targetY,
     sourcePosition,
     targetPosition,
+    selected: isCanvasSelected,
   } = props;
 
   const logicalData = useAppStore((s) => s.logicalData);
   const layoutEdges = useAppStore((s) => s.visualData.layoutEdges);
+  const isPlaying = useAppStore((s) => s.isPlaying);
   const le = logicalData.edges.find((e) => e.id === id);
   const ve = layoutEdges[id];
   const isReversed = le ? le.sourceId !== props.source : false;
@@ -243,8 +247,22 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const ty = isReversed ? sourceY : targetY;
   const tPos = (isReversed ? sourcePosition : targetPosition) as Position;
 
+  const { activeWaypoints, handlePointerDown, handleDoubleClick } = useWaypointInteraction(id, ve?.waypoints);
+
   // Compute path based on connectionType
   let [edgePath, defaultLabelX, defaultLabelY] = useMemo<[string, number, number]>(() => {
+    if (activeWaypoints && activeWaypoints.length > 0) {
+      if (connectionType === 'bezier') {
+        return getSplineWaypointPath({ x: sx, y: sy }, { x: tx, y: ty }, activeWaypoints);
+      }
+      return getWaypointPath(
+        { x: sx, y: sy },
+        { x: tx, y: ty },
+        activeWaypoints,
+        connectionType === 'step' ? 0 : 12
+      );
+    }
+
     if (isSelfLoop) {
       return getSelfLoopPath(
         sourceX,
@@ -317,9 +335,16 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
         return [p, lx, ly];
       }
     }
-  }, [isSelfLoop, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, siblingIndex, siblingCount, offset, connectionType, sx, sy, sPos, tx, ty, tPos]);
+  }, [isSelfLoop, sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, siblingIndex, siblingCount, offset, connectionType, sx, sy, sPos, tx, ty, tPos, activeWaypoints]);
 
   const pathRef = useRef<SVGPathElement>(null);
+  const [pathReady, setPathReady] = useState(false);
+
+  useEffect(() => {
+    if (pathRef.current && !pathReady) {
+      setPathReady(true);
+    }
+  }); // Runs after every render to ensure pathRef triggers one update
 
   // Custom hook for animation calculation
   const { particlePos, particlePositions, isAnimating, isSelected, isAsync, seqsForEdge, activeStepNumber } = useEdgeAnimation(id, pathRef);
@@ -359,7 +384,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const activeColor = hasCustomColor ? ve!.color! : themeColors.activeColor;
 
   let isEdgeActive = false;
-  if (isAnimating || isSelected) isEdgeActive = true;
+  if (isAnimating || isSelected || isCanvasSelected) isEdgeActive = true;
 
   const strokeColor = isEdgeActive ? activeColor : customColor;
   const particleType = resolveParticleType(ve?.particleType);
@@ -405,7 +430,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   }
 
   return (
-    <>
+    <g className="group">
       {/* Dynamic defs for arrows & gradients */}
       <defs>
         {arrowEndType !== 'none' && (
@@ -499,6 +524,60 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
           )
       }
 
+      {/* Waypoint Handles */}
+      {!isPlaying && activeWaypoints.map((wp, idx) => (
+        <g key={`wp-${idx}`} className={`react-flow__edge-interaction transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
+          <circle cx={wp.x} cy={wp.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, idx, false)} onDoubleClick={(e) => handleDoubleClick(e, idx)} className="cursor-grab active:cursor-grabbing" />
+          <circle cx={wp.x} cy={wp.y} r={5} fill={activeColor} stroke="#fff" strokeWidth={1.5} style={{ pointerEvents: 'none' }} />
+        </g>
+      ))}
+
+      {/* Ghost Handles for adding new waypoints */}
+      {!isPlaying && (() => {
+        const ghosts = [];
+        
+        if (activeWaypoints.length === 0) {
+          if (pathRef.current) {
+            try {
+              const totalLen = pathRef.current.getTotalLength();
+              // Place two ghost points at 33% and 67% to avoid the exact middle (50%) where the label usually is
+              const p1 = pathRef.current.getPointAtLength(totalLen * 0.33);
+              const p2 = pathRef.current.getPointAtLength(totalLen * 0.67);
+
+              ghosts.push(
+                <g key="ghost-0" className={`react-flow__edge-interaction transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
+                  <circle cx={p1.x} cy={p1.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, 0, true, { x: p1.x, y: p1.y })} className="cursor-grab hover:fill-slate-500/10" />
+                  <circle cx={p1.x} cy={p1.y} r={4} fill="transparent" stroke="#64748b" strokeWidth={1.5} strokeDasharray="2 2" className="pointer-events-none" />
+                </g>
+              );
+              ghosts.push(
+                <g key="ghost-1" className={`react-flow__edge-interaction transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
+                  <circle cx={p2.x} cy={p2.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, 0, true, { x: p2.x, y: p2.y })} className="cursor-grab hover:fill-slate-500/10" />
+                  <circle cx={p2.x} cy={p2.y} r={4} fill="transparent" stroke="#64748b" strokeWidth={1.5} strokeDasharray="2 2" className="pointer-events-none" />
+                </g>
+              );
+            } catch (e) {
+              // Ignore if SVG is not fully ready
+            }
+          }
+        } else {
+          const points = [{x: sx, y: sy}, ...activeWaypoints, {x: tx, y: ty}];
+          for (let i = 0; i < points.length - 1; i++) {
+            const p1 = points[i];
+            const p2 = points[i+1];
+            // Offset the ghost point slightly to 40% instead of 50% to prevent exact overlap with labels
+            const mid = { x: p1.x + (p2.x - p1.x) * 0.4, y: p1.y + (p2.y - p1.y) * 0.4 };
+            ghosts.push(
+              <g key={`ghost-${i}`} className={`react-flow__edge-interaction transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
+                <circle cx={mid.x} cy={mid.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, i, true, mid)} className="cursor-grab hover:fill-slate-500/10" />
+                <circle cx={mid.x} cy={mid.y} r={4} fill="transparent" stroke="#64748b" strokeWidth={1.5} strokeDasharray="2 2" className="pointer-events-none" />
+              </g>
+            );
+          }
+        }
+        return ghosts;
+      })()}
+
       {/* Dynamic Step Order Labels overlay */}
       {stepLabel && (
         <EdgeLabelRenderer>
@@ -523,7 +602,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
           </div>
         </EdgeLabelRenderer>
       )}
-    </>
+    </g>
   );
 });
 
