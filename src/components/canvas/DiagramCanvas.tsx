@@ -840,39 +840,48 @@ const FlowWrapper: React.FC = () => {
 
       {/* Alignment Guides Overlay */}
       {alignmentLines.length > 0 && (
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
+        <svg 
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}
+          className="animate-in fade-in duration-150"
+        >
           {alignmentLines.map((line, idx) => {
-            if (line.type === 'vertical') {
-              return (
-                <div 
-                  key={idx} 
-                  style={{ 
-                    position: 'absolute', 
-                    left: line.pos * zoom + viewportX, 
-                    top: line.start * zoom + viewportY, 
-                    height: (line.end - line.start) * zoom, 
-                    width: 1, 
-                    backgroundColor: '#ec4899' // pink-500
-                  }} 
+            const isVert = line.type === 'vertical';
+            const x1 = (isVert ? line.pos : line.start) * zoom + viewportX;
+            const y1 = (isVert ? line.start : line.pos) * zoom + viewportY;
+            const x2 = (isVert ? line.pos : line.end) * zoom + viewportX;
+            const y2 = (isVert ? line.end : line.pos) * zoom + viewportY;
+
+            return (
+              <g key={idx}>
+                <line 
+                  x1={x1} y1={y1} x2={x2} y2={y2}
+                  stroke="#6366f1" // indigo-500
+                  strokeWidth={1.5}
+                  strokeDasharray="4 4"
+                  opacity={0.8}
                 />
-              );
-            } else {
-              return (
-                <div 
-                  key={idx} 
-                  style={{ 
-                    position: 'absolute', 
-                    left: line.start * zoom + viewportX, 
-                    top: line.pos * zoom + viewportY, 
-                    width: (line.end - line.start) * zoom, 
-                    height: 1, 
-                    backgroundColor: '#ec4899' 
-                  }} 
-                />
-              );
-            }
+                {line.label && line.labelX !== undefined && line.labelY !== undefined && (
+                  <g transform={`translate(${line.labelX * zoom + viewportX}, ${line.labelY * zoom + viewportY})`}>
+                    <rect 
+                      x={-24} y={-10} width={48} height={20} rx={4} 
+                      fill="#6366f1" 
+                    />
+                    <text 
+                      x={0} y={4} 
+                      fill="white" 
+                      fontSize={10} 
+                      fontWeight="bold" 
+                      textAnchor="middle"
+                      fontFamily="sans-serif"
+                    >
+                      {line.label}
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
           })}
-        </div>
+        </svg>
       )}
 
       {/* Floating Clear Canvas Button (Bottom Right) */}

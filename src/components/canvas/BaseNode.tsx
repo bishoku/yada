@@ -112,6 +112,21 @@ export const getContrastingTextColors = (bgColor: string) => {
   };
 };
 
+const addOpacityToHex = (color: string, opacity: number) => {
+  if (!color) return `rgba(99, 102, 241, ${opacity})`;
+  let hex = color.trim();
+  if (PRESET_HEX[hex]) hex = PRESET_HEX[hex];
+  if (/^#([0-9a-f]{3})$/i.test(hex)) {
+    hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+  }
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!match) return color;
+  const r = parseInt(match[1], 16);
+  const g = parseInt(match[2], 16);
+  const b = parseInt(match[3], 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
+
 const getIcon = (type: string, colorClass: string, isIconOnly: boolean, customColor?: string, iconPx?: number) => {
   const def = getNodeDefinition(type);
   const sizeClass = isIconOnly ? 'w-[80%] h-[80%]' : '';
@@ -262,6 +277,7 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
     paddingTop: displayMode === 'icon-only' ? 0 : `${cardPaddingY}px`,
     paddingBottom: displayMode === 'icon-only' ? 0 : `${cardPaddingY}px`,
     gap: `${cardGap}px`,
+    ['--tw-ring-color' as any]: addOpacityToHex((activeBgHex === '#ffffff' || activeBgHex === 'white') ? '#6366f1' : activeBgHex, 0.5),
   };
 
   return (
@@ -336,16 +352,16 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
         } ${
           contrastColors ? '' : 'text-slate-800 dark:text-slate-100'
         } ${displayMode === 'icon-only'
-            ? `bg-transparent border-transparent ${iconOnlyFlexClass} ${selected ? 'ring-2 ring-indigo-500/50' : ''}`
+            ? `bg-transparent border-transparent ${iconOnlyFlexClass} ${selected ? 'ring-2' : ''}`
             : `items-center justify-center border-2 shadow-md dark:shadow-xl ${
                 isVertical ? 'flex-col' : 'flex-row'
               } ${
                 isProcessing
                   ? 'ring-4 ring-emerald-400/40 border-emerald-400'
                   : isNodeActive
-                  ? 'ring-2 ring-indigo-500/50'
+                  ? 'ring-2'
                   : selected
-                  ? 'ring-2 ring-indigo-500/40 shadow-lg'
+                  ? 'ring-2 shadow-lg'
                   : 'hover:opacity-95'
               }`
         }`}
