@@ -16,9 +16,10 @@ interface ContextMenuProps {
   onDelete: (e: React.MouseEvent) => void;
   onClone: (e: React.MouseEvent) => void;
   onUnparent?: (e: React.MouseEvent) => void;
+  onAutoRoute?: (e: React.MouseEvent) => void;
 }
 
-export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelete, onClone, onUnparent }) => {
+export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelete, onClone, onUnparent, onAutoRoute }) => {
   const logicalData = useAppStore((state) => state.logicalData);
   const language = useAppStore((state) => state.language);
   const maxSteps = useAppStore((state) => state.maxSteps);
@@ -95,6 +96,16 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelet
             >
               <Clock className="w-4 h-4 text-indigo-500" />
               <span>{t.addToSequence}</span>
+            </button>
+          )}
+          
+          {onAutoRoute && (
+            <button
+              onClick={onAutoRoute}
+              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border-b border-slate-200/40 dark:border-slate-800/40 rounded-xl transition-all duration-200 w-full text-left cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-route"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
+              <span>{language === 'tr' ? 'Otomatik Yönlendir (A*)' : 'Auto Route (A*)'}</span>
             </button>
           )}
         </>

@@ -27,6 +27,7 @@ import { translations } from '../../i18n/translations';
 import { Trash2 } from 'lucide-react';
 
 import { ContextMenu } from './ContextMenu';
+import { findAutoRoute } from './utils/autoRouting';
 import { ClearCanvasModal } from './ClearCanvasModal';
 import { DragGhost } from './DragGhost';
 import { StickyNoteEditorModal } from './StickyNoteEditorModal';
@@ -632,6 +633,91 @@ const FlowWrapper: React.FC = () => {
     closeMenu();
   }, [menu, pushToHistory, closeMenu]);
 
+  const handleAutoRoute = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!menu || menu.type !== 'edge') return;
+    const state = useAppStore.getState();
+    const edge = state.logicalData.edges.find((ed) => ed.id === menu.id);
+    if (!edge) return;
+
+    const sourceNode = state.visualData.layoutNodes[edge.sourceId];
+    const targetNode = state.visualData.layoutNodes[edge.targetId];
+    if (!sourceNode || !targetNode) return;
+
+    // We must read handles from rfEdges since that's where ReactFlow stores current connection handles
+    const rfEdge = rfEdges.find(e => e.id === menu.id);
+    const sourceHandleStr = rfEdge?.sourceHandle?.split('-')[0] ?? 'right:50';
+    const targetHandleStr = rfEdge?.targetHandle?.split('-')[0] ?? 'left:50';
+
+    const parseHandle = (node: {x: number, y: number, width?: number, height?: number}, handle: string) => {
+      const w = node.width ?? 150;
+      const h = node.height ?? 48;
+      const center = { x: node.x + w / 2, y: node.y + h / 2 };
+      const [side, pct] = handle.split(':');
+      const percent = pct ? parseInt(pct, 10) / 100 : 0.5;
+      if (side === 'top') return { pt: { x: node.x + w * percent, y: node.y }, side };
+      if (side === 'bottom') return { pt: { x: node.x + w * percent, y: node.y + h }, side };
+      if (side === 'left') return { pt: { x: node.x, y: node.y + h * percent }, side };
+      if (side === 'right') return { pt: { x: node.x + w, y: node.y + h * percent }, side };
+      return { pt: center, side: 'center' };
+    };
+
+    const src = parseHandle(sourceNode, sourceHandleStr);
+    const dst = parseHandle(targetNode, targetHandleStr);
+
+    const getStandoff = (pt: {x: number, y: number}, side: string, dist = 24) => {
+      if (side === 'top') return { x: pt.x, y: pt.y - dist };
+      if (side === 'bottom') return { x: pt.x, y: pt.y + dist };
+      if (side === 'left') return { x: pt.x - dist, y: pt.y };
+      if (side === 'right') return { x: pt.x + dist, y: pt.y };
+      return pt;
+    };
+
+    const sourceStandoff = getStandoff(src.pt, src.side);
+    const targetStandoff = getStandoff(dst.pt, dst.side);
+
+    const obstacles = Object.entries(state.visualData.layoutNodes)
+      .filter(([id, _]) => id !== edge.sourceId && id !== edge.targetId)
+      .map(([_, n]) => ({
+        x: n.x,
+        y: n.y,
+        w: n.width ?? 150,
+        h: n.height ?? 48,
+      }));
+
+    // Add source and target nodes themselves as obstacles for the routing *between* standoffs
+    // This ensures the path doesn't cross the source/target nodes after leaving the standoff!
+    obstacles.push({ x: sourceNode.x, y: sourceNode.y, w: sourceNode.width ?? 150, h: sourceNode.height ?? 48 });
+    obstacles.push({ x: targetNode.x, y: targetNode.y, w: targetNode.width ?? 150, h: targetNode.height ?? 48 });
+
+    const path = findAutoRoute(sourceStandoff, targetStandoff, obstacles);
+    if (path !== null) {
+      // Build final waypoints: include standoffs if they are useful
+      const finalWaypoints = [sourceStandoff, ...path, targetStandoff];
+      
+      // We can also run a simple collinear filter here for the whole array
+      const simplified = [];
+      for (let i = 0; i < finalWaypoints.length; i++) {
+        if (i === 0 || i === finalWaypoints.length - 1) {
+          simplified.push(finalWaypoints[i]);
+        } else {
+          const prev = simplified[simplified.length - 1];
+          const next = finalWaypoints[i + 1];
+          const curr = finalWaypoints[i];
+          const crossProduct = (curr.x - prev.x) * (next.y - curr.y) - (curr.y - prev.y) * (next.x - curr.x);
+          if (Math.abs(crossProduct) > 0.1) {
+            simplified.push(curr);
+          }
+        }
+      }
+
+      pushToHistory();
+      state.updateEdgeWaypoints(menu.id, simplified.length > 0 ? simplified : undefined);
+    } else {
+      console.warn('AutoRoute: No valid path found between nodes.');
+    }
+    closeMenu();
+  }, [menu, pushToHistory, closeMenu, rfEdges]);
 
 
   const onPaneClick = useCallback(() => {
@@ -917,6 +1003,7 @@ const FlowWrapper: React.FC = () => {
         onDelete={handleDeleteElement}
         onClone={handleCloneElement}
         onUnparent={handleUnparentElement}
+        onAutoRoute={handleAutoRoute}
       />
 
       {/* Sticky Note Editor Modal */}

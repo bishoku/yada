@@ -123,6 +123,128 @@ export const useSnapping = () => {
         }
       });
 
+      // X-Axis Space Distribution
+      if (!snappedToX) {
+        let snappedToSpaceX = false;
+        for (let i = 0; i < otherNodes.length; i++) {
+          const n1 = state.visualData.layoutNodes[otherNodes[i].id];
+          if (!n1) continue;
+          const n1W = n1.width ?? 150;
+          const n1H = n1.height ?? 48;
+          
+          if (!(change.position!.y < n1.y + n1H && change.position!.y + dragH > n1.y)) continue;
+
+          for (let j = 0; j < otherNodes.length; j++) {
+            if (i === j) continue;
+            const n2 = state.visualData.layoutNodes[otherNodes[j].id];
+            if (!n2) continue;
+            const n2W = n2.width ?? 150;
+            const n2H = n2.height ?? 48;
+
+            if (!(n1.y < n2.y + n2H && n1.y + n1H > n2.y)) continue;
+
+            let gap = 0;
+            let n1LeftOfN2 = true;
+            if (n1.x + n1W < n2.x) {
+               gap = n2.x - (n1.x + n1W);
+               n1LeftOfN2 = true;
+            } else if (n2.x + n2W < n1.x) {
+               gap = n1.x - (n2.x + n2W);
+               n1LeftOfN2 = false;
+            } else {
+               continue;
+            }
+
+            if (gap > 0 && gap < 500) {
+               const minX = Math.min(n1.x, n2.x);
+               const maxX = Math.max(n1.x + n1W, n2.x + n2W);
+               
+               const snapLeft = minX - gap - dragW;
+               const snapRight = maxX + gap;
+
+               if (Math.abs(change.position!.x - snapLeft) < threshold) {
+                 snappedX = snapLeft;
+                 snappedToSpaceX = true;
+                 lines.push({ type: 'horizontal', pos: change.position!.y + dragH/2, start: snapLeft + dragW, end: minX, label: `${Math.round(gap)}px`, labelX: snapLeft + dragW + gap/2, labelY: change.position!.y + dragH/2 });
+                 lines.push({ type: 'horizontal', pos: change.position!.y + dragH/2, start: n1LeftOfN2 ? n1.x + n1W : n2.x + n2W, end: n1LeftOfN2 ? n2.x : n1.x, label: `${Math.round(gap)}px`, labelX: (n1LeftOfN2 ? n1.x + n1W : n2.x + n2W) + gap/2, labelY: change.position!.y + dragH/2 });
+                 break;
+               } else if (Math.abs(change.position!.x - snapRight) < threshold) {
+                 snappedX = snapRight;
+                 snappedToSpaceX = true;
+                 lines.push({ type: 'horizontal', pos: change.position!.y + dragH/2, start: maxX, end: snapRight, label: `${Math.round(gap)}px`, labelX: maxX + gap/2, labelY: change.position!.y + dragH/2 });
+                 lines.push({ type: 'horizontal', pos: change.position!.y + dragH/2, start: n1LeftOfN2 ? n1.x + n1W : n2.x + n2W, end: n1LeftOfN2 ? n2.x : n1.x, label: `${Math.round(gap)}px`, labelX: (n1LeftOfN2 ? n1.x + n1W : n2.x + n2W) + gap/2, labelY: change.position!.y + dragH/2 });
+                 break;
+               }
+            }
+          }
+          if (snappedToSpaceX) {
+            snappedToX = true;
+            break;
+          }
+        }
+      }
+
+      // Y-Axis Space Distribution
+      if (!snappedToY) {
+        let snappedToSpaceY = false;
+        for (let i = 0; i < otherNodes.length; i++) {
+          const n1 = state.visualData.layoutNodes[otherNodes[i].id];
+          if (!n1) continue;
+          const n1W = n1.width ?? 150;
+          const n1H = n1.height ?? 48;
+          
+          if (!(change.position!.x < n1.x + n1W && change.position!.x + dragW > n1.x)) continue;
+
+          for (let j = 0; j < otherNodes.length; j++) {
+            if (i === j) continue;
+            const n2 = state.visualData.layoutNodes[otherNodes[j].id];
+            if (!n2) continue;
+            const n2W = n2.width ?? 150;
+            const n2H = n2.height ?? 48;
+
+            if (!(n1.x < n2.x + n2W && n1.x + n1W > n2.x)) continue;
+
+            let gap = 0;
+            let n1TopOfN2 = true;
+            if (n1.y + n1H < n2.y) {
+               gap = n2.y - (n1.y + n1H);
+               n1TopOfN2 = true;
+            } else if (n2.y + n2H < n1.y) {
+               gap = n1.y - (n2.y + n2H);
+               n1TopOfN2 = false;
+            } else {
+               continue;
+            }
+
+            if (gap > 0 && gap < 500) {
+               const minY = Math.min(n1.y, n2.y);
+               const maxY = Math.max(n1.y + n1H, n2.y + n2H);
+               
+               const snapTop = minY - gap - dragH;
+               const snapBottom = maxY + gap;
+
+               if (Math.abs(change.position!.y - snapTop) < threshold) {
+                 snappedY = snapTop;
+                 snappedToSpaceY = true;
+                 lines.push({ type: 'vertical', pos: change.position!.x + dragW/2, start: snapTop + dragH, end: minY, label: `${Math.round(gap)}px`, labelX: change.position!.x + dragW/2, labelY: snapTop + dragH + gap/2 });
+                 lines.push({ type: 'vertical', pos: change.position!.x + dragW/2, start: n1TopOfN2 ? n1.y + n1H : n2.y + n2H, end: n1TopOfN2 ? n2.y : n1.y, label: `${Math.round(gap)}px`, labelX: change.position!.x + dragW/2, labelY: (n1TopOfN2 ? n1.y + n1H : n2.y + n2H) + gap/2 });
+                 break;
+               } else if (Math.abs(change.position!.y - snapBottom) < threshold) {
+                 snappedY = snapBottom;
+                 snappedToSpaceY = true;
+                 lines.push({ type: 'vertical', pos: change.position!.x + dragW/2, start: maxY, end: snapBottom, label: `${Math.round(gap)}px`, labelX: change.position!.x + dragW/2, labelY: maxY + gap/2 });
+                 lines.push({ type: 'vertical', pos: change.position!.x + dragW/2, start: n1TopOfN2 ? n1.y + n1H : n2.y + n2H, end: n1TopOfN2 ? n2.y : n1.y, label: `${Math.round(gap)}px`, labelX: change.position!.x + dragW/2, labelY: (n1TopOfN2 ? n1.y + n1H : n2.y + n2H) + gap/2 });
+                 break;
+               }
+            }
+          }
+          if (snappedToSpaceY) {
+            snappedToY = true;
+            break;
+          }
+        }
+      }
+
       change.position!.x = snappedX;
       change.position!.y = snappedY;
       if (change.positionAbsolute) {
