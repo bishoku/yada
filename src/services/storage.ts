@@ -24,7 +24,12 @@ class StorageManager implements IStorageDriver {
       this.mode = 'forge';
     } else if (isTauri()) {
       this.activeDriver = new TauriDriver();
-      this.mode = 'tauri';
+      const savedMode = (localStorage.getItem(STORAGE_MODE_KEY) as StorageMode) || 'tauri';
+      this.mode = savedMode;
+      // Sync with Rust backend asynchronously
+      import('@tauri-apps/api/core').then(({ invoke }) => {
+        invoke('set_backend_storage_mode', { mode: savedMode === 'icloud-drive' ? 'icloud' : 'localstorage' }).catch(console.error);
+      }).catch(console.error);
     } else {
       const savedMode = (localStorage.getItem(STORAGE_MODE_KEY) as StorageMode) || 'localstorage';
       if (savedMode === 'fs-access' && FileSystemAccessDriver.isSupported()) {
@@ -43,7 +48,13 @@ class StorageManager implements IStorageDriver {
 
   public async setStorageMode(newMode: StorageMode): Promise<boolean> {
     if (isTauri()) {
-      // In Tauri mode, we always use Tauri native FS
+      if (newMode === 'icloud-drive' || newMode === 'tauri') {
+        const { invoke } = await import('@tauri-apps/api/core');
+        await invoke('set_backend_storage_mode', { mode: newMode === 'icloud-drive' ? 'icloud' : 'localstorage' });
+        this.mode = newMode;
+        localStorage.setItem(STORAGE_MODE_KEY, newMode);
+        return true;
+      }
       return false;
     }
 

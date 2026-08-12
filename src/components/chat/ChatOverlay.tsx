@@ -5,6 +5,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { isTauri } from '../../services/storage';
 import { ChatMessage } from '../../types';
 import { ChatBubble } from './ChatBubble';
+import { validateAndRepairAiPayload } from '../../utils/aiValidator';
 
 export const ChatOverlay: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -153,7 +154,10 @@ export const ChatOverlay: React.FC = () => {
 
       // Real-time Visual & Logical Update + Timeline Schedule Recalculation!
       if (response.updatedLogical || response.updatedVisual) {
-        useAppStore.getState().updateDiagramFromAi(response.updatedLogical, response.updatedVisual);
+        const baseLogical = response.updatedLogical || logicalData;
+        const baseVisual = response.updatedVisual || visualData;
+        const { safeLogical, safeVisual } = validateAndRepairAiPayload(baseLogical, baseVisual);
+        useAppStore.getState().updateDiagramFromAi(safeLogical, safeVisual);
       }
 
     } catch (err: any) {

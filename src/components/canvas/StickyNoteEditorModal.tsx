@@ -28,9 +28,9 @@ export const StickyNoteEditorModal: React.FC = () => {
         setNoteId(id);
         setHeader(note.header);
         setBody(note.body);
-        setBgColor(note.style.backgroundColor);
-        setTextColor(note.style.textColor);
-        setOpacity(note.style.opacity ?? 1);
+        setBgColor(note.style?.backgroundColor || '#0f172a');
+        setTextColor(note.style?.textColor || '#e2e8f0');
+        setOpacity(note.style?.opacity ?? 1);
         setAlwaysVisible(note.alwaysVisible || false);
         setStartTime(note.startTime);
         setEndTime(note.endTime);

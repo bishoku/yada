@@ -25,6 +25,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 }) => {
   const [storageMode, setStorageMode] = useState<StorageMode>(StorageService.getMode());
   const [activeTab, setActiveTab] = useState<'general' | 'integrations'>('general');
+  const [isAppStoreBuild, setIsAppStoreBuild] = useState<boolean>(false);
+  const [iCloudPath, setICloudPath] = useState<string | null>(null);
+  const [iCloudDebugMsg, setICloudDebugMsg] = useState<string>('');
 
   const llmPreferences = useAppStore((state) => state.llmPreferences);
   const saveLlmPreferences = useAppStore((state) => state.saveLlmPreferences);
@@ -32,6 +35,30 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setStorageMode(StorageService.getMode());
+      if (isTauri()) {
+        import('@tauri-apps/api/core').then(({ invoke }) => {
+          const checkICloud = async () => {
+            try {
+              const isAppStore = await invoke<boolean>('is_app_store_build');
+              setIsAppStoreBuild(isAppStore);
+
+              if (isAppStore) {
+                const path = await invoke<string | null>('get_icloud_container_path');
+                setICloudPath(path);
+                if (!path) setICloudDebugMsg('Rust returned null');
+              } else {
+                setICloudPath(null);
+              }
+            } catch (err) {
+              setICloudPath(null);
+              setICloudDebugMsg(`Rust error: ${String(err)}`);
+            }
+          };
+          checkICloud();
+        }).catch((err) => {
+          setICloudDebugMsg(`Import error: ${String(err)}`);
+        });
+      }
     }
   }, [isOpen]);
 
@@ -264,6 +291,73 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       </span>
                       {storageMode === 'fs-access' && <Check className="w-3.5 h-3.5 shrink-0" />}
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Storage Location (Tauri with iCloud) */}
+              {isTauri() && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <HardDrive className="w-3.5 h-3.5" />
+                    {language === 'tr' ? 'Depolama Konumu' : 'Storage Location'}
+                  </label>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await StorageService.setStorageMode('tauri');
+                        setStorageMode('tauri');
+                        await useAppStore.getState().fetchRecentWorkspaces();
+                      }}
+                      className={`py-2 px-3 text-xs font-semibold rounded-xl border transition-all cursor-pointer flex items-center gap-2 ${
+                        storageMode === 'tauri'
+                          ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-650/25'
+                          : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      <HardDrive className="w-3.5 h-3.5 shrink-0" />
+                      <span className="flex-1 text-left">
+                        {language === 'tr' ? 'Mac Yerel Klasör (~/.yada)' : 'Mac Local Folder (~/.yada)'}
+                      </span>
+                      {storageMode === 'tauri' && <Check className="w-3.5 h-3.5 shrink-0" />}
+                    </button>
+                    {isAppStoreBuild && (
+                      <button
+                        type="button"
+                        disabled={!iCloudPath}
+                        onClick={async () => {
+                          if (!iCloudPath) return;
+                          const success = await StorageService.setStorageMode('icloud-drive');
+                          if (success) {
+                            setStorageMode('icloud-drive');
+                            await useAppStore.getState().fetchRecentWorkspaces();
+                          }
+                        }}
+                        className={`py-2 px-3 text-xs font-semibold rounded-xl border transition-all flex flex-col items-start gap-1 ${
+                          !iCloudPath ? 'opacity-50 cursor-not-allowed bg-slate-50 border-slate-200 text-slate-400' : 'cursor-pointer'
+                        } ${
+                          storageMode === 'icloud-drive'
+                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-650/25'
+                            : !iCloudPath ? '' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 w-full">
+                          <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17.5 19C19.985 19 22 16.985 22 14.5C22 12.186 20.248 10.28 18 10.027C17.659 6.643 14.773 4 11.25 4C7.522 4 4.5 7.022 4.5 10.75C4.5 10.871 4.503 10.991 4.509 11.11C2.531 11.603 1 13.4 1 15.5C1 17.985 3.015 20 5.5 20H17.5Z"/>
+                          </svg>
+                          <span className="flex-1 text-left">
+                            {language === 'tr' ? 'iCloud Drive' : 'iCloud Drive'}
+                          </span>
+                          {storageMode === 'icloud-drive' && <Check className="w-3.5 h-3.5 shrink-0" />}
+                        </div>
+                        {!iCloudPath && (
+                          <div className="text-[10px] text-red-500 font-normal pl-5 w-full text-left break-all">
+                            Hata: {iCloudDebugMsg || 'Bilinmiyor'}
+                          </div>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

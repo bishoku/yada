@@ -257,7 +257,8 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
           },
           layoutNodes: diag.visual.layoutNodes || {},
           layoutEdges: diag.visual.layoutEdges || {},
-          timelines: diag.visual.timelines || {}
+          timelines: diag.visual.timelines || {},
+          annotations: diag.visual.annotations || {}
         };
       }
       

@@ -803,6 +803,8 @@ export const exportToVideoScreenCapture = async (
 
   // Temporarily hide UI controls during capture
   const elementsToHide = hideUIElements();
+  // Inject a global stylesheet to suppress box-shadow during capture.
+  const shadowStyle = suppressShadows();
 
   try {
     const width  = Math.round(node.clientWidth / 2) * 2;
@@ -895,6 +897,7 @@ export const exportToVideoScreenCapture = async (
       triggerDownload(blob, saveName);
     }
   } finally {
+    restoreShadows(shadowStyle);
     restoreUIElements(elementsToHide);
     store.setCurrentTime(originalTime);
     if (wasPlaying) store.startPlayback();

@@ -27,6 +27,10 @@
     "allow-chat-with-agent",
     "allow-get-chat-memory",
     "allow-clear-chat-memory",
+    "allow-cancel-agent-chat",
+    "allow-get-icloud-container-path",
+    "allow-set-backend-storage-mode",
+    "allow-is-app-store-build",
     "fs:default",
 
     "fs:allow-write-file",

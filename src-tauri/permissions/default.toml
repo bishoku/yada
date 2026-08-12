@@ -88,4 +88,17 @@ identifier = "allow-cancel-agent-chat"
 description = "Allows cancelling LLM agent chat"
 commands.allow = ["cancel_agent_chat"]
 
+[[permission]]
+identifier = "allow-get-icloud-container-path"
+description = "Allows getting iCloud container path"
+commands.allow = ["get_icloud_container_path"]
 
+[[permission]]
+identifier = "allow-set-backend-storage-mode"
+description = "Allows setting backend storage mode"
+commands.allow = ["set_backend_storage_mode"]
+
+[[permission]]
+identifier = "allow-is-app-store-build"
+description = "Allows checking if it is an App Store build"
+commands.allow = ["is_app_store_build"]

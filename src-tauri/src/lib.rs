@@ -6,9 +6,14 @@ use chrono::Utc;
 
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
-use tauri::{AppHandle, Manager};
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
+
+struct StorageState {
+    mode: Mutex<String>,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -68,13 +73,33 @@ fn parse_workspace_meta(content: &str, dir_path: &Path) -> Result<WorkspaceMeta,
     })
 }
 
-// Helper to scan home/.yada directory for all valid workspace subfolders
-fn scan_workspaces_dir(app_handle: &AppHandle) -> Result<Vec<WorkspaceMeta>, String> {
+#[tauri::command]
+fn set_backend_storage_mode(state: State<'_, StorageState>, mode: String) -> Result<(), String> {
+    if let Ok(mut state_mode) = state.mode.lock() {
+        *state_mode = mode;
+    }
+    Ok(())
+}
+
+fn get_base_dir(app_handle: &AppHandle) -> Result<PathBuf, String> {
+    let state = app_handle.state::<StorageState>();
+    if let Ok(mode) = state.mode.lock() {
+        if *mode == "icloud" {
+            if let Ok(Some(path_str)) = get_icloud_container_path() {
+                return Ok(PathBuf::from(path_str));
+            }
+        }
+    }
     let home = app_handle
         .path()
         .home_dir()
         .map_err(|e| format!("Failed to get home directory: {}", e))?;
-    let base_dir = home.join(".yada");
+    Ok(home.join(".yada"))
+}
+
+// Helper to scan base dir for all valid workspace subfolders
+fn scan_workspaces_dir(app_handle: &AppHandle) -> Result<Vec<WorkspaceMeta>, String> {
+    let base_dir = get_base_dir(app_handle)?;
 
     let mut list: Vec<WorkspaceMeta> = Vec::new();
 
@@ -112,11 +137,7 @@ fn create_workspace(
     description: String,
 ) -> Result<String, String> {
     // 1. Resolve workspace path: home_dir/.yada/name
-    let home = app_handle
-        .path()
-        .home_dir()
-        .map_err(|e| format!("Failed to get home directory: {}", e))?;
-    let base_dir = home.join(".yada");
+    let base_dir = get_base_dir(&app_handle)?;
     let ws_dir = base_dir.join(&name);
 
     if ws_dir.exists() {
@@ -162,11 +183,7 @@ fn resolve_workspace_dir(app_handle: &AppHandle, path_str: &str) -> Result<std::
     if p.is_absolute() && p.exists() {
         Ok(p.to_path_buf())
     } else {
-        let home = app_handle
-            .path()
-            .home_dir()
-            .map_err(|e| format!("Failed to get home directory: {}", e))?;
-        let resolved = home.join(".yada").join(path_str);
+        let resolved = get_base_dir(app_handle)?.join(path_str);
         if resolved.exists() {
             Ok(resolved)
         } else if p.exists() {
@@ -258,6 +275,29 @@ fn load_preferences(app_handle: AppHandle) -> Result<String, String> {
     }
     let content = fs::read_to_string(&pref_file)
         .map_err(|e| format!("Failed to read preferences.json: {}", e))?;
+
+    // Keychain Integration for App Store Build
+    if option_env!("APP_STORE_BUILD") == Some("1") {
+        if let Ok(mut parsed) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(llm) = parsed.get_mut("llm") {
+                if let Some(profiles) = llm.get_mut("profiles").and_then(|p| p.as_array_mut()) {
+                    for profile in profiles {
+                        if let Some(id) = profile.get("id").and_then(|v| v.as_str()) {
+                            if let Ok(entry) = keyring::Entry::new("com.bishokudev.yada.llm", id) {
+                                if let Ok(password) = entry.get_password() {
+                                    if let Some(obj) = profile.as_object_mut() {
+                                        obj.insert("apiKey".to_string(), serde_json::json!(password));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return Ok(parsed.to_string());
+        }
+    }
+
     Ok(content)
 }
 
@@ -273,8 +313,32 @@ fn save_preferences(app_handle: AppHandle, preferences_json: String) -> Result<(
             .map_err(|e| format!("Failed to create .yada dir: {}", e))?;
     }
     let pref_file = base_dir.join("preferences.json");
-    let parsed: serde_json::Value = serde_json::from_str(&preferences_json)
+    let mut parsed: serde_json::Value = serde_json::from_str(&preferences_json)
         .unwrap_or(serde_json::json!({}));
+        
+    // Keychain Integration for App Store Build
+    if option_env!("APP_STORE_BUILD") == Some("1") {
+        if let Some(llm) = parsed.get_mut("llm") {
+            if let Some(profiles) = llm.get_mut("profiles").and_then(|p| p.as_array_mut()) {
+                for profile in profiles {
+                    if let (Some(id), Some(api_key)) = (
+                        profile.get("id").and_then(|v| v.as_str()),
+                        profile.get("apiKey").and_then(|v| v.as_str()),
+                    ) {
+                        if api_key != "<secure-keychain>" && !api_key.is_empty() {
+                            let entry = keyring::Entry::new("com.bishokudev.yada.llm", id)
+                                .map_err(|e| format!("Keyring error: {}", e))?;
+                            let _ = entry.set_password(api_key);
+                        }
+                        if let Some(obj) = profile.as_object_mut() {
+                            obj.insert("apiKey".to_string(), serde_json::json!("<secure-keychain>"));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     let pretty = serde_json::to_string_pretty(&parsed).unwrap_or(preferences_json);
     fs::write(&pref_file, pretty)
         .map_err(|e| format!("Failed to write preferences.json: {}", e))?;
@@ -284,11 +348,7 @@ fn save_preferences(app_handle: AppHandle, preferences_json: String) -> Result<(
 
 #[tauri::command]
 fn get_global_components_dir(app_handle: AppHandle) -> Result<String, String> {
-    let home = app_handle
-        .path()
-        .home_dir()
-        .map_err(|e| format!("Failed to resolve home dir: {}", e))?;
-    let components_dir = home.join(".yada").join("components");
+    let components_dir = get_base_dir(&app_handle)?.join("components");
     if !components_dir.exists() {
         fs::create_dir_all(&components_dir)
             .map_err(|e| format!("Failed to create global components dir: {}", e))?;
@@ -473,6 +533,40 @@ fn cancel_agent_chat() -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn is_app_store_build() -> bool {
+    option_env!("APP_STORE_BUILD") == Some("1")
+}
+
+#[tauri::command]
+fn get_icloud_container_path() -> Result<Option<String>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        if option_env!("APP_STORE_BUILD") == Some("1") {
+            use objc2_foundation::{NSFileManager, NSString};
+            
+            unsafe {
+                let file_manager = NSFileManager::defaultManager();
+                let ident = NSString::from_str("iCloud.com.bishokudev.yada");
+                let url = file_manager.URLForUbiquityContainerIdentifier(Some(&ident));
+                
+                if let Some(url) = url {
+                    let path = url.path();
+                    if let Some(path_str) = path {
+                        return Ok(Some(path_str.to_string()));
+                    }
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        Ok(None)
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -480,6 +574,9 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .manage(StorageState {
+            mode: Mutex::new("localstorage".to_string()),
+        })
         .invoke_handler(tauri::generate_handler![
             greet,
             create_workspace,
@@ -499,10 +596,12 @@ pub fn run() {
             chat_with_agent,
             get_chat_memory,
             clear_chat_memory,
-            cancel_agent_chat
+            cancel_agent_chat,
+            get_icloud_container_path,
+            set_backend_storage_mode,
+            is_app_store_build
         ])
         .run(tauri::generate_context!())
 
         .expect("error while running tauri application");
 }
-

@@ -10,12 +10,12 @@ export const useStickyNoteVisibility = (id: string) => {
     
     // If set to always visible or in design mode (not playing simulation), sticky note remains visible
     if (annotation.alwaysVisible || !isPlaying) {
-      return JSON.stringify({ isVisible: true, opacity: annotation.style.opacity || 1 });
+      return JSON.stringify({ isVisible: true, opacity: annotation.style?.opacity || 1 });
     }
 
     // During simulation playback, check against current time range
     const inRange = s.currentTime >= annotation.startTime && s.currentTime <= annotation.endTime;
-    return JSON.stringify({ isVisible: inRange, opacity: inRange ? (annotation.style.opacity || 1) : 0 });
+    return JSON.stringify({ isVisible: inRange, opacity: inRange ? (annotation.style?.opacity || 1) : 0 });
   });
 
   return useMemo(() => JSON.parse(str), [str]);
