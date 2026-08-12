@@ -4,6 +4,7 @@ import { LocalStorageDriver } from './storage/drivers/LocalStorageDriver';
 import { FileSystemAccessDriver } from './storage/drivers/FileSystemAccessDriver';
 import { ForgeDriver } from './storage/drivers/ForgeDriver';
 import { IDBHandleService } from './storage/idbHandle';
+import { EmbedIframeDriver } from './storage/drivers/EmbedIframeDriver';
 
 import { isForge } from './forgeBridge';
 export { isForge };
@@ -19,7 +20,12 @@ class StorageManager implements IStorageDriver {
   private mode: StorageMode;
 
   constructor() {
-    if (isForge()) {
+    const isEmbed = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('embed') === 'true';
+
+    if (isEmbed) {
+      this.activeDriver = new EmbedIframeDriver();
+      this.mode = 'embed';
+    } else if (isForge()) {
       this.activeDriver = new ForgeDriver();
       this.mode = 'forge';
     } else if (isTauri()) {
