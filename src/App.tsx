@@ -117,9 +117,14 @@ function App() {
       initForgeWorkspace();
     }
     
-    const isEmbed = new URLSearchParams(window.location.search).get('embed') === 'true';
-    if (isEmbed && !isForgeMode) {
-      const initEmbedWorkspace = async () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const isModalEditor = 
+      searchParams.get('mode') === 'modal' || 
+      searchParams.get('integration') === 'iframe' || 
+      searchParams.get('embed_editor') === 'true';
+
+    if (isModalEditor && !isForgeMode) {
+      const initModalEditorWorkspace = async () => {
         try {
           const stablePath = `embed://workspace/default`;
           const ws: import('./types').WorkspaceMeta = {
@@ -144,10 +149,10 @@ function App() {
 
           await reloadCurrentForgeDiagram(stablePath);
         } catch (err) {
-          console.error('Error initializing Embed workspace:', err);
+          console.error('Error initializing Modal Editor workspace:', err);
         }
       };
-      initEmbedWorkspace();
+      initModalEditorWorkspace();
     }
 
     // Google Drive Sync — dynamically imported so it doesn't add to initial bundle

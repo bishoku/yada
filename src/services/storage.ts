@@ -20,9 +20,15 @@ class StorageManager implements IStorageDriver {
   private mode: StorageMode;
 
   constructor() {
-    const isEmbed = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('embed') === 'true';
+    const search = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const isEmbedDriver = search && (
+      search.get('mode') === 'modal' || 
+      search.get('integration') === 'iframe' || 
+      search.get('embed_editor') === 'true' || 
+      search.get('embed') === 'true'
+    );
 
-    if (isEmbed) {
+    if (isEmbedDriver) {
       this.activeDriver = new EmbedIframeDriver();
       this.mode = 'embed';
     } else if (isForge()) {

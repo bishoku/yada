@@ -99,10 +99,13 @@ export const ShareLoader: React.FC = () => {
     // Check if URL has embed parameter or is in iframe BEFORE modifying history state
     const isEmbedUrl = window.self !== window.top || window.location.href.includes('embed');
 
-    // Preserve ?embed=true if present in URL
+    // Preserve ?embed=true and #ref=<id> if present in URL
+    const refMatch = window.location.href.match(/ref=([A-Za-z0-9]{6,12})/);
+    const refHash = refMatch ? `#ref=${refMatch[1]}` : '';
+
     const newUrl = isEmbedUrl 
-      ? `${window.location.pathname}?embed=true` 
-      : window.location.pathname;
+      ? `${window.location.pathname}?embed=true${refHash}` 
+      : `${window.location.pathname}${refHash}`;
     window.history.replaceState(null, '', newUrl);
 
     if (payload.logicalData && payload.visualData) {
