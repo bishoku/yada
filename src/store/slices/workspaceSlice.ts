@@ -469,9 +469,13 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         finalLang = prefObj.language;
       }
       
-      const finalTheme: Theme = ['dark', 'light', 'nord', 'dracula', 'synthwave', 'retro'].includes(prefObj.theme)
+      let finalTheme: Theme = ['dark', 'light', 'nord', 'dracula', 'synthwave', 'retro'].includes(prefObj.theme)
         ? prefObj.theme
         : 'nord';
+
+      if (window.location.href.includes('embed=true') || window.location.href.includes('embed=1')) {
+        finalTheme = 'light';
+      }
       const finalMaxSteps: number = typeof prefObj.maxSteps === 'number' ? prefObj.maxSteps : 30;
       const llmPrefs = prefObj.llm || {
         provider: 'openrouter',

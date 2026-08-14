@@ -171,6 +171,8 @@ export const SidebarLeft: React.FC = () => {
     comp.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const isEmbedMode = window.location.href.includes('embed=true') || window.location.href.includes('embed=1');
+
   return (
     <aside className={`border-r border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/40 backdrop-blur-md flex flex-col h-full select-none shrink-0 z-20 transition-all duration-300 ease-in-out overflow-hidden ${
       leftSidebarOpen ? 'w-[260px]' : 'w-0 border-r-0'
@@ -204,7 +206,7 @@ export const SidebarLeft: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {!isForgeMode && <SidebarDiagrams />}
+        {!isForgeMode && !isEmbedMode && <SidebarDiagrams />}
         
         <div className="space-y-2">
           <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider pl-1">

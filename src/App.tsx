@@ -116,6 +116,39 @@ function App() {
       };
       initForgeWorkspace();
     }
+    
+    const isEmbed = new URLSearchParams(window.location.search).get('embed') === 'true';
+    if (isEmbed && !isForgeMode) {
+      const initEmbedWorkspace = async () => {
+        try {
+          const stablePath = `embed://workspace/default`;
+          const ws: import('./types').WorkspaceMeta = {
+            id: 'embed_default',
+            name: 'Embedded Diagram',
+            path: stablePath,
+            description: 'Embedded Interactive Diagram',
+            createdAt: new Date().toISOString(),
+            lastAccessed: new Date().toISOString(),
+          };
+
+          useAppStore.setState({ 
+            currentWorkspace: ws,
+            activeDiagramId: 'default',
+            openDiagramIds: ['default'],
+            diagrams: [{ id: 'default', name: 'Default Diagram', updatedAt: new Date().toISOString() }],
+            isReadOnly: false,
+            isDirty: false,
+            isPlaying: false,
+            currentTime: 0,
+          });
+
+          await reloadCurrentForgeDiagram(stablePath);
+        } catch (err) {
+          console.error('Error initializing Embed workspace:', err);
+        }
+      };
+      initEmbedWorkspace();
+    }
 
     // Google Drive Sync — dynamically imported so it doesn't add to initial bundle
     if (!isForgeMode) {

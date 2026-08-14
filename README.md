@@ -50,6 +50,69 @@ Unlike static diagramming tools, YADA allows you to define sequence steps on you
   - Animated Sticky Notes with custom timing and styling
 - **📱 Responsive Mobile & Desktop Support**: Desktop app powered by Tauri v2 (Mac, Windows, Linux) plus fully responsive Web UI.
 
+## 🔌 Embedding YADA in External Applications
+
+YADA supports seamless embedding into third-party web apps, note-taking applications, wikis, or CMS platforms via `iframe` and bidirectional `window.postMessage`.
+
+### 1. Embed Mode (`?embed=true`)
+Add `?embed=true` to the URL when embedding YADA inside an `iframe`:
+
+```html
+<iframe src="https://bishoku.github.io/yada/?embed=true" width="100%" height="600px"></iframe>
+```
+
+**Clean Embed Features (`?embed=true`):**
+- **Enforced Light Theme**: Ensures visual consistency within host application modals or panels.
+- **Streamlined UI**: Hides workspace settings, global export dropdowns, and workspace diagram lists to focus purely on the diagram canvas.
+- **Auto-Fit View on Save**: Automatically centers and frames all diagram nodes with optimal padding before generating preview images.
+
+### 2. `postMessage` Communication Protocol
+
+#### Load Diagram into YADA
+When YADA loads, it emits a `READY` message. Send `LOAD_DIAGRAM` with your logical and visual data:
+
+```javascript
+const iframe = document.querySelector('iframe');
+
+window.addEventListener('message', (event) => {
+  if (event.data?.type === 'READY') {
+    iframe.contentWindow.postMessage({
+      type: 'LOAD_DIAGRAM',
+      payload: {
+        logicalJson: JSON.stringify(logicalData),
+        visualJson: JSON.stringify(visualData),
+      }
+    }, '*');
+  }
+});
+```
+
+#### Save Diagram Event
+YADA emits `SAVE_DIAGRAM` whenever the diagram changes or a save is requested:
+
+```javascript
+window.addEventListener('message', (event) => {
+  if (event.data?.type === 'SAVE_DIAGRAM') {
+    const { logicalJson, visualJson, previewDataUri } = event.data.payload;
+    // Store JSON definitions and previewDataUri (PNG Data URL) in host storage
+  }
+});
+```
+
+#### Request Save and Close
+Send `REQUEST_SAVE_AND_CLOSE` when the user clicks "Close" in the host application modal:
+
+```javascript
+// Request YADA to fitView, export PNG preview, emit SAVE_DIAGRAM, then CLOSE_DIAGRAM
+iframe.contentWindow.postMessage({ type: 'REQUEST_SAVE_AND_CLOSE' }, '*');
+
+window.addEventListener('message', (event) => {
+  if (event.data?.type === 'CLOSE_DIAGRAM') {
+    // Close modal in host application
+  }
+});
+```
+
 ## 🛠 Tech Stack
 
 Built with a modern and performant stack:

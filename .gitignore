@@ -26,3 +26,9 @@ dist-ssr
 # AI skill generated files
 generated_link.md
 __pycache__/
+
+# Apple App Store Provisioning Profiles & Local Test Scripts
+*.provisionprofile
+*.mobileprovision
+yada_profile.plist
+test_icloud.swift

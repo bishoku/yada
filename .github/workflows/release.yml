@@ -39,8 +39,9 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      - name: Install frontend dependencies
-        run: npm install
+      - name: Ensure provisioning profile placeholder for macOS
+        if: matrix.platform == 'macos-latest'
+        run: touch src-tauri/embedded.provisionprofile
 
       - name: Build and Release
         uses: tauri-apps/tauri-action@v0

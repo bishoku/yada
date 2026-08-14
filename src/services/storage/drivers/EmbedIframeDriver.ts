@@ -1,5 +1,5 @@
 import { IStorageDriver, StorageMode } from '../types';
-import { toPng } from 'html-to-image';
+import { generatePngDataUrl } from '../../../utils/exportMedia';
 
 export class EmbedIframeDriver implements IStorageDriver {
   private initialData: { logicalData?: any; visualData?: any } | null = null;
@@ -25,6 +25,13 @@ export class EmbedIframeDriver implements IStorageDriver {
             this.resolveInitialData(data);
           }
         }
+      } else if (event.data?.type === 'REQUEST_SAVE_AND_CLOSE') {
+        import('../../../store/useAppStore').then(async ({ useAppStore }) => {
+          await useAppStore.getState().manualSave();
+          if (window.parent !== window) {
+            window.parent.postMessage({ type: 'CLOSE_DIAGRAM' }, '*');
+          }
+        }).catch(console.error);
       }
     });
 
@@ -63,19 +70,7 @@ export class EmbedIframeDriver implements IStorageDriver {
 
     let previewDataUri = '';
     try {
-      const container = document.querySelector('.react-flow') as HTMLElement;
-      if (container) {
-        previewDataUri = await toPng(container, {
-          backgroundColor: '#ffffff', // Or whatever default is
-          filter: (node) => {
-            // Optional: filter out UI elements if needed
-            if (node.classList?.contains('react-flow__controls') || node.classList?.contains('react-flow__minimap') || node.classList?.contains('react-flow__panel')) {
-              return false;
-            }
-            return true;
-          }
-        });
-      }
+      previewDataUri = await generatePngDataUrl('.react-flow');
     } catch (e) {
       console.warn('Failed to capture PNG for embed preview', e);
     }
@@ -106,8 +101,8 @@ export class EmbedIframeDriver implements IStorageDriver {
 
     // Default empty diagram if parent didn't send anything
     return JSON.stringify({
-      logicalData: { nodes: [], edges: [], components: {} },
-      visualData: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } }
+      logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
+      visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {}, annotations: {} }
     });
   }
 

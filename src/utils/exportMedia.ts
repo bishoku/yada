@@ -15,7 +15,7 @@ import {
 } from './canvasRenderer';
 
 // ─────────────────────────────────────────────────────────────
-const EXCLUDE_SELECTOR = '.react-flow__controls, .react-flow__panel, .react-flow__minimap, .react-flow__attribution, .export-exclude';
+const EXCLUDE_SELECTOR = '.react-flow__controls, .react-flow__panel, .react-flow__minimap, .react-flow__attribution, .export-exclude, .react-flow__handle, .react-flow__resize-control';
 
 const shouldExcludeNode = (domNode: HTMLElement): boolean => {
   if (!domNode || !domNode.classList) return false;
@@ -24,7 +24,9 @@ const shouldExcludeNode = (domNode: HTMLElement): boolean => {
     domNode.classList.contains('react-flow__panel') ||
     domNode.classList.contains('react-flow__minimap') ||
     domNode.classList.contains('react-flow__attribution') ||
-    domNode.classList.contains('export-exclude')
+    domNode.classList.contains('export-exclude') ||
+    domNode.classList.contains('react-flow__handle') ||
+    domNode.classList.contains('react-flow__resize-control')
   );
 };
 
@@ -56,7 +58,18 @@ const restoreUIElements = (elements: NodeListOf<Element>) => {
 const suppressShadows = (): HTMLStyleElement => {
   const style = document.createElement('style');
   style.dataset.exportNoshadow = '1';
-  style.textContent = '* { box-shadow: none !important; }';
+  style.textContent = `
+    *, *::before, *::after {
+      box-shadow: none !important;
+      -webkit-box-shadow: none !important;
+      filter: none !important;
+      -webkit-filter: none !important;
+      --tw-ring-offset-shadow: 0 0 #0000 !important;
+      --tw-ring-shadow: 0 0 #0000 !important;
+      --tw-shadow: 0 0 #0000 !important;
+      --tw-shadow-colored: 0 0 #0000 !important;
+    }
+  `;
   document.head.appendChild(style);
   return style;
 };
@@ -68,35 +81,56 @@ const restoreShadows = (el: HTMLStyleElement): void => {
 // ─────────────────────────────────────────────────────────────
 // PNG Export
 // ─────────────────────────────────────────────────────────────
-export const exportToPng = async (
-  containerSelector: string,
-  defaultName: string,
-  language: 'tr' | 'en'
-): Promise<void> => {
+export const generatePngDataUrl = async (containerSelector: string): Promise<string> => {
   const node = document.querySelector(containerSelector) as HTMLElement;
   if (!node) {
     throw new Error('Diagram container not found.');
   }
 
+  // Trigger fitView to center & frame all nodes before capturing the PNG image
+  window.dispatchEvent(new CustomEvent('export:fitview'));
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
   const elementsToHide = hideUIElements();
-  // Inject a global stylesheet to suppress box-shadow during capture.
-  // See suppressShadows() for why CSS injection beats per-element manipulation.
   const shadowStyle = suppressShadows();
+
+  // Wait for the browser to apply the injected stylesheet to the DOM before capturing
+  await new Promise((resolve) => setTimeout(resolve, 60));
 
   try {
     const customBg = useAppStore.getState().visualData?.canvas?.bgColor;
     const isDark = document.documentElement.classList.contains('dark');
     const bgColor = customBg || (isDark ? '#0f172a' : '#f8fafc');
 
+    // WebKit (Safari / Tauri WKWebView on macOS) multiplies SVG foreignObject shadow offsets
+    // when pixelRatio > 2. Detect WebKit and use optimal devicePixelRatio.
+    const isWebKit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    const optimalPixelRatio = isWebKit ? Math.min(2, window.devicePixelRatio || 2) : 3;
+
     const dataUrl = await toPng(node, {
       quality: 1,
-      pixelRatio: 4, // 4× supersampling for crisp text and sharp edges
+      pixelRatio: optimalPixelRatio,
       backgroundColor: bgColor,
       width: node.clientWidth,
       height: node.clientHeight,
       style: { transform: 'scale(1)', transformOrigin: 'top left' },
       filter: (domNode) => !shouldExcludeNode(domNode as HTMLElement),
     });
+    
+    return dataUrl;
+  } finally {
+    restoreUIElements(elementsToHide);
+    restoreShadows(shadowStyle);
+  }
+};
+
+export const exportToPng = async (
+  containerSelector: string,
+  defaultName: string,
+  language: 'tr' | 'en'
+): Promise<void> => {
+  try {
+    const dataUrl = await generatePngDataUrl(containerSelector);
 
     if (isTauri()) {
       const selectedPath = await save({
@@ -121,9 +155,8 @@ export const exportToPng = async (
       a.download = defaultName;
       a.click();
     }
-  } finally {
-    restoreShadows(shadowStyle);
-    restoreUIElements(elementsToHide);
+  } catch (err) {
+    console.error('Export PNG error:', err);
   }
 };
 
