@@ -474,21 +474,26 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         : 'nord';
 
       const urlParams = new URLSearchParams(window.location.search);
-      const isEmbedMode = urlParams.get('embed') === 'true' || urlParams.get('embed') === '1' || window.location.href.includes('embed=true');
+      const paramTheme = urlParams.get('theme');
+      const paramLang = urlParams.get('lang');
 
-      if (isEmbedMode) {
-        const paramTheme = urlParams.get('theme');
-        const paramLang = urlParams.get('lang');
+      const isEmbedOrModal = 
+        urlParams.get('mode') === 'modal' || 
+        urlParams.get('integration') === 'iframe' || 
+        urlParams.get('embed_editor') === 'true' || 
+        urlParams.get('embed') === 'true' || 
+        urlParams.get('embed') === '1' || 
+        window.location.href.includes('mode=modal') || 
+        window.location.href.includes('embed=true');
 
-        if (paramTheme && ['dark', 'light', 'nord', 'dracula', 'synthwave', 'retro'].includes(paramTheme)) {
-          finalTheme = paramTheme as Theme;
-        } else {
-          finalTheme = 'light';
-        }
+      if (paramTheme && ['dark', 'light', 'nord', 'dracula', 'synthwave', 'retro'].includes(paramTheme)) {
+        finalTheme = paramTheme as Theme;
+      } else if (isEmbedOrModal && !paramTheme) {
+        finalTheme = 'light';
+      }
 
-        if (paramLang && (paramLang === 'tr' || paramLang === 'en')) {
-          finalLang = paramLang as Language;
-        }
+      if (paramLang && (paramLang === 'tr' || paramLang === 'en')) {
+        finalLang = paramLang as Language;
       }
       const finalMaxSteps: number = typeof prefObj.maxSteps === 'number' ? prefObj.maxSteps : 30;
       const llmPrefs = prefObj.llm || {
@@ -504,7 +509,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         theme: finalTheme,
         maxSteps: finalMaxSteps,
         llmPreferences: llmPrefs,
-        ...(isEmbedMode ? { timelineOpen: false } : {}),
+        ...(isEmbedOrModal ? { timelineOpen: false } : {}),
       });
 
       applyTheme(finalTheme);
