@@ -208,7 +208,8 @@ export const startAutoSave = () => {
   if (autoSaveInterval) return;
   autoSaveInterval = setInterval(async () => {
     const state = useAppStore.getState();
-    if (state.isDirty && state.currentWorkspace && !state.isReadOnly && !isSavingLock) {
+    const isEmbedOrModal = StorageService.getMode() === 'embed';
+    if (state.isDirty && state.currentWorkspace && !state.isReadOnly && !isSavingLock && !isEmbedOrModal) {
       console.log('[AutoSave] Triggering save...');
       await performSave();
     }
