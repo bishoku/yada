@@ -473,8 +473,22 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         ? prefObj.theme
         : 'nord';
 
-      if (window.location.href.includes('embed=true') || window.location.href.includes('embed=1')) {
-        finalTheme = 'light';
+      const urlParams = new URLSearchParams(window.location.search);
+      const isEmbedMode = urlParams.get('embed') === 'true' || urlParams.get('embed') === '1' || window.location.href.includes('embed=true');
+
+      if (isEmbedMode) {
+        const paramTheme = urlParams.get('theme');
+        const paramLang = urlParams.get('lang');
+
+        if (paramTheme && ['dark', 'light', 'nord', 'dracula', 'synthwave', 'retro'].includes(paramTheme)) {
+          finalTheme = paramTheme as Theme;
+        } else {
+          finalTheme = 'light';
+        }
+
+        if (paramLang && (paramLang === 'tr' || paramLang === 'en')) {
+          finalLang = paramLang as Language;
+        }
       }
       const finalMaxSteps: number = typeof prefObj.maxSteps === 'number' ? prefObj.maxSteps : 30;
       const llmPrefs = prefObj.llm || {
@@ -485,7 +499,13 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         shortTermMemoryLimit: 20,
       };
 
-      set({ language: finalLang, theme: finalTheme, maxSteps: finalMaxSteps, llmPreferences: llmPrefs });
+      set({
+        language: finalLang,
+        theme: finalTheme,
+        maxSteps: finalMaxSteps,
+        llmPreferences: llmPrefs,
+        ...(isEmbedMode ? { timelineOpen: false } : {}),
+      });
 
       applyTheme(finalTheme);
       
