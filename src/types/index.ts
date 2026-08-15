@@ -180,17 +180,46 @@ export interface StickyNote {
   alwaysVisible?: boolean;    // True ise timeline'dan bağımsız her zaman görünür
 }
 
+export type CanvasRenderStyle = 'clean' | 'sketchy';
+
+// --- FREEHAND / ANNOTATION LAYER ---
+export type DrawingToolType = 'pen' | 'highlighter' | 'arrow' | 'text' | 'eraser';
+
+export interface FreehandPoint {
+  x: number;
+  y: number;
+  pressure?: number;
+}
+
+export interface FreehandStroke {
+  id: string;
+  tool: DrawingToolType;
+  points: FreehandPoint[];
+  color: string;
+  size: number;
+  opacity: number;
+  text?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  roughness?: number;
+  startTime?: number;
+  endTime?: number;
+  alwaysVisible?: boolean;
+}
+
 export interface VisualDiagram {
   canvas: {
     zoom: number;
     pan: { x: number; y: number };
     gridVisible?: boolean;
     bgColor?: string;
+    renderStyle?: CanvasRenderStyle;
   };
   layoutNodes: Record<string, VisualNode>;      // Quick record access by Node ID
   layoutEdges: Record<string, VisualEdge>;      // NEW: Visual edge data by Edge ID
   timelines: Record<string, TimelineTiming>;    // Visual details & timings of animation sequences
   annotations?: Record<string, StickyNote>;     // Visual annotations (e.g. sticky notes)
+  freehandStrokes?: Record<string, FreehandStroke>; // Visual freehand drawings & annotations
 }
 
 export interface WorkspaceMeta {
@@ -432,6 +461,22 @@ export interface AppState {
   updateCanvasViewport: (zoom: number, pan: { x: number; y: number }) => void;
   setGridVisible: (visible: boolean) => void;
   setCanvasBgColor: (color: string | null) => void;
+  setCanvasRenderStyle: (style: CanvasRenderStyle) => void;
+
+  // Freehand / Annotation Drawing
+  activeDrawingTool: DrawingToolType | null;
+  drawingColor: string;
+  drawingSize: number;
+  drawingOpacity: number;
+  setActiveDrawingTool: (tool: DrawingToolType | null) => void;
+  setDrawingColor: (color: string) => void;
+  setDrawingSize: (size: number) => void;
+  setDrawingOpacity: (opacity: number) => void;
+  addFreehandStroke: (stroke: FreehandStroke) => void;
+  updateFreehandStroke: (id: string, updates: Partial<FreehandStroke>) => void;
+  deleteFreehandStroke: (id: string) => void;
+  clearFreehandStrokes: () => void;
+
   startDrag: (type: string, name: string) => void;
   cancelDrag: () => void;
   setFocusedNodeId: (id: string | null) => void;

@@ -4,6 +4,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useSectionAnimation } from './hooks';
 import { resolveHandles, getHandleStyle } from '../../utils/portUtils';
 import { PortSide } from '../../types';
+import { getRoughRoundedRectPaths } from './utils/roughGenerators';
 
 interface SectionNodeProps {
   id: string;
@@ -375,6 +376,22 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
     return res;
   }, [customStyles.headerBgColor, themeKey]);
 
+  const canvasRenderStyle = useAppStore((s: any) => s.visualData?.canvas?.renderStyle || 'clean');
+  const isSketchy = canvasRenderStyle === 'sketchy';
+
+  const sectionWidth = visualNode?.width ?? 300;
+  const sectionHeight = visualNode?.height ?? 200;
+
+  const roughBg = useMemo(() => {
+    if (!isSketchy) return null;
+    return getRoughRoundedRectPaths(1, 1, Math.max(10, sectionWidth - 2), Math.max(10, sectionHeight - 2), 12, {
+      stroke: borderHex,
+      strokeWidth: 2,
+      roughness: 1.2,
+      bowing: 1.2,
+    });
+  }, [isSketchy, sectionWidth, sectionHeight, borderHex]);
+
   return (
     <div className="relative w-full h-full font-sans">
       <NodeResizer 
@@ -391,7 +408,7 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
       {/* Inline Section Label */}
       {titleMode === 'inline' && (
         <div 
-          className={`${inlineBorderRadius} px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider 
+          className={`${inlineBorderRadius} px-2.5 py-0.5 ${isSketchy ? 'font-[family-name:var(--font-sketchy)] text-[13px] normal-case tracking-wide' : 'text-[10px] font-bold uppercase tracking-wider'} 
                       z-10 select-none transition-all duration-200
                       ${customHex ? '' : style.label}`}
           style={{ ...inlineLabelStyle, ...(customHex ? customHex.labelStyle : {}) }}
@@ -402,7 +419,7 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
 
       {/* Section Container */}
       <div 
-        className={`w-full h-full rounded-xl border-2 ${borderClass} backdrop-blur-[1px] transition-all duration-300 flex ${headerContainerClass} overflow-hidden
+        className={`w-full h-full rounded-xl ${isSketchy ? 'border-0' : `border-2 ${borderClass}`} backdrop-blur-[1px] transition-all duration-300 flex ${headerContainerClass} overflow-hidden relative
                     ${customHex ? '' : `${style.border} ${customStyles.backgroundColor ? '' : style.bg}`}
                     ${isActive 
                       ? 'ring-2 ring-emerald-500/30 dark:ring-emerald-400/20 border-emerald-500/60 dark:border-emerald-400/40 shadow-lg ' + (customHex ? '' : style.glow)
@@ -412,10 +429,25 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
                     }`}
         style={containerBgStyle}
       >
+        {/* Sketchy rough border */}
+        {roughBg?.strokePath && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none -z-10 overflow-visible" width={sectionWidth} height={sectionHeight}>
+            <path 
+              d={roughBg.strokePath} 
+              fill="none" 
+              stroke={borderHex} 
+              strokeWidth={2} 
+              strokeDasharray={borderType === 'dashed' ? '8,6' : borderType === 'dotted' ? '3,3' : undefined}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
         {/* Header Banner */}
         {titleMode === 'header' && (
           <div 
             className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider 
+                        ${isSketchy ? 'font-[family-name:var(--font-sketchy)] text-sm normal-case tracking-wide' : ''}
                         ${headerBorderClass} select-none overflow-hidden flex items-center z-10 shrink-0
                         ${headerAlignClass}
                         ${customStyles.headerBgColor || customHex ? '' : style.label}`}

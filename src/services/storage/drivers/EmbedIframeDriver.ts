@@ -24,6 +24,15 @@ export class EmbedIframeDriver implements IStorageDriver {
           if (this.resolveInitialData) {
             this.resolveInitialData(data);
           }
+          // Dynamically update useAppStore state if store is already active
+          import('../../../store/useAppStore').then(({ useAppStore }) => {
+            if (data.logicalData) {
+              useAppStore.setState({
+                logicalData: data.logicalData,
+                visualData: data.visualData || useAppStore.getState().visualData,
+              });
+            }
+          }).catch(console.error);
         }
       } else if (event.data?.type === 'REQUEST_SAVE_AND_CLOSE') {
         import('../../../store/useAppStore').then(async ({ useAppStore }) => {

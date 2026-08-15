@@ -31,6 +31,8 @@ import { findAutoRoute } from './utils/autoRouting';
 import { ClearCanvasModal } from './ClearCanvasModal';
 import { DragGhost } from './DragGhost';
 import { StickyNoteEditorModal } from './StickyNoteEditorModal';
+import { FreehandOverlay } from './FreehandOverlay';
+import { DrawingToolbar } from './DrawingToolbar';
 import { getDefaultHandles } from '../../utils/portUtils';
 import { generateEdgeId, generateSeqId } from '../../utils/idGenerator';
 
@@ -92,6 +94,9 @@ const FlowWrapper: React.FC = () => {
   const openRightSidebar = useAppStore((s) => s.openRightSidebar);
   const gridVisible = useAppStore((s) => s.visualData.canvas.gridVisible !== false);
   const bgColor = useAppStore((s) => s.visualData.canvas.bgColor);
+  const activeDrawingTool = useAppStore((s) => s.activeDrawingTool);
+  const canvasRenderStyle = useAppStore((s) => s.visualData?.canvas?.renderStyle || 'clean');
+  const isSketchy = canvasRenderStyle === 'sketchy';
   const isBgDark = bgColor ? isColorDark(bgColor) : theme === 'dark';
   const dotColor = isBgDark ? '#334155' : '#cbd5e1';
 
@@ -868,10 +873,8 @@ const FlowWrapper: React.FC = () => {
   return (
     <div
       ref={wrapperRef}
+      className={`w-full h-full relative ${isSketchy ? 'sketchy-canvas' : ''}`}
       style={{
-        width: '100%',
-        height: '100%',
-        position: 'relative',
         cursor: pendingDrop ? 'crosshair' : undefined,
       }}
     >
@@ -880,15 +883,16 @@ const FlowWrapper: React.FC = () => {
       <ReactFlow
         nodes={rfNodes}
         edges={rfEdges}
-        nodesDraggable={!isPlaying && !isReadOnly}
-        nodesConnectable={!isPlaying && !isReadOnly}
-        elementsSelectable={!isReadOnly}
+        nodesDraggable={!isPlaying && !isReadOnly && !activeDrawingTool}
+        nodesConnectable={!isPlaying && !isReadOnly && !activeDrawingTool}
+        elementsSelectable={!isReadOnly && !activeDrawingTool}
         nodesFocusable={!isReadOnly}
         edgesFocusable={!isReadOnly}
         minZoom={0.05}
         maxZoom={3}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        panOnDrag={!activeDrawingTool}
         onNodesChange={isReadOnly ? undefined : onNodesChange}
         onEdgesChange={isReadOnly ? undefined : onEdgesChange}
         onConnect={isReadOnly ? undefined : onConnect}
@@ -906,7 +910,7 @@ const FlowWrapper: React.FC = () => {
         onNodeClick={handleNodeClick}
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
-        className="w-full h-full"
+        className={`w-full h-full ${isSketchy ? 'sketchy-canvas' : ''}`}
         style={{ backgroundColor: bgColor || undefined }}
         fitView
         fitViewOptions={{ padding: 0.2 }}
@@ -920,6 +924,12 @@ const FlowWrapper: React.FC = () => {
         )}
         <Controls className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-md font-sans" />
       </ReactFlow>
+
+      {/* Freehand / Annotation Drawing Overlay */}
+      <FreehandOverlay />
+
+      {/* Floating Drawing Toolbar */}
+      <DrawingToolbar />
 
       {/* Drag Ghost — shows drop position preview while dragging from sidebar */}
       <DragGhost canvasRef={wrapperRef} />

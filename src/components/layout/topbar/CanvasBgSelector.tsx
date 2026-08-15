@@ -1,13 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Grid, Palette } from 'lucide-react';
+import { Grid, Palette, PencilRuler, Pen } from 'lucide-react';
 import { useAppStore } from '../../../store/useAppStore';
 
 export const CanvasBgSelector: React.FC = () => {
   const language = useAppStore((s) => s.language);
   const gridVisible = useAppStore((s) => s.visualData.canvas.gridVisible !== false);
   const canvasBgColor = useAppStore((s) => s.visualData.canvas.bgColor || '');
+  const renderStyle = useAppStore((s) => s.visualData.canvas.renderStyle || 'clean');
+  const activeDrawingTool = useAppStore((s) => s.activeDrawingTool);
   const setGridVisible = useAppStore((s) => s.setGridVisible);
   const setCanvasBgColor = useAppStore((s) => s.setCanvasBgColor);
+  const setCanvasRenderStyle = useAppStore((s) => s.setCanvasRenderStyle);
+  const setActiveDrawingTool = useAppStore((s) => s.setActiveDrawingTool);
 
   const [showBgMenu, setShowBgMenu] = useState(false);
   const popoverRef = useRef<HTMLDivElement | null>(null);
@@ -26,6 +30,48 @@ export const CanvasBgSelector: React.FC = () => {
   return (
     <>
       <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1 shrink-0" />
+
+      {/* Freehand Drawing Mode Toggle */}
+      <button
+        onClick={() => setActiveDrawingTool(activeDrawingTool ? null : 'pen')}
+        className={`p-1.5 rounded cursor-pointer transition-colors ${
+          activeDrawingTool
+            ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/15 ring-1 ring-indigo-400/30'
+            : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
+        }`}
+        title={
+          language === 'tr'
+            ? activeDrawingTool
+              ? 'Çizim Modunu Kapat'
+              : 'Serbest Çizim & Not Modunu Aç'
+            : activeDrawingTool
+            ? 'Close Drawing Mode'
+            : 'Open Freehand Drawing & Annotation Mode'
+        }
+      >
+        <Pen className="w-4 h-4" />
+      </button>
+
+      {/* Hand-Drawn (Sketchy Mode) Toggle */}
+      <button
+        onClick={() => setCanvasRenderStyle(renderStyle === 'sketchy' ? 'clean' : 'sketchy')}
+        className={`p-1.5 rounded cursor-pointer transition-colors ${
+          renderStyle === 'sketchy'
+            ? 'text-amber-600 dark:text-amber-400 bg-amber-500/15 ring-1 ring-amber-400/30'
+            : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
+        }`}
+        title={
+          language === 'tr'
+            ? renderStyle === 'sketchy'
+              ? 'El Çizimi Teması Aktif (Klasik Moda Geç)'
+              : 'El Çizimi Temasına Geç (Rough.js / Sketchy)'
+            : renderStyle === 'sketchy'
+            ? 'Hand-Drawn Theme Active (Switch to Clean)'
+            : 'Switch to Hand-Drawn Theme (Rough.js / Sketchy)'
+        }
+      >
+        <PencilRuler className="w-4 h-4" />
+      </button>
 
       <button
         onClick={() => setGridVisible(!gridVisible)}

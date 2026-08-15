@@ -9,6 +9,7 @@ import { getNodeDefinition, getDefaultIcon } from '../../registry/NodeRegistry';
 import { resolveHandles, getHandleStyle } from '../../utils/portUtils';
 import { PortSide } from '../../types';
 import { findDeviconItem, getDeviconComponent } from '../../registry/DeviconRegistry';
+import { getRoughRoundedRectPaths } from './utils/roughGenerators';
 
 interface BaseNodeProps {
   id: string;
@@ -197,6 +198,7 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
 
   const updateNodeDimensions = useAppStore((s: any) => s.updateNodeDimensions);
   const libraryComponents = useAppStore((s: any) => s.libraryComponents);
+  const appTheme = useAppStore((s) => s.theme);
   const nodeHandles = useAppStore((s: any) => s.visualData.layoutNodes[id]?.handles);
 
   const connectedHandlesArray = useAppStore(
@@ -267,10 +269,25 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
     }
   }
 
+  const canvasRenderStyle = useAppStore((s: any) => s.visualData?.canvas?.renderStyle || 'clean');
+  const isSketchy = canvasRenderStyle === 'sketchy';
+
+  const roughBg = useMemo(() => {
+    if (!isSketchy || displayMode === 'icon-only') return null;
+    return getRoughRoundedRectPaths(1, 1, Math.max(10, nodeWidth - 2), Math.max(10, nodeHeight - 2), customStyles.borderRadius || 12, {
+      stroke: harmoniousBorder || '#6366f1',
+      strokeWidth: 2,
+      roughness: 1.2,
+      bowing: 1.2,
+      fill: isBorderOnly ? undefined : activeBgHex,
+      fillStyle: 'solid',
+    });
+  }, [isSketchy, displayMode, nodeWidth, nodeHeight, customStyles.borderRadius, harmoniousBorder, isBorderOnly, activeBgHex]);
+
   const containerStyle: React.CSSProperties = {
-    backgroundColor: (displayMode === 'icon-only' || isBorderOnly) ? undefined : activeBgHex,
-    borderColor: harmoniousBorder,
-    borderStyle: customStyles.borderStyle || undefined,
+    backgroundColor: isSketchy ? 'transparent' : ((displayMode === 'icon-only' || isBorderOnly) ? undefined : activeBgHex),
+    borderColor: isSketchy ? 'transparent' : harmoniousBorder,
+    borderStyle: isSketchy ? 'none' : (customStyles.borderStyle || undefined),
     borderRadius: customStyles.borderRadius ? `${customStyles.borderRadius}px` : undefined,
     paddingLeft: displayMode === 'icon-only' ? 0 : `${cardPaddingX}px`,
     paddingRight: displayMode === 'icon-only' ? 0 : `${cardPaddingX}px`,
@@ -281,7 +298,7 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
   };
 
   return (
-    <div className="relative w-full h-full font-sans" style={{ overflow: 'visible' }}>
+    <div className={`relative w-full h-full ${isSketchy ? 'font-[family-name:var(--font-sketchy)]' : 'font-sans'}`} style={{ overflow: 'visible' }}>
 
       <NodeResizer
         minWidth={isVertical ? 32 : 120}
@@ -347,13 +364,13 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
       {/* Node card */}
       <div
         style={containerStyle}
-        className={`w-full h-full rounded-xl flex transition-all duration-200 ${
-          isBorderOnly ? 'bg-white dark:bg-slate-900' : ''
+        className={`w-full h-full rounded-xl flex transition-all duration-200 relative ${
+          isBorderOnly && !isSketchy ? 'bg-white dark:bg-slate-900' : ''
         } ${
           contrastColors ? '' : 'text-slate-800 dark:text-slate-100'
         } ${displayMode === 'icon-only'
             ? `bg-transparent border-transparent ${iconOnlyFlexClass} ${selected ? 'ring-2' : ''}`
-            : `items-center justify-center border-2 shadow-md dark:shadow-xl ${
+            : `items-center justify-center ${isSketchy ? 'border-0' : 'border-2 shadow-md dark:shadow-xl'} ${
                 isVertical ? 'flex-col' : 'flex-row'
               } ${
                 isProcessing
@@ -366,6 +383,25 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
               }`
         }`}
       >
+        {/* Sketchy SVG background & border */}
+        {roughBg && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none -z-10 overflow-visible" width={nodeWidth} height={nodeHeight}>
+            {isBorderOnly && (
+              <path d={roughBg.strokePath} fill={appTheme === 'dark' ? '#0f172a' : '#ffffff'} opacity={0.95} />
+            )}
+            {roughBg.fillPath && <path d={roughBg.fillPath} fill={activeBgHex} />}
+            {roughBg.strokePath && (
+              <path 
+                d={roughBg.strokePath} 
+                fill="none" 
+                stroke={harmoniousBorder || '#6366f1'} 
+                strokeWidth={2} 
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
+          </svg>
+        )}
         {/* Icon */}
         <div
           className="flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300"
@@ -456,9 +492,9 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
             } : {}}
           >
             <div
-              className={`font-bold truncate transition-colors ${isBorderOnly ? 'text-slate-800 dark:text-slate-200' : ''}`}
+              className={`font-bold truncate transition-colors ${isSketchy ? 'font-[family-name:var(--font-sketchy)] tracking-wide' : ''} ${isBorderOnly ? 'text-slate-800 dark:text-slate-200' : ''}`}
               style={{
-                fontSize: `${titleFontSize}px`,
+                fontSize: isSketchy ? `${titleFontSize * 1.15}px` : `${titleFontSize}px`,
                 color: isBorderOnly ? undefined : (contrastColors ? contrastColors.text : '#ffffff')
               }}
             >
@@ -471,9 +507,9 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
               if (!displaySubtitle || displaySubtitle.trim() === '') return null;
               return (
                 <div
-                  className={`font-bold uppercase tracking-wider mt-0.5 transition-colors ${isBorderOnly ? 'text-slate-400 dark:text-slate-500' : ''}`}
+                  className={`font-bold uppercase tracking-wider mt-0.5 transition-colors ${isSketchy ? 'font-[family-name:var(--font-sketchy)] normal-case' : ''} ${isBorderOnly ? 'text-slate-400 dark:text-slate-500' : ''}`}
                   style={{
-                    fontSize: `${subtitleFontSize}px`,
+                    fontSize: isSketchy ? `${subtitleFontSize * 1.1}px` : `${subtitleFontSize}px`,
                     color: isBorderOnly ? undefined : (contrastColors ? contrastColors.subtext : 'rgba(255,255,255,0.75)')
                   }}
                 >

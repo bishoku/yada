@@ -11,7 +11,7 @@ import {
 import { translations } from '../../i18n/translations';
 import { generateStandaloneHtml } from '../../utils/exportTemplate';
 import { generateSequenceHtml } from '../../utils/exportSequenceTemplate';
-import { exportToPng, exportToGif, exportToVideo } from '../../utils/exportMedia';
+import { exportToPng, exportToSvg, exportToGif, exportToVideo } from '../../utils/exportMedia';
 import { save } from '@tauri-apps/plugin-dialog';
 import { StorageService, isTauri } from '../../services/storage';
 import { GoogleDriveService } from '../../services/googleDriveAPI';
@@ -132,6 +132,21 @@ export const TopBar: React.FC = () => {
       openAlert({
         title: language === 'tr' ? 'Hata' : 'Error',
         message: language === 'tr' ? `PNG dışa aktarma hatası: ${err}` : `PNG Export error: ${err}`
+      });
+    }
+  };
+
+  const handleExportSvg = async () => {
+    try {
+      const defaultName = `${currentWorkspace?.name || 'diagram'}.svg`;
+      window.dispatchEvent(new CustomEvent('export:fitview'));
+      await new Promise(r => setTimeout(r, 150));
+      await exportToSvg('.react-flow', defaultName, language);
+    } catch (err) {
+      console.error('Error exporting SVG:', err);
+      openAlert({
+        title: language === 'tr' ? 'Hata' : 'Error',
+        message: language === 'tr' ? `SVG dışa aktarma hatası: ${err}` : `SVG Export error: ${err}`
       });
     }
   };
@@ -496,9 +511,17 @@ export const TopBar: React.FC = () => {
                   <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1 overflow-hidden">
                     <button
                       onClick={() => { handleExportPng(); setShowExportMenu(false); }}
-                      className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
+                      className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center justify-between"
                     >
-                      {language === 'tr' ? 'Görüntü (PNG)' : 'Image (PNG)'}
+                      <span>{language === 'tr' ? 'Görüntü (PNG)' : 'Image (PNG)'}</span>
+                      <span className="text-[9px] text-slate-400 font-normal">{language === 'tr' ? 'Metadata İçerir' : 'Embedded Data'}</span>
+                    </button>
+                    <button
+                      onClick={() => { handleExportSvg(); setShowExportMenu(false); }}
+                      className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center justify-between"
+                    >
+                      <span>{language === 'tr' ? 'Vektör (SVG)' : 'Vector (SVG)'}</span>
+                      <span className="text-[9px] text-slate-400 font-normal">{language === 'tr' ? 'Metadata İçerir' : 'Embedded Data'}</span>
                     </button>
                     <button
                       onClick={() => { setShowExportConfig(true); setShowExportMenu(false); }}

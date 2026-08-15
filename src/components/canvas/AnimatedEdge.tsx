@@ -15,6 +15,7 @@ import { getThemeEdgeColors } from '../../utils/themeUtils';
 import { getWaypointPath, getSplineWaypointPath } from './utils/waypointRouting';
 import { useWaypointInteraction } from './hooks/useWaypointInteraction';
 import { EdgeArrowType, EdgeConnectionType, EdgeGlowIntensity, EdgeLineStyle } from '../../types';
+import { getRoughCustomPath } from './utils/roughGenerators';
 
 interface ParallelBezierParams {
   sourceX: number;
@@ -433,6 +434,18 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
       break;
   }
 
+  const canvasRenderStyle = useAppStore((s: any) => s.visualData?.canvas?.renderStyle || 'clean');
+  const isSketchy = canvasRenderStyle === 'sketchy';
+
+  const roughEdgePath = useMemo(() => {
+    if (!isSketchy || !edgePath) return null;
+    return getRoughCustomPath(edgePath, {
+      roughness: 1.2,
+      bowing: 1.2,
+      strokeWidth: currentStrokeWidth,
+    });
+  }, [isSketchy, edgePath, currentStrokeWidth]);
+
   return (
     <g className="group">
       {/* Dynamic defs for arrows & gradients */}
@@ -483,10 +496,19 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
         />
       )}
       
-      {/* Visible edge line */}
+      {/* Underlying smooth path for particle trajectory measurement */}
       <path
         ref={pathRef}
         d={edgePath}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={0}
+        style={{ pointerEvents: 'none' }}
+      />
+
+      {/* Visible edge line (Rough.js or smooth) */}
+      <path
+        d={isSketchy && roughEdgePath?.strokePath ? roughEdgePath.strokePath : edgePath}
         fill="none"
         strokeDasharray={strokeDasharray}
         markerStart={markerStartId ? `url(#${markerStartId})` : undefined}
@@ -496,6 +518,8 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
           stroke: finalStroke,
           strokeWidth: currentStrokeWidth,
           filter: filterStyle,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
         }}
       />
       

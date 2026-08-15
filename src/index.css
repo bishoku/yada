@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Kalam:wght@400;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
@@ -12,6 +12,7 @@
 @theme {
   --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
+  --font-sketchy: 'Caveat', 'Kalam', 'Comic Sans MS', cursive, sans-serif;
   
   --color-slate-250: #dce3ec;
   --color-slate-350: #b9c7d8;
@@ -292,3 +293,30 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* ── Hand-Drawn / Sketchy Canvas Typography ───────────────────────────────── */
+.sketchy-canvas .react-flow__node,
+.sketchy-canvas .react-flow__edge-text,
+.sketchy-canvas .react-flow__edge-textwrapper,
+.sketchy-canvas .react-flow__node-default,
+.sketchy-canvas .react-flow__node-server,
+.sketchy-canvas .react-flow__node-client,
+.sketchy-canvas .react-flow__node-database,
+.sketchy-canvas .react-flow__node-section,
+.sketchy-canvas .react-flow__node-sticky_note,
+.sketchy-canvas .react-flow__node-stickyNote,
+.sketchy-canvas .node-title,
+.sketchy-canvas .node-subtitle,
+.sketchy-canvas .section-header-title {
+  font-family: var(--font-sketchy) !important;
+  letter-spacing: 0.02em;
+}
+
+.sketchy-canvas .node-title {
+  font-size: 1.15em !important;
+}
+
+.sketchy-canvas .node-subtitle {
+  font-size: 1.05em !important;
+}
+

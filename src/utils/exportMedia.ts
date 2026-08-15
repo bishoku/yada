@@ -1,4 +1,4 @@
-import { toPng } from 'html-to-image';
+import { toPng, toSvg } from 'html-to-image';
 // @ts-ignore — gifenc ships ESM-only; types are inferred at runtime
 import { GIFEncoder, quantize, applyPalette } from 'gifenc';
 import { Muxer as WebmMuxer, ArrayBufferTarget as WebmArrayBufferTarget } from 'webm-muxer';
@@ -7,6 +7,7 @@ import { useAppStore } from '../store/useAppStore';
 import { save } from '@tauri-apps/plugin-dialog';
 import { writeFile } from '@tauri-apps/plugin-fs';
 import { isTauri } from '../services/storage';
+import { injectPngDataUrlMetadata, injectSvgMetadata } from './imageMetadata';
 import {
   renderDiagramFrame,
   calculateSchedules,
@@ -46,14 +47,6 @@ const restoreUIElements = (elements: NodeListOf<Element>) => {
 
 /**
  * Injects a global stylesheet that sets box-shadow: none on every element.
- *
- * WHY: html-to-image clones the DOM, then copies getComputedStyle() from each
- * original element to the clone as inline styles. If we manipulate individual
- * element.style properties on the original, html-to-image's copyComputedStyle
- * step can overwrite them with the Tailwind class values. Injecting a <style>
- * at highest specificity (* { box-shadow: none !important }) ensures that
- * getComputedStyle() already returns 'none' when html-to-image reads it,
- * so the clone also gets 'none' written as its inline style.
  */
 const suppressShadows = (): HTMLStyleElement => {
   const style = document.createElement('style');
@@ -79,9 +72,9 @@ const restoreShadows = (el: HTMLStyleElement): void => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// PNG Export
+// PNG Export (with Embedded Scene Data)
 // ─────────────────────────────────────────────────────────────
-export const generatePngDataUrl = async (containerSelector: string): Promise<string> => {
+export const generatePngDataUrl = async (containerSelector: string, embedMetadata = true): Promise<string> => {
   const node = document.querySelector(containerSelector) as HTMLElement;
   if (!node) {
     throw new Error('Diagram container not found.');
@@ -102,12 +95,10 @@ export const generatePngDataUrl = async (containerSelector: string): Promise<str
     const isDark = document.documentElement.classList.contains('dark');
     const bgColor = customBg || (isDark ? '#0f172a' : '#f8fafc');
 
-    // WebKit (Safari / Tauri WKWebView on macOS) multiplies SVG foreignObject shadow offsets
-    // when pixelRatio > 2. Detect WebKit and use optimal devicePixelRatio.
     const isWebKit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
     const optimalPixelRatio = isWebKit ? Math.min(2, window.devicePixelRatio || 2) : 3;
 
-    const dataUrl = await toPng(node, {
+    let dataUrl = await toPng(node, {
       quality: 1,
       pixelRatio: optimalPixelRatio,
       backgroundColor: bgColor,
@@ -116,6 +107,19 @@ export const generatePngDataUrl = async (containerSelector: string): Promise<str
       style: { transform: 'scale(1)', transformOrigin: 'top left' },
       filter: (domNode) => !shouldExcludeNode(domNode as HTMLElement),
     });
+
+    if (embedMetadata) {
+      try {
+        const storeState = useAppStore.getState();
+        const projectPayload = {
+          logicalData: storeState.logicalData,
+          visualData: storeState.visualData,
+        };
+        dataUrl = injectPngDataUrlMetadata(dataUrl, projectPayload);
+      } catch (err) {
+        console.warn('Failed to embed project metadata in PNG export:', err);
+      }
+    }
     
     return dataUrl;
   } finally {
@@ -130,7 +134,7 @@ export const exportToPng = async (
   language: 'tr' | 'en'
 ): Promise<void> => {
   try {
-    const dataUrl = await generatePngDataUrl(containerSelector);
+    const dataUrl = await generatePngDataUrl(containerSelector, true);
 
     if (isTauri()) {
       const selectedPath = await save({
@@ -157,6 +161,88 @@ export const exportToPng = async (
     }
   } catch (err) {
     console.error('Export PNG error:', err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// SVG Export (with Embedded Scene Data)
+// ─────────────────────────────────────────────────────────────
+export const generateSvgDataUrl = async (containerSelector: string, embedMetadata = true): Promise<string> => {
+  const node = document.querySelector(containerSelector) as HTMLElement;
+  if (!node) {
+    throw new Error('Diagram container not found.');
+  }
+
+  window.dispatchEvent(new CustomEvent('export:fitview'));
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  const elementsToHide = hideUIElements();
+  const shadowStyle = suppressShadows();
+
+  await new Promise((resolve) => setTimeout(resolve, 60));
+
+  try {
+    const customBg = useAppStore.getState().visualData?.canvas?.bgColor;
+    const isDark = document.documentElement.classList.contains('dark');
+    const bgColor = customBg || (isDark ? '#0f172a' : '#f8fafc');
+
+    let svgDataUrl = await toSvg(node, {
+      backgroundColor: bgColor,
+      width: node.clientWidth,
+      height: node.clientHeight,
+      filter: (domNode) => !shouldExcludeNode(domNode as HTMLElement),
+    });
+
+    if (embedMetadata) {
+      try {
+        const storeState = useAppStore.getState();
+        const projectPayload = {
+          logicalData: storeState.logicalData,
+          visualData: storeState.visualData,
+        };
+        const svgContent = decodeURIComponent(svgDataUrl.replace(/^data:image\/svg\+xml;charset=utf-8,/, ''));
+        const enrichedSvg = injectSvgMetadata(svgContent, projectPayload);
+        svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(enrichedSvg)}`;
+      } catch (err) {
+        console.warn('Failed to embed project metadata in SVG export:', err);
+      }
+    }
+
+    return svgDataUrl;
+  } finally {
+    restoreUIElements(elementsToHide);
+    restoreShadows(shadowStyle);
+  }
+};
+
+export const exportToSvg = async (
+  containerSelector: string,
+  defaultName: string,
+  language: 'tr' | 'en'
+): Promise<void> => {
+  try {
+    const dataUrl = await generateSvgDataUrl(containerSelector, true);
+
+    if (isTauri()) {
+      const selectedPath = await save({
+        title: language === 'tr' ? 'SVG Olarak Kaydet' : 'Save as SVG',
+        defaultPath: defaultName.replace(/\.png$/, '.svg'),
+        filters: [{ name: 'SVG Image', extensions: ['svg'] }],
+      });
+
+      if (!selectedPath) return;
+
+      const svgContent = decodeURIComponent(dataUrl.replace(/^data:image\/svg\+xml;charset=utf-8,/, ''));
+      const encoder = new TextEncoder();
+      await writeFile(selectedPath, encoder.encode(svgContent));
+    } else {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = defaultName.replace(/\.png$/, '.svg');
+      a.click();
+    }
+  } catch (err) {
+    console.error('Export SVG error:', err);
   }
 };
 

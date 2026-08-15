@@ -1,8 +1,10 @@
 import { useEffect, RefObject } from 'react';
 import { Node } from '@xyflow/react';
-import { useAppStore } from '../../../store/useAppStore';
+import { useAppStore, setDiagramDataInStore } from '../../../store/useAppStore';
 import { toRfNode } from './utils';
 import { generateNodeId } from '../../../utils/idGenerator';
+import { extractPngMetadata, extractSvgMetadata } from '../../../utils/imageMetadata';
+import { repairDiagram } from '../../../utils/workspaceZip';
 
 
 export const useCanvasDrop = (
@@ -13,11 +15,15 @@ export const useCanvasDrop = (
   const addNode = useAppStore((s) => s.addNode);
   const addStickyNote = useAppStore((s) => s.addStickyNote);
   const cancelDrag = useAppStore((s) => s.cancelDrag);
+  const openAlert = useAppStore((s) => s.openAlert);
+  const language = useAppStore((s) => s.language);
+  const pushToHistory = useAppStore((s) => s.pushToHistory);
 
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
 
+    // ── Handle Component Drag from Left Sidebar ──────────────────────────────
     const handleMouseUp = (e: MouseEvent) => {
       const current = useAppStore.getState().pendingDrop;
       if (!current) return;
@@ -45,8 +51,6 @@ export const useCanvasDrop = (
 
       const x = position.x - width / 2;
       const y = position.y - height / 2;
-
-      console.log(`[Canvas] Placing "${name}" at flow (${x.toFixed(0)}, ${y.toFixed(0)})`);
 
       const visualNode = {
         id: nodeId,
@@ -107,7 +111,93 @@ export const useCanvasDrop = (
       cancelDrag();
     };
 
+    // ── Handle OS File Drag-and-Drop (PNG / SVG / JSON) ──────────────────────
+    const handleDragOver = (e: DragEvent) => {
+      if (e.dataTransfer?.types?.includes('Files')) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+      }
+    };
+
+    const handleDrop = async (e: DragEvent) => {
+      const files = e.dataTransfer?.files;
+      if (!files || files.length === 0) return;
+
+      const file = files[0];
+      const fileName = file.name.toLowerCase();
+
+      if (fileName.endsWith('.png')) {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          const buffer = await file.arrayBuffer();
+          const extracted = extractPngMetadata(buffer) as any;
+          if (extracted && (extracted.logicalData || extracted.logical)) {
+            pushToHistory();
+            const logData = extracted.logicalData || extracted.logical;
+            const visData = extracted.visualData || extracted.visual;
+            const repaired = repairDiagram(logData, visData);
+            setDiagramDataInStore(repaired.logicalData, repaired.visualData, false);
+            useAppStore.setState({ isDirty: true });
+            openAlert({
+              title: language === 'tr' ? 'Başarılı' : 'Success',
+              message: language === 'tr'
+                ? `PNG görselindeki gömülü YADA diyagramı (${file.name}) başarıyla açıldı!`
+                : `Embedded YADA diagram from PNG (${file.name}) loaded successfully!`,
+            });
+          } else {
+            openAlert({
+              title: language === 'tr' ? 'Bilgi' : 'Notice',
+              message: language === 'tr'
+                ? 'Bu PNG dosyasında gömülü YADA diyagram metadata\'sı bulunamadı.'
+                : 'No embedded YADA diagram metadata found in this PNG file.',
+            });
+          }
+        } catch (err) {
+          console.error('PNG import error:', err);
+        }
+      } else if (fileName.endsWith('.svg')) {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          const text = await file.text();
+          const extracted = extractSvgMetadata(text) as any;
+          if (extracted && (extracted.logicalData || extracted.logical)) {
+            pushToHistory();
+            const logData = extracted.logicalData || extracted.logical;
+            const visData = extracted.visualData || extracted.visual;
+            const repaired = repairDiagram(logData, visData);
+            setDiagramDataInStore(repaired.logicalData, repaired.visualData, false);
+            useAppStore.setState({ isDirty: true });
+            openAlert({
+              title: language === 'tr' ? 'Başarılı' : 'Success',
+              message: language === 'tr'
+                ? `SVG vektöründeki gömülü YADA diyagramı (${file.name}) başarıyla açıldı!`
+                : `Embedded YADA diagram from SVG (${file.name}) loaded successfully!`,
+            });
+          } else {
+            openAlert({
+              title: language === 'tr' ? 'Bilgi' : 'Notice',
+              message: language === 'tr'
+                ? 'Bu SVG dosyasında gömülü YADA diyagram metadata\'sı bulunamadı.'
+                : 'No embedded YADA diagram metadata found in this SVG file.',
+            });
+          }
+        } catch (err) {
+          console.error('SVG import error:', err);
+        }
+      }
+    };
+
     window.addEventListener('mouseup', handleMouseUp, { capture: true });
-    return () => window.removeEventListener('mouseup', handleMouseUp, { capture: true });
-  }, [screenToFlowPosition, setRfNodes, addNode, addStickyNote, cancelDrag, wrapperRef]);
+    el.addEventListener('dragover', handleDragOver);
+    el.addEventListener('drop', handleDrop);
+
+    return () => {
+      window.removeEventListener('mouseup', handleMouseUp, { capture: true });
+      el.removeEventListener('dragover', handleDragOver);
+      el.removeEventListener('drop', handleDrop);
+    };
+  }, [screenToFlowPosition, setRfNodes, addNode, addStickyNote, cancelDrag, wrapperRef, openAlert, language, pushToHistory]);
 };
+

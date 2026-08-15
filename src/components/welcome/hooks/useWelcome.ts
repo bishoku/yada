@@ -3,7 +3,8 @@ import { useAppStore } from '../../../store/useAppStore';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readFile } from '@tauri-apps/plugin-fs';
 import { isTauri, StorageService } from '../../../services/storage';
-import { exportWorkspace, importWorkspace, ImportConflict, ConflictResolution } from '../../../utils/workspaceZip';
+import { exportWorkspace, importWorkspace, ImportConflict, ConflictResolution, repairDiagram } from '../../../utils/workspaceZip';
+import { extractPngMetadata, extractSvgMetadata } from '../../../utils/imageMetadata';
 import { translations } from '../../../i18n/translations';
 import { DiagramAdapter } from '../../../adapters/types';
 import { WorkspaceMeta } from '../../../types';
@@ -80,44 +81,121 @@ export const useWelcome = () => {
     }
   };
 
+  const importFromExtractedData = async (extracted: any, baseName: string) => {
+    const logData = extracted.logicalData || extracted.logical;
+    const visData = extracted.visualData || extracted.visual;
+    if (!logData) throw new Error('No diagram data found in file.');
+
+    const repaired = repairDiagram(logData, visData);
+    const wsName = baseName.replace(/\.[^/.]+$/, '');
+    const ws = await createWorkspace(wsName, 'Imported from embedded diagram image');
+
+    await StorageService.save_diagram(
+      ws.path,
+      'default',
+      JSON.stringify(repaired.logicalData),
+      JSON.stringify(repaired.visualData)
+    );
+
+    await loadWorkspace(ws.path);
+  };
+
   const handleImport = async () => {
     try {
-      let zipData: ArrayBuffer | Uint8Array;
-
       if (isTauri()) {
         const selected = await open({
           multiple: false,
-          filters: [{ name: 'YADA Project', extensions: ['dproj'] }],
+          filters: [
+            { name: 'YADA Supported Files (*.dproj, *.png, *.svg)', extensions: ['dproj', 'png', 'svg'] },
+          ],
           title: t.selectProjectFile,
         });
         if (!selected || typeof selected !== 'string') return;
         setLoading(true);
-        zipData = await readFile(selected);
+        
+        const lower = selected.toLowerCase();
+        if (lower.endsWith('.png')) {
+          const rawBytes = await readFile(selected);
+          const extracted = extractPngMetadata(rawBytes.buffer) as any;
+          if (extracted) {
+            await importFromExtractedData(extracted, selected.split('/').pop() || 'Diagram');
+            return;
+          }
+          throw new Error(language === 'tr' ? 'PNG dosyasında gömülü YADA verisi bulunamadı.' : 'No embedded YADA data in PNG file.');
+        } else if (lower.endsWith('.svg')) {
+          const rawBytes = await readFile(selected);
+          const text = new TextDecoder().decode(rawBytes);
+          const extracted = extractSvgMetadata(text) as any;
+          if (extracted) {
+            await importFromExtractedData(extracted, selected.split('/').pop() || 'Diagram');
+            return;
+          }
+          throw new Error(language === 'tr' ? 'SVG dosyasında gömülü YADA verisi bulunamadı.' : 'No embedded YADA data in SVG file.');
+        } else {
+          const zipData = await readFile(selected);
+          await runImport(zipData);
+        }
       } else {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.dproj';
+        input.accept = '.dproj,.png,.svg';
         input.onchange = async (e: any) => {
           const file = e.target.files?.[0];
           if (!file) return;
           setLoading(true);
-          const reader = new FileReader();
-          reader.onload = async (event: any) => {
-            try {
-              zipData = event.target.result as ArrayBuffer;
-              await runImport(zipData);
-            } catch (err: any) {
-              setError(err.message || err.toString());
-              setLoading(false);
-            }
-          };
-          reader.readAsArrayBuffer(file);
+          const fileName = file.name.toLowerCase();
+
+          if (fileName.endsWith('.png')) {
+            const reader = new FileReader();
+            reader.onload = async (event: any) => {
+              try {
+                const buf = event.target.result as ArrayBuffer;
+                const extracted = extractPngMetadata(buf) as any;
+                if (extracted) {
+                  await importFromExtractedData(extracted, file.name);
+                } else {
+                  throw new Error(language === 'tr' ? 'PNG dosyasında gömülü YADA verisi bulunamadı.' : 'No embedded YADA data in PNG file.');
+                }
+              } catch (err: any) {
+                setError(err.message || err.toString());
+                setLoading(false);
+              }
+            };
+            reader.readAsArrayBuffer(file);
+          } else if (fileName.endsWith('.svg')) {
+            const reader = new FileReader();
+            reader.onload = async (event: any) => {
+              try {
+                const text = event.target.result as string;
+                const extracted = extractSvgMetadata(text) as any;
+                if (extracted) {
+                  await importFromExtractedData(extracted, file.name);
+                } else {
+                  throw new Error(language === 'tr' ? 'SVG dosyasında gömülü YADA verisi bulunamadı.' : 'No embedded YADA data in SVG file.');
+                }
+              } catch (err: any) {
+                setError(err.message || err.toString());
+                setLoading(false);
+              }
+            };
+            reader.readAsText(file);
+          } else {
+            const reader = new FileReader();
+            reader.onload = async (event: any) => {
+              try {
+                const zipData = event.target.result as ArrayBuffer;
+                await runImport(zipData);
+              } catch (err: any) {
+                setError(err.message || err.toString());
+                setLoading(false);
+              }
+            };
+            reader.readAsArrayBuffer(file);
+          }
         };
         input.click();
         return;
       }
-
-      await runImport(zipData);
     } catch (err: any) {
       setError(err.message || err.toString());
       setLoading(false);

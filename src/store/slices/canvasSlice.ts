@@ -1,5 +1,18 @@
 import { StateCreator } from 'zustand';
-import { AppState, LogicalNode, VisualNode, LogicalEdge, VisualEdge, HandleConfig, ActiveNodeProperties, ActiveEdgeProperties, StickyNote } from '../../types';
+import { 
+  AppState, 
+  LogicalNode, 
+  VisualNode, 
+  LogicalEdge, 
+  VisualEdge, 
+  HandleConfig, 
+  ActiveNodeProperties, 
+  ActiveEdgeProperties, 
+  StickyNote,
+  CanvasRenderStyle,
+  DrawingToolType,
+  FreehandStroke
+} from '../../types';
 import { ParticleType } from '../../config/particles';
 import { getLayoutedElements } from '../../utils/layout';
 import { generateNodeId } from '../../utils/idGenerator';
@@ -25,6 +38,22 @@ export interface CanvasSlice {
   updateCanvasViewport: (zoom: number, pan: { x: number; y: number }) => void;
   setGridVisible: (visible: boolean) => void;
   setCanvasBgColor: (color: string | null) => void;
+  setCanvasRenderStyle: (style: CanvasRenderStyle) => void;
+  
+  // Freehand / Annotation Drawing
+  activeDrawingTool: DrawingToolType | null;
+  drawingColor: string;
+  drawingSize: number;
+  drawingOpacity: number;
+  setActiveDrawingTool: (tool: DrawingToolType | null) => void;
+  setDrawingColor: (color: string) => void;
+  setDrawingSize: (size: number) => void;
+  setDrawingOpacity: (opacity: number) => void;
+  addFreehandStroke: (stroke: FreehandStroke) => void;
+  updateFreehandStroke: (id: string, updates: Partial<FreehandStroke>) => void;
+  deleteFreehandStroke: (id: string) => void;
+  clearFreehandStrokes: () => void;
+
   startDrag: (type: string, name: string) => void;
   cancelDrag: () => void;
   clearCanvas: () => void;
@@ -447,6 +476,92 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
         }
       },
       isDirty: true
+    }));
+  },
+
+  setCanvasRenderStyle: (style) => {
+    get().pushToHistory();
+    set((state) => ({
+      visualData: {
+        ...state.visualData,
+        canvas: {
+          ...state.visualData.canvas,
+          renderStyle: style,
+        },
+      },
+      isDirty: true,
+    }));
+  },
+
+  activeDrawingTool: null,
+  drawingColor: '#6366f1',
+  drawingSize: 3,
+  drawingOpacity: 1,
+
+  setActiveDrawingTool: (tool) => set({ activeDrawingTool: tool }),
+  setDrawingColor: (color) => set({ drawingColor: color }),
+  setDrawingSize: (size) => set({ drawingSize: size }),
+  setDrawingOpacity: (opacity) => set({ drawingOpacity: opacity }),
+
+  addFreehandStroke: (stroke) => {
+    get().pushToHistory();
+    set((state) => {
+      const freehandStrokes = {
+        ...(state.visualData.freehandStrokes || {}),
+        [stroke.id]: stroke,
+      };
+      return {
+        visualData: {
+          ...state.visualData,
+          freehandStrokes,
+        },
+        isDirty: true,
+      };
+    });
+  },
+
+  updateFreehandStroke: (id, updates) => {
+    get().pushToHistory();
+    set((state) => {
+      const existing = state.visualData.freehandStrokes?.[id];
+      if (!existing) return {};
+      const freehandStrokes = {
+        ...state.visualData.freehandStrokes,
+        [id]: { ...existing, ...updates },
+      };
+      return {
+        visualData: {
+          ...state.visualData,
+          freehandStrokes,
+        },
+        isDirty: true,
+      };
+    });
+  },
+
+  deleteFreehandStroke: (id) => {
+    get().pushToHistory();
+    set((state) => {
+      const freehandStrokes = { ...(state.visualData.freehandStrokes || {}) };
+      delete freehandStrokes[id];
+      return {
+        visualData: {
+          ...state.visualData,
+          freehandStrokes,
+        },
+        isDirty: true,
+      };
+    });
+  },
+
+  clearFreehandStrokes: () => {
+    get().pushToHistory();
+    set((state) => ({
+      visualData: {
+        ...state.visualData,
+        freehandStrokes: {},
+      },
+      isDirty: true,
     }));
   },
 

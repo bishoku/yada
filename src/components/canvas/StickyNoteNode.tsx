@@ -13,6 +13,9 @@ export const StickyNoteNode: React.FC<NodeProps> = ({ id, selected }) => {
   const pushToHistory = useAppStore((s: any) => s.pushToHistory);
   const { isVisible, opacity } = useStickyNoteVisibility(id);
 
+  const canvasRenderStyle = useAppStore((s: any) => s.visualData?.canvas?.renderStyle || 'clean');
+  const isSketchy = canvasRenderStyle === 'sketchy';
+
   if (!visualNode || !annotation) return null;
 
   const noteStyle = annotation.style || {};
@@ -22,8 +25,8 @@ export const StickyNoteNode: React.FC<NodeProps> = ({ id, selected }) => {
     backgroundColor: noteStyle.backgroundColor || '#0f172a',
     borderColor: noteStyle.borderColor || '#6366f1',
     color: noteStyle.textColor || '#e2e8f0',
-    fontFamily: noteStyle.fontFamily || 'Inter',
-    fontSize: `${noteStyle.fontSize || 12}px`,
+    fontFamily: isSketchy ? 'var(--font-sketchy), Caveat, cursive' : (noteStyle.fontFamily || 'Inter'),
+    fontSize: isSketchy ? `${(noteStyle.fontSize || 12) * 1.15}px` : `${noteStyle.fontSize || 12}px`,
     borderRadius: `${noteStyle.borderRadius || 8}px`,
     opacity: opacity,
     boxShadow: noteStyle.shadow !== false ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' : 'none',
