@@ -11,7 +11,7 @@ export default defineConfig(async ({ command }) => {
   const isBuild = command === 'build';
 
   return {
-    esbuild: isBuild ? ({ drop: ['console', 'debugger'] } as ESBuildOptions) : false,
+    esbuild: isBuild ? ({ drop: ['console', 'debugger'] } as ESBuildOptions) : undefined,
     plugins: [
       react(), 
       tailwindcss(),
