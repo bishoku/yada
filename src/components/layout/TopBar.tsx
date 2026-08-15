@@ -287,7 +287,13 @@ export const TopBar: React.FC = () => {
     setShowAiModal(true);
   };
 
-  const isEmbedMode = window.location.href.includes('embed=true') || window.location.href.includes('embed=1');
+  const isEmbedMode = 
+    window.location.href.includes('embed=true') || 
+    window.location.href.includes('embed=1') ||
+    window.location.href.includes('mode=modal') ||
+    window.location.href.includes('mode=embed') ||
+    window.location.href.includes('integration=iframe') ||
+    window.location.href.includes('embed_editor=true');
 
   return (
     <header className="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center px-3 z-25 select-none shrink-0 transition-colors duration-300 font-sans gap-2">
@@ -296,9 +302,9 @@ export const TopBar: React.FC = () => {
       <div className="flex items-center gap-2 shrink-0">
         {/* Logo */}
         <div
-          onClick={handleBackToWelcome}
-          className="flex items-center gap-1.5 cursor-pointer group shrink-0"
-          title={language === 'tr' ? 'Giriş ekranına dön' : 'Go back to welcome screen'}
+          onClick={!isEmbedMode ? handleBackToWelcome : undefined}
+          className={`flex items-center gap-1.5 ${!isEmbedMode ? 'cursor-pointer group' : ''} shrink-0`}
+          title={isEmbedMode ? 'YADA Diagram Editor' : (language === 'tr' ? 'Giriş ekranına dön' : 'Go back to welcome screen')}
         >
           <img src="pwa-icon.png" className="h-6 w-6 transition-transform group-hover:scale-105" />
           <span className="font-bold text-sm tracking-wide bg-gradient-to-r from-indigo-600 to-indigo-400 dark:from-indigo-400 dark:to-indigo-200 bg-clip-text text-transparent hidden lg:inline">

@@ -171,7 +171,13 @@ export const SidebarLeft: React.FC = () => {
     comp.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const isEmbedMode = window.location.href.includes('embed=true') || window.location.href.includes('embed=1');
+  const isEmbedMode = 
+    window.location.href.includes('embed=true') || 
+    window.location.href.includes('embed=1') ||
+    window.location.href.includes('mode=modal') ||
+    window.location.href.includes('mode=embed') ||
+    window.location.href.includes('integration=iframe') ||
+    window.location.href.includes('embed_editor=true');
 
   return (
     <aside className={`border-r border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/40 backdrop-blur-md flex flex-col h-full select-none shrink-0 z-20 transition-all duration-300 ease-in-out overflow-hidden ${
