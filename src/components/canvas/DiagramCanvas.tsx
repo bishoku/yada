@@ -923,10 +923,10 @@ const FlowWrapper: React.FC = () => {
           />
         )}
         <Controls className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-md font-sans" />
-      </ReactFlow>
 
-      {/* Freehand / Annotation Drawing Overlay */}
-      <FreehandOverlay />
+        {/* Freehand / Annotation Drawing Overlay inside ReactFlow so it gets exported */}
+        <FreehandOverlay />
+      </ReactFlow>
 
       {/* Floating Drawing Toolbar */}
       <DrawingToolbar />

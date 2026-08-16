@@ -70,6 +70,19 @@ export function calculateViewportBounds(
     });
   }
 
+  if (visualData.freehandStrokes) {
+    Object.values(visualData.freehandStrokes).forEach((stroke: any) => {
+      if (stroke.points) {
+        stroke.points.forEach((p: any) => {
+          if (p.x < minX) minX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.x > maxX) maxX = p.x;
+          if (p.y > maxY) maxY = p.y;
+        });
+      }
+    });
+  }
+
   if (minX === Infinity) {
     minX = 0; minY = 0; maxX = 800; maxY = 600;
   }
@@ -1256,6 +1269,83 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(text, tx, ty + tooltipH / 2);
+      ctx.restore();
+    }
+  }
+
+  // Draw Freehand / Annotation Strokes
+  if (visualData.freehandStrokes) {
+    for (const stroke of Object.values(visualData.freehandStrokes)) {
+      if (!stroke.points || stroke.points.length === 0) continue;
+      
+      // Timeline visibility check if timeline-bound
+      if (!stroke.alwaysVisible && stroke.startTime !== undefined && stroke.endTime !== undefined) {
+        if (currentTime < stroke.startTime || currentTime > stroke.endTime) continue;
+      }
+
+      ctx.save();
+      ctx.globalAlpha = stroke.opacity ?? 1;
+
+      if (stroke.tool === 'text') {
+        const fontSize = stroke.fontSize ?? Math.max(18, stroke.size * 5.5);
+        ctx.font = `600 ${fontSize}px "Caveat", "Kalam", cursive, sans-serif`;
+        ctx.fillStyle = stroke.color;
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
+        const lines = (stroke.text || '').split('\n');
+        const startX = stroke.points[0]?.x ?? 0;
+        const startY = stroke.points[0]?.y ?? 0;
+        const lineHeight = fontSize * 1.2;
+        lines.forEach((line, idx) => {
+          ctx.fillText(line, startX, startY + idx * lineHeight);
+        });
+      } else if (stroke.tool === 'arrow') {
+        if (stroke.points.length >= 2) {
+          const start = stroke.points[0];
+          const end = stroke.points[stroke.points.length - 1];
+          ctx.strokeStyle = stroke.color;
+          ctx.lineWidth = stroke.size;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.lineTo(end.x, end.y);
+          ctx.stroke();
+
+          // Arrowhead
+          const angle = Math.atan2(end.y - start.y, end.x - start.x);
+          const headLen = Math.max(12, stroke.size * 3.5);
+          const h1x = end.x - headLen * Math.cos(angle - Math.PI / 6);
+          const h1y = end.y - headLen * Math.sin(angle - Math.PI / 6);
+          const h2x = end.x - headLen * Math.cos(angle + Math.PI / 6);
+          const h2y = end.y - headLen * Math.sin(angle + Math.PI / 6);
+
+          ctx.beginPath();
+          ctx.moveTo(h1x, h1y);
+          ctx.lineTo(end.x, end.y);
+          ctx.lineTo(h2x, h2y);
+          ctx.stroke();
+        }
+      } else {
+        // Pen / Highlighter
+        const isHighlighter = stroke.tool === 'highlighter';
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = isHighlighter ? stroke.size * 3.5 : stroke.size * 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        if (isHighlighter) {
+          ctx.globalAlpha = 0.35;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+        for (let i = 1; i < stroke.points.length; i++) {
+          ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+        }
+        ctx.stroke();
+      }
+
       ctx.restore();
     }
   }

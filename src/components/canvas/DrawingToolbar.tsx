@@ -42,7 +42,7 @@ export const DrawingToolbar: React.FC = () => {
   if (!activeDrawingTool) return null;
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+    <div className="export-exclude absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
       {/* Select / Move Mode */}
       <button
         onClick={() => setActiveDrawingTool(null)}
