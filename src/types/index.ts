@@ -13,10 +13,12 @@ export interface GoogleUser {
 }
 
 // --- LLM & AI CHAT ---
+export type LlmProviderType = 'openrouter' | 'openai' | 'gemini' | 'anthropic' | 'ollama' | 'custom';
+
 export interface LlmProfile {
   id: string;
   name: string;
-  provider: 'openrouter' | 'openai' | 'gemini' | 'anthropic';
+  provider: LlmProviderType;
   apiUrl: string;
   apiKey: string;
   model: string;
@@ -25,13 +27,12 @@ export interface LlmProfile {
 export interface LlmPreferences {
   activeProfileId?: string;
   profiles?: LlmProfile[];
-  provider: 'openrouter' | 'openai' | 'gemini' | 'anthropic';
+  provider: LlmProviderType;
   apiUrl: string;
   apiKey: string;
   model: string;
   shortTermMemoryLimit?: number;
 }
-
 
 export interface ChatMessage {
   id: string;
@@ -40,6 +41,17 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+export interface ChatMemory {
+  diagramSummary: string;
+  shortTermMessages: ChatMessage[];
+}
+
+export interface DiagramPatchResponse {
+  message: string;
+  updatedLogical?: LogicalDiagram | null;
+  updatedVisual?: VisualDiagram | null;
+  summary?: string | null;
+}
 
 // --- PORT / HANDLE SYSTEM ---
 export type PortSide = 'top' | 'right' | 'bottom' | 'left';

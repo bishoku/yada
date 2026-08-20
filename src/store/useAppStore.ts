@@ -11,15 +11,17 @@ import { createHistorySlice } from './slices/historySlice';
 import { calculateSchedules } from './scheduler';
 
 // Try to load persisted Google User
-const savedGoogleUserStr = localStorage.getItem('diagramer_google_user');
 let savedGoogleUser = null;
-if (savedGoogleUserStr) {
+if (typeof localStorage !== 'undefined') {
   try {
-    const parsed = JSON.parse(savedGoogleUserStr);
-    if (parsed.expiresAt > Date.now()) {
-      savedGoogleUser = parsed;
-    } else {
-      localStorage.removeItem('diagramer_google_user');
+    const savedGoogleUserStr = localStorage.getItem('diagramer_google_user');
+    if (savedGoogleUserStr) {
+      const parsed = JSON.parse(savedGoogleUserStr);
+      if (parsed.expiresAt > Date.now()) {
+        savedGoogleUser = parsed;
+      } else {
+        localStorage.removeItem('diagramer_google_user');
+      }
     }
   } catch (e) {}
 }
@@ -116,10 +118,12 @@ export const useAppStore = create<AppState>()((set, get, store) => {
     hasUnsyncedChanges: false,
     
     setGoogleUser: (user) => {
-      if (user) {
-        localStorage.setItem('diagramer_google_user', JSON.stringify(user));
-      } else {
-        localStorage.removeItem('diagramer_google_user');
+      if (typeof localStorage !== 'undefined') {
+        if (user) {
+          localStorage.setItem('diagramer_google_user', JSON.stringify(user));
+        } else {
+          localStorage.removeItem('diagramer_google_user');
+        }
       }
       wrappedSet({ googleUser: user });
     },

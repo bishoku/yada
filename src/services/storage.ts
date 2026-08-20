@@ -41,14 +41,14 @@ class StorageManager implements IStorageDriver {
       this.mode = 'confluence-dc';
     } else if (isTauri()) {
       this.activeDriver = new TauriDriver();
-      const savedMode = (localStorage.getItem(STORAGE_MODE_KEY) as StorageMode) || 'tauri';
+      const savedMode = (typeof localStorage !== 'undefined' ? (localStorage.getItem(STORAGE_MODE_KEY) as StorageMode) : null) || 'tauri';
       this.mode = savedMode;
       // Sync with Rust backend asynchronously
       import('@tauri-apps/api/core').then(({ invoke }) => {
         invoke('set_backend_storage_mode', { mode: savedMode === 'icloud-drive' ? 'icloud' : 'localstorage' }).catch(console.error);
       }).catch(console.error);
     } else {
-      const savedMode = (localStorage.getItem(STORAGE_MODE_KEY) as StorageMode) || 'localstorage';
+      const savedMode = (typeof localStorage !== 'undefined' ? (localStorage.getItem(STORAGE_MODE_KEY) as StorageMode) : null) || 'localstorage';
       if (savedMode === 'fs-access' && FileSystemAccessDriver.isSupported()) {
         this.activeDriver = new FileSystemAccessDriver();
         this.mode = 'fs-access';
@@ -69,7 +69,9 @@ class StorageManager implements IStorageDriver {
         const { invoke } = await import('@tauri-apps/api/core');
         await invoke('set_backend_storage_mode', { mode: newMode === 'icloud-drive' ? 'icloud' : 'localstorage' });
         this.mode = newMode;
-        localStorage.setItem(STORAGE_MODE_KEY, newMode);
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(STORAGE_MODE_KEY, newMode);
+        }
         return true;
       }
       return false;
@@ -80,14 +82,18 @@ class StorageManager implements IStorageDriver {
       if (handle) {
         this.activeDriver = new FileSystemAccessDriver(handle);
         this.mode = 'fs-access';
-        localStorage.setItem(STORAGE_MODE_KEY, 'fs-access');
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(STORAGE_MODE_KEY, 'fs-access');
+        }
         return true;
       }
       return false; // User cancelled
     } else {
       this.activeDriver = new LocalStorageDriver();
       this.mode = 'localstorage';
-      localStorage.setItem(STORAGE_MODE_KEY, 'localstorage');
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_MODE_KEY, 'localstorage');
+      }
       return true;
     }
   }

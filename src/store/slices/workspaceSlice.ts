@@ -5,6 +5,7 @@ import { StorageService, isTauri } from '../../services/storage';
 import { migratePortFormat } from '../../utils/portMigration';
 import { migrateToSchemaV2 } from '../../utils/schemaMigration';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { encryptCredential, decryptCredential } from '../../services/ai/cryptoVault';
 
 const applyTheme = (theme: Theme) => {
   // Remove custom theme classes first
@@ -115,12 +116,30 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   saveLlmPreferences: async (prefs) => {
     try {
       set({ llmPreferences: prefs });
+
+      // Encrypt API keys for storage
+      const encryptedApiKey = prefs.apiKey ? await encryptCredential(prefs.apiKey) : '';
+      const encryptedProfiles = prefs.profiles
+        ? await Promise.all(
+            prefs.profiles.map(async (p) => ({
+              ...p,
+              apiKey: p.apiKey ? await encryptCredential(p.apiKey) : '',
+            }))
+          )
+        : undefined;
+
+      const encryptedPrefs = {
+        ...prefs,
+        apiKey: encryptedApiKey,
+        profiles: encryptedProfiles,
+      };
+
       const currentPrefStr = await StorageService.load_preferences();
       const prefObj = JSON.parse(currentPrefStr || '{}');
       prefObj.language = get().language;
       prefObj.theme = get().theme;
       prefObj.maxSteps = get().maxSteps;
-      prefObj.llm = prefs;
+      prefObj.llm = encryptedPrefs;
       await StorageService.save_preferences(JSON.stringify(prefObj));
     } catch (err) {
       console.error('Error saving LLM preferences:', err);
@@ -496,12 +515,29 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         finalLang = paramLang as Language;
       }
       const finalMaxSteps: number = typeof prefObj.maxSteps === 'number' ? prefObj.maxSteps : 30;
-      const llmPrefs = prefObj.llm || {
+      const rawLlmPrefs = prefObj.llm || {
         provider: 'openrouter',
         apiUrl: 'https://openrouter.ai/api/v1',
         apiKey: '',
         model: 'anthropic/claude-3.5-sonnet',
         shortTermMemoryLimit: 20,
+      };
+
+      // Decrypt API keys for in-memory use
+      const decryptedApiKey = rawLlmPrefs.apiKey ? await decryptCredential(rawLlmPrefs.apiKey) : '';
+      const decryptedProfiles = rawLlmPrefs.profiles
+        ? await Promise.all(
+            rawLlmPrefs.profiles.map(async (p: any) => ({
+              ...p,
+              apiKey: p.apiKey ? await decryptCredential(p.apiKey) : '',
+            }))
+          )
+        : undefined;
+
+      const llmPrefs = {
+        ...rawLlmPrefs,
+        apiKey: decryptedApiKey,
+        profiles: decryptedProfiles,
       };
 
       set({

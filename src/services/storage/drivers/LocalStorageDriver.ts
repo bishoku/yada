@@ -7,13 +7,58 @@ const WEB_GLOBAL_COMPONENTS_DIR = 'virtual://global_components';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
+// In-memory fallback map for non-browser/testing environments
+const memoryStore = new Map<string, string>();
+
+const safeStorage = {
+  getItem(key: string): string | null {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        return localStorage.getItem(key);
+      } catch {}
+    }
+    return memoryStore.get(key) ?? null;
+  },
+  setItem(key: string, value: string): void {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(key, value);
+        return;
+      } catch {}
+    }
+    memoryStore.set(key, value);
+  },
+  removeItem(key: string): void {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem(key);
+        return;
+      } catch {}
+    }
+    memoryStore.delete(key);
+  },
+  keys(): string[] {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const keys: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k) keys.push(k);
+        }
+        return keys;
+      } catch {}
+    }
+    return Array.from(memoryStore.keys());
+  },
+};
+
 export class LocalStorageDriver implements IStorageDriver {
   getMode(): StorageMode {
     return 'localstorage';
   }
 
   async create_workspace(name: string, description: string): Promise<string> {
-    const workspacesStr = localStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
+    const workspacesStr = safeStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
     const workspaces = JSON.parse(workspacesStr);
     
     const id = generateId();
@@ -28,12 +73,12 @@ export class LocalStorageDriver implements IStorageDriver {
     };
     
     workspaces.push(ws);
-    localStorage.setItem(WEB_WORKSPACES_KEY, JSON.stringify(workspaces));
+    safeStorage.setItem(WEB_WORKSPACES_KEY, JSON.stringify(workspaces));
     return JSON.stringify(ws);
   }
 
   async load_workspace(path: string): Promise<string> {
-    const workspacesStr = localStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
+    const workspacesStr = safeStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
     const workspaces = JSON.parse(workspacesStr);
     const ws = workspaces.find((w: any) => w.path === path);
     if (!ws) throw new Error('Workspace not found');
@@ -42,7 +87,7 @@ export class LocalStorageDriver implements IStorageDriver {
 
   async save_workspace(metaJson: string): Promise<void> {
     const ws = JSON.parse(metaJson);
-    const workspacesStr = localStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
+    const workspacesStr = safeStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
     let workspaces = JSON.parse(workspacesStr);
     const index = workspaces.findIndex((w: any) => w.path === ws.path);
     
@@ -51,24 +96,24 @@ export class LocalStorageDriver implements IStorageDriver {
     } else {
       workspaces.push(ws);
     }
-    localStorage.setItem(WEB_WORKSPACES_KEY, JSON.stringify(workspaces));
+    safeStorage.setItem(WEB_WORKSPACES_KEY, JSON.stringify(workspaces));
   }
 
   async get_recent_workspaces(): Promise<string> {
-    const workspacesStr = localStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
+    const workspacesStr = safeStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
     const workspaces = JSON.parse(workspacesStr);
     workspaces.sort((a: any, b: any) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
     return JSON.stringify(workspaces);
   }
 
   async delete_workspace(path: string): Promise<void> {
-    const workspacesStr = localStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
+    const workspacesStr = safeStorage.getItem(WEB_WORKSPACES_KEY) || '[]';
     const workspaces = JSON.parse(workspacesStr);
     const filtered = workspaces.filter((w: any) => w.path !== path);
-    localStorage.setItem(WEB_WORKSPACES_KEY, JSON.stringify(filtered));
+    safeStorage.setItem(WEB_WORKSPACES_KEY, JSON.stringify(filtered));
     
     const dataKey = `${WEB_DIAGRAM_PREFIX}${path}`;
-    localStorage.removeItem(dataKey);
+    safeStorage.removeItem(dataKey);
   }
 
   async save_diagram(path: string, diagramId: string, logicalJson: string, visualJson: string, _diagramFileJson?: string): Promise<void> {
@@ -78,16 +123,16 @@ export class LocalStorageDriver implements IStorageDriver {
       logicalData: JSON.parse(logicalJson),
       visualData: JSON.parse(visualJson),
     };
-    localStorage.setItem(dataKey, JSON.stringify(payload));
+    safeStorage.setItem(dataKey, JSON.stringify(payload));
   }
 
   async load_diagram(path: string, diagramId: string = 'default'): Promise<string> {
     let dataKey = `${WEB_DIAGRAM_PREFIX}${path}_${diagramId}`;
-    let dataStr = localStorage.getItem(dataKey);
+    let dataStr = safeStorage.getItem(dataKey);
     
     if (!dataStr && diagramId === 'default') {
       const legacyKey = `${WEB_DIAGRAM_PREFIX}${path}`;
-      dataStr = localStorage.getItem(legacyKey);
+      dataStr = safeStorage.getItem(legacyKey);
     }
     
     if (!dataStr) throw new Error('Diagram data not found');
@@ -95,11 +140,11 @@ export class LocalStorageDriver implements IStorageDriver {
   }
 
   async save_preferences(preferencesJson: string): Promise<void> {
-    localStorage.setItem(WEB_PREFS_KEY, preferencesJson);
+    safeStorage.setItem(WEB_PREFS_KEY, preferencesJson);
   }
 
   async load_preferences(): Promise<string> {
-    return localStorage.getItem(WEB_PREFS_KEY) || '{}';
+    return safeStorage.getItem(WEB_PREFS_KEY) || '{}';
   }
 
   async get_global_components_dir(): Promise<string> {
@@ -107,11 +152,11 @@ export class LocalStorageDriver implements IStorageDriver {
   }
 
   async save_text_file(path: string, content: string): Promise<void> {
-    localStorage.setItem(`file://${path}`, content);
+    safeStorage.setItem(`file://${path}`, content);
   }
 
   async read_text_file(path: string): Promise<string> {
-    const content = localStorage.getItem(`file://${path}`);
+    const content = safeStorage.getItem(`file://${path}`);
     if (content === null) throw new Error(`File not found: ${path}`);
     return content;
   }
@@ -119,10 +164,10 @@ export class LocalStorageDriver implements IStorageDriver {
   async list_json_files_in_dir(dirPath: string): Promise<string[]> {
     const files: string[] = [];
     const prefix = `file://${dirPath}/`;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix) && key.endsWith('.json')) {
-        const content = localStorage.getItem(key);
+    const allKeys = safeStorage.keys();
+    for (const key of allKeys) {
+      if (key.startsWith(prefix) && key.endsWith('.json')) {
+        const content = safeStorage.getItem(key);
         if (content) {
           files.push(content);
         }
@@ -132,6 +177,6 @@ export class LocalStorageDriver implements IStorageDriver {
   }
 
   async delete_file(path: string): Promise<void> {
-    localStorage.removeItem(`file://${path}`);
+    safeStorage.removeItem(`file://${path}`);
   }
 }

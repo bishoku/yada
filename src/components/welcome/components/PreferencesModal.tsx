@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Globe, Sun, Moon, Check, HardDrive, Folder, Sparkles, Sliders, Plus, Trash2 } from 'lucide-react';
+import { Settings, Globe, Sun, Moon, Check, HardDrive, Folder, Sparkles, Sliders, Plus, Trash2, ShieldCheck } from 'lucide-react';
 import { translations } from '../../../i18n/translations';
 import { StorageService, isTauri } from '../../../services/storage';
 import { StorageMode } from '../../../services/storage/types';
@@ -105,11 +105,19 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
     },
     {
       id: 'gemini-default',
-      name: 'Gemini',
+      name: 'Google Gemini',
       provider: 'gemini',
       apiUrl: 'https://generativelanguage.googleapis.com/v1beta',
       apiKey: '',
       model: 'gemini-1.5-pro',
+    },
+    {
+      id: 'ollama-default',
+      name: 'Ollama (Local)',
+      provider: 'ollama',
+      apiUrl: 'http://localhost:11434/v1',
+      apiKey: '',
+      model: 'llama3.2',
     },
   ];
 
@@ -120,80 +128,73 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   const activeProfileId = llmPreferences.activeProfileId || profiles[0]?.id || 'openrouter-default';
   const currentProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0];
 
-  const handleSelectProfile = (profileId: string) => {
-    const selected = profiles.find((p) => p.id === profileId);
-    if (!selected) return;
-
-    saveLlmPreferences({
-      ...llmPreferences,
-      activeProfileId: selected.id,
-      profiles,
-      provider: selected.provider,
-      apiUrl: selected.apiUrl,
-      apiKey: selected.apiKey,
-      model: selected.model,
-    });
-  };
-
-  const handleUpdateCurrentProfile = (updates: Partial<LlmProfile>) => {
-    if (!currentProfile) return;
-
-    const updatedProfiles = profiles.map((p) =>
-      p.id === currentProfile.id ? { ...p, ...updates } : p
-    );
-
-    const updatedCurrent = { ...currentProfile, ...updates };
-
-    saveLlmPreferences({
-      ...llmPreferences,
-      activeProfileId: updatedCurrent.id,
-      profiles: updatedProfiles,
-      provider: updatedCurrent.provider,
-      apiUrl: updatedCurrent.apiUrl,
-      apiKey: updatedCurrent.apiKey,
-      model: updatedCurrent.model,
-    });
+  const handleSelectProfile = (id: string) => {
+    const selected = profiles.find((p) => p.id === id);
+    if (selected) {
+      saveLlmPreferences({
+        ...llmPreferences,
+        activeProfileId: id,
+        provider: selected.provider,
+        apiUrl: selected.apiUrl,
+        apiKey: selected.apiKey,
+        model: selected.model,
+        profiles,
+      });
+    }
   };
 
   const handleAddProfile = () => {
     const newId = `profile-${Date.now()}`;
     const newProfile: LlmProfile = {
       id: newId,
-      name: language === 'tr' ? `Profil ${profiles.length + 1}` : `Profile ${profiles.length + 1}`,
+      name: language === 'tr' ? `Yeni Profil ${profiles.length + 1}` : `New Profile ${profiles.length + 1}`,
       provider: 'openrouter',
       apiUrl: 'https://openrouter.ai/api/v1',
       apiKey: '',
       model: 'anthropic/claude-3.5-sonnet',
     };
 
-    const updatedProfiles = [...profiles, newProfile];
-
+    const updated = [...profiles, newProfile];
     saveLlmPreferences({
       ...llmPreferences,
       activeProfileId: newId,
-      profiles: updatedProfiles,
       provider: newProfile.provider,
       apiUrl: newProfile.apiUrl,
       apiKey: newProfile.apiKey,
       model: newProfile.model,
+      profiles: updated,
     });
   };
 
-  const handleDeleteProfile = (profileId: string) => {
+  const handleDeleteProfile = (id: string) => {
     if (profiles.length <= 1) return;
-
-    const updatedProfiles = profiles.filter((p) => p.id !== profileId);
-    const nextActive = updatedProfiles[0];
-
+    const updated = profiles.filter((p) => p.id !== id);
+    const nextActive = updated[0];
     saveLlmPreferences({
       ...llmPreferences,
       activeProfileId: nextActive.id,
-      profiles: updatedProfiles,
       provider: nextActive.provider,
       apiUrl: nextActive.apiUrl,
       apiKey: nextActive.apiKey,
       model: nextActive.model,
+      profiles: updated,
     });
+  };
+
+  const handleUpdateCurrentProfile = (partial: Partial<LlmProfile>) => {
+    const updated = profiles.map((p) => (p.id === activeProfileId ? { ...p, ...partial } : p));
+    const current = updated.find((p) => p.id === activeProfileId);
+    if (current) {
+      saveLlmPreferences({
+        ...llmPreferences,
+        activeProfileId,
+        provider: current.provider,
+        apiUrl: current.apiUrl,
+        apiKey: current.apiKey,
+        model: current.model,
+        profiles: updated,
+      });
+    }
   };
 
   return (
@@ -222,20 +223,18 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             {language === 'tr' ? 'Uygulama Tercihleri' : 'Application Preferences'}
           </button>
 
-          {isTauri() && (
-            <button
-              type="button"
-              onClick={() => setActiveTab('integrations')}
-              className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
-                activeTab === 'integrations'
-                  ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-              }`}
-            >
-              <Sparkles className="w-4 h-4" />
-              {language === 'tr' ? 'Entegrasyonlar' : 'Integrations'}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setActiveTab('integrations')}
+            className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+              activeTab === 'integrations'
+                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            {language === 'tr' ? 'Entegrasyonlar' : 'Integrations'}
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -429,17 +428,27 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           )}
 
           {/* TAB 2: Integrations (LLM Multi-Profile) */}
-          {activeTab === 'integrations' && isTauri() && (
+          {activeTab === 'integrations' && (
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider mb-1">
                   {language === 'tr' ? 'AI Asistan Profilleri (LLM)' : 'AI Assistant Profiles (LLM)'}
                 </label>
-                <p className="text-[11px] text-slate-400 leading-relaxed mb-3">
+                <p className="text-[11px] text-slate-400 leading-relaxed mb-2">
                   {language === 'tr'
                     ? 'Birden fazla sağlayıcı profili tanımlayabilir, aktif olanı seçerek kullanabilirsiniz.'
                     : 'Manage multiple LLM profiles and switch between them.'}
                 </p>
+
+                {/* Web Crypto Vault Security Badge */}
+                <div className="flex items-center gap-1.5 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-600 dark:text-emerald-400 text-[10px] font-medium mb-3">
+                  <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {language === 'tr'
+                      ? 'API anahtarlarınız Web Crypto API (AES-GCM-256) ile yerel olarak şifrelenir.'
+                      : 'Your API keys are encrypted locally using Web Crypto API (AES-GCM-256).'}
+                  </span>
+                </div>
               </div>
 
               {/* Profile Selection & Actions */}
@@ -521,6 +530,12 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         } else if (provider === 'gemini') {
                           apiUrl = 'https://generativelanguage.googleapis.com/v1beta';
                           model = 'gemini-1.5-pro';
+                        } else if (provider === 'ollama') {
+                          apiUrl = 'http://localhost:11434/v1';
+                          model = 'llama3.2';
+                        } else if (provider === 'custom') {
+                          apiUrl = '';
+                          model = '';
                         }
 
                         handleUpdateCurrentProfile({
@@ -531,20 +546,27 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                       }}
                       className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 cursor-pointer font-medium"
                     >
-                      <option value="openrouter">OpenRouter</option>
+                      <option value="openrouter">OpenRouter (Recommended)</option>
                       <option value="openai">OpenAI</option>
-                      <option value="anthropic">Anthropic</option>
-                      <option value="gemini">Gemini</option>
+                      <option value="gemini">Google Gemini</option>
+                      <option value="anthropic">Anthropic (Claude)</option>
+                      <option value="ollama">Ollama (Local / Offline)</option>
+                      <option value="custom">Custom / Other</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
-                      API Key
+                    <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center justify-between">
+                      <span>API Key</span>
+                      {currentProfile.provider === 'ollama' && (
+                        <span className="text-[9px] text-slate-400 font-normal">
+                          {language === 'tr' ? '(Ollama için isteğe bağlı)' : '(Optional for Ollama)'}
+                        </span>
+                      )}
                     </label>
                     <input
                       type="password"
-                      placeholder="sk-..."
+                      placeholder={currentProfile.provider === 'ollama' ? 'optional' : 'sk-...'}
                       value={currentProfile.apiKey || ''}
                       onChange={(e) => handleUpdateCurrentProfile({ apiKey: e.target.value })}
                       className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 select-text"

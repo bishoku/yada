@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Send, X, Sparkles, Loader2, Trash2, Square } from 'lucide-react';
-import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '../../store/useAppStore';
-import { isTauri } from '../../services/storage';
 import { ChatMessage } from '../../types';
 import { ChatBubble } from './ChatBubble';
 import { validateAndRepairAiPayload } from '../../utils/aiValidator';
+import {
+  loadChatMemory,
+  clearChatMemory,
+  chatWithAgent,
+  resolveActiveProfile,
+} from '../../services/ai/aiAgentService';
 
 export const ChatOverlay: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,6 +17,7 @@ export const ChatOverlay: React.FC = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const isCancelledRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const llmPreferences = useAppStore((s) => s.llmPreferences);
   const currentWorkspace = useAppStore((s) => s.currentWorkspace);
@@ -30,12 +35,9 @@ export const ChatOverlay: React.FC = () => {
 
   // Load chat memory on diagram switch
   useEffect(() => {
-    if (!isTauri() || !currentWorkspace || !activeDiagramId) return;
+    if (!currentWorkspace || !activeDiagramId) return;
 
-    invoke<{ shortTermMessages: ChatMessage[] }>('get_chat_memory', {
-      workspacePath: currentWorkspace.path,
-      diagramId: activeDiagramId,
-    })
+    loadChatMemory(currentWorkspace.path, activeDiagramId)
       .then((mem) => {
         if (mem && mem.shortTermMessages) {
           setMessages(mem.shortTermMessages);
@@ -57,11 +59,13 @@ export const ChatOverlay: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  if (!isTauri() || !currentWorkspace || !activeDiagramId) return null; // Only show when a diagram is active in Tauri app
+  if (!currentWorkspace || !activeDiagramId) return null; // Only show when a diagram is active
+
+  const { provider, apiUrl, apiKey, model } = resolveActiveProfile(llmPreferences);
+  const isLocalProvider = provider === 'ollama' || apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1');
 
   const handleToggle = () => {
-    if (!llmPreferences.apiKey.trim()) {
-      // Prompt user or open preferences
+    if (!apiKey.trim() && !isLocalProvider) {
       alert(
         language === 'tr'
           ? 'Lütfen önce Tercihler (Preferences) ekranından LLM API Anahtarınızı giriniz.'
@@ -75,25 +79,20 @@ export const ChatOverlay: React.FC = () => {
   const handleClearMemory = async () => {
     if (!currentWorkspace || !activeDiagramId) return;
     try {
-      await invoke('clear_chat_memory', {
-        workspacePath: currentWorkspace.path,
-        diagramId: activeDiagramId,
-      });
+      await clearChatMemory(currentWorkspace.path, activeDiagramId);
       setMessages([]);
     } catch (err) {
       console.error('Failed to clear chat memory:', err);
     }
   };
 
-  const handleStop = async () => {
+  const handleStop = () => {
     isCancelledRef.current = true;
-    setLoading(false);
-
-    try {
-      await invoke('cancel_agent_chat');
-    } catch (err) {
-      console.error('Failed to send cancel signal to Rust:', err);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
+    setLoading(false);
 
     const cancelMsg: ChatMessage = {
       id: `cancel-${Date.now()}`,
@@ -128,17 +127,18 @@ export const ChatOverlay: React.FC = () => {
     setMessages((prev) => [...prev, tempUserMsg]);
     setLoading(true);
 
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
-      const response = await invoke<{
-        message: string;
-        updatedLogical?: any;
-        updatedVisual?: any;
-      }>('chat_with_agent', {
+      const { patchResponse } = await chatWithAgent({
+        preferences: llmPreferences,
         workspacePath: currentWorkspace.path,
         diagramId: activeDiagramId,
         currentLogical: logicalData,
         currentVisual: visualData,
         userMessage: userText,
+        signal: abortController.signal,
       });
 
       if (isCancelledRef.current) return;
@@ -146,33 +146,33 @@ export const ChatOverlay: React.FC = () => {
       const botMsg: ChatMessage = {
         id: `bot-${Date.now()}`,
         sender: 'assistant',
-        text: response.message,
+        text: patchResponse.message,
         timestamp: new Date().toISOString(),
       };
 
       setMessages((prev) => [...prev, botMsg]);
 
       // Real-time Visual & Logical Update + Timeline Schedule Recalculation!
-      if (response.updatedLogical || response.updatedVisual) {
-        const baseLogical = response.updatedLogical || logicalData;
-        const baseVisual = response.updatedVisual || visualData;
+      if (patchResponse.updatedLogical || patchResponse.updatedVisual) {
+        const baseLogical = patchResponse.updatedLogical || logicalData;
+        const baseVisual = patchResponse.updatedVisual || visualData;
         const { safeLogical, safeVisual } = validateAndRepairAiPayload(baseLogical, baseVisual);
         useAppStore.getState().updateDiagramFromAi(safeLogical, safeVisual);
       }
-
     } catch (err: any) {
-      if (isCancelledRef.current) return;
+      if (isCancelledRef.current || err.name === 'AbortError') return;
       console.error('Chat execution failed:', err);
       const errMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         sender: 'assistant',
-        text: `Hata: ${err?.toString() || 'Bilinmeyen bir hata oluştu.'}`,
+        text: `Hata: ${err?.message || err?.toString() || 'Bilinmeyen bir hata oluştu.'}`,
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errMsg]);
     } finally {
       if (!isCancelledRef.current) {
         setLoading(false);
+        abortControllerRef.current = null;
       }
     }
   };
@@ -192,8 +192,8 @@ export const ChatOverlay: React.FC = () => {
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                   YADA AI Assistant
                 </h4>
-                <span className="text-[10px] text-slate-400 font-medium block">
-                  {llmPreferences.model || 'LLM Agent'}
+                <span className="text-[10px] text-slate-400 font-medium block truncate max-w-[220px]">
+                  {model || provider || 'LLM Agent'}
                 </span>
               </div>
             </div>
@@ -268,7 +268,7 @@ export const ChatOverlay: React.FC = () => {
             />
 
             <button
-              type={loading ? "button" : "submit"}
+              type={loading ? 'button' : 'submit'}
               onClick={loading ? handleStop : undefined}
               disabled={!loading && !input.trim()}
               className={`w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-all shadow-md shrink-0 mb-0.5 ${
@@ -299,4 +299,3 @@ export const ChatOverlay: React.FC = () => {
     </div>
   );
 };
-
