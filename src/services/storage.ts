@@ -3,11 +3,13 @@ import { TauriDriver } from './storage/drivers/TauriDriver';
 import { LocalStorageDriver } from './storage/drivers/LocalStorageDriver';
 import { FileSystemAccessDriver } from './storage/drivers/FileSystemAccessDriver';
 import { ForgeDriver } from './storage/drivers/ForgeDriver';
+import { ConfluenceDcDriver } from './storage/drivers/ConfluenceDcDriver';
 import { IDBHandleService } from './storage/idbHandle';
 import { EmbedIframeDriver } from './storage/drivers/EmbedIframeDriver';
 
 import { isForge } from './forgeBridge';
-export { isForge };
+import { isConfluenceDC } from './confluenceDcBridge';
+export { isForge, isConfluenceDC };
 
 export const isTauri = () => {
   return typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__ !== undefined;
@@ -34,6 +36,9 @@ class StorageManager implements IStorageDriver {
     } else if (isForge()) {
       this.activeDriver = new ForgeDriver();
       this.mode = 'forge';
+    } else if (isConfluenceDC()) {
+      this.activeDriver = new ConfluenceDcDriver();
+      this.mode = 'confluence-dc';
     } else if (isTauri()) {
       this.activeDriver = new TauriDriver();
       const savedMode = (localStorage.getItem(STORAGE_MODE_KEY) as StorageMode) || 'tauri';

@@ -1,4 +1,4 @@
-export type StorageMode = 'tauri' | 'localstorage' | 'fs-access' | 'forge' | 'icloud-drive' | 'embed';
+export type StorageMode = 'tauri' | 'localstorage' | 'fs-access' | 'forge' | 'icloud-drive' | 'embed' | 'confluence-dc';
 
 export interface IStorageDriver {
   getMode(): StorageMode;

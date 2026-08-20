@@ -49,7 +49,7 @@ export default defineConfig(async ({ command }) => {
         }
       })
     ],
-    base: process.env.VITE_TARGET === 'forge' ? './' : (process.env.VITE_BASE || '/'),
+    base: (process.env.VITE_TARGET === 'forge' || process.env.VITE_TARGET === 'confluence-dc') ? './' : (process.env.VITE_BASE || '/'),
 
     // ── Build Optimization: Split heavy dependencies into separate chunks ───
     build: {

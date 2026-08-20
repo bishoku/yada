@@ -1,0 +1,21 @@
+<div class="yada-macro-container" style="height: $!{height};">
+    <div class="yada-macro-header">
+        <div class="yada-macro-title">
+            <span class="yada-macro-badge">YADA</span>
+            <span>$!{title}</span>
+        </div>
+        #if($canEdit)
+        <div>
+            <button type="button" class="yada-macro-edit-btn" onclick="YadaConfluence.openEditor('$!{pageId}', '$!{macroId}');">
+                ✏️ Edit Diagram
+            </button>
+        </div>
+        #end
+    </div>
+    <div style="height: calc(100% - 41px); position: relative;">
+        <iframe class="yada-macro-iframe"
+                src="$!{contextPath}/download/resources/com.yada.confluence.yada-confluence-dc:yada-resources/static/index.html?mode=view&target=confluence-dc&pageId=$!{pageId}&macroId=$!{macroId}&cp=$!{contextPath}"
+                allow="fullscreen">
+        </iframe>
+    </div>
+</div>

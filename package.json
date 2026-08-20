@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "build:forge": "tsc && VITE_TARGET=forge VITE_BASE=./ vite build --outDir forge/static/build",
+    "build:dc": "tsc && VITE_TARGET=confluence-dc VITE_BASE=./ vite build --outDir confluence-dc/src/main/resources/static",
     "preview": "vite preview",
     "tauri": "tauri",
     "test": "vitest run"

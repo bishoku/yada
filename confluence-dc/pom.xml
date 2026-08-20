@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.yada</groupId>
+    <artifactId>yada-confluence-dc</artifactId>
+    <version>1.0.0</version>
+    <packaging>atlassian-plugin</packaging>
+
+    <name>YADA Architecture Diagram (Data Center)</name>
+    <description>Interactive architecture diagramming and flow simulation for Confluence Data Center.</description>
+
+    <properties>
+        <confluence.version>8.5.8</confluence.version>
+        <confluence.data.version>8.5.8</confluence.data.version>
+        <amps.version>8.14.0</amps.version>
+        <plugin.testrunner.version>2.0.2</plugin.testrunner.version>
+        <atlassian.spring.scanner.version>3.0.4</atlassian.spring.scanner.version>
+        <upm.license.api.version>3.0.4</upm.license.api.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <enforcer.skip>true</enforcer.skip>
+        <bannedDependencies>false</bannedDependencies>
+    </properties>
+
+    <dependencies>
+        <!-- Confluence Core API (Provided by Confluence Host at runtime) -->
+        <dependency>
+            <groupId>com.atlassian.confluence</groupId>
+            <artifactId>confluence</artifactId>
+            <version>${confluence.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Atlassian REST API -->
+        <dependency>
+            <groupId>com.atlassian.plugins.rest</groupId>
+            <artifactId>atlassian-rest-common</artifactId>
+            <version>6.2.2</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.ws.rs</groupId>
+            <artifactId>jsr311-api</artifactId>
+            <version>1.1.1</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- UPM Licensing API (For Paid via Atlassian Marketplace Data Center Licensing) -->
+        <dependency>
+            <groupId>com.atlassian.upm</groupId>
+            <artifactId>licensing-api</artifactId>
+            <version>${upm.license.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.atlassian.upm</groupId>
+            <artifactId>upm-api</artifactId>
+            <version>${upm.license.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Spring Scanner for Dependency Injection -->
+        <dependency>
+            <groupId>com.atlassian.plugin</groupId>
+            <artifactId>atlassian-spring-scanner-annotation</artifactId>
+            <version>${atlassian.spring.scanner.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.atlassian.plugin</groupId>
+            <artifactId>atlassian-spring-scanner-runtime</artifactId>
+            <version>${atlassian.spring.scanner.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- JSON and Utilities -->
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20231013</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.15.1</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+            <version>5.3.33</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>5.3.33</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>1</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.1.0</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Atlassian Maven Plugin Suite (AMPS) -->
+            <plugin>
+                <groupId>com.atlassian.maven.plugins</groupId>
+                <artifactId>confluence-maven-plugin</artifactId>
+                <version>${amps.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <productVersion>${confluence.version}</productVersion>
+                    <productDataVersion>${confluence.data.version}</productDataVersion>
+                    <enableQuickReload>true</enableQuickReload>
+                    <compressResources>false</compressResources>
+                    <compressJs>false</compressJs>
+                    <compressCss>false</compressCss>
+                    <bannedDependencies>false</bannedDependencies>
+                    <skipBannedDependencies>true</skipBannedDependencies>
+                    <failOnBannedDependencies>false</failOnBannedDependencies>
+                    <jvmArgs>-Xmx2048m -Xms1024m -XX:+UseG1GC -Datlassian.dev.mode=true -Dconfluence.synchrony.disable=true</jvmArgs>
+                    
+                    <instructions>
+                        <Atlassian-Plugin-Key>com.yada.confluence.yada-confluence-dc</Atlassian-Plugin-Key>
+                        <Spring-Context>*</Spring-Context>
+                        <Atlassian-Scan-Folders>META-INF/plugin-descriptors</Atlassian-Scan-Folders>
+                        <Export-Package>
+                            com.yada.confluence.api.*
+                        </Export-Package>
+                        <Import-Package>
+                            com.atlassian.confluence.*;version="0.0.0",
+                            com.atlassian.upm.api.*;version="0.0.0",
+                            *;resolution:=optional
+                        </Import-Package>
+                    </instructions>
+
+                    <!-- Multi-Node Clustered DC Testing Setup -->
+                    <products>
+                        <product>
+                            <id>confluence</id>
+                            <instanceId>confluence-node1</instanceId>
+                            <httpPort>1990</httpPort>
+                            <contextPath>/confluence</contextPath>
+                        </product>
+                    </products>
+                </configuration>
+            </plugin>
+
+            <!-- Spring Scanner Runtime Processor -->
+            <plugin>
+                <groupId>com.atlassian.plugin</groupId>
+                <artifactId>atlassian-spring-scanner-maven-plugin</artifactId>
+                <version>${atlassian.spring.scanner.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>atlassian-spring-scanner</goal>
+                        </goals>
+                        <phase>process-classes</phase>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

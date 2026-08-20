@@ -32,3 +32,29 @@ __pycache__/
 *.mobileprovision
 yada_profile.plist
 test_icloud.swift
+
+# Confluence Forge & DC Generated Build Assets
+forge/static/build/
+confluence-dc/src/main/resources/static/
+
+# Maven & Java Build Outputs
+target/
+confluence-dc/target/
+*.class
+*.jar
+*.war
+*.ear
+*.obr
+*.nar
+
+# Atlassian Plugin SDK (AMPS) & Confluence Local Runtime
+amps-report/
+.amps/
+.flattened-pom.xml
+cargo.log
+amps.log
+atlassian-confluence.log
+catalina.out
+hs_err_pid*
+replay_pid*
+

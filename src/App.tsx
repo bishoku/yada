@@ -8,6 +8,11 @@ import {
   openForgeEditorModal, 
   closeForgeModal 
 } from './services/forgeBridge';
+import { 
+  isConfluenceDC, 
+  getConfluenceDcContext, 
+  closeConfluenceDcModal 
+} from './services/confluenceDcBridge';
 
 // ── Always loaded (lightweight, needed on every render path) ──────────────
 import { ConfluenceViewerLayout } from './components/layout/ConfluenceViewerLayout';
@@ -43,6 +48,7 @@ function App() {
   const [isEditingInConfluence, setIsEditingInConfluence] = useState(false);
   const [isForgeModal, setIsForgeModal] = useState(false);
   const isForgeMode = isForge();
+  const isDcMode = isConfluenceDC();
 
   const initFullscreenListener = useAppStore((state) => state.initFullscreenListener);
 
@@ -115,6 +121,39 @@ function App() {
         }
       };
       initForgeWorkspace();
+    } else if (isDcMode) {
+      const initDcWorkspace = async () => {
+        try {
+          const dcCtx = getConfluenceDcContext();
+          const stablePath = `confluence-dc://${dcCtx.pageId}/${dcCtx.macroId}`;
+          const isModal = dcCtx.isEditMode;
+
+          const ws: import('./types').WorkspaceMeta = {
+            id: `${dcCtx.pageId}_${dcCtx.macroId}`,
+            name: 'Confluence Diagram',
+            path: stablePath,
+            description: 'Interactive Confluence Architecture Diagram',
+            createdAt: new Date().toISOString(),
+            lastAccessed: new Date().toISOString(),
+          };
+
+          useAppStore.setState({ 
+            currentWorkspace: ws,
+            activeDiagramId: 'default',
+            openDiagramIds: ['default'],
+            diagrams: [{ id: 'default', name: 'Default Diagram', updatedAt: new Date().toISOString() }],
+            isReadOnly: !isModal,
+            isDirty: false,
+            isPlaying: false,
+            currentTime: 0,
+          });
+
+          await reloadCurrentForgeDiagram(stablePath);
+        } catch (err) {
+          console.error('Error initializing Confluence DC workspace:', err);
+        }
+      };
+      initDcWorkspace();
     }
     
     const searchParams = new URLSearchParams(window.location.search);
@@ -123,7 +162,7 @@ function App() {
       searchParams.get('integration') === 'iframe' || 
       searchParams.get('embed_editor') === 'true';
 
-    if (isModalEditor && !isForgeMode) {
+    if (isModalEditor && !isForgeMode && !isDcMode) {
       const initModalEditorWorkspace = async () => {
         try {
           const stablePath = `embed://workspace/default`;
@@ -216,7 +255,7 @@ function App() {
 
   // ── Confluence View Mode (inline macro on page) ─────────────────────────
   // This is the FAST path — no lazy components needed, no Suspense boundaries
-  if (isForgeMode && !isForgeModal && !isEditingInConfluence) {
+  if ((isForgeMode && !isForgeModal && !isEditingInConfluence) || (isDcMode && !getConfluenceDcContext().isEditMode && !isEditingInConfluence)) {
     return (
       <>
         <GlobalConfirmAlertModal />
@@ -226,7 +265,9 @@ function App() {
   }
 
   // ── Confluence Full-Screen Modal Editor ─────────────────────────────────
-  if (isForgeModal) {
+  const isConfluenceEditModal = isForgeModal || (isDcMode && getConfluenceDcContext().isEditMode);
+
+  if (isConfluenceEditModal) {
     return (
       <div className="h-screen w-screen flex flex-col overflow-hidden relative bg-slate-900 font-sans">
         <GlobalConfirmAlertModal />
@@ -238,7 +279,11 @@ function App() {
           <button
             onClick={async () => {
               await manualSave();
-              await closeForgeModal({ saved: true });
+              if (isForgeModal) {
+                await closeForgeModal({ saved: true });
+              } else if (isDcMode) {
+                closeConfluenceDcModal(true);
+              }
             }}
             className="px-4 py-1.5 bg-white text-indigo-700 hover:bg-indigo-50 rounded-md text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
           >
@@ -258,7 +303,7 @@ function App() {
   const isShareOrEmbedUrl = window.location.href.includes('share=') || window.location.href.includes('ref=') || window.location.href.includes('embed');
 
   // ── Desktop/Web Welcome Screen ──────────────────────────────────────────
-  if (!currentWorkspace && viewMode !== 'import-preview' && !isForgeMode && !isShareOrEmbedUrl) {
+  if (!currentWorkspace && viewMode !== 'import-preview' && !isForgeMode && !isDcMode && !isShareOrEmbedUrl) {
     return (
       <Suspense fallback={<LazyFallback />}>
         <ShareLoader />
@@ -281,7 +326,7 @@ function App() {
         <ComponentStudio />
       ) : (
         <div className="h-screen w-screen flex flex-col overflow-hidden relative">
-          {isForgeMode && (
+          {(isForgeMode || isDcMode) && (
             <div className="h-10 bg-indigo-600 text-white px-4 flex items-center justify-between z-30 shrink-0 shadow-md font-sans">
               <span className="text-xs font-bold tracking-wide flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -291,6 +336,9 @@ function App() {
                 onClick={async () => {
                   await manualSave();
                   setIsEditingInConfluence(false);
+                  if (isDcMode && getConfluenceDcContext().isEditMode) {
+                    closeConfluenceDcModal(true);
+                  }
                 }}
                 className="px-3 py-1 bg-white text-indigo-700 hover:bg-indigo-50 rounded-md text-xs font-bold transition-all shadow-sm cursor-pointer"
               >

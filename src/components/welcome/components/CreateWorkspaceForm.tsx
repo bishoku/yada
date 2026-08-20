@@ -13,6 +13,7 @@ interface CreateWorkspaceFormProps {
   onSubmit: (e: React.FormEvent) => void;
   onGoogleSignIn: () => void;
   googleUser: any;
+  className?: string;
 }
 
 export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
@@ -26,20 +27,21 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
   onSubmit,
   onGoogleSignIn,
   googleUser,
+  className = '',
 }) => {
   const t = translations[language];
 
   return (
-    <div className="w-full md:w-1/2 p-4 sm:p-6 md:p-8 bg-slate-100/10 dark:bg-slate-950/20 flex flex-col justify-between">
+    <div className={`w-full md:w-1/2 p-4 sm:p-5 md:p-6 lg:p-7 bg-slate-100/10 dark:bg-slate-950/20 flex-col justify-between h-full min-h-0 overflow-y-auto ${className}`}>
       <div>
-        <h2 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-6 flex items-center gap-2">
-          <FolderPlus className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
-          {t.createWorkspace}
+        <h2 className="text-base sm:text-lg font-bold text-slate-700 dark:text-slate-200 mb-3 sm:mb-5 flex items-center gap-2">
+          <FolderPlus className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 dark:text-indigo-400 shrink-0" />
+          <span>{t.createWorkspace}</span>
         </h2>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-3.5 sm:space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
               {t.workspaceName} *
             </label>
             <input
@@ -48,13 +50,13 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
               onChange={(e) => setName(e.target.value)}
               disabled={loading}
               placeholder={t.workspaceNamePlaceholder}
-              className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-800 dark:text-slate-200 text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/40 transition-all duration-200"
+              className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-200 text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/40 transition-all duration-200"
               maxLength={50}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
               {t.description}
             </label>
             <textarea
@@ -62,14 +64,14 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
               onChange={(e) => setDescription(e.target.value)}
               disabled={loading}
               placeholder={t.descriptionPlaceholder}
-              rows={4}
-              className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-800 dark:text-slate-200 text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/40 transition-all duration-200 resize-none"
+              rows={3}
+              className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-200 text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/40 transition-all duration-200 resize-none md:rows-4"
               maxLength={200}
             />
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl flex items-start gap-2 text-xs text-red-600 dark:text-red-400">
+            <div className="p-2.5 sm:p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl flex items-start gap-2 text-xs text-red-600 dark:text-red-400">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
@@ -78,7 +80,7 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-4 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800/45 text-slate-100 font-bold rounded-xl text-sm transition-all duration-200 shadow-lg shadow-indigo-650/10 dark:shadow-indigo-650/20 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+            className="w-full mt-2 sm:mt-3 py-2.5 sm:py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800/45 text-slate-100 font-bold rounded-xl text-xs sm:text-sm transition-all duration-200 shadow-lg shadow-indigo-650/10 dark:shadow-indigo-650/20 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
           >
             {loading ? (
               <div className="w-4 h-4 border-2 border-indigo-200 border-t-transparent rounded-full animate-spin" />
@@ -92,8 +94,8 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
         </form>
 
         {import.meta.env.VITE_ENABLE_GOOGLE_SYNC === 'true' && (
-          <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
-            <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3 text-center">
+          <div className="mt-4 sm:mt-6 pt-4 sm:pt-5 border-t border-slate-200 dark:border-slate-800">
+            <h3 className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2.5 text-center">
               {language === 'tr' ? 'Bulut Senkronizasyonu' : 'Cloud Synchronization'}
             </h3>
             
@@ -102,7 +104,7 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
                 type="button"
                 onClick={onGoogleSignIn}
                 disabled={loading}
-                className="w-full py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+                className="w-full py-2 sm:py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-xs sm:text-sm transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 shadow-xs"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
@@ -125,12 +127,12 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
                 <span>{language === 'tr' ? 'Google ile Giriş Yap' : 'Login with Google'}</span>
               </button>
             ) : (
-              <div className="flex flex-col items-center gap-2">
-                <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="flex items-center gap-1.5 text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 font-medium">
                   <Globe className="w-4 h-4" />
                   <span>{language === 'tr' ? 'Oturum Açıldı' : 'Signed In'}</span>
                 </div>
-                <p className="text-xs text-slate-500 text-center max-w-[240px]">
+                <p className="text-[11px] text-slate-500 text-center max-w-[240px]">
                   {language === 'tr' 
                     ? 'Geçmiş projeleriniz başarıyla buluttan indirildi ve listelendi.' 
                     : 'Your past projects were successfully fetched and listed.'}

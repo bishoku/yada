@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<atlassian-plugin key="com.yada.confluence.yada-confluence-dc" name="YADA Architecture Diagram (Data Center)" plugins-version="2">
+    <plugin-info>
+        <description>Interactive architecture diagramming and flow simulation for Confluence Data Center.</description>
+        <version>1.0.0</version>
+        <vendor name="YADA Team" url="https://github.com/barishoku/diagramer" />
+        <param name="plugin-icon">images/icon.png</param>
+        <param name="plugin-logo">images/icon.png</param>
+        <!-- Atlassian Marketplace & UPM Licensing Parameters -->
+        <param name="atlassian-data-center-compatible">true</param>
+        <param name="atlassian-licensing-enabled">true</param>
+    </plugin-info>
+
+    <!-- Web Resources: CSS, JS & YADA React Assets -->
+    <web-resource key="yada-resources" name="YADA Web Resources">
+        <resource type="download" name="yada-confluence.css" location="css/yada-confluence.css" />
+        <resource type="download" name="yada-confluence.js" location="js/yada-confluence.js" />
+        <resource type="download" name="static/" location="static/" />
+        <resource type="download" name="images/" location="images/" />
+
+        <!-- Load on Confluence pages and editor -->
+        <context>page</context>
+        <context>editor</context>
+        <context>atl.general</context>
+        
+        <dependency>com.atlassian.auiplugin:ajs</dependency>
+        <dependency>com.atlassian.auiplugin:dialog2</dependency>
+    </web-resource>
+
+    <!-- Confluence XHTML Macro Definition -->
+    <xhtml-macro key="yada-confluence-macro" 
+                 name="YADA Architecture Diagram" 
+                 class="com.yada.confluence.macro.YadaMacro" 
+                 icon="/download/resources/com.yada.confluence.yada-confluence-dc:yada-resources/images/icon.png">
+        <description>Interactive architecture diagramming and flow simulation.</description>
+        <category name="visuals" />
+        <category name="development" />
+        <parameters>
+            <parameter name="diagramId" type="string" default="default">
+                <option value="default" />
+            </parameter>
+            <parameter name="height" type="string" default="500px" />
+            <parameter name="title" type="string" default="Architecture Diagram" />
+        </parameters>
+    </xhtml-macro>
+
+    <!-- REST API Module -->
+    <rest key="yada-rest-module" path="/yada" version="1.0">
+        <description>REST API for YADA Diagram Data and Attachments</description>
+        <package>com.yada.confluence.rest</package>
+    </rest>
+
+</atlassian-plugin>

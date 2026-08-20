@@ -1,6 +1,8 @@
 export const translations = {
   tr: {
     welcomeTitle: "YADA",
+    tabWorkspaces: "Çalışma Alanları",
+    tabCreateNew: "Yeni Oluştur",
     recentWorkspaces: "Son Çalışma Alanları",
     openFromDirectory: "Dizinden Aç",
     noWorkspaces: "Kayıtlı çalışma alanı bulunamadı",
@@ -245,6 +247,8 @@ export const translations = {
   },
   en: {
     welcomeTitle: "YADA",
+    tabWorkspaces: "Workspaces",
+    tabCreateNew: "Create New",
     recentWorkspaces: "Recent Workspaces",
     openFromDirectory: "Open from Directory",
     noWorkspaces: "No registered workspaces found",

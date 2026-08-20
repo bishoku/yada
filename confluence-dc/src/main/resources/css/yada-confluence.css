@@ -1,0 +1,74 @@
+.yada-macro-container {
+    position: relative;
+    width: 100%;
+    border: 1px solid #dfe1e6;
+    border-radius: 8px;
+    background-color: #0f172a;
+    overflow: hidden;
+    margin: 16px 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.yada-macro-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background-color: #1e293b;
+    border-bottom: 1px solid #334155;
+    color: #f8fafc;
+}
+
+.yada-macro-title {
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.yada-macro-badge {
+    background-color: #4f46e5;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+.yada-macro-edit-btn {
+    background-color: #4f46e5;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.yada-macro-edit-btn:hover {
+    background-color: #4338ca;
+}
+
+.yada-macro-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+/* Modal Dialog */
+#yada-editor-dialog.aui-dialog2 {
+    width: 95vw !important;
+    height: 92vh !important;
+    max-width: 1800px !important;
+}
+
+#yada-editor-dialog .aui-dialog2-content {
+    padding: 0 !important;
+    height: calc(100% - 50px) !important;
+    overflow: hidden !important;
+}
