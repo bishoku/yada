@@ -12,6 +12,7 @@ import { translations } from '../../i18n/translations';
 import { generateStandaloneHtml } from '../../utils/exportTemplate';
 import { generateSequenceHtml } from '../../utils/exportSequenceTemplate';
 import { exportToPng, exportToSvg, exportToGif, exportToVideo } from '../../utils/exportMedia';
+import { generateDiagramAiSummary } from '../../utils/aiSummary';
 import { save } from '@tauri-apps/plugin-dialog';
 import { StorageService, isTauri } from '../../services/storage';
 import { GoogleDriveService } from '../../services/googleDriveAPI';
@@ -221,68 +222,7 @@ export const TopBar: React.FC = () => {
   };
 
   const handleCopyForAi = async () => {
-    let text = `${language === 'tr'
-      ? 'Aşağıdaki sistem mimarisini incele ve analiz et:'
-      : 'Analyze and explain the following system architecture:'}\n\n`;
-
-    text += `**${language === 'tr' ? 'Bileşenler' : 'Components'}:**\n`;
-    logicalData.nodes.forEach(node => {
-      const customTemplate = libraryComponents.find(c => c.componentId === node.type);
-      const category = customTemplate ? customTemplate.category : node.type;
-      text += `- \`${node.name}\` (Type: ${category})\n`;
-      if (node.properties && Object.keys(node.properties).length > 0) {
-        text += `  - Metadata: ${JSON.stringify(node.properties)}\n`;
-      }
-    });
-
-    if (logicalData.edges.length > 0) {
-      text += `\n**${language === 'tr' ? 'Bağlantılar' : 'Connections'}:**\n`;
-      logicalData.edges.forEach(edge => {
-        const sourceNode = logicalData.nodes.find(n => n.id === edge.sourceId);
-        const targetNode = logicalData.nodes.find(n => n.id === edge.targetId);
-        const sourceName = sourceNode ? sourceNode.name : edge.sourceId;
-        const targetName = targetNode ? targetNode.name : edge.targetId;
-
-        text += `- \`${sourceName}\` → \`${targetName}\` (Protocol: ${edge.protocol || 'Call'})\n`;
-        if (edge.description) {
-          text += `  - Description: ${edge.description}\n`;
-        }
-        if (edge.properties && Object.keys(edge.properties).length > 0) {
-          text += `  - Metadata: ${JSON.stringify(edge.properties)}\n`;
-        }
-      });
-    }
-
-    if (logicalData.sequences.length > 0) {
-      text += `\n**${language === 'tr' ? 'Etkileşim Akışı' : 'Interaction Flow'}:**\n`;
-
-      const sortedSeqs = [...logicalData.sequences].sort((a, b) => a.stepNumber - b.stepNumber);
-
-      sortedSeqs.forEach(seq => {
-        const edge = logicalData.edges.find(e => e.id === seq.edgeId);
-        if (!edge) return;
-
-        const sourceNode = logicalData.nodes.find(n => n.id === edge.sourceId);
-        const targetNode = logicalData.nodes.find(n => n.id === edge.targetId);
-        const sourceName = sourceNode ? sourceNode.name : edge.sourceId;
-        const targetName = targetNode ? targetNode.name : edge.targetId;
-
-        const syncType = seq.isAsync ? (language === 'tr' ? 'Asenkron' : 'Asynchronous') : (language === 'tr' ? 'Senkron' : 'Synchronous');
-        const directionStr = `\`${sourceName}\` → \`${targetName}\`` + (seq.isRoundTrip ? ' ↔' : '');
-
-        text += `${seq.stepNumber}. [${syncType}] ${directionStr} (Protocol: ${edge.protocol || 'Call'})\n`;
-        
-        if (edge.description) {
-          text += `   - Description: ${edge.description}\n`;
-        }
-
-        const timing = visualData.timelines?.[seq.id];
-        if (timing?.internalProcess?.text) {
-          text += `   - Node \`${targetName}\` internal process: "${timing.internalProcess.text}"\n`;
-        }
-      });
-    }
-
+    const text = generateDiagramAiSummary(logicalData, visualData, language, libraryComponents);
     setAiText(text);
     setShowAiModal(true);
   };

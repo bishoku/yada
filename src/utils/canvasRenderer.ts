@@ -29,6 +29,22 @@ export interface Schedule {
   internalProcess: { text: string; start: number; end: number; duration: number } | null;
 }
 
+// Helper to compute absolute position of a node (including nested children in sections)
+function getAbsolutePos(
+  nodeId: string, 
+  logicalData: LogicalDiagram, 
+  visualData: VisualDiagram
+): { x: number; y: number; width: number; height: number } {
+  const layout = visualData.layoutNodes;
+  const node = logicalData.nodes.find(n => n.id === nodeId);
+  const vis = layout[nodeId] || { x: 0, y: 0, width: 224, height: 52 };
+  if (node && node.parentId) {
+    const parentPos = getAbsolutePos(node.parentId, logicalData, visualData);
+    return { x: vis.x + parentPos.x, y: vis.y + parentPos.y, width: vis.width || 224, height: vis.height || 52 };
+  }
+  return { x: vis.x, y: vis.y, width: vis.width || 224, height: vis.height || 52 };
+}
+
 export function calculateViewportBounds(
   logicalData: LogicalDiagram,
   visualData: VisualDiagram
@@ -39,14 +55,13 @@ export function calculateViewportBounds(
   let maxY = -Infinity;
 
   logicalData.nodes.forEach((node) => {
-    const vis = visualData.layoutNodes[node.id];
-    if (!vis) return;
-    const x = vis.x;
-    const y = vis.y;
-    const w = vis.width || 224;
-    const h = vis.height || 52;
+    const absPos = getAbsolutePos(node.id, logicalData, visualData);
+    const x = absPos.x;
+    const y = absPos.y;
+    const w = absPos.width || 224;
+    const h = absPos.height || 52;
 
-    // Account for section labels floating above (-30px) and tooltips (-52px)
+    // Account for section labels floating above (-32px) and tooltips (-56px)
     const isSection = node.type === 'section';
     const minYOffset = isSection ? -32 : -56;
 
@@ -58,27 +73,40 @@ export function calculateViewportBounds(
 
   if (visualData.annotations) {
     Object.values(visualData.annotations).forEach((note: any) => {
-      const vis = visualData.layoutNodes[note.id];
-      if (vis) {
-        const w = vis.width || 200;
-        const h = vis.height || 150;
-        if (vis.x < minX) minX = vis.x;
-        if (vis.y < minY) minY = vis.y;
-        if (vis.x + w > maxX) maxX = vis.x + w;
-        if (vis.y + h > maxY) maxY = vis.y + h;
-      }
+      const absPos = getAbsolutePos(note.id, logicalData, visualData);
+      const w = absPos.width || 200;
+      const h = absPos.height || 150;
+      if (absPos.x < minX) minX = absPos.x;
+      if (absPos.y < minY) minY = absPos.y;
+      if (absPos.x + w > maxX) maxX = absPos.x + w;
+      if (absPos.y + h > maxY) maxY = absPos.y + h;
     });
   }
 
   if (visualData.freehandStrokes) {
     Object.values(visualData.freehandStrokes).forEach((stroke: any) => {
-      if (stroke.points) {
-        stroke.points.forEach((p: any) => {
-          if (p.x < minX) minX = p.x;
-          if (p.y < minY) minY = p.y;
-          if (p.x > maxX) maxX = p.x;
-          if (p.y > maxY) maxY = p.y;
-        });
+      if (stroke.points && stroke.points.length > 0) {
+        if (stroke.tool === 'text') {
+          const fontSize = stroke.fontSize ?? Math.max(18, (stroke.size || 3) * 5.5);
+          const lines = (stroke.text || '').split('\n');
+          const maxLineLen = Math.max(...lines.map((l: string) => l.length), 1);
+          const textW = Math.max(40, maxLineLen * (fontSize * 0.6));
+          const textH = Math.max(fontSize, lines.length * (fontSize * 1.25));
+          const sx = stroke.points[0]?.x ?? 0;
+          const sy = stroke.points[0]?.y ?? 0;
+          if (sx < minX) minX = sx;
+          if (sy < minY) minY = sy;
+          if (sx + textW > maxX) maxX = sx + textW;
+          if (sy + textH > maxY) maxY = sy + textH;
+        } else {
+          const margin = Math.max(8, (stroke.size || 2) * 2);
+          stroke.points.forEach((p: any) => {
+            if (p.x - margin < minX) minX = p.x - margin;
+            if (p.y - margin < minY) minY = p.y - margin;
+            if (p.x + margin > maxX) maxX = p.x + margin;
+            if (p.y + margin > maxY) maxY = p.y + margin;
+          });
+        }
       }
     });
   }
@@ -255,17 +283,6 @@ export function calculateSchedules(logicalData: LogicalDiagram, timelines: Recor
 }
 
 // Helpers for rendering
-function getAbsolutePos(nodeId: string, logicalData: LogicalDiagram, visualData: VisualDiagram) {
-  const layout = visualData.layoutNodes;
-  const node = logicalData.nodes.find(n => n.id === nodeId);
-  const vis = layout[nodeId] || { x: 0, y: 0, width: 224, height: 52 };
-  if (node && node.parentId) {
-    const parentVis = layout[node.parentId] || { x: 0, y: 0 };
-    return { x: vis.x + parentVis.x, y: vis.y + parentVis.y, width: vis.width || 224, height: vis.height || 52 };
-  }
-  return { x: vis.x, y: vis.y, width: vis.width || 224, height: vis.height || 52 };
-}
-
 function calculateBezierCoords(edge: any, logicalData: LogicalDiagram, visualData: VisualDiagram) {
   const sourceId = edge.sourceId;
   const targetId = edge.targetId;
@@ -1236,17 +1253,20 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
     }
   }
 
-  // Draw Tooltips
-  for (const { s, seq } of activeSequences) {
+  // Draw Sequence Tooltips
+  for (const item of activeSequences) {
+    const { s, seq } = item;
+    const edge = logicalData.edges.find(e => e.id === seq.edgeId);
+    if (!edge) continue;
+    
+    // Check if within internalProcess duration
     if (s.internalProcess && currentTime >= s.internalProcess.start && currentTime <= s.internalProcess.end) {
-      const edge = logicalData.edges.find(e => e.id === seq.edgeId);
-      if (!edge) continue;
       const tgtId = s.direction === 'reverse' ? edge.sourceId : edge.targetId;
       const absPos = getAbsolutePos(tgtId, logicalData, visualData);
       
       ctx.save();
       const text = s.internalProcess.text;
-      ctx.font = '12px sans-serif';
+      ctx.font = 'bold 11px "Outfit", sans-serif';
       const textW = ctx.measureText(text).width;
       const tooltipW = textW + 24;
       const tooltipH = 28;
@@ -1273,7 +1293,7 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
     }
   }
 
-  // Draw Freehand / Annotation Strokes
+  // Draw Freehand / Annotation Strokes & Shapes
   if (visualData.freehandStrokes) {
     for (const stroke of Object.values(visualData.freehandStrokes)) {
       if (!stroke.points || stroke.points.length === 0) continue;
@@ -1295,10 +1315,71 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
         const lines = (stroke.text || '').split('\n');
         const startX = stroke.points[0]?.x ?? 0;
         const startY = stroke.points[0]?.y ?? 0;
-        const lineHeight = fontSize * 1.2;
+        const lineHeight = fontSize * 1.25;
         lines.forEach((line, idx) => {
           ctx.fillText(line, startX, startY + idx * lineHeight);
         });
+      } else if (stroke.tool === 'rectangle') {
+        if (stroke.points.length >= 2) {
+          const p1 = stroke.points[0];
+          const p2 = stroke.points[stroke.points.length - 1];
+          const minX = Math.min(p1.x, p2.x);
+          const minY = Math.min(p1.y, p2.y);
+          const w = Math.abs(p2.x - p1.x);
+          const h = Math.abs(p2.y - p1.y);
+          ctx.strokeStyle = stroke.color;
+          ctx.lineWidth = stroke.size;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          roundRect(ctx, minX, minY, w, h, 4);
+          ctx.stroke();
+        }
+      } else if (stroke.tool === 'ellipse') {
+        if (stroke.points.length >= 2) {
+          const p1 = stroke.points[0];
+          const p2 = stroke.points[stroke.points.length - 1];
+          const minX = Math.min(p1.x, p2.x);
+          const minY = Math.min(p1.y, p2.y);
+          const w = Math.abs(p2.x - p1.x);
+          const h = Math.abs(p2.y - p1.y);
+          ctx.strokeStyle = stroke.color;
+          ctx.lineWidth = stroke.size;
+          ctx.beginPath();
+          ctx.ellipse(minX + w / 2, minY + h / 2, Math.max(1, w / 2), Math.max(1, h / 2), 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      } else if (stroke.tool === 'diamond') {
+        if (stroke.points.length >= 2) {
+          const p1 = stroke.points[0];
+          const p2 = stroke.points[stroke.points.length - 1];
+          const minX = Math.min(p1.x, p2.x);
+          const minY = Math.min(p1.y, p2.y);
+          const w = Math.abs(p2.x - p1.x);
+          const h = Math.abs(p2.y - p1.y);
+          ctx.strokeStyle = stroke.color;
+          ctx.lineWidth = stroke.size;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+          ctx.moveTo(minX + w / 2, minY);
+          ctx.lineTo(minX + w, minY + h / 2);
+          ctx.lineTo(minX + w / 2, minY + h);
+          ctx.lineTo(minX, minY + h / 2);
+          ctx.closePath();
+          ctx.stroke();
+        }
+      } else if (stroke.tool === 'line') {
+        if (stroke.points.length >= 2) {
+          const start = stroke.points[0];
+          const end = stroke.points[stroke.points.length - 1];
+          ctx.strokeStyle = stroke.color;
+          ctx.lineWidth = stroke.size;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.lineTo(end.x, end.y);
+          ctx.stroke();
+        }
       } else if (stroke.tool === 'arrow') {
         if (stroke.points.length >= 2) {
           const start = stroke.points[0];

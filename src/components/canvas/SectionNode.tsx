@@ -4,7 +4,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { useSectionAnimation } from './hooks';
 import { resolveHandles, getHandleStyle } from '../../utils/portUtils';
 import { PortSide } from '../../types';
-import { getRoughRoundedRectPaths } from './utils/roughGenerators';
+import { getRoughRoundedRectPaths, getNumericSeed } from './utils/roughGenerators';
 
 interface SectionNodeProps {
   id: string;
@@ -381,6 +381,7 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
 
   const sectionWidth = visualNode?.width ?? 300;
   const sectionHeight = visualNode?.height ?? 200;
+  const bgOpacity = customStyles.bgOpacity ?? 0.15;
 
   const roughBg = useMemo(() => {
     if (!isSketchy) return null;
@@ -389,11 +390,14 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
       strokeWidth: 2,
       roughness: 1.2,
       bowing: 1.2,
+      seed: getNumericSeed(id),
+      fill: backgroundHex,
+      fillStyle: 'solid',
     });
-  }, [isSketchy, sectionWidth, sectionHeight, borderHex]);
+  }, [isSketchy, sectionWidth, sectionHeight, borderHex, backgroundHex, id]);
 
   return (
-    <div className="relative w-full h-full font-sans">
+    <div className={`relative w-full h-full ${isSketchy ? 'font-[family-name:var(--font-sketchy)]' : 'font-sans'}`}>
       <NodeResizer 
         minWidth={200} 
         minHeight={150} 
@@ -408,10 +412,10 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
       {/* Inline Section Label */}
       {titleMode === 'inline' && (
         <div 
-          className={`${inlineBorderRadius} px-2.5 py-0.5 ${isSketchy ? 'font-[family-name:var(--font-sketchy)] text-[13px] normal-case tracking-wide' : 'text-[10px] font-bold uppercase tracking-wider'} 
-                      z-10 select-none transition-all duration-200
+          className={`${isSketchy ? 'rounded-lg border-0' : inlineBorderRadius} px-2.5 py-0.5 ${isSketchy ? 'font-[family-name:var(--font-sketchy)] text-[13px] normal-case tracking-wide shadow-none' : 'text-[10px] font-bold uppercase tracking-wider'} 
+                      z-10 select-none transition-all duration-200 relative
                       ${customHex ? '' : style.label}`}
-          style={{ ...inlineLabelStyle, ...(customHex ? customHex.labelStyle : {}) }}
+          style={{ ...inlineLabelStyle, ...(customHex ? customHex.labelStyle : {}), ...(isSketchy ? { backgroundColor: hexToRgba(borderHex, 0.18), color: borderHex, borderColor: borderHex } : {}) }}
         >
           {name}
         </div>
@@ -419,7 +423,7 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
 
       {/* Section Container */}
       <div 
-        className={`w-full h-full rounded-xl ${isSketchy ? 'border-0' : `border-2 ${borderClass}`} backdrop-blur-[1px] transition-all duration-300 flex ${headerContainerClass} overflow-hidden relative
+        className={`w-full h-full rounded-xl ${isSketchy ? 'border-0 bg-transparent' : `border-2 ${borderClass}`} backdrop-blur-[1px] transition-all duration-300 flex ${headerContainerClass} relative
                     ${customHex ? '' : `${style.border} ${customStyles.backgroundColor ? '' : style.bg}`}
                     ${isActive 
                       ? 'ring-2 ring-emerald-500/30 dark:ring-emerald-400/20 border-emerald-500/60 dark:border-emerald-400/40 shadow-lg ' + (customHex ? '' : style.glow)
@@ -427,31 +431,40 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
                         ? 'ring-2 ring-indigo-500/20 shadow-md ' + (customHex ? '' : style.glow)
                         : ''
                     }`}
-        style={containerBgStyle}
+        style={isSketchy ? { borderColor: 'transparent', backgroundColor: 'transparent' } : containerBgStyle}
       >
-        {/* Sketchy rough border */}
-        {roughBg?.strokePath && (
+        {/* Sketchy rough border & background */}
+        {roughBg && (
           <svg className="absolute inset-0 w-full h-full pointer-events-none -z-10 overflow-visible" width={sectionWidth} height={sectionHeight}>
-            <path 
-              d={roughBg.strokePath} 
-              fill="none" 
-              stroke={borderHex} 
-              strokeWidth={2} 
-              strokeDasharray={borderType === 'dashed' ? '8,6' : borderType === 'dotted' ? '3,3' : undefined}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            {roughBg.fillPath && (
+              <path 
+                d={roughBg.fillPath} 
+                fill={backgroundHex} 
+                opacity={bgOpacity}
+              />
+            )}
+            {roughBg.strokePath && (
+              <path 
+                d={roughBg.strokePath} 
+                fill="none" 
+                stroke={borderHex} 
+                strokeWidth={2} 
+                strokeDasharray={borderType === 'dashed' ? '8,6' : borderType === 'dotted' ? '3,3' : undefined}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
           </svg>
         )}
         {/* Header Banner */}
         {titleMode === 'header' && (
           <div 
             className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider 
-                        ${isSketchy ? 'font-[family-name:var(--font-sketchy)] text-sm normal-case tracking-wide' : ''}
-                        ${headerBorderClass} select-none overflow-hidden flex items-center z-10 shrink-0
+                        ${isSketchy ? 'font-[family-name:var(--font-sketchy)] text-sm normal-case tracking-wide rounded-t-lg' : ''}
+                        ${isSketchy ? 'border-b-2 border-dashed' : headerBorderClass} select-none overflow-hidden flex items-center z-10 shrink-0
                         ${headerAlignClass}
                         ${customStyles.headerBgColor || customHex ? '' : style.label}`}
-            style={{ ...headerBannerComputedStyle, ...headerBannerStyle }}
+            style={{ ...headerBannerComputedStyle, ...headerBannerStyle, ...(isSketchy ? { borderColor: borderHex } : {}) }}
           >
             {name}
           </div>

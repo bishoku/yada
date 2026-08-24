@@ -195,7 +195,17 @@ export interface StickyNote {
 export type CanvasRenderStyle = 'clean' | 'sketchy';
 
 // --- FREEHAND / ANNOTATION LAYER ---
-export type DrawingToolType = 'pen' | 'highlighter' | 'arrow' | 'text' | 'eraser';
+export type DrawingToolType = 
+  | 'select' 
+  | 'rectangle' 
+  | 'ellipse' 
+  | 'diamond' 
+  | 'line' 
+  | 'arrow' 
+  | 'pen' 
+  | 'highlighter' 
+  | 'text' 
+  | 'eraser';
 
 export interface FreehandPoint {
   x: number;
@@ -214,6 +224,12 @@ export interface FreehandStroke {
   fontSize?: number;
   fontFamily?: string;
   roughness?: number;
+  fill?: string;
+  fillStyle?: 'solid' | 'hachure' | 'none';
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
   startTime?: number;
   endTime?: number;
   alwaysVisible?: boolean;

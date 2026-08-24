@@ -35,6 +35,7 @@ import { FreehandOverlay } from './FreehandOverlay';
 import { DrawingToolbar } from './DrawingToolbar';
 import { getDefaultHandles } from '../../utils/portUtils';
 import { generateEdgeId, generateSeqId } from '../../utils/idGenerator';
+import { calculateViewportBounds } from '../../utils/canvasRenderer';
 
 
 import {
@@ -100,7 +101,7 @@ const FlowWrapper: React.FC = () => {
   const isBgDark = bgColor ? isColorDark(bgColor) : theme === 'dark';
   const dotColor = isBgDark ? '#334155' : '#cbd5e1';
 
-  const { screenToFlowPosition, setCenter, fitView } = useReactFlow();
+  const { screenToFlowPosition, setCenter, fitView, fitBounds } = useReactFlow();
   const { x: viewportX, y: viewportY, zoom } = useViewport();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -150,11 +151,20 @@ const FlowWrapper: React.FC = () => {
   useEffect(() => {
     if (rfNodes.length > 0) {
       const timer = setTimeout(() => {
-        fitView({ padding: 0.2, duration: 300 });
+        const { logicalData, visualData } = useAppStore.getState();
+        const bounds = calculateViewportBounds(logicalData, visualData);
+        if (bounds && bounds.width > 0 && bounds.height > 0) {
+          fitBounds(
+            { x: bounds.minX, y: bounds.minY, width: bounds.width, height: bounds.height },
+            { padding: 0.1, duration: 300 }
+          );
+        } else {
+          fitView({ padding: 0.2, duration: 300 });
+        }
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [rfNodes.length === 0, activeDiagramId, currentWorkspacePath, layoutVersion, fitView]);
+  }, [rfNodes.length === 0, activeDiagramId, currentWorkspacePath, layoutVersion, fitView, fitBounds]);
   
   // Focus on node from external triggers (e.g., SidebarRight)
   useEffect(() => {
@@ -293,12 +303,21 @@ const FlowWrapper: React.FC = () => {
   // ── Listen for Export Trigger ───────────────
   useEffect(() => {
     const handleExportFitView = () => {
-      // Saniyesinde tam sığdırma yapar ki export işlemi tam canvası çekebilsin
-      fitView({ padding: 0.1, duration: 0 });
+      const { logicalData, visualData } = useAppStore.getState();
+      const bounds = calculateViewportBounds(logicalData, visualData);
+
+      if (bounds && bounds.width > 0 && bounds.height > 0) {
+        fitBounds(
+          { x: bounds.minX, y: bounds.minY, width: bounds.width, height: bounds.height },
+          { padding: 0.05, duration: 0 }
+        );
+      } else {
+        fitView({ padding: 0.1, duration: 0 });
+      }
     };
     window.addEventListener('export:fitview', handleExportFitView);
     return () => window.removeEventListener('export:fitview', handleExportFitView);
-  }, [fitView]);
+  }, [fitView, fitBounds]);
 
   useEffect(() => {
     if (!selectedSequenceId) {

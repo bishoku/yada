@@ -1,13 +1,17 @@
 import React from 'react';
 import { 
+  MousePointer2,
+  Square,
+  Diamond,
+  Circle,
+  ArrowUpRight, 
+  Minus,
   Pen, 
   Highlighter, 
-  ArrowUpRight, 
   Type,
   Eraser, 
   Trash2, 
   X, 
-  MousePointer2 
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -25,7 +29,7 @@ const COLOR_PRESETS = [
 const SIZE_PRESETS = [
   { label: 'S', value: 2 },
   { label: 'M', value: 4 },
-  { label: 'L', value: 8 },
+  { label: 'L', value: 7 },
 ];
 
 export const DrawingToolbar: React.FC = () => {
@@ -42,28 +46,92 @@ export const DrawingToolbar: React.FC = () => {
   if (!activeDrawingTool) return null;
 
   return (
-    <div className="export-exclude absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+    <div className="export-exclude absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
       {/* Select / Move Mode */}
       <button
-        onClick={() => setActiveDrawingTool(null)}
-        className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors"
-        title={language === 'tr' ? 'Seçim Moduna Dön' : 'Switch to Select Mode'}
+        onClick={() => setActiveDrawingTool('select')}
+        className={`p-2 rounded-xl transition-all ${
+          activeDrawingTool === 'select'
+            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
+            : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+        }`}
+        title={language === 'tr' ? 'Seç ve Taşı (V)' : 'Select & Move (V)'}
       >
         <MousePointer2 className="w-4 h-4" />
       </button>
 
-      <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
+      <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />
 
-      {/* Tool Buttons */}
+      {/* Shapes & Creation Tools */}
       <div className="flex items-center gap-1">
+        <button
+          onClick={() => setActiveDrawingTool('rectangle')}
+          className={`p-2 rounded-xl transition-all ${
+            activeDrawingTool === 'rectangle'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+          title={language === 'tr' ? 'Dikdörtgen (R)' : 'Rectangle (R)'}
+        >
+          <Square className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={() => setActiveDrawingTool('diamond')}
+          className={`p-2 rounded-xl transition-all ${
+            activeDrawingTool === 'diamond'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+          title={language === 'tr' ? 'Baklava / Karar (D)' : 'Diamond (D)'}
+        >
+          <Diamond className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={() => setActiveDrawingTool('ellipse')}
+          className={`p-2 rounded-xl transition-all ${
+            activeDrawingTool === 'ellipse'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+          title={language === 'tr' ? 'Elips / Daire (O)' : 'Ellipse / Circle (O)'}
+        >
+          <Circle className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={() => setActiveDrawingTool('arrow')}
+          className={`p-2 rounded-xl transition-all ${
+            activeDrawingTool === 'arrow'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+          title={language === 'tr' ? 'El Çizimi Ok (A)' : 'Arrow (A)'}
+        >
+          <ArrowUpRight className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={() => setActiveDrawingTool('line')}
+          className={`p-2 rounded-xl transition-all ${
+            activeDrawingTool === 'line'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+          title={language === 'tr' ? 'Düz Çizgi (L)' : 'Line (L)'}
+        >
+          <Minus className="w-4 h-4" />
+        </button>
+
         <button
           onClick={() => setActiveDrawingTool('pen')}
           className={`p-2 rounded-xl transition-all ${
             activeDrawingTool === 'pen'
-              ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/25 scale-105'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Kalem' : 'Pen'}
+          title={language === 'tr' ? 'Serbest Kalem (P)' : 'Draw / Pen (P)'}
         >
           <Pen className="w-4 h-4" />
         </button>
@@ -75,31 +143,19 @@ export const DrawingToolbar: React.FC = () => {
               ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Fosforlu Kalem' : 'Highlighter'}
+          title={language === 'tr' ? 'Fosforlu Kalem (H)' : 'Highlighter (H)'}
         >
           <Highlighter className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={() => setActiveDrawingTool('arrow')}
-          className={`p-2 rounded-xl transition-all ${
-            activeDrawingTool === 'arrow'
-              ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25 scale-105'
-              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
-          }`}
-          title={language === 'tr' ? 'Serbest Ok' : 'Freehand Arrow'}
-        >
-          <ArrowUpRight className="w-4 h-4" />
         </button>
 
         <button
           onClick={() => setActiveDrawingTool('text')}
           className={`p-2 rounded-xl transition-all ${
             activeDrawingTool === 'text'
-              ? 'bg-violet-500 text-white shadow-md shadow-violet-500/25 scale-105'
+              ? 'bg-violet-600 text-white shadow-md shadow-violet-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Metin / Yazı' : 'Text Annotation'}
+          title={language === 'tr' ? 'Yazı / Metin (T)' : 'Text (T)'}
         >
           <Type className="w-4 h-4" />
         </button>
@@ -111,7 +167,7 @@ export const DrawingToolbar: React.FC = () => {
               ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Silgi' : 'Eraser'}
+          title={language === 'tr' ? 'Silgi (E)' : 'Eraser (E)'}
         >
           <Eraser className="w-4 h-4" />
         </button>
@@ -119,7 +175,7 @@ export const DrawingToolbar: React.FC = () => {
 
       {activeDrawingTool !== 'eraser' && (
         <>
-          <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
+          <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />
 
           {/* Color Presets */}
           <div className="flex items-center gap-1.5">
@@ -138,7 +194,7 @@ export const DrawingToolbar: React.FC = () => {
             ))}
           </div>
 
-          <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
+          <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />
 
           {/* Size Presets */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
@@ -161,7 +217,7 @@ export const DrawingToolbar: React.FC = () => {
 
       {strokeCount > 0 && (
         <>
-          <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
+          <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />
           <button
             onClick={clearFreehandStrokes}
             className="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
@@ -172,16 +228,17 @@ export const DrawingToolbar: React.FC = () => {
         </>
       )}
 
-      <div className="h-5 w-px bg-slate-200 dark:bg-slate-800" />
+      <div className="h-5 w-px bg-slate-200 dark:bg-slate-800 mx-0.5" />
 
-      {/* Close Toolbar */}
+      {/* Exit Drawing Mode */}
       <button
         onClick={() => setActiveDrawingTool(null)}
         className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        title={language === 'tr' ? 'Çizim Modunu Kapat' : 'Close Drawing Mode'}
+        title={language === 'tr' ? 'Çizim Modundan Çık' : 'Exit Drawing Mode'}
       >
         <X className="w-4 h-4" />
       </button>
     </div>
   );
 };
+

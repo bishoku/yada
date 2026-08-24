@@ -1,5 +1,6 @@
 import { IStorageDriver, StorageMode } from '../types';
 import { generatePngDataUrl } from '../../../utils/exportMedia';
+import { generateDiagramAiSummary } from '../../../utils/aiSummary';
 
 export class EmbedIframeDriver implements IStorageDriver {
   private initialData: { logicalData?: any; visualData?: any } | null = null;
@@ -84,12 +85,22 @@ export class EmbedIframeDriver implements IStorageDriver {
       console.warn('Failed to capture PNG for embed preview', e);
     }
 
+    let aiSummary = '';
+    try {
+      const parsedLogical = typeof logicalJson === 'string' ? JSON.parse(logicalJson) : logicalJson;
+      const parsedVisual = typeof visualJson === 'string' ? JSON.parse(visualJson) : visualJson;
+      aiSummary = generateDiagramAiSummary(parsedLogical, parsedVisual, 'tr');
+    } catch (e) {
+      console.warn('Failed to generate diagram AI summary', e);
+    }
+
     window.parent.postMessage({
       type: 'SAVE_DIAGRAM',
       payload: {
         logicalJson,
         visualJson,
-        previewDataUri
+        previewDataUri,
+        aiSummary
       }
     }, '*');
   }

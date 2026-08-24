@@ -9,7 +9,7 @@ import { getNodeDefinition, getDefaultIcon } from '../../registry/NodeRegistry';
 import { resolveHandles, getHandleStyle } from '../../utils/portUtils';
 import { PortSide } from '../../types';
 import { findDeviconItem, getDeviconComponent } from '../../registry/DeviconRegistry';
-import { getRoughRoundedRectPaths } from './utils/roughGenerators';
+import { getRoughRoundedRectPaths, getNumericSeed } from './utils/roughGenerators';
 
 interface BaseNodeProps {
   id: string;
@@ -274,15 +274,17 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
 
   const roughBg = useMemo(() => {
     if (!isSketchy || displayMode === 'icon-only') return null;
+    const bgFill = isBorderOnly ? (appTheme === 'dark' ? '#0f172a' : '#ffffff') : activeBgHex;
     return getRoughRoundedRectPaths(1, 1, Math.max(10, nodeWidth - 2), Math.max(10, nodeHeight - 2), customStyles.borderRadius || 12, {
       stroke: harmoniousBorder || '#6366f1',
       strokeWidth: 2,
       roughness: 1.2,
       bowing: 1.2,
-      fill: isBorderOnly ? undefined : activeBgHex,
+      seed: getNumericSeed(id),
+      fill: bgFill,
       fillStyle: 'solid',
     });
-  }, [isSketchy, displayMode, nodeWidth, nodeHeight, customStyles.borderRadius, harmoniousBorder, isBorderOnly, activeBgHex]);
+  }, [isSketchy, displayMode, nodeWidth, nodeHeight, customStyles.borderRadius, harmoniousBorder, isBorderOnly, activeBgHex, appTheme, id]);
 
   const containerStyle: React.CSSProperties = {
     backgroundColor: isSketchy ? 'transparent' : ((displayMode === 'icon-only' || isBorderOnly) ? undefined : activeBgHex),
@@ -386,10 +388,13 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
         {/* Sketchy SVG background & border */}
         {roughBg && (
           <svg className="absolute inset-0 w-full h-full pointer-events-none -z-10 overflow-visible" width={nodeWidth} height={nodeHeight}>
-            {isBorderOnly && (
-              <path d={roughBg.strokePath} fill={appTheme === 'dark' ? '#0f172a' : '#ffffff'} opacity={0.95} />
+            {roughBg.fillPath && (
+              <path 
+                d={roughBg.fillPath} 
+                fill={isBorderOnly ? (appTheme === 'dark' ? '#0f172a' : '#ffffff') : activeBgHex} 
+                opacity={isBorderOnly ? 0.95 : 1}
+              />
             )}
-            {roughBg.fillPath && <path d={roughBg.fillPath} fill={activeBgHex} />}
             {roughBg.strokePath && (
               <path 
                 d={roughBg.strokePath} 
