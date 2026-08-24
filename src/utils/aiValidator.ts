@@ -62,18 +62,20 @@ export function validateAndRepairAiPayload(
   // ---------------------------------------------------------
   
   // 3a. Ensure every logical node has a visual layout node
+  let missingNodeIndex = 0;
   safeLogical.nodes.forEach((node: LogicalNode) => {
     if (!safeVisual.layoutNodes[node.id]) {
-      // Missing visual data! Create a default fallback.
+      // Missing visual data! Create a default fallback with grid distribution to avoid overlapping.
       safeVisual.layoutNodes[node.id] = {
         id: node.id,
-        x: 0,
-        y: 0,
+        x: 50 + (missingNodeIndex % 4) * 260,
+        y: 50 + Math.floor(missingNodeIndex / 4) * 100,
         width: node.type === 'section' ? 400 : 224,
         height: node.type === 'section' ? 300 : 52,
         theme: 'slate',
         zIndex: node.type === 'section' ? -1 : 0,
       };
+      missingNodeIndex++;
     }
   });
 

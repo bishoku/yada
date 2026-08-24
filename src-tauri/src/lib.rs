@@ -1,7 +1,5 @@
 
 
-mod llm;
-
 use chrono::Utc;
 
 use serde::{Deserialize, Serialize};
@@ -486,54 +484,6 @@ fn list_json_files_in_dir(dir_path: String) -> Result<Vec<String>, String> {
 }
 
 #[tauri::command]
-async fn chat_with_agent(
-    app_handle: AppHandle,
-    workspace_path: String,
-    diagram_id: String,
-    current_logical: serde_json::Value,
-    current_visual: serde_json::Value,
-    user_message: String,
-) -> Result<llm::DiagramPatchResponse, String> {
-    let pref_json = load_preferences(app_handle)?;
-    let val: serde_json::Value = serde_json::from_str(&pref_json).unwrap_or(serde_json::json!({}));
-    
-    let llm_prefs = if let Some(llm_val) = val.get("llm") {
-        serde_json::from_value::<llm::LlmPreferences>(llm_val.clone()).unwrap_or_default()
-    } else {
-        llm::LlmPreferences::default()
-    };
-
-    let memory = llm::load_chat_memory(&workspace_path, &diagram_id);
-    let (resp, updated_memory) = llm::execute_agent_chat(
-        &llm_prefs,
-        current_logical,
-        current_visual,
-        memory,
-        user_message,
-    ).await?;
-
-    let _ = llm::save_chat_memory(&workspace_path, &diagram_id, &updated_memory);
-
-    Ok(resp)
-}
-
-#[tauri::command]
-fn get_chat_memory(workspace_path: String, diagram_id: String) -> Result<llm::ChatMemory, String> {
-    Ok(llm::load_chat_memory(&workspace_path, &diagram_id))
-}
-
-#[tauri::command]
-fn clear_chat_memory(workspace_path: String, diagram_id: String) -> Result<(), String> {
-    let empty_memory = llm::ChatMemory::default();
-    llm::save_chat_memory(&workspace_path, &diagram_id, &empty_memory)
-}
-
-#[tauri::command]
-fn cancel_agent_chat() -> Result<(), String> {
-    Ok(())
-}
-
-#[tauri::command]
 fn is_app_store_build() -> bool {
     option_env!("APP_STORE_BUILD") == Some("1")
 }
@@ -593,10 +543,6 @@ pub fn run() {
             read_text_file,
             delete_file,
             list_json_files_in_dir,
-            chat_with_agent,
-            get_chat_memory,
-            clear_chat_memory,
-            cancel_agent_chat,
             get_icloud_container_path,
             set_backend_storage_mode,
             is_app_store_build

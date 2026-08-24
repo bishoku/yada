@@ -64,6 +64,9 @@ export const ChatOverlay: React.FC = () => {
   const { provider, apiUrl, apiKey, model } = resolveActiveProfile(llmPreferences);
   const isLocalProvider = provider === 'ollama' || apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1');
 
+  // Hide the AI chat button entirely if no LLM integration is configured
+  if (!apiKey.trim() && !isLocalProvider) return null;
+
   const handleToggle = () => {
     if (!apiKey.trim() && !isLocalProvider) {
       alert(

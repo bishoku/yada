@@ -189,7 +189,7 @@ export async function decryptCredential(cipherText: string): Promise<string> {
     const decoder = new TextDecoder();
     return decoder.decode(decryptedBuffer);
   } catch (err) {
-    console.error('[CryptoVault] Decryption failed:', err);
-    return '';
+    console.error('[CryptoVault] Decryption failed. The device encryption key may have been lost (cleared browser data, incognito mode). The API key needs to be re-entered.', err);
+    throw new Error('API key decryption failed. Please re-enter your API key in Preferences.');
   }
 }
