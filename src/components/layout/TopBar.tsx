@@ -5,7 +5,7 @@ import {
   LogOut, Settings, Database,
   PanelLeft, PanelRight, PanelBottom,
   Undo, Redo, FileDown, Copy, ChevronDown, Save, Loader2,
-  ListOrdered, LayoutDashboard, Grid,
+  ListOrdered, LayoutDashboard, Grid, Code2,
   Cloud, CloudUpload, CheckCircle2, AlertCircle, Maximize, Minimize
 } from 'lucide-react';
 import { translations } from '../../i18n/translations';
@@ -23,6 +23,7 @@ import { GifExportModal } from './topbar/GifExportModal';
 import { AiCopyModal } from './topbar/AiCopyModal';
 import { CanvasBgSelector } from './topbar/CanvasBgSelector';
 import { ShareModal } from './topbar/ShareModal';
+import { EmbedSnippetModal } from './topbar/EmbedSnippetModal';
 import { Share2 } from 'lucide-react';
 
 export const TopBar: React.FC = () => {
@@ -66,6 +67,7 @@ export const TopBar: React.FC = () => {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportProgress, setExportProgress] = useState<number | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showEmbedModal, setShowEmbedModal] = useState(false);
 
   // Export Config State (shared modal for GIF + Video)
   const [showExportConfig, setShowExportConfig] = useState(false);
@@ -488,6 +490,16 @@ export const TopBar: React.FC = () => {
                       <>
                         <div className="h-px bg-slate-200 dark:bg-slate-800 my-1" />
                         <button
+                          onClick={() => { setShowEmbedModal(true); setShowExportMenu(false); }}
+                          className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center justify-between"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Code2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                            {language === 'tr' ? 'Iframe Embed Kodu' : 'Iframe Embed Code'}
+                          </span>
+                          <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-md font-bold">{language === 'tr' ? 'Yeni' : 'New'}</span>
+                        </button>
+                        <button
                           onClick={() => { setShowShareModal(true); setShowExportMenu(false); }}
                           className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center gap-2"
                         >
@@ -622,6 +634,10 @@ export const TopBar: React.FC = () => {
 
       {showShareModal && (
         <ShareModal onClose={() => setShowShareModal(false)} />
+      )}
+
+      {showEmbedModal && (
+        <EmbedSnippetModal onClose={() => setShowEmbedModal(false)} />
       )}
     </header>
   );
