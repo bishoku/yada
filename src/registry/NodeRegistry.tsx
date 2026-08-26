@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Laptop, Network, Server, Database, Zap, Cpu, SquareDashedBottom, Route, Rows, Shield, StickyNote,
-  HardDrive, Radio, Workflow, KeyRound, Search, Cloud, Globe2, Brain, Bot
+  HardDrive, Radio, Workflow, KeyRound, Search, Cloud, Globe2, Brain, Bot, PenTool
 } from 'lucide-react';
 
 export type ComponentCategory = 'standard' | 'section' | 'custom' | 'annotation';
@@ -150,6 +150,14 @@ export const NodeRegistry: Record<string, NodeDefinition> = {
     defaultName: 'AIAgent',
     icon: <Bot className="w-4 h-4" />,
     colorClass: 'text-indigo-500',
+    category: 'standard'
+  },
+  freeform: {
+    type: 'freeform',
+    name: { en: 'FreeForm Canvas', tr: 'Serbest Çizim Alanı' },
+    defaultName: 'FreeForm',
+    icon: <PenTool className="w-4 h-4" />,
+    colorClass: 'text-violet-500',
     category: 'standard'
   },
   section: {

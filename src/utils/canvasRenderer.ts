@@ -13,6 +13,8 @@ export interface CanvasRenderOptions {
   canvasWidth: number;
   canvasHeight: number;
   skipBackground?: boolean;
+  /** Pre-loaded HTMLImageElements for FreeForm node SVG previews, keyed by node ID */
+  freeformImages?: Map<string, HTMLImageElement>;
 }
 
 export interface Schedule {
@@ -490,7 +492,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 }
 
 export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: CanvasRenderOptions): void {
-  const { logicalData, visualData, libraryComponents: _libraryComponents, schedules, currentTime, theme, appTheme, canvasWidth, canvasHeight, skipBackground } = options;
+  const { logicalData, visualData, libraryComponents: _libraryComponents, schedules, currentTime, theme, appTheme, canvasWidth, canvasHeight, skipBackground, freeformImages } = options;
   const isDark = theme === 'dark';
   
   // Resolve theme-aware edge colors
@@ -926,6 +928,88 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
     ctx.globalAlpha = 1.0;
     ctx.stroke();
     ctx.shadowBlur = 0; // reset shadow
+
+    // --- FreeForm node: render SVG content + header instead of default icon+text ---
+    if (node.type === 'freeform') {
+      const headerH = 28;
+      // Header bar
+      ctx.fillStyle = isDark ? 'rgba(139, 92, 246, 0.08)' : 'rgba(139, 92, 246, 0.06)';
+      ctx.fillRect(absPos.x + 1, absPos.y + 1, absPos.width - 2, headerH);
+      // Header divider
+      ctx.strokeStyle = isDark ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(absPos.x, absPos.y + headerH);
+      ctx.lineTo(absPos.x + absPos.width, absPos.y + headerH);
+      ctx.stroke();
+      // Header text
+      ctx.fillStyle = isDark ? '#e2e8f0' : '#334155';
+      ctx.font = '600 11px "Outfit", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(node.name || 'FreeForm', absPos.x + 28, absPos.y + headerH / 2);
+      // PenTool icon (simplified)
+      ctx.strokeStyle = '#8b5cf6';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      const ix = absPos.x + 10; const iy = absPos.y + headerH / 2 - 6;
+      ctx.moveTo(ix + 10, iy); ctx.lineTo(ix + 3, iy + 9);
+      ctx.lineTo(ix, iy + 12); ctx.lineTo(ix + 3, iy + 9);
+      ctx.stroke();
+
+      // Draw SVG content image
+      const freeformImg = freeformImages?.get(node.id);
+      if (freeformImg && freeformImg.complete && freeformImg.naturalWidth > 0) {
+        const contentY = absPos.y + headerH + 4;
+        const contentH = absPos.height - headerH - 8;
+        const contentW = absPos.width - 8;
+        if (contentH > 0 && contentW > 0) {
+          // Fit image within content area preserving aspect ratio
+          const imgAspect = freeformImg.naturalWidth / freeformImg.naturalHeight;
+          const boxAspect = contentW / contentH;
+          let dw: number, dh: number, dx: number, dy: number;
+          if (imgAspect > boxAspect) {
+            dw = contentW;
+            dh = contentW / imgAspect;
+            dx = absPos.x + 4;
+            dy = contentY + (contentH - dh) / 2;
+          } else {
+            dh = contentH;
+            dw = contentH * imgAspect;
+            dx = absPos.x + 4 + (contentW - dw) / 2;
+            dy = contentY;
+          }
+          ctx.drawImage(freeformImg, dx, dy, dw, dh);
+        }
+      } else if (vis.freeformContent?.elements?.length) {
+        // Fallback: show placeholder text
+        ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
+        ctx.font = '400 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('✏️', absPos.x + absPos.width / 2, absPos.y + headerH + (absPos.height - headerH) / 2);
+      }
+
+      // Handles for freeform
+      if (vis.handles) {
+        ctx.fillStyle = isDark ? '#1e293b' : '#ffffff';
+        ctx.strokeStyle = '#8b5cf6';
+        ctx.lineWidth = 1.5;
+        for (const h of vis.handles) {
+          let hx = absPos.x, hy = absPos.y;
+          if (h.side === 'left') { hy += absPos.height * (h.offset / 100); }
+          else if (h.side === 'right') { hx += absPos.width; hy += absPos.height * (h.offset / 100); }
+          else if (h.side === 'top') { hx += absPos.width * (h.offset / 100); }
+          else { hx += absPos.width * (h.offset / 100); hy += absPos.height; }
+          ctx.beginPath();
+          ctx.arc(hx, hy, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+      continue;
+    }
     
     // Scale calculations
     const scale = Math.max(0.5, Math.min(absPos.width / 224, absPos.height / 52, 4.0));

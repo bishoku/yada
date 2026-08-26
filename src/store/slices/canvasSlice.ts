@@ -11,7 +11,8 @@ import {
   StickyNote,
   CanvasRenderStyle,
   DrawingToolType,
-  FreehandStroke
+  FreehandStroke,
+  FreeFormContent
 } from '../../types';
 import { ParticleType } from '../../config/particles';
 import { getLayoutedElements } from '../../utils/layout';
@@ -53,6 +54,9 @@ export interface CanvasSlice {
   updateFreehandStroke: (id: string, updates: Partial<FreehandStroke>) => void;
   deleteFreehandStroke: (id: string) => void;
   clearFreehandStrokes: () => void;
+
+  // FreeForm Canvas Node
+  updateFreeformContent: (nodeId: string, content: FreeFormContent | null) => void;
 
   startDrag: (type: string, name: string) => void;
   cancelDrag: () => void;
@@ -563,6 +567,28 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
       },
       isDirty: true,
     }));
+  },
+
+  // FreeForm Canvas Node
+  updateFreeformContent: (nodeId, content) => {
+    get().pushToHistory();
+    set((state) => {
+      const existing = state.visualData.layoutNodes[nodeId];
+      if (!existing) return {};
+      return {
+        visualData: {
+          ...state.visualData,
+          layoutNodes: {
+            ...state.visualData.layoutNodes,
+            [nodeId]: {
+              ...existing,
+              freeformContent: content ?? undefined,
+            },
+          },
+        },
+        isDirty: true,
+      };
+    });
   },
 
   startDrag: (type, name) => set({ pendingDrop: { type, name } }),

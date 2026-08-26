@@ -22,6 +22,7 @@ import { BaseNode } from './BaseNode';
 import { AnimatedEdge } from './AnimatedEdge';
 import { SectionNode } from './SectionNode';
 import { StickyNoteNode } from './StickyNoteNode';
+import { FreeFormNode } from './FreeFormNode';
 import { useAppStore } from '../../store/useAppStore';
 import { translations } from '../../i18n/translations';
 import { Trash2 } from 'lucide-react';
@@ -47,7 +48,7 @@ import {
 } from './hooks';
 
 
-const nodeTypes = { customNode: BaseNode, sectionNode: SectionNode, stickyNoteNode: StickyNoteNode };
+const nodeTypes = { customNode: BaseNode, sectionNode: SectionNode, stickyNoteNode: StickyNoteNode, freeFormNode: FreeFormNode };
 const edgeTypes = { customEdge: AnimatedEdge };
 
 function isColorDark(color: string): boolean {

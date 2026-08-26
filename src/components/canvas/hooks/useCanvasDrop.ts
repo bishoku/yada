@@ -46,8 +46,9 @@ export const useCanvasDrop = (
 
       const isSection = type === 'section';
       const isStickyNote = type === 'sticky_note';
-      const width = isSection ? 400 : isStickyNote ? 220 : 224;
-      const height = isSection ? 300 : isStickyNote ? 160 : 52;
+      const isFreeForm = type === 'freeform';
+      const width = isSection ? 400 : isStickyNote ? 220 : isFreeForm ? 320 : 224;
+      const height = isSection ? 300 : isStickyNote ? 160 : isFreeForm ? 220 : 52;
 
       const x = position.x - width / 2;
       const y = position.y - height / 2;

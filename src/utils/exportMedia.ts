@@ -305,6 +305,29 @@ const captureFramesCanvasAsync = async (
   renderCanvas.height = outputHeight;
   const ctx = renderCanvas.getContext('2d')!;
 
+  // Pre-load FreeForm SVG caches into HTMLImageElements
+  const freeformImages = new Map<string, HTMLImageElement>();
+  const freeformNodes = logicalData.nodes.filter(n => n.type === 'freeform');
+  await Promise.all(freeformNodes.map(async (node) => {
+    const vis = visualData.layoutNodes[node.id];
+    const svgCache = vis?.freeformContent?.svgCache;
+    if (!svgCache) return;
+    try {
+      const img = new Image();
+      const blob = new Blob([svgCache], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => { resolve(); };
+        img.onerror = () => { reject(new Error('SVG load failed')); };
+        img.src = url;
+      });
+      freeformImages.set(node.id, img);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.warn(`[Export] Failed to load FreeForm SVG for node ${node.id}:`, e);
+    }
+  }));
+
   const results: { canvas: HTMLCanvasElement; delay: number }[] = [];
   let lastHash: number | null = null;
 
@@ -348,6 +371,7 @@ const captureFramesCanvasAsync = async (
       canvasWidth: bounds.width,
       canvasHeight: bounds.height,
       skipBackground: true, // Don't redraw background inside diagram bounds
+      freeformImages,
     });
 
     ctx.restore();

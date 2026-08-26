@@ -130,6 +130,7 @@ export interface VisualNode {
     headerBgImage?: string;
     headerBgColor?: string;
   };
+  freeformContent?: FreeFormContent;
 }
 
 export type EdgeConnectionType = 'bezier' | 'smoothstep' | 'step' | 'straight';
@@ -233,6 +234,18 @@ export interface FreehandStroke {
   startTime?: number;
   endTime?: number;
   alwaysVisible?: boolean;
+}
+
+// --- FREEFORM CANVAS NODE (Excalidraw-based) ---
+export interface FreeFormContent {
+  /** Excalidraw elements JSON (serialized ExcalidrawElement[]) */
+  elements: any[];
+  /** Excalidraw app state subset (theme, zoom, scroll, etc.) */
+  appState?: Record<string, any>;
+  /** Excalidraw binary files (images, etc.) keyed by file ID */
+  files?: Record<string, any>;
+  /** SVG string cache for preview rendering */
+  svgCache?: string;
 }
 
 export interface VisualDiagram {
@@ -504,6 +517,9 @@ export interface AppState {
   updateFreehandStroke: (id: string, updates: Partial<FreehandStroke>) => void;
   deleteFreehandStroke: (id: string) => void;
   clearFreehandStrokes: () => void;
+
+  // FreeForm Canvas Node
+  updateFreeformContent: (nodeId: string, content: FreeFormContent | null) => void;
 
   startDrag: (type: string, name: string) => void;
   cancelDrag: () => void;
