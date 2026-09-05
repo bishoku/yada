@@ -404,6 +404,7 @@ export interface AppState {
   pastStates: Array<{ logicalData: LogicalDiagram; visualData: VisualDiagram }>;
   futureStates: Array<{ logicalData: LogicalDiagram; visualData: VisualDiagram }>;
   layoutVersion: number;
+  autoLayoutVersion: number;
   
   // App Preferences
   language: Language;
@@ -431,6 +432,18 @@ export interface AppState {
   playbackRate: number; // Rate: 0.5, 1, 1.5, 2
   activeSequenceIds: string[]; // Active animating sequence IDs
   schedules: Record<string, { start: number; end: number }>; // Pre-calculated schedules
+  derivedConnectedPorts: Record<string, string[]>; // Pre-indexed connected ports by node ID
+  derivedNodeSchedules: Record<string, Array<{
+    seqId: string;
+    stepNumber: number;
+    start: number;
+    end: number;
+    isSource: boolean;
+    isTarget: boolean;
+    isRoundTrip: boolean;
+    duration: number;
+    internalProcess?: { text: string; duration: number };
+  }>>;
   selectedSequenceId: string | null; // Selected/focused sequence ID
   loopPlayback: boolean; // Loop playback when timeline reaches the end
 
@@ -627,6 +640,13 @@ export interface AppState {
   setNodeParent: (nodeId: string, parentId: string | null) => void;
   autoResizeSection: (sectionId: string) => void;
   deleteSectionWithChoice: (sectionId: string, deleteChildren: boolean) => void;
+
+  // Multi-Selection Actions
+  alignSelectedNodes: (nodeIds: string[], alignment: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => void;
+  distributeSelectedNodes: (nodeIds: string[], direction: 'horizontal' | 'vertical') => void;
+  packNodesIntoSection: (nodeIds: string[], title?: string) => void;
+  deleteSelectedNodes: (nodeIds: string[]) => void;
+
 
   // Save Actions
   isSaving: boolean;

@@ -14,6 +14,7 @@ import { resolveParticleType } from '../../config/particles';
 import { getThemeEdgeColors } from '../../utils/themeUtils';
 import { getWaypointPath, getSplineWaypointPath } from './utils/waypointRouting';
 import { useWaypointInteraction } from './hooks/useWaypointInteraction';
+import { InlineEdgeEditor } from './InlineEdgeEditor';
 import { EdgeArrowType, EdgeConnectionType, EdgeGlowIntensity, EdgeLineStyle } from '../../types';
 import { getRoughCustomPath } from './utils/roughGenerators';
 
@@ -210,6 +211,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const ve = layoutEdges[id];
   const isReversed = le ? le.sourceId !== props.source : false;
   const isSelfLoop = le ? le.sourceId === le.targetId : false;
+  const [isEditingInline, setIsEditingInline] = useState(false);
 
   const siblingEdges = useMemo(() => {
     if (!le) return [];
@@ -248,7 +250,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const ty = isReversed ? sourceY : targetY;
   const tPos = (isReversed ? sourcePosition : targetPosition) as Position;
 
-  const { activeWaypoints, handlePointerDown, handleDoubleClick } = useWaypointInteraction(id, ve?.waypoints);
+  const { activeWaypoints, handlePointerDown, handleDoubleClick, handleSegmentPointerDown } = useWaypointInteraction(id, ve?.waypoints);
 
   // Compute path based on connectionType
   let [edgePath, defaultLabelX, defaultLabelY] = useMemo<[string, number, number]>(() => {
@@ -347,9 +349,14 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
     }
   }); // Runs after every render to ensure pathRef triggers one update
 
-  // Pre-allocate refs for particles (e.g. max 5 for repeat mode)
-  const MAX_PARTICLES = 5;
-  const particleRefs = Array.from({ length: MAX_PARTICLES }).map(() => useRef<SVGGElement>(null));
+  // Pre-allocate stable refs for particles (max 5 for repeat mode)
+  const p0 = useRef<SVGGElement>(null);
+  const p1 = useRef<SVGGElement>(null);
+  const p2 = useRef<SVGGElement>(null);
+  const p3 = useRef<SVGGElement>(null);
+  const p4 = useRef<SVGGElement>(null);
+  const particleRefs = useMemo(() => [p0, p1, p2, p3, p4], []);
+
 
   // Custom hook for animation calculation
   const { isAnimating, isSelected, isAsync, seqsForEdge, activeStepNumber } = useEdgeAnimation(id, pathRef, particleRefs);
@@ -539,6 +546,34 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
         </g>
       ))}
 
+      {/* Orthogonal Segment Drag Handles */}
+      {!isPlaying && (connectionType === 'step' || connectionType === 'smoothstep') && activeWaypoints.length >= 2 && (() => {
+        const segments = [];
+        for (let i = 0; i < activeWaypoints.length - 1; i++) {
+          const p1 = activeWaypoints[i];
+          const p2 = activeWaypoints[i + 1];
+          const isVert = Math.abs(p1.x - p2.x) < 8 && Math.abs(p1.y - p2.y) > 16;
+          const isHoriz = Math.abs(p1.y - p2.y) < 8 && Math.abs(p1.x - p2.x) > 16;
+          if (isVert || isHoriz) {
+            segments.push(
+              <line
+                key={`seg-${i}`}
+                x1={p1.x}
+                y1={p1.y}
+                x2={p2.x}
+                y2={p2.y}
+                stroke="transparent"
+                strokeWidth={14}
+                style={{ cursor: isVert ? 'col-resize' : 'row-resize', pointerEvents: 'all' }}
+                className="react-flow__edge-interaction export-exclude"
+                onPointerDown={(e) => handleSegmentPointerDown(e, i, i + 1, isVert, { x: sx, y: sy }, { x: tx, y: ty })}
+              />
+            );
+          }
+        }
+        return segments;
+      })()}
+
       {/* Waypoint Handles */}
       {!isPlaying && activeWaypoints.map((wp, idx) => (
         <g key={`wp-${idx}`} className={`react-flow__edge-interaction export-exclude transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
@@ -601,19 +636,36 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: 'all',
+              zIndex: isEditingInline ? 50 : 20,
             }}
             className="nodrag nopan"
           >
-            <div 
-              className={
-                isEdgeActive
-                  ? "px-2 py-0.5 rounded-full text-white text-[9px] font-extrabold shadow-md select-none transition-colors duration-150"
-                  : "px-2 py-0.5 rounded-full bg-slate-900/90 dark:bg-white text-white dark:text-slate-950 text-[9px] font-extrabold shadow-md border border-slate-700/50 dark:border-slate-200 transition-colors select-none"
-              }
-              style={isEdgeActive ? { backgroundColor: activeColor, borderColor: activeColor } : undefined}
-            >
-              {stepLabel}
-            </div>
+            {isEditingInline ? (
+              <InlineEdgeEditor
+                edgeId={id}
+                initialProtocol={le?.protocol || ''}
+                initialDescription={le?.description || ''}
+                initialStepNumber={seqsForEdge[0]?.stepNumber}
+                sequenceId={seqsForEdge[0]?.id}
+                onClose={() => setIsEditingInline(false)}
+              />
+            ) : (
+              <div 
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  if (!isPlaying) setIsEditingInline(true);
+                }}
+                className={
+                  isEdgeActive
+                    ? "px-2 py-0.5 rounded-full text-white text-[9px] font-extrabold shadow-md select-none transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95"
+                    : "px-2 py-0.5 rounded-full bg-slate-900/90 dark:bg-white text-white dark:text-slate-950 text-[9px] font-extrabold shadow-md border border-slate-700/50 dark:border-slate-200 transition-all select-none cursor-pointer hover:scale-105 active:scale-95"
+                }
+                style={isEdgeActive ? { backgroundColor: activeColor, borderColor: activeColor } : undefined}
+                title="Çift tıkla: Protokol ve açıklamayı hızlı düzenle"
+              >
+                {stepLabel}
+              </div>
+            )}
           </div>
         </EdgeLabelRenderer>
       )}

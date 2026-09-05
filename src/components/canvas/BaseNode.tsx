@@ -1,7 +1,6 @@
 import React, { memo, useMemo } from 'react';
 import { Handle, Position, NodeResizer, useConnection } from '@xyflow/react';
 import { MessageSquare } from 'lucide-react';
-import { useShallow } from 'zustand/shallow';
 import { useAppStore } from '../../store/useAppStore';
 import { CustomSvgRenderer } from './CustomSvgRenderer';
 import { useNodeAnimation } from './hooks';
@@ -201,19 +200,8 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
   const appTheme = useAppStore((s) => s.theme);
   const nodeHandles = useAppStore((s: any) => s.visualData.layoutNodes[id]?.handles);
 
-  const connectedHandlesArray = useAppStore(
-    useShallow((s: any) => {
-      const ports = new Set<string>();
-      s.logicalData.edges.forEach((e: any) => {
-        const ve = s.visualData.layoutEdges[e.id];
-        if (e.sourceId === id && ve?.sourceHandle) ports.add(ve.sourceHandle);
-        if (e.targetId === id && ve?.targetHandle) ports.add(ve.targetHandle);
-      });
-      return Array.from(ports).sort();
-    })
-  );
-
-  const connectedHandles = useMemo(() => new Set(connectedHandlesArray), [connectedHandlesArray]);
+  const connectedHandlesArray = useAppStore((s) => s.derivedConnectedPorts?.[id]);
+  const connectedHandles = useMemo(() => new Set(connectedHandlesArray || []), [connectedHandlesArray]);
 
   const handles = useMemo(() => resolveHandles(nodeHandles), [nodeHandles]);
   const style = themeStyles[themeKey] ?? themeStyles.indigo;
@@ -342,7 +330,14 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
               type="target"
               position={pos}
               id={`${h.id}-target`}
-              style={{ ...posStyle, opacity: 0 }}
+              style={{
+                ...posStyle,
+                opacity: 0,
+                width: isConnecting ? 32 : undefined,
+                height: isConnecting ? 32 : undefined,
+                marginLeft: isConnecting ? -16 : undefined,
+                marginTop: isConnecting ? -16 : undefined,
+              }}
               className={`${sizeClass} !border-0 !bg-transparent ${handleClass}`}
             />
             <Handle

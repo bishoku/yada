@@ -88,6 +88,10 @@ export interface CanvasSlice {
   setNodeParent: (nodeId: string, parentId: string | null) => void;
   autoResizeSection: (sectionId: string) => void;
   deleteSectionWithChoice: (sectionId: string, deleteChildren: boolean) => void;
+  alignSelectedNodes: (nodeIds: string[], alignment: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => void;
+  distributeSelectedNodes: (nodeIds: string[], direction: 'horizontal' | 'vertical') => void;
+  packNodesIntoSection: (nodeIds: string[], title?: string) => void;
+  deleteSelectedNodes: (nodeIds: string[]) => void;
   applyAutoLayout: (direction: 'TB' | 'LR') => void;
   focusedNodeId: string | null;
   setFocusedNodeId: (id: string | null) => void;
@@ -882,6 +886,333 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     });
   },
 
+  alignSelectedNodes: (nodeIds: string[], alignment: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => {
+    if (nodeIds.length < 2) return;
+    get().pushToHistory();
+    set((state) => {
+      const layoutNodes = { ...state.visualData.layoutNodes };
+      const targets = nodeIds
+        .map((id: string) => ({ id, node: layoutNodes[id] }))
+        .filter((t: { id: string; node: any }) => !!t.node);
+      if (targets.length < 2) return state;
+
+      const getNodeW = (id: string) => {
+        const vn = layoutNodes[id];
+        if (vn?.width) return vn.width;
+        if (state.visualData.annotations?.[id]) return 220;
+        const ln = state.logicalData.nodes.find((n) => n.id === id);
+        if (ln?.type === 'section') return 400;
+        if (ln?.type === 'freeform') return 320;
+        return 224;
+      };
+
+      const getNodeH = (id: string) => {
+        const vn = layoutNodes[id];
+        if (vn?.height) return vn.height;
+        if (state.visualData.annotations?.[id]) return 160;
+        const ln = state.logicalData.nodes.find((n) => n.id === id);
+        if (ln?.type === 'section') return 300;
+        if (ln?.type === 'freeform') return 220;
+        return 52;
+      };
+
+      const getAbsPos = (id: string): { x: number; y: number } => {
+        const vn = layoutNodes[id] || { x: 0, y: 0 };
+        const ln = state.logicalData.nodes.find((n: any) => n.id === id);
+        if (ln && ln.parentId) {
+          const pAbs = getAbsPos(ln.parentId);
+          return { x: vn.x + pAbs.x, y: vn.y + pAbs.y };
+        }
+        return { x: vn.x, y: vn.y };
+      };
+
+      const setAbsPos = (id: string, absX: number, absY: number) => {
+        const ln = state.logicalData.nodes.find((n: any) => n.id === id);
+        if (ln && ln.parentId) {
+          const pAbs = getAbsPos(ln.parentId);
+          layoutNodes[id] = { ...layoutNodes[id], x: Math.round(absX - pAbs.x), y: Math.round(absY - pAbs.y) };
+        } else {
+          layoutNodes[id] = { ...layoutNodes[id], x: Math.round(absX), y: Math.round(absY) };
+        }
+      };
+
+      if (alignment === 'left') {
+        const minX = Math.min(...targets.map((t) => getAbsPos(t.id).x));
+        targets.forEach((t) => {
+          setAbsPos(t.id, minX, getAbsPos(t.id).y);
+        });
+      } else if (alignment === 'center') {
+        const minX = Math.min(...targets.map((t) => getAbsPos(t.id).x));
+        const maxX = Math.max(...targets.map((t) => getAbsPos(t.id).x + getNodeW(t.id)));
+        const centerX = (minX + maxX) / 2;
+        targets.forEach((t) => {
+          const w = getNodeW(t.id);
+          setAbsPos(t.id, Math.round(centerX - w / 2), getAbsPos(t.id).y);
+        });
+      } else if (alignment === 'right') {
+        const maxRight = Math.max(...targets.map((t) => getAbsPos(t.id).x + getNodeW(t.id)));
+        targets.forEach((t) => {
+          const w = getNodeW(t.id);
+          setAbsPos(t.id, maxRight - w, getAbsPos(t.id).y);
+        });
+      } else if (alignment === 'top') {
+        const minY = Math.min(...targets.map((t) => getAbsPos(t.id).y));
+        targets.forEach((t) => {
+          setAbsPos(t.id, getAbsPos(t.id).x, minY);
+        });
+      } else if (alignment === 'middle') {
+        const minY = Math.min(...targets.map((t) => getAbsPos(t.id).y));
+        const maxY = Math.max(...targets.map((t) => getAbsPos(t.id).y + getNodeH(t.id)));
+        const centerY = (minY + maxY) / 2;
+        targets.forEach((t) => {
+          const h = getNodeH(t.id);
+          setAbsPos(t.id, getAbsPos(t.id).x, Math.round(centerY - h / 2));
+        });
+      } else if (alignment === 'bottom') {
+        const maxBottom = Math.max(...targets.map((t) => getAbsPos(t.id).y + getNodeH(t.id)));
+        targets.forEach((t) => {
+          const h = getNodeH(t.id);
+          setAbsPos(t.id, getAbsPos(t.id).x, maxBottom - h);
+        });
+      }
+
+      return {
+        visualData: { ...state.visualData, layoutNodes },
+        layoutVersion: (state.layoutVersion || 0) + 1,
+        isDirty: true
+      };
+    });
+  },
+
+  distributeSelectedNodes: (nodeIds: string[], direction: 'horizontal' | 'vertical') => {
+    if (nodeIds.length < 3) return;
+    get().pushToHistory();
+    set((state) => {
+      const layoutNodes = { ...state.visualData.layoutNodes };
+      const targets = nodeIds
+        .map((id: string) => ({ id, node: layoutNodes[id] }))
+        .filter((t: { id: string; node: any }) => !!t.node);
+      if (targets.length < 3) return state;
+
+      const getNodeW = (id: string) => {
+        const vn = layoutNodes[id];
+        if (vn?.width) return vn.width;
+        if (state.visualData.annotations?.[id]) return 220;
+        const ln = state.logicalData.nodes.find((n) => n.id === id);
+        if (ln?.type === 'section') return 400;
+        if (ln?.type === 'freeform') return 320;
+        return 224;
+      };
+
+      const getNodeH = (id: string) => {
+        const vn = layoutNodes[id];
+        if (vn?.height) return vn.height;
+        if (state.visualData.annotations?.[id]) return 160;
+        const ln = state.logicalData.nodes.find((n) => n.id === id);
+        if (ln?.type === 'section') return 300;
+        if (ln?.type === 'freeform') return 220;
+        return 52;
+      };
+
+      const getAbsPos = (id: string): { x: number; y: number } => {
+        const vn = layoutNodes[id] || { x: 0, y: 0 };
+        const ln = state.logicalData.nodes.find((n: any) => n.id === id);
+        if (ln && ln.parentId) {
+          const pAbs = getAbsPos(ln.parentId);
+          return { x: vn.x + pAbs.x, y: vn.y + pAbs.y };
+        }
+        return { x: vn.x, y: vn.y };
+      };
+
+      const setAbsPos = (id: string, absX: number, absY: number) => {
+        const ln = state.logicalData.nodes.find((n: any) => n.id === id);
+        if (ln && ln.parentId) {
+          const pAbs = getAbsPos(ln.parentId);
+          layoutNodes[id] = { ...layoutNodes[id], x: Math.round(absX - pAbs.x), y: Math.round(absY - pAbs.y) };
+        } else {
+          layoutNodes[id] = { ...layoutNodes[id], x: Math.round(absX), y: Math.round(absY) };
+        }
+      };
+
+      if (direction === 'horizontal') {
+        targets.sort((a, b) => getAbsPos(a.id).x - getAbsPos(b.id).x);
+        const first = targets[0];
+        const last = targets[targets.length - 1];
+        
+        const firstRight = getAbsPos(first.id).x + getNodeW(first.id);
+        const lastLeft = getAbsPos(last.id).x;
+        const innerWidthSum = targets.slice(1, -1).reduce((sum, t) => sum + getNodeW(t.id), 0);
+        const totalGap = lastLeft - firstRight - innerWidthSum;
+        const gap = Math.max(16, Math.round(totalGap / (targets.length - 1)));
+
+        let currentX = firstRight + gap;
+        for (let i = 1; i < targets.length - 1; i++) {
+          const t = targets[i];
+          setAbsPos(t.id, currentX, getAbsPos(t.id).y);
+          currentX += getNodeW(t.id) + gap;
+        }
+      } else {
+        targets.sort((a, b) => getAbsPos(a.id).y - getAbsPos(b.id).y);
+        const first = targets[0];
+        const last = targets[targets.length - 1];
+
+        const firstBottom = getAbsPos(first.id).y + getNodeH(first.id);
+        const lastTop = getAbsPos(last.id).y;
+        const innerHeightSum = targets.slice(1, -1).reduce((sum, t) => sum + getNodeH(t.id), 0);
+        const totalGap = lastTop - firstBottom - innerHeightSum;
+        const gap = Math.max(16, Math.round(totalGap / (targets.length - 1)));
+
+        let currentY = firstBottom + gap;
+        for (let i = 1; i < targets.length - 1; i++) {
+          const t = targets[i];
+          setAbsPos(t.id, getAbsPos(t.id).x, currentY);
+          currentY += getNodeH(t.id) + gap;
+        }
+      }
+
+      return {
+        visualData: { ...state.visualData, layoutNodes },
+        layoutVersion: (state.layoutVersion || 0) + 1,
+        isDirty: true
+      };
+    });
+  },
+
+  packNodesIntoSection: (nodeIds: string[], title?: string) => {
+    if (nodeIds.length === 0) return;
+    get().pushToHistory();
+    set((state) => {
+      const layoutNodes = { ...state.visualData.layoutNodes };
+      const targets = nodeIds
+        .map((id: string) => ({
+          id,
+          logical: state.logicalData.nodes.find(n => n.id === id),
+          visual: layoutNodes[id]
+        }))
+        .filter((t: any) => !!t.logical && !!t.visual);
+
+      if (targets.length === 0) return state;
+
+      const getNodeW = (id: string) => {
+        const vn = layoutNodes[id];
+        if (vn?.width) return vn.width;
+        if (state.visualData.annotations?.[id]) return 220;
+        const ln = state.logicalData.nodes.find((n) => n.id === id);
+        if (ln?.type === 'section') return 400;
+        if (ln?.type === 'freeform') return 320;
+        return 224;
+      };
+
+      const getNodeH = (id: string) => {
+        const vn = layoutNodes[id];
+        if (vn?.height) return vn.height;
+        if (state.visualData.annotations?.[id]) return 160;
+        const ln = state.logicalData.nodes.find((n) => n.id === id);
+        if (ln?.type === 'section') return 300;
+        if (ln?.type === 'freeform') return 220;
+        return 52;
+      };
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      targets.forEach((t: any) => {
+        minX = Math.min(minX, t.visual.x);
+        minY = Math.min(minY, t.visual.y);
+        maxX = Math.max(maxX, t.visual.x + getNodeW(t.id));
+        maxY = Math.max(maxY, t.visual.y + getNodeH(t.id));
+      });
+
+      const PADDING_H = 32;
+      const PADDING_TOP = 64;
+      const PADDING_BOTTOM = 32;
+
+      const secX = Math.round(minX - PADDING_H);
+      const secY = Math.round(minY - PADDING_TOP);
+      const secW = Math.round((maxX - minX) + PADDING_H * 2);
+      const secH = Math.round((maxY - minY) + PADDING_TOP + PADDING_BOTTOM);
+
+      const secId = 'sec-' + Math.random().toString(36).slice(2, 9);
+      const defaultTitle = state.language === 'tr' ? 'Yeni Bölüm' : 'New Section';
+
+      const newSectionLogical = {
+        id: secId,
+        type: 'section',
+        name: title || defaultTitle,
+      };
+
+      const newSectionVisual = {
+        id: secId,
+        x: secX,
+        y: secY,
+        width: secW,
+        height: secH,
+        color: '#6366f1',
+      };
+
+      const updatedLogicalNodes = state.logicalData.nodes.map((n) => {
+        if (nodeIds.includes(n.id)) {
+          return { ...n, parentId: secId };
+        }
+        return n;
+      });
+      updatedLogicalNodes.push(newSectionLogical);
+
+      targets.forEach((t: any) => {
+        layoutNodes[t.id] = {
+          ...layoutNodes[t.id],
+          x: Math.round(t.visual.x - secX),
+          y: Math.round(t.visual.y - secY),
+        };
+      });
+      layoutNodes[secId] = newSectionVisual;
+
+      return {
+        logicalData: { ...state.logicalData, nodes: updatedLogicalNodes },
+        visualData: { ...state.visualData, layoutNodes },
+        layoutVersion: (state.layoutVersion || 0) + 1,
+        isDirty: true,
+      };
+    });
+  },
+
+  deleteSelectedNodes: (nodeIds: string[]) => {
+    if (nodeIds.length === 0) return;
+    get().pushToHistory();
+    set((state) => {
+      const nodeSet = new Set(nodeIds);
+      const nodes = state.logicalData.nodes.filter((n) => !nodeSet.has(n.id));
+      const edges = state.logicalData.edges.filter((e) => !nodeSet.has(e.sourceId) && !nodeSet.has(e.targetId));
+      const remainingEdgeIds = new Set(edges.map((e) => e.id));
+      const sequences = state.logicalData.sequences.filter((s) => remainingEdgeIds.has(s.edgeId));
+
+      const layoutNodes = { ...state.visualData.layoutNodes };
+      nodeIds.forEach((id: string) => {
+        delete layoutNodes[id];
+      });
+
+      const layoutEdges = { ...state.visualData.layoutEdges };
+      const schedules = { ...state.schedules };
+      const timelines = { ...state.visualData.timelines };
+
+      Object.keys(layoutEdges).forEach((edgeId: string) => {
+        if (!remainingEdgeIds.has(edgeId)) {
+          delete layoutEdges[edgeId];
+        }
+      });
+
+      const sortedSeqs = [...sequences].sort((a, b) => a.stepNumber - b.stepNumber);
+      const reindexedSeqs = sortedSeqs.map((s, idx) => ({ ...s, stepNumber: idx + 1 }));
+
+      return {
+        logicalData: { ...state.logicalData, nodes, edges, sequences: reindexedSeqs },
+        visualData: { ...state.visualData, layoutNodes, layoutEdges, timelines },
+        schedules,
+        layoutVersion: (state.layoutVersion || 0) + 1,
+        isDirty: true
+      };
+    });
+  },
+
+
   applyAutoLayout: (direction) => {
     get().pushToHistory();
     const state = get();
@@ -957,6 +1288,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
       logicalData: { ...state.logicalData },
       visualData: { ...state.visualData, layoutNodes, layoutEdges },
       layoutVersion: state.layoutVersion + 1,
+      autoLayoutVersion: (state.autoLayoutVersion || 0) + 1,
       isDirty: true
     });
   }

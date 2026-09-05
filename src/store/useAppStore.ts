@@ -8,7 +8,7 @@ import { createTimelineSlice } from './slices/timelineSlice';
 import { createStudioSlice } from './slices/studioSlice';
 import { createHistorySlice } from './slices/historySlice';
 
-import { calculateSchedules } from './scheduler';
+import { calculateSchedules, deriveTopologyIndices } from './scheduler';
 
 // Try to load persisted Google User
 let savedGoogleUser = null;
@@ -32,19 +32,34 @@ export const useAppStore = create<AppState>()((set, get, store) => {
       const nextState = typeof partial === 'function' ? (partial as Function)(state) : partial;
       
       const logicalChanged = nextState.logicalData !== undefined && nextState.logicalData !== state.logicalData;
-      const timelinesChanged = nextState.visualData !== undefined && 
+      const visualChanged = nextState.visualData !== undefined && nextState.visualData !== state.visualData;
+      const timelinesChanged = visualChanged && 
                                nextState.visualData.timelines !== undefined && 
                                nextState.visualData.timelines !== state.visualData.timelines;
+      const layoutEdgesChanged = visualChanged &&
+                                 nextState.visualData.layoutEdges !== undefined &&
+                                 nextState.visualData.layoutEdges !== state.visualData.layoutEdges;
 
-      if (logicalChanged || timelinesChanged) {
+      if (logicalChanged || timelinesChanged || layoutEdgesChanged) {
         const mergedLogical = nextState.logicalData !== undefined ? nextState.logicalData : state.logicalData;
         const mergedVisual = nextState.visualData !== undefined ? nextState.visualData : state.visualData;
-        nextState.schedules = calculateSchedules(
+        const schedules = calculateSchedules(
           mergedLogical.sequences || [],
           mergedVisual.timelines || {},
           mergedLogical.edges || [],
           mergedLogical.nodes || []
         );
+        const { connectedPortsByNode, nodeSchedules } = deriveTopologyIndices(
+          mergedLogical.nodes || [],
+          mergedLogical.edges || [],
+          mergedVisual.layoutEdges || {},
+          mergedLogical.sequences || [],
+          mergedVisual.timelines || {},
+          schedules
+        );
+        nextState.schedules = schedules;
+        nextState.derivedConnectedPorts = connectedPortsByNode;
+        nextState.derivedNodeSchedules = nodeSchedules;
       }
       return nextState;
     }, replace as any);
@@ -63,6 +78,8 @@ export const useAppStore = create<AppState>()((set, get, store) => {
     logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
     visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {}, annotations: {}, freehandStrokes: {} },
     schedules: {},
+    derivedConnectedPorts: {},
+    derivedNodeSchedules: {},
     
     // Confirm/Alert State
     confirmState: null,
@@ -140,10 +157,20 @@ export const setDiagramDataInStore = (logicalData: any, visualData: any, autoPla
     logicalData.edges || [],
     logicalData.nodes || []
   );
+  const { connectedPortsByNode, nodeSchedules } = deriveTopologyIndices(
+    logicalData.nodes || [],
+    logicalData.edges || [],
+    visualData.layoutEdges || {},
+    logicalData.sequences || [],
+    visualData.timelines || {},
+    schedules
+  );
   useAppStore.setState({
     logicalData,
     visualData,
     schedules,
+    derivedConnectedPorts: connectedPortsByNode,
+    derivedNodeSchedules: nodeSchedules,
     isDirty: false,
     isPlaying: autoPlay && ((logicalData.sequences || []).length > 0),
     currentTime: 0,

@@ -6,42 +6,23 @@ export const ActiveAttributesPopover: React.FC = () => {
   const language = useAppStore((s) => s.language);
   const [popoverExpanded, setPopoverExpanded] = useState(false);
 
-  const activeAttributesStr = useAppStore((s) => {
-    const { currentTime, schedules, logicalData, visualData } = s;
+  const activeSequenceIds = useAppStore((s) => s.activeSequenceIds);
+  const logicalData = useAppStore((s) => s.logicalData);
+
+  const activeAttributes = useMemo(() => {
+    if (!popoverExpanded || activeSequenceIds.length === 0) return null;
+
     const activeNodesWithProps: Array<{ name: string; properties: Record<string, unknown> }> = [];
     const activeEdgesWithProps: Array<{ name: string; stepNumber: number; properties: Record<string, unknown> }> = [];
 
-    logicalData.sequences.forEach((seq) => {
+    activeSequenceIds.forEach((seqId) => {
+      const seq = logicalData.sequences.find((s) => s.id === seqId);
+      if (!seq) return;
+
       const edge = logicalData.edges.find((e) => e.id === seq.edgeId);
       if (!edge) return;
 
-      const sched = schedules[seq.id];
-      if (!sched) return;
-
-      const timing = visualData.timelines[seq.id];
-      const stepDuration = timing?.duration ?? 1000;
-
-      // 1. Edge Active Check
-      const effectiveMode = timing?.animationMode ?? (seq.isRoundTrip ? 'roundTrip' : 'normal');
-      let edgeAnimating = false;
-
-      if (effectiveMode === 'repeat') {
-        if (currentTime >= sched.start) {
-          let timelineEnd = sched.end;
-          for (const key in schedules) {
-            if (schedules[key].end > timelineEnd) timelineEnd = schedules[key].end;
-          }
-          if (currentTime <= timelineEnd) {
-            edgeAnimating = true;
-          }
-        }
-      } else {
-        if (currentTime >= sched.start && currentTime <= sched.end) {
-          edgeAnimating = true;
-        }
-      }
-
-      if (edgeAnimating && edge.properties && Object.keys(edge.properties).length > 0) {
+      if (edge.properties && Object.keys(edge.properties).length > 0) {
         const edgeName = `${seq.stepNumber}. [${edge.protocol || 'Call'}] ${edge.description || ''}`.trim();
         if (!activeEdgesWithProps.some((e) => e.name === edgeName)) {
           activeEdgesWithProps.push({
@@ -52,60 +33,23 @@ export const ActiveAttributesPopover: React.FC = () => {
         }
       }
 
-      // 2. Node Active Check
-      const ipDuration = (!seq.isRoundTrip && timing?.internalProcess)
-        ? (timing.internalProcess.duration ?? 1000)
-        : 0;
-      const activeEnd = sched.end + ipDuration;
-
-      if (currentTime >= sched.start && currentTime <= activeEnd) {
-        const elapsed = currentTime - sched.start;
-        let sourceActive = false;
-        let targetActive = false;
-
-        if (seq.isRoundTrip) {
-          const halfTransit = stepDuration / 2;
-          const totalElapsed = sched.end - sched.start;
-          const returnStartElapsed = totalElapsed - halfTransit;
-
-          if (elapsed < halfTransit || elapsed >= returnStartElapsed) {
-            sourceActive = true;
-          }
-          if (elapsed >= halfTransit && elapsed < returnStartElapsed) {
-            targetActive = true;
-          }
-        } else {
-          const transitDuration = stepDuration;
-          if (elapsed < transitDuration) {
-            sourceActive = true;
-          }
-          if (elapsed >= transitDuration) {
-            targetActive = true;
-          }
+      const srcNode = logicalData.nodes.find((n) => n.id === edge.sourceId);
+      if (srcNode && srcNode.properties && Object.keys(srcNode.properties).length > 0) {
+        if (!activeNodesWithProps.some((n) => n.name === srcNode.name)) {
+          activeNodesWithProps.push({
+            name: srcNode.name,
+            properties: srcNode.properties,
+          });
         }
+      }
 
-        if (sourceActive) {
-          const srcNode = logicalData.nodes.find((n) => n.id === edge.sourceId);
-          if (srcNode && srcNode.properties && Object.keys(srcNode.properties).length > 0) {
-            if (!activeNodesWithProps.some((n) => n.name === srcNode.name)) {
-              activeNodesWithProps.push({
-                name: srcNode.name,
-                properties: srcNode.properties,
-              });
-            }
-          }
-        }
-
-        if (targetActive) {
-          const tgtNode = logicalData.nodes.find((n) => n.id === edge.targetId);
-          if (tgtNode && tgtNode.properties && Object.keys(tgtNode.properties).length > 0) {
-            if (!activeNodesWithProps.some((n) => n.name === tgtNode.name)) {
-              activeNodesWithProps.push({
-                name: tgtNode.name,
-                properties: tgtNode.properties,
-              });
-            }
-          }
+      const tgtNode = logicalData.nodes.find((n) => n.id === edge.targetId);
+      if (tgtNode && tgtNode.properties && Object.keys(tgtNode.properties).length > 0) {
+        if (!activeNodesWithProps.some((n) => n.name === tgtNode.name)) {
+          activeNodesWithProps.push({
+            name: tgtNode.name,
+            properties: tgtNode.properties,
+          });
         }
       }
     });
@@ -114,15 +58,12 @@ export const ActiveAttributesPopover: React.FC = () => {
       return null;
     }
 
-    return JSON.stringify({
+    return {
       nodes: activeNodesWithProps,
       edges: activeEdgesWithProps,
-    });
-  });
+    };
+  }, [popoverExpanded, activeSequenceIds, logicalData]);
 
-  const activeAttributes = useMemo(() => {
-    return activeAttributesStr ? JSON.parse(activeAttributesStr) as { nodes: any[], edges: any[] } : null;
-  }, [activeAttributesStr]);
 
   const dynamicTitle = useMemo(() => {
     if (!activeAttributes) {

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
+import { simulationClock } from '../../../store/simulationClock';
 
 export const useNodeAnimation = (nodeId: string) => {
   const [animState, setAnimState] = useState({
@@ -8,96 +9,94 @@ export const useNodeAnimation = (nodeId: string) => {
     nodeActive: false,
   });
 
-  useEffect(() => {
-    // Only subscribe to changes in currentTime, logicalData, or visualData
-    const unsub = useAppStore.subscribe((state, prevState) => {
-      // If we're not playing and the time hasn't changed, we don't necessarily need to recalculate every tick
-      // However, if logicalData changes we should recalculate if time > 0.
-      const currentTime = state.currentTime;
-      if (currentTime === prevState.currentTime && 
-          state.logicalData === prevState.logicalData && 
-          state.visualData === prevState.visualData) {
-        return;
-      }
+  const nodeSchedulesRef = useRef<any[]>([]);
 
+  useEffect(() => {
+    // Keep a synchronous ref of node schedules to avoid searching on every frame
+    const updateNodeSchedules = () => {
+      const state = useAppStore.getState();
+      nodeSchedulesRef.current = state.derivedNodeSchedules?.[nodeId] || [];
+    };
+
+    updateNodeSchedules();
+
+    const unsubStore = useAppStore.subscribe((state, prevState) => {
+      if (
+        state.logicalData !== prevState.logicalData ||
+        state.visualData.timelines !== prevState.visualData.timelines ||
+        state.schedules !== prevState.schedules ||
+        state.derivedNodeSchedules !== prevState.derivedNodeSchedules
+      ) {
+        updateNodeSchedules();
+        // Recalculate on topology change
+        checkAnimState(simulationClock.getTime());
+      }
+    });
+
+    const checkAnimState = (currentTime: number) => {
       let tooltipActive = false;
       let tooltipText = '';
       let nodeActive = false;
 
-      try {
-        const schedules = state.schedules;
+      const mySchedules = nodeSchedulesRef.current;
+      if (mySchedules && mySchedules.length > 0) {
+        for (let i = 0; i < mySchedules.length; i++) {
+          const item = mySchedules[i];
+          const ipDuration = (!item.isRoundTrip && item.internalProcess) ? item.internalProcess.duration : 0;
+          const activeEnd = item.end + ipDuration;
+          if (currentTime < item.start || currentTime > activeEnd) continue;
 
-        for (const seq of state.logicalData.sequences) {
-          const edge = state.logicalData.edges.find((e: any) => e.id === seq.edgeId);
-          if (!edge) continue;
+          const elapsed = currentTime - item.start;
+          const stepDuration = item.duration;
 
-          const sched = schedules[seq.id];
-          if (!sched) continue;
-
-          const timing = state.visualData.timelines[seq.id];
-          const ipDuration = (!seq.isRoundTrip && timing?.internalProcess) 
-            ? (timing.internalProcess.duration ?? 1000) 
-            : 0;
-
-          const activeEnd = sched.end + ipDuration;
-          if (currentTime < sched.start || currentTime > activeEnd) continue;
-
-          const srcId = edge.sourceId;
-          const tgtId = edge.targetId;
-          const elapsed = currentTime - sched.start;
-          const stepDuration = timing?.duration ?? 1000;
-
-          if (seq.isRoundTrip) {
+          if (item.isRoundTrip) {
             const halfTransit = stepDuration / 2;
-            const totalElapsed = sched.end - sched.start;
+            const totalElapsed = item.end - item.start;
             const returnStartElapsed = totalElapsed - halfTransit;
 
-            if (nodeId === srcId) {
+            if (item.isSource) {
               if (elapsed < halfTransit || elapsed >= returnStartElapsed) {
                 nodeActive = true;
               }
             }
-            if (nodeId === tgtId) {
+            if (item.isTarget) {
               if (elapsed >= halfTransit && elapsed < returnStartElapsed) {
                 nodeActive = true;
               }
             }
 
-            if (nodeId === tgtId && timing?.internalProcess) {
-              const ipDuration = timing.internalProcess.duration ?? 1000;
-              const tooltipStart = sched.start + halfTransit;
-              const tooltipEnd = tooltipStart + ipDuration;
+            if (item.isTarget && item.internalProcess) {
+              const tooltipStart = item.start + halfTransit;
+              const tooltipEnd = tooltipStart + item.internalProcess.duration;
               if (currentTime >= tooltipStart && currentTime < tooltipEnd) {
                 tooltipActive = true;
-                tooltipText = timing.internalProcess.text;
+                tooltipText = item.internalProcess.text;
               }
             }
           } else {
             const transitDuration = stepDuration;
 
-            if (nodeId === srcId) {
+            if (item.isSource) {
               if (elapsed < transitDuration) {
                 nodeActive = true;
               }
             }
-            if (nodeId === tgtId) {
+            if (item.isTarget) {
               if (elapsed >= transitDuration) {
                 nodeActive = true;
               }
             }
 
-            if (nodeId === tgtId && timing?.internalProcess) {
-              const tooltipStart = sched.end;
-              const tooltipEnd = sched.end + timing.internalProcess.duration;
+            if (item.isTarget && item.internalProcess) {
+              const tooltipStart = item.end;
+              const tooltipEnd = item.end + item.internalProcess.duration;
               if (currentTime >= tooltipStart && currentTime < tooltipEnd) {
                 tooltipActive = true;
-                tooltipText = timing.internalProcess.text;
+                tooltipText = item.internalProcess.text;
               }
             }
           }
         }
-      } catch (err) {
-        console.error('Error calculating node anim state:', err);
       }
 
       setAnimState((prev) => {
@@ -108,12 +107,20 @@ export const useNodeAnimation = (nodeId: string) => {
         ) {
           return { tooltipActive, tooltipText, nodeActive };
         }
-        return prev; // Return previous object to prevent re-render
+        return prev;
       });
+    };
+
+    const unsubClock = simulationClock.subscribe((time) => {
+      checkAnimState(time);
     });
 
-    return unsub;
+    return () => {
+      unsubStore();
+      unsubClock();
+    };
   }, [nodeId]);
 
   return animState;
 };
+

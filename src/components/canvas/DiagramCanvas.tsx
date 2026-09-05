@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -34,6 +34,8 @@ import { DragGhost } from './DragGhost';
 import { StickyNoteEditorModal } from './StickyNoteEditorModal';
 import { FreehandOverlay } from './FreehandOverlay';
 import { DrawingToolbar } from './DrawingToolbar';
+import { MultiSelectionToolbar } from './MultiSelectionToolbar';
+import { ActiveAttributesPopover } from './ActiveAttributesPopover';
 import { getDefaultHandles } from '../../utils/portUtils';
 import { generateEdgeId, generateSeqId } from '../../utils/idGenerator';
 import { calculateViewportBounds } from '../../utils/canvasRenderer';
@@ -126,6 +128,7 @@ const FlowWrapper: React.FC = () => {
 
   // ── Pending Connection Modal State ─────────────────────────────────────────
   const dragStartRef = useRef<{ nodeId: string; handleId: string } | null>(null);
+  const connectionCompletedRef = useRef(false);
   const [showClearModal, setShowClearModal] = useState(false);
 
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -144,11 +147,16 @@ const FlowWrapper: React.FC = () => {
   useCanvasDrop(wrapperRef, screenToFlowPosition, setRfNodes);
   useCanvasShortcuts(closeMenu, handleCancelActiveEdge, rfNodes, setRfNodes, rfEdges, setRfEdges);
 
+  const selectedNodeIds = useMemo(() => rfNodes.filter((n) => n.selected).map((n) => n.id), [rfNodes]);
+  const handleClearSelection = useCallback(() => {
+    setRfNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
+  }, [setRfNodes]);
+
   const activeDiagramId = useAppStore((s) => s.activeDiagramId);
   const currentWorkspacePath = useAppStore((s) => s.currentWorkspace?.path);
-  const layoutVersion = useAppStore((s) => s.layoutVersion);
+  const autoLayoutVersion = useAppStore((s) => s.autoLayoutVersion);
 
-  // Auto fitView on diagram open, load, tab switch, or layout change
+  // Auto fitView on diagram open, load, tab switch, or explicit auto-layout
   useEffect(() => {
     if (rfNodes.length > 0) {
       const timer = setTimeout(() => {
@@ -165,7 +173,7 @@ const FlowWrapper: React.FC = () => {
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [rfNodes.length === 0, activeDiagramId, currentWorkspacePath, layoutVersion, fitView, fitBounds]);
+  }, [rfNodes.length === 0, activeDiagramId, currentWorkspacePath, autoLayoutVersion, fitView, fitBounds]);
   
   // Focus on node from external triggers (e.g., SidebarRight)
   useEffect(() => {
@@ -444,35 +452,14 @@ const FlowWrapper: React.FC = () => {
   );
 
   // ── Handle Connection ──────────────────────────────────────────────────────
-  const onConnectStart = useCallback(
-    (_event: any, params: { nodeId: string | null; handleId: string | null }) => {
+  const createConnectionBetweenNodes = useCallback(
+    (source: string, target: string, sourceHandle?: string, targetHandle?: string) => {
       if (isPlaying) return;
-      // Dismiss open panels so they don't cover the new edge properties panel
-      setActiveNodeProperties(null);
-      setActiveEdgeProperties(null);
-      // Signal to CSS that a connection is being dragged (reveals all handles)
-      wrapperRef.current?.classList.add('react-flow--connecting');
-      if (params.nodeId && params.handleId) {
-        dragStartRef.current = { nodeId: params.nodeId, handleId: params.handleId };
-      }
-    },
-    [setActiveNodeProperties, setActiveEdgeProperties]
-  );
-
-  const onConnectEnd = useCallback(() => {
-    // Remove the connecting class so handles go back to their default visibility
-    wrapperRef.current?.classList.remove('react-flow--connecting');
-    dragStartRef.current = null;
-  }, []);
-
-  const onConnect = useCallback(
-    (connection: Connection) => {
-      if (isPlaying) return;
-      if (!connection.source || !connection.target) return;
+      if (!source || !target) return;
 
       const logicalNodes = useAppStore.getState().logicalData.nodes;
-      const sourceNode = logicalNodes.find(n => n.id === connection.source);
-      const targetNode = logicalNodes.find(n => n.id === connection.target);
+      const sourceNode = logicalNodes.find(n => n.id === source);
+      const targetNode = logicalNodes.find(n => n.id === target);
       
       if (sourceNode?.type === 'sticky_note' || targetNode?.type === 'sticky_note') {
         return; // Prevent connecting to/from sticky notes
@@ -483,17 +470,17 @@ const FlowWrapper: React.FC = () => {
         ? Math.max(...logicalData.sequences.map(s => s.stepNumber)) + 1 
         : 1;
         
-      let logicalFrom = connection.source;
-      let logicalTo = connection.target;
-      let logicalFromPort = (connection.sourceHandle ?? 'right:50').split('-')[0];
-      let logicalToPort = (connection.targetHandle ?? 'left:50').split('-')[0];
+      let logicalFrom = source;
+      let logicalTo = target;
+      let logicalFromPort = (sourceHandle ?? 'right:50').split('-')[0];
+      let logicalToPort = (targetHandle ?? 'left:50').split('-')[0];
 
       if (dragStartRef.current) {
-        if (dragStartRef.current.nodeId === connection.target) {
-          logicalFrom = connection.target;
-          logicalTo = connection.source;
-          logicalFromPort = (connection.targetHandle ?? 'left:50').split('-')[0];
-          logicalToPort = (connection.sourceHandle ?? 'right:50').split('-')[0];
+        if (dragStartRef.current.nodeId === target) {
+          logicalFrom = target;
+          logicalTo = source;
+          logicalFromPort = (targetHandle ?? 'left:50').split('-')[0];
+          logicalToPort = (sourceHandle ?? 'right:50').split('-')[0];
         }
       }
 
@@ -501,10 +488,10 @@ const FlowWrapper: React.FC = () => {
       const newRfEdge: Edge = {
         id: edgeId,
         type: 'customEdge',
-        source: connection.source,
-        target: connection.target,
-        sourceHandle: connection.sourceHandle ?? undefined,
-        targetHandle: connection.targetHandle ?? undefined,
+        source,
+        target,
+        sourceHandle: sourceHandle ?? undefined,
+        targetHandle: targetHandle ?? undefined,
       };
       
       setRfEdges((eds) => addEdge(newRfEdge, eds));
@@ -518,12 +505,10 @@ const FlowWrapper: React.FC = () => {
       };
 
       // Create visual edge (ports + presentation)
-      const sourceHandle = logicalFromPort;
-      const targetHandle = logicalToPort;
       const visualEdge = {
         id: edgeId,
-        sourceHandle,
-        targetHandle,
+        sourceHandle: logicalFromPort,
+        targetHandle: logicalToPort,
       };
 
       zustandAddEdge(logicalEdge, visualEdge);
@@ -558,8 +543,78 @@ const FlowWrapper: React.FC = () => {
       });
       openRightSidebar();
     },
-    [setRfEdges, zustandAddEdge, addSequenceStep]
+    [isPlaying, setRfEdges, zustandAddEdge, addSequenceStep, setActiveEdgeProperties, openRightSidebar]
   );
+
+  const onConnectStart = useCallback(
+    (_event: any, params: { nodeId: string | null; handleId: string | null }) => {
+      if (isPlaying) return;
+      connectionCompletedRef.current = false;
+      // Dismiss open panels so they don't cover the new edge properties panel
+      setActiveNodeProperties(null);
+      setActiveEdgeProperties(null);
+      // Signal to CSS that a connection is being dragged (reveals all handles)
+      wrapperRef.current?.classList.add('react-flow--connecting');
+      if (params.nodeId && params.handleId) {
+        dragStartRef.current = { nodeId: params.nodeId, handleId: params.handleId };
+      }
+    },
+    [isPlaying, setActiveNodeProperties, setActiveEdgeProperties]
+  );
+
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      if (isPlaying) return;
+      connectionCompletedRef.current = true;
+      if (!connection.source || !connection.target) return;
+      createConnectionBetweenNodes(
+        connection.source,
+        connection.target,
+        connection.sourceHandle ?? undefined,
+        connection.targetHandle ?? undefined
+      );
+    },
+    [isPlaying, createConnectionBetweenNodes]
+  );
+
+  const onConnectEnd = useCallback((event: any) => {
+    // Remove the connecting class so handles go back to their default visibility
+    wrapperRef.current?.classList.remove('react-flow--connecting');
+
+    // Smart magnetic port snapping fallback: If dropped anywhere on a node body
+    if (!connectionCompletedRef.current && dragStartRef.current && event) {
+      const targetEl = (event.target as HTMLElement)?.closest?.('.react-flow__node');
+      const targetNodeId = targetEl?.getAttribute('data-id');
+
+      if (targetNodeId && targetNodeId !== dragStartRef.current.nodeId) {
+        const state = useAppStore.getState();
+        const srcId = dragStartRef.current.nodeId;
+        const tgtId = targetNodeId;
+        const srcLayout = state.visualData.layoutNodes[srcId];
+        const tgtLayout = state.visualData.layoutNodes[tgtId];
+
+        // Pick optimal port on target based on relative node vector
+        let targetPort = 'left:50';
+        if (srcLayout && tgtLayout) {
+          const dx = (tgtLayout.x + (tgtLayout.width ?? 150) / 2) - (srcLayout.x + (srcLayout.width ?? 150) / 2);
+          const dy = (tgtLayout.y + (tgtLayout.height ?? 48) / 2) - (srcLayout.y + (srcLayout.height ?? 48) / 2);
+
+          if (Math.abs(dx) > Math.abs(dy)) {
+            targetPort = dx > 0 ? 'left:50' : 'right:50';
+          } else {
+            targetPort = dy > 0 ? 'top:50' : 'bottom:50';
+          }
+        }
+
+        const sourcePort = dragStartRef.current.handleId || 'right:50';
+        createConnectionBetweenNodes(srcId, tgtId, sourcePort, `${targetPort}-target`);
+      }
+    }
+
+    connectionCompletedRef.current = false;
+    dragStartRef.current = null;
+  }, [createConnectionBetweenNodes]);
+
 
   const onReconnect = useCallback(
     (oldEdge: Edge, newConnection: Connection) => {
@@ -950,6 +1005,17 @@ const FlowWrapper: React.FC = () => {
 
       {/* Floating Drawing Toolbar */}
       <DrawingToolbar />
+
+      {/* Floating Multi-Selection Alignment & Distribution Toolbar */}
+      {!isReadOnly && !isPlaying && (
+        <MultiSelectionToolbar
+          selectedNodeIds={selectedNodeIds}
+          onClearSelection={handleClearSelection}
+        />
+      )}
+
+      {/* Floating Active Step Attributes Popover */}
+      <ActiveAttributesPopover />
 
       {/* Drag Ghost — shows drop position preview while dragging from sidebar */}
       <DragGhost canvasRef={wrapperRef} />

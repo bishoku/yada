@@ -5,6 +5,7 @@ export interface HistorySlice {
   pastStates: Array<{ logicalData: LogicalDiagram; visualData: VisualDiagram }>;
   futureStates: Array<{ logicalData: LogicalDiagram; visualData: VisualDiagram }>;
   layoutVersion: number;
+  autoLayoutVersion: number;
 
   pushToHistory: () => void;
   /** Saves an explicit snapshot to history without changing current state.
@@ -18,6 +19,7 @@ export const createHistorySlice: StateCreator<AppState, [], [], HistorySlice> = 
   pastStates: [],
   futureStates: [],
   layoutVersion: 0,
+  autoLayoutVersion: 0,
 
   pushToHistory: () => {
     const state = get();

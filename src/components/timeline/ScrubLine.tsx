@@ -1,5 +1,5 @@
-import React from 'react';
-import { useAppStore } from '../../store/useAppStore';
+import React, { useEffect } from 'react';
+import { simulationClock } from '../../store/simulationClock';
 
 interface ScrubLineProps {
   pxPerMs: number;
@@ -14,13 +14,23 @@ export const ScrubLine: React.FC<ScrubLineProps> = ({
   isScrubbing,
   playheadRef,
 }) => {
-  const currentTime = useAppStore((state) => state.currentTime);
+  useEffect(() => {
+    const updatePosition = (time: number) => {
+      if (playheadRef.current) {
+        playheadRef.current.style.left = `${time * pxPerMs}px`;
+      }
+    };
+
+    updatePosition(simulationClock.getTime());
+    return simulationClock.subscribe(updatePosition);
+  }, [playheadRef, pxPerMs]);
+
   return (
     <div 
       ref={playheadRef}
       className="absolute top-0 bottom-0 w-0.5 bg-rose-500/80 pointer-events-none z-40"
       style={{ 
-        left: currentTime * pxPerMs,
+        left: `${simulationClock.getTime() * pxPerMs}px`,
         transition: (isPlaying || isScrubbing) ? 'none' : 'left 0.1s ease-out'
       }}
     >
@@ -28,3 +38,4 @@ export const ScrubLine: React.FC<ScrubLineProps> = ({
     </div>
   );
 };
+

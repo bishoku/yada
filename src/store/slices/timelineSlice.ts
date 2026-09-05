@@ -1,5 +1,6 @@
 import { StateCreator } from 'zustand';
 import { AppState, SequenceStep, TimelineTiming } from '../../types';
+import { simulationClock } from '../simulationClock';
 
 export interface TimelineSlice {
   isPlaying: boolean;
@@ -40,12 +41,23 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   timelineHeight: 250,
   loopPlayback: true,
 
-  startPlayback: () => set({ isPlaying: true, currentTime: 0, selectedSequenceId: null }),
-  pausePlayback: () => set({ isPlaying: false }),
-  stopPlayback: () => set({ isPlaying: false, currentTime: 0, activeSequenceIds: [] }),
+  startPlayback: () => {
+    simulationClock.setTime(0);
+    simulationClock.setIsPlaying(true);
+    set({ isPlaying: true, currentTime: 0, selectedSequenceId: null });
+  },
+  pausePlayback: () => {
+    simulationClock.setIsPlaying(false);
+    set({ isPlaying: false, currentTime: simulationClock.getTime() });
+  },
+  stopPlayback: () => {
+    simulationClock.reset();
+    set({ isPlaying: false, currentTime: 0, activeSequenceIds: [] });
+  },
   toggleLoopPlayback: () => set((state) => ({ loopPlayback: !state.loopPlayback })),
   
   setCurrentTime: (time) => {
+    simulationClock.setTime(time);
     set((state) => {
       const schedules = state.schedules;
       const activeSequenceIds: string[] = [];

@@ -1,5 +1,55 @@
 import { useEffect, useState, useMemo, RefObject } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
+import { simulationClock } from '../../../store/simulationClock';
+
+interface PathSample {
+  x: number;
+  y: number;
+  angle: number;
+}
+
+const SAMPLE_COUNT = 128;
+
+function samplePath(pathEl: SVGPathElement): PathSample[] {
+  try {
+    const totalLength = pathEl.getTotalLength();
+    if (totalLength <= 0) return [];
+    const samples: PathSample[] = [];
+    const step = totalLength / (SAMPLE_COUNT - 1);
+
+    for (let i = 0; i < SAMPLE_COUNT; i++) {
+      const len = i * step;
+      const pt = pathEl.getPointAtLength(len);
+      const nextPt = pathEl.getPointAtLength(Math.min(totalLength, len + 1));
+      const angle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x) * (180 / Math.PI);
+      samples.push({ x: pt.x, y: pt.y, angle });
+    }
+    return samples;
+  } catch {
+    return [];
+  }
+}
+
+function getPointAndAngleFromSamples(
+  samples: PathSample[],
+  progress: number
+): { x: number; y: number; angle: number } {
+  const p = Math.max(0, Math.min(1, progress));
+  const exactIndex = p * (samples.length - 1);
+  const i0 = Math.floor(exactIndex);
+  const i1 = Math.min(samples.length - 1, i0 + 1);
+  const frac = exactIndex - i0;
+
+  const s0 = samples[i0];
+  const s1 = samples[i1];
+
+  return {
+    x: s0.x + (s1.x - s0.x) * frac,
+    y: s0.y + (s1.y - s0.y) * frac,
+    angle: s0.angle,
+  };
+}
+
 export const useEdgeAnimation = (
   edgeId: string, 
   pathRef: RefObject<SVGPathElement | null>,
@@ -16,39 +66,44 @@ export const useEdgeAnimation = (
   const isAsync = useMemo(() => seqsForEdge.some((s) => s.isAsync), [seqsForEdge]);
 
   useEffect(() => {
-    const unsub = useAppStore.subscribe((state, prevState) => {
-      const currentTime = state.currentTime;
-      // Skip redundant checks if time hasn't changed and data hasn't changed
-      if (currentTime === prevState.currentTime && 
-          state.logicalData === prevState.logicalData && 
-          state.visualData === prevState.visualData) {
-        return;
-      }
+    let lastPathD = '';
+    let cachedSamples: PathSample[] = [];
+    let cachedMaxTimelineEnd = 0;
+    let lastSchedulesRef: Record<string, { start: number; end: number }> | null = null;
 
+    const hideAllParticles = () => {
+      particleRefs.forEach(ref => {
+        if (ref.current) ref.current.style.display = 'none';
+      });
+    };
+
+    const updateFrame = (currentTime: number) => {
+      const state = useAppStore.getState();
       const schedules = state.schedules;
+      const visualData = state.visualData;
+
+      if (schedules !== lastSchedulesRef) {
+        lastSchedulesRef = schedules;
+        let maxEnd = 0;
+        for (const k in schedules) {
+          if (schedules[k].end > maxEnd) maxEnd = schedules[k].end;
+        }
+        cachedMaxTimelineEnd = maxEnd;
+      }
 
       let activeSeq = null;
       for (const seq of seqsForEdge) {
         const sched = schedules[seq.id];
         if (!sched) continue;
-        const timing = state.visualData.timelines[seq.id];
+        const timing = visualData.timelines[seq.id];
         const effectiveMode = timing?.animationMode ?? (seq.isRoundTrip ? 'roundTrip' : 'normal');
 
         if (effectiveMode === 'repeat') {
-          // Repeat mode: starts at step start, continues until entire timeline ends
-          if (currentTime >= sched.start) {
-            // Find the global timeline end (max of all schedule end times)
-            let timelineEnd = sched.end;
-            for (const key in schedules) {
-              if (schedules[key].end > timelineEnd) timelineEnd = schedules[key].end;
-            }
-            if (currentTime <= timelineEnd) {
-              activeSeq = seq;
-              break;
-            }
+          if (currentTime >= sched.start && currentTime <= cachedMaxTimelineEnd) {
+            activeSeq = seq;
+            break;
           }
         } else {
-          // Normal / RoundTrip: only active during step's own window
           if (currentTime >= sched.start && currentTime <= sched.end) {
             activeSeq = seq;
             break;
@@ -57,19 +112,10 @@ export const useEdgeAnimation = (
       }
 
       const newIsAnimating = !!activeSeq;
-      setIsAnimating((prev) => {
-        if (prev !== newIsAnimating) return newIsAnimating;
-        return prev;
-      });
+      setIsAnimating((prev) => (prev !== newIsAnimating ? newIsAnimating : prev));
 
       const nextStepNum = activeSeq ? activeSeq.stepNumber : null;
       setActiveStepNumber((prev) => (prev !== nextStepNum ? nextStepNum : prev));
-
-      const hideAllParticles = () => {
-        particleRefs.forEach(ref => {
-          if (ref.current) ref.current.style.display = 'none';
-        });
-      };
 
       const pathEl = pathRef.current;
       if (!pathEl || !newIsAnimating || !activeSeq) {
@@ -84,13 +130,21 @@ export const useEdgeAnimation = (
           return;
         }
 
-        const timing = state.visualData.timelines[activeSeq.id];
+        const timing = visualData.timelines[activeSeq.id];
         const stepDuration = timing?.duration ?? 1000;
         const elapsed = currentTime - sched.start;
         const effectiveMode = timing?.animationMode ?? (activeSeq.isRoundTrip ? 'roundTrip' : 'normal');
 
-        const totalLength = pathEl.getTotalLength();
-        if (totalLength <= 0) return;
+        const currentD = pathEl.getAttribute('d') || '';
+        if (currentD !== lastPathD || cachedSamples.length === 0) {
+          lastPathD = currentD;
+          cachedSamples = samplePath(pathEl);
+        }
+
+        if (cachedSamples.length === 0) {
+          hideAllParticles();
+          return;
+        }
 
         switch (effectiveMode) {
           case 'repeat': {
@@ -110,14 +164,10 @@ export const useEdgeAnimation = (
 
                 const safeElapsed = particleElapsed < 0 ? particleElapsed + cycleDuration : particleElapsed;
                 const progress = Math.max(0, Math.min(1, safeElapsed / cycleDuration));
-
-                const point = pathEl.getPointAtLength(progress * totalLength);
-                const p1 = pathEl.getPointAtLength(Math.max(0, progress * totalLength - 1));
-                const p2 = pathEl.getPointAtLength(Math.min(totalLength, progress * totalLength + 1));
-                const rotation = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+                const { x, y, angle } = getPointAndAngleFromSamples(cachedSamples, progress);
 
                 ref.current.style.display = 'block';
-                ref.current.setAttribute('transform', `translate(${point.x}, ${point.y}) rotate(${rotation})`);
+                ref.current.setAttribute('transform', `translate(${x}, ${y}) rotate(${angle})`);
               } else {
                 ref.current.style.display = 'none';
               }
@@ -139,17 +189,14 @@ export const useEdgeAnimation = (
               actualProgress = 1.0 - Math.min(Math.max(returnElapsed / transitHalf, 0), 1);
             }
 
-            const point = pathEl.getPointAtLength(actualProgress * totalLength);
-            const p1 = pathEl.getPointAtLength(Math.max(0, actualProgress * totalLength - 1));
-            const p2 = pathEl.getPointAtLength(Math.min(totalLength, actualProgress * totalLength + 1));
-            const rotation = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+            const { x, y, angle } = getPointAndAngleFromSamples(cachedSamples, actualProgress);
 
             for (let i = 0; i < particleRefs.length; i++) {
               const ref = particleRefs[i];
               if (!ref.current) continue;
               if (i === 0) {
                 ref.current.style.display = 'block';
-                ref.current.setAttribute('transform', `translate(${point.x}, ${point.y}) rotate(${rotation})`);
+                ref.current.setAttribute('transform', `translate(${x}, ${y}) rotate(${angle})`);
               } else {
                 ref.current.style.display = 'none';
               }
@@ -167,17 +214,14 @@ export const useEdgeAnimation = (
               actualProgress = 1;
             }
 
-            const point = pathEl.getPointAtLength(actualProgress * totalLength);
-            const p1 = pathEl.getPointAtLength(Math.max(0, actualProgress * totalLength - 1));
-            const p2 = pathEl.getPointAtLength(Math.min(totalLength, actualProgress * totalLength + 1));
-            const rotation = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+            const { x, y, angle } = getPointAndAngleFromSamples(cachedSamples, actualProgress);
 
             for (let i = 0; i < particleRefs.length; i++) {
               const ref = particleRefs[i];
               if (!ref.current) continue;
               if (i === 0) {
                 ref.current.style.display = 'block';
-                ref.current.setAttribute('transform', `translate(${point.x}, ${point.y}) rotate(${rotation})`);
+                ref.current.setAttribute('transform', `translate(${x}, ${y}) rotate(${angle})`);
               } else {
                 ref.current.style.display = 'none';
               }
@@ -185,15 +229,31 @@ export const useEdgeAnimation = (
             break;
           }
         }
-      } catch (err) {
-        particleRefs.forEach(ref => {
-          if (ref.current) ref.current.style.display = 'none';
-        });
+      } catch {
+        hideAllParticles();
+      }
+    };
+
+    updateFrame(simulationClock.getTime());
+
+    const unsubClock = simulationClock.subscribe(updateFrame);
+
+    const unsubStore = useAppStore.subscribe((state, prevState) => {
+      if (
+        state.logicalData !== prevState.logicalData ||
+        state.visualData !== prevState.visualData ||
+        state.schedules !== prevState.schedules
+      ) {
+        updateFrame(simulationClock.getTime());
       }
     });
 
-    return unsub;
-  }, [seqsForEdge, pathRef]);
+    return () => {
+      unsubClock();
+      unsubStore();
+      hideAllParticles();
+    };
+  }, [seqsForEdge, pathRef, particleRefs]);
 
   return {
     isAnimating,
@@ -203,3 +263,4 @@ export const useEdgeAnimation = (
     activeStepNumber,
   };
 };
+

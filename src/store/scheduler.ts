@@ -171,3 +171,96 @@ export const calculateSchedules = (
 
   return schedules;
 };
+
+export interface NodeScheduleItem {
+  seqId: string;
+  stepNumber: number;
+  start: number;
+  end: number;
+  isSource: boolean;
+  isTarget: boolean;
+  isRoundTrip: boolean;
+  duration: number;
+  internalProcess?: { text: string; duration: number };
+}
+
+export const deriveTopologyIndices = (
+  logicalNodes: LogicalNode[] = [],
+  edges: LogicalEdge[] = [],
+  layoutEdges: Record<string, { sourceHandle?: string; targetHandle?: string }> = {},
+  sequences: SequenceStep[] = [],
+  timelines: Record<string, TimelineTiming> = {},
+  schedules: Record<string, { start: number; end: number }> = {}
+): {
+  connectedPortsByNode: Record<string, string[]>;
+  nodeSchedules: Record<string, NodeScheduleItem[]>;
+} => {
+  const connectedPortsByNode: Record<string, string[]> = {};
+  const portsSetByNode = new Map<string, Set<string>>();
+
+  logicalNodes.forEach((n) => {
+    portsSetByNode.set(n.id, new Set<string>());
+  });
+
+  edges.forEach((e) => {
+    const ve = layoutEdges[e.id];
+    if (ve?.sourceHandle) {
+      if (!portsSetByNode.has(e.sourceId)) portsSetByNode.set(e.sourceId, new Set());
+      portsSetByNode.get(e.sourceId)!.add(ve.sourceHandle);
+    }
+    if (ve?.targetHandle) {
+      if (!portsSetByNode.has(e.targetId)) portsSetByNode.set(e.targetId, new Set());
+      portsSetByNode.get(e.targetId)!.add(ve.targetHandle);
+    }
+  });
+
+  portsSetByNode.forEach((set, nodeId) => {
+    connectedPortsByNode[nodeId] = Array.from(set).sort();
+  });
+
+  const nodeSchedules: Record<string, NodeScheduleItem[]> = {};
+  const edgeMap = new Map(edges.map((e) => [e.id, e]));
+
+  sequences.forEach((seq) => {
+    const edge = edgeMap.get(seq.edgeId);
+    if (!edge) return;
+    const sched = schedules[seq.id];
+    if (!sched) return;
+
+    const timing = timelines[seq.id];
+    const duration = timing?.duration ?? 1000;
+    const internalProcess = timing?.internalProcess;
+    const isRoundTrip = !!seq.isRoundTrip;
+
+    const item: NodeScheduleItem = {
+      seqId: seq.id,
+      stepNumber: seq.stepNumber,
+      start: sched.start,
+      end: sched.end,
+      isSource: false,
+      isTarget: false,
+      isRoundTrip,
+      duration,
+      internalProcess: internalProcess
+        ? { text: internalProcess.text, duration: internalProcess.duration ?? 1000 }
+        : undefined,
+    };
+
+    if (edge.sourceId) {
+      if (!nodeSchedules[edge.sourceId]) nodeSchedules[edge.sourceId] = [];
+      nodeSchedules[edge.sourceId].push({ ...item, isSource: true });
+    }
+
+    if (edge.targetId && edge.targetId !== edge.sourceId) {
+      if (!nodeSchedules[edge.targetId]) nodeSchedules[edge.targetId] = [];
+      nodeSchedules[edge.targetId].push({ ...item, isTarget: true });
+    } else if (edge.targetId === edge.sourceId && edge.sourceId) {
+      const existing = nodeSchedules[edge.sourceId];
+      if (existing && existing.length > 0) {
+        existing[existing.length - 1].isTarget = true;
+      }
+    }
+  });
+
+  return { connectedPortsByNode, nodeSchedules };
+};

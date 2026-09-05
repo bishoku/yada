@@ -51,7 +51,14 @@ export const useCanvasSync = (
         state.visualData.annotations !== prevState.visualData.annotations;
 
       if (nodesChanged) {
-        setRfNodes(() => buildRfNodesFromState(state.logicalData, state.visualData));
+        setRfNodes((prevRfNodes) => {
+          const selectedIds = new Set(prevRfNodes.filter((n) => n.selected).map((n) => n.id));
+          const freshNodes = buildRfNodesFromState(state.logicalData, state.visualData);
+          return freshNodes.map((n) => ({
+            ...n,
+            selected: selectedIds.has(n.id),
+          }));
+        });
       }
 
       if (
@@ -113,7 +120,14 @@ export const useCanvasSync = (
   useEffect(() => {
     if (layoutVersion === 0) return;
     const state = useAppStore.getState();
-    setRfNodes(() => buildRfNodesFromState(state.logicalData, visualDataRef.current));
+    setRfNodes((prevRfNodes) => {
+      const selectedIds = new Set(prevRfNodes.filter((n) => n.selected).map((n) => n.id));
+      const freshNodes = buildRfNodesFromState(state.logicalData, state.visualData);
+      return freshNodes.map((n) => ({
+        ...n,
+        selected: selectedIds.has(n.id),
+      }));
+    });
   }, [layoutVersion, setRfNodes]);
 
   return { visualDataRef };

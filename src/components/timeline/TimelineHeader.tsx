@@ -3,6 +3,8 @@ import { Clock, Play, Pause, Square, Repeat } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { translations } from '../../i18n/translations';
 
+import { simulationClock } from '../../store/simulationClock';
+
 interface TimelineHeaderProps {
   maxTime: number;
   hasSequences: boolean;
@@ -11,12 +13,24 @@ interface TimelineHeaderProps {
 const PLAYBACK_RATES = [0.5, 1, 1.5, 2] as const;
 
 /**
- * Isolated timestamp display subscribing only to currentTime to prevent parent re-renders.
+ * Isolated timestamp display subscribing to simulationClock directly via DOM ref to prevent React re-renders.
  */
 const TimeReadout = memo(({ maxTime }: { maxTime: number }) => {
-  const currentTime = useAppStore((state) => state.currentTime);
-  return <>{currentTime.toFixed(0)}ms / {maxTime}ms</>;
+  const spanRef = React.useRef<HTMLSpanElement>(null);
+
+  React.useEffect(() => {
+    const update = (time: number) => {
+      if (spanRef.current) {
+        spanRef.current.textContent = `${time.toFixed(0)}ms / ${maxTime}ms`;
+      }
+    };
+    update(simulationClock.getTime());
+    return simulationClock.subscribe(update);
+  }, [maxTime]);
+
+  return <span ref={spanRef}>{simulationClock.getTime().toFixed(0)}ms / {maxTime}ms</span>;
 });
+
 
 TimeReadout.displayName = 'TimeReadout';
 

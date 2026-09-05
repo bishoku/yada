@@ -65,18 +65,28 @@ export const useSnapping = () => {
 
     if (positionChanges.length === 1) {
       const change = positionChanges[0];
+      const curX = change.position!.x;
+      const curY = change.position!.y;
       const otherNodes = state.logicalData.nodes.filter((n) => n.id !== change.id);
       const vnDrag = state.visualData.layoutNodes[change.id] ?? { x: 0, y: 0 };
       const dragW = vnDrag.width ?? 150;
       const dragH = vnDrag.height ?? 48;
 
-      let snappedX = change.position!.x;
-      let snappedY = change.position!.y;
+      // Spatial bounding filter: ignore nodes far outside snapping reach (>1500px)
+      const SNAP_RADIUS = 1500;
+      const nearbyNodes = otherNodes.filter((n) => {
+        const vn = state.visualData.layoutNodes[n.id];
+        if (!vn) return false;
+        return Math.abs(vn.x - curX) < SNAP_RADIUS && Math.abs(vn.y - curY) < SNAP_RADIUS;
+      });
+
+      let snappedX = curX;
+      let snappedY = curY;
       const lines: AlignmentLine[] = [];
       let snappedToX = false;
       let snappedToY = false;
 
-      otherNodes.forEach((n) => {
+      nearbyNodes.forEach((n) => {
         const vn = state.visualData.layoutNodes[n.id];
         if (!vn) return;
         const otherW = vn.width ?? 150;
@@ -134,11 +144,13 @@ export const useSnapping = () => {
       });
 
       // X-Axis Space Distribution
-      // Performance optimization: skip O(N^2) space distribution if there are too many nodes
-      if (!snappedToX && otherNodes.length <= 50) {
+      // Performance optimization: only check nearby nodes up to 30 nodes
+      const spaceNodes = nearbyNodes.length <= 30 ? nearbyNodes : nearbyNodes.slice(0, 30);
+      if (!snappedToX && spaceNodes.length <= 30) {
         let snappedToSpaceX = false;
-        for (let i = 0; i < otherNodes.length; i++) {
-          const n1 = state.visualData.layoutNodes[otherNodes[i].id];
+        for (let i = 0; i < spaceNodes.length; i++) {
+          const n1 = state.visualData.layoutNodes[spaceNodes[i].id];
+
           if (!n1) continue;
           const n1W = n1.width ?? 150;
           const n1H = n1.height ?? 48;
@@ -196,20 +208,20 @@ export const useSnapping = () => {
       }
 
       // Y-Axis Space Distribution
-      // Performance optimization: skip O(N^2) space distribution if there are too many nodes
-      if (!snappedToY && otherNodes.length <= 50) {
+      // Performance optimization: only check nearby nodes up to 30 nodes
+      if (!snappedToY && spaceNodes.length <= 30) {
         let snappedToSpaceY = false;
-        for (let i = 0; i < otherNodes.length; i++) {
-          const n1 = state.visualData.layoutNodes[otherNodes[i].id];
+        for (let i = 0; i < spaceNodes.length; i++) {
+          const n1 = state.visualData.layoutNodes[spaceNodes[i].id];
           if (!n1) continue;
           const n1W = n1.width ?? 150;
           const n1H = n1.height ?? 48;
           
           if (!(change.position!.x < n1.x + n1W && change.position!.x + dragW > n1.x)) continue;
 
-          for (let j = 0; j < otherNodes.length; j++) {
+          for (let j = 0; j < spaceNodes.length; j++) {
             if (i === j) continue;
-            const n2 = state.visualData.layoutNodes[otherNodes[j].id];
+            const n2 = state.visualData.layoutNodes[spaceNodes[j].id];
             if (!n2) continue;
             const n2W = n2.width ?? 150;
             const n2H = n2.height ?? 48;
