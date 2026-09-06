@@ -452,6 +452,17 @@ const FlowWrapper: React.FC = () => {
   );
 
   // ── Handle Connection ──────────────────────────────────────────────────────
+  const isValidConnection = useCallback((connection: Edge | Connection) => {
+    if (!connection.source || !connection.target) return false;
+    const state = useAppStore.getState();
+    const srcNode = state.logicalData.nodes.find((n) => n.id === connection.source);
+    const tgtNode = state.logicalData.nodes.find((n) => n.id === connection.target);
+    if (!srcNode || !tgtNode) return false;
+    if (srcNode.type === 'section' || tgtNode.type === 'section') return false;
+    if (srcNode.type === 'sticky_note' || tgtNode.type === 'sticky_note') return false;
+    return true;
+  }, []);
+
   const createConnectionBetweenNodes = useCallback(
     (source: string, target: string, sourceHandle?: string, targetHandle?: string) => {
       if (isPlaying) return;
@@ -461,7 +472,11 @@ const FlowWrapper: React.FC = () => {
       const sourceNode = logicalNodes.find(n => n.id === source);
       const targetNode = logicalNodes.find(n => n.id === target);
       
-      if (sourceNode?.type === 'sticky_note' || targetNode?.type === 'sticky_note') {
+      if (!sourceNode || !targetNode) return;
+      if (sourceNode.type === 'section' || targetNode.type === 'section') {
+        return; // Prevent connecting to/from sections
+      }
+      if (sourceNode.type === 'sticky_note' || targetNode.type === 'sticky_note') {
         return; // Prevent connecting to/from sticky notes
       }
       
@@ -583,31 +598,63 @@ const FlowWrapper: React.FC = () => {
 
     // Smart magnetic port snapping fallback: If dropped anywhere on a node body
     if (!connectionCompletedRef.current && dragStartRef.current && event) {
-      const targetEl = (event.target as HTMLElement)?.closest?.('.react-flow__node');
-      const targetNodeId = targetEl?.getAttribute('data-id');
+      const state = useAppStore.getState();
+      const srcId = dragStartRef.current.nodeId;
+      const srcNode = state.logicalData.nodes.find((n) => n.id === srcId);
 
-      if (targetNodeId && targetNodeId !== dragStartRef.current.nodeId) {
-        const state = useAppStore.getState();
-        const srcId = dragStartRef.current.nodeId;
-        const tgtId = targetNodeId;
-        const srcLayout = state.visualData.layoutNodes[srcId];
-        const tgtLayout = state.visualData.layoutNodes[tgtId];
+      if (srcNode && srcNode.type !== 'section' && srcNode.type !== 'sticky_note') {
+        let targetNodeId: string | null = null;
 
-        // Pick optimal port on target based on relative node vector
-        let targetPort = 'left:50';
-        if (srcLayout && tgtLayout) {
-          const dx = (tgtLayout.x + (tgtLayout.width ?? 150) / 2) - (srcLayout.x + (srcLayout.width ?? 150) / 2);
-          const dy = (tgtLayout.y + (tgtLayout.height ?? 48) / 2) - (srcLayout.y + (srcLayout.height ?? 48) / 2);
-
-          if (Math.abs(dx) > Math.abs(dy)) {
-            targetPort = dx > 0 ? 'left:50' : 'right:50';
-          } else {
-            targetPort = dy > 0 ? 'top:50' : 'bottom:50';
+        // Inspect elements under pointer to find the innermost valid component node, skipping section wrappers
+        if (event.clientX != null && event.clientY != null) {
+          const elementsUnderPointer = document.elementsFromPoint(event.clientX, event.clientY);
+          for (const el of elementsUnderPointer) {
+            const nodeEl = el.closest('.react-flow__node');
+            if (nodeEl) {
+              const id = nodeEl.getAttribute('data-id');
+              if (id && id !== srcId) {
+                const node = state.logicalData.nodes.find((n) => n.id === id);
+                if (node && node.type !== 'section' && node.type !== 'sticky_note') {
+                  targetNodeId = id;
+                  break;
+                }
+              }
+            }
           }
         }
 
-        const sourcePort = dragStartRef.current.handleId || 'right:50';
-        createConnectionBetweenNodes(srcId, tgtId, sourcePort, `${targetPort}-target`);
+        if (!targetNodeId) {
+          const targetEl = (event.target as HTMLElement)?.closest?.('.react-flow__node');
+          const fallbackId = targetEl?.getAttribute('data-id');
+          if (fallbackId && fallbackId !== srcId) {
+            const node = state.logicalData.nodes.find((n) => n.id === fallbackId);
+            if (node && node.type !== 'section' && node.type !== 'sticky_note') {
+              targetNodeId = fallbackId;
+            }
+          }
+        }
+
+        if (targetNodeId && targetNodeId !== srcId) {
+          const tgtId = targetNodeId;
+          const srcLayout = state.visualData.layoutNodes[srcId];
+          const tgtLayout = state.visualData.layoutNodes[tgtId];
+
+          // Pick optimal port on target based on relative node vector
+          let targetPort = 'left:50';
+          if (srcLayout && tgtLayout) {
+            const dx = (tgtLayout.x + (tgtLayout.width ?? 150) / 2) - (srcLayout.x + (srcLayout.width ?? 150) / 2);
+            const dy = (tgtLayout.y + (tgtLayout.height ?? 48) / 2) - (srcLayout.y + (srcLayout.height ?? 48) / 2);
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+              targetPort = dx > 0 ? 'left:50' : 'right:50';
+            } else {
+              targetPort = dy > 0 ? 'top:50' : 'bottom:50';
+            }
+          }
+
+          const sourcePort = dragStartRef.current.handleId || 'right:50';
+          createConnectionBetweenNodes(srcId, tgtId, sourcePort, `${targetPort}-target`);
+        }
       }
     }
 
@@ -620,6 +667,13 @@ const FlowWrapper: React.FC = () => {
     (oldEdge: Edge, newConnection: Connection) => {
       if (isPlaying) return;
       if (!newConnection.source || !newConnection.target) return;
+      const state = useAppStore.getState();
+      const srcNode = state.logicalData.nodes.find((n) => n.id === newConnection.source);
+      const tgtNode = state.logicalData.nodes.find((n) => n.id === newConnection.target);
+      if (!srcNode || !tgtNode) return;
+      if (srcNode.type === 'section' || tgtNode.type === 'section') return;
+      if (srcNode.type === 'sticky_note' || tgtNode.type === 'sticky_note') return;
+
       setRfEdges((els) => reconnectEdge(oldEdge, newConnection, els));
       const sourceHandle = (newConnection.sourceHandle ?? 'right:50').split('-')[0];
       const targetHandle = (newConnection.targetHandle ?? 'left:50').split('-')[0];
@@ -968,6 +1022,8 @@ const FlowWrapper: React.FC = () => {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         panOnDrag={!activeDrawingTool}
+        isValidConnection={isValidConnection}
+        elevateEdgesOnSelect={true}
         onNodesChange={isReadOnly ? undefined : onNodesChange}
         onEdgesChange={isReadOnly ? undefined : onEdgesChange}
         onConnect={isReadOnly ? undefined : onConnect}

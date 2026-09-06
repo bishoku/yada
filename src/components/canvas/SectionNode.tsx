@@ -1,9 +1,7 @@
 import React, { memo, useMemo } from 'react';
-import { Handle, Position, NodeResizer, useConnection } from '@xyflow/react';
+import { NodeResizer } from '@xyflow/react';
 import { useAppStore } from '../../store/useAppStore';
 import { useSectionAnimation } from './hooks';
-import { resolveHandles, getHandleStyle } from '../../utils/portUtils';
-import { PortSide } from '../../types';
 import { getRoughRoundedRectPaths, getNumericSeed } from './utils/roughGenerators';
 
 interface SectionNodeProps {
@@ -14,15 +12,6 @@ interface SectionNodeProps {
   };
   selected?: boolean;
 }
-
-const sideToPosition = (side: PortSide): Position => {
-  switch (side) {
-    case 'top': return Position.Top;
-    case 'right': return Position.Right;
-    case 'bottom': return Position.Bottom;
-    case 'left': return Position.Left;
-  }
-};
 
 const themeStyles: Record<string, { border: string; bg: string; label: string; glow: string }> = {
   white: {
@@ -175,25 +164,6 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
   const customStyles = visualNode?.customStyles ?? {};
 
   const updateNodeDimensions = useAppStore((s: any) => s.updateNodeDimensions);
-  const nodeHandles = useAppStore((s: any) => {
-    const ln = s.logicalData.nodes.find((n: any) => n.id === id);
-    return ln?.handles;
-  });
-  
-  const connection = useConnection();
-  const isConnecting = !!connection.inProgress;
-
-  const logicalData = useAppStore((s: any) => s.logicalData);
-  const connectedHandles = useMemo(() => {
-    const connected = new Set<string>();
-    logicalData.edges.forEach((e: any) => {
-      if (e.from === id) connected.add(e.fromPort);
-      if (e.to === id) connected.add(e.toPort);
-    });
-    return connected;
-  }, [logicalData.edges, id]);
-
-  const handles = useMemo(() => resolveHandles(nodeHandles), [nodeHandles]);
   const isActive = useSectionAnimation(id);
 
   const customHex = useMemo(() => themeKey.startsWith('#') ? getCustomHexStyles(themeKey, customStyles.bgOpacity) : null, [themeKey, customStyles.bgOpacity]);
@@ -475,33 +445,6 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
           {/* Child nodes are rendered by ReactFlow via parentId */}
         </div>
       </div>
-
-      {/* Dynamic Connection Handles */}
-      {handles.map((h) => {
-        const pos = sideToPosition(h.side);
-        const posStyle = getHandleStyle(h.side, h.offset);
-        const isConnected = connectedHandles.has(h.id);
-        const handleClass = isConnected ? 'handle-connected' : 'handle-idle';
-
-        return (
-          <React.Fragment key={h.id}>
-            <Handle 
-              type="target" 
-              position={pos} 
-              id={`${h.id}-target`}
-              style={posStyle}
-              className={`!w-3.5 !h-3.5 !border-2 !border-white dark:!border-slate-900 !bg-slate-400 dark:!bg-slate-500 hover:!bg-indigo-500 hover:!scale-125 !transition-all !rounded-full ${handleClass}`}
-            />
-            <Handle 
-              type="source" 
-              position={pos} 
-              id={`${h.id}-source`}
-              style={{ ...posStyle, pointerEvents: isConnecting ? 'none' : 'auto' }}
-              className={`!w-3.5 !h-3.5 !border-2 !border-white dark:!border-slate-900 !bg-slate-400 dark:!bg-slate-500 hover:!bg-indigo-500 hover:!scale-125 !transition-all !rounded-full ${handleClass}`}
-            />
-          </React.Fragment>
-        );
-      })}
     </div>
   );
 });

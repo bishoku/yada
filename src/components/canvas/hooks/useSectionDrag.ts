@@ -1,6 +1,10 @@
 import { useCallback } from 'react';
 import { Node } from '@xyflow/react';
 import { useAppStore } from '../../../store/useAppStore';
+import {
+  getNodeAbsolutePosition,
+  findDeepestContainingSection,
+} from './sectionHierarchyUtils';
 
 export const useSectionDrag = () => {
   const updateNodePosition = useAppStore((s) => s.updateNodePosition);
@@ -10,93 +14,61 @@ export const useSectionDrag = () => {
   const onNodeDragStop = useCallback(
     (_event: any, draggedNode: Node) => {
       const state = useAppStore.getState();
+      const logicalNodes = state.logicalData.nodes;
+      const layoutNodes = state.visualData.layoutNodes;
 
-      const isAncestorOf = (potentialChild: string, nodeId: string): boolean => {
-        const logicalNodes = state.logicalData.nodes;
-        let current: string | undefined = nodeId;
-        while (current) {
-          if (current === potentialChild) return true;
-          const node = logicalNodes.find(n => n.id === current);
-          current = node?.parentId;
-        }
-        return false;
-      };
-
-      const sections = state.logicalData.nodes.filter(n => n.type === 'section');
-      const draggedLogical = state.logicalData.nodes.find(n => n.id === draggedNode.id);
+      const draggedLogical = logicalNodes.find((n) => n.id === draggedNode.id);
       if (!draggedLogical) return;
-
-      // Get dragged node absolute position
-      const dragX = draggedNode.position.x;
-      const dragY = draggedNode.position.y;
-      const dragW = draggedNode.width ?? 224;
-      const dragH = draggedNode.height ?? 52;
-      const dragCX = dragX + dragW / 2;
-      const dragCY = dragY + dragH / 2;
-
-      // If node already has a parent, the position is relative — convert to absolute for comparison
-      let absDragCX = dragCX;
-      let absDragCY = dragCY;
-      if (draggedLogical.parentId) {
-        const parentVisual = state.visualData.layoutNodes[draggedLogical.parentId];
-        if (parentVisual) {
-          absDragCX = dragCX + parentVisual.x;
-          absDragCY = dragCY + parentVisual.y;
-        }
-      }
-
-      // Find containing section (center of dragged node must be inside section bounds)
-      let targetSection: string | null = null;
-      for (const sec of sections) {
-        if (sec.id === draggedLogical.parentId) {
-          // Already a child — check if still inside
-          const sv = state.visualData.layoutNodes[sec.id];
-          if (sv) {
-            const sw = sv.width ?? 400;
-            const sh = sv.height ?? 300;
-            if (absDragCX >= sv.x && absDragCX <= sv.x + sw && absDragCY >= sv.y && absDragCY <= sv.y + sh) {
-              targetSection = sec.id;
-              break;
-            }
-          }
-          continue;
-        }
-        const sv = state.visualData.layoutNodes[sec.id];
-        if (!sv) continue;
-        const sw = sv.width ?? 400;
-        const sh = sv.height ?? 300;
-        if (absDragCX >= sv.x && absDragCX <= sv.x + sw && absDragCY >= sv.y && absDragCY <= sv.y + sh) {
-          targetSection = sec.id;
-          break;
-        }
-      }
 
       const currentParent = draggedLogical.parentId ?? null;
 
+      // Calculate dragged node dimensions and center
+      const dragW = draggedNode.width ?? (draggedLogical.type === 'section' ? 400 : 224);
+      const dragH = draggedNode.height ?? (draggedLogical.type === 'section' ? 300 : 52);
+
+      // draggedNode.position is relative to currentParent (or canvas-absolute if no parent)
+      let absDragX = draggedNode.position.x;
+      let absDragY = draggedNode.position.y;
+
+      if (currentParent) {
+        const parentAbs = getNodeAbsolutePosition(currentParent, logicalNodes, layoutNodes);
+        absDragX += parentAbs.x;
+        absDragY += parentAbs.y;
+      }
+
+      const absDragCX = absDragX + dragW / 2;
+      const absDragCY = absDragY + dragH / 2;
+
+      // Find deepest section containing the center of the dragged node
+      const targetSection = findDeepestContainingSection(
+        { x: absDragCX, y: absDragCY },
+        logicalNodes,
+        layoutNodes,
+        draggedNode.id
+      );
+
       if (targetSection && targetSection !== currentParent) {
-        if (draggedNode.type === 'sectionNode' && isAncestorOf(draggedNode.id, targetSection)) {
-          return;
-        }
-        // Entering a new section — convert absolute position to relative
-        const sv = state.visualData.layoutNodes[targetSection];
-        if (sv) {
-          const relX = absDragCX - dragW / 2 - sv.x;
-          const relY = absDragCY - dragH / 2 - sv.y;
-          updateNodePosition(draggedNode.id, relX, relY);
-        }
+        // Moving into a new (or deeper / outer) section
+        const targetAbs = getNodeAbsolutePosition(targetSection, logicalNodes, layoutNodes);
+        const relX = Math.round(absDragX - targetAbs.x);
+        const relY = Math.round(absDragY - targetAbs.y);
+
+        updateNodePosition(draggedNode.id, relX, relY);
         setNodeParent(draggedNode.id, targetSection);
         autoResizeSection(targetSection);
-      } else if (!targetSection && currentParent) {
-        // Leaving section — convert relative position to absolute
-        const sv = state.visualData.layoutNodes[currentParent];
-        if (sv) {
-          const absX = dragX + sv.x;
-          const absY = dragY + sv.y;
-          updateNodePosition(draggedNode.id, absX, absY);
+        if (currentParent) {
+          autoResizeSection(currentParent);
         }
+      } else if (!targetSection && currentParent) {
+        // Leaving section hierarchy to root canvas
+        const absX = Math.round(absDragX);
+        const absY = Math.round(absDragY);
+
+        updateNodePosition(draggedNode.id, absX, absY);
         setNodeParent(draggedNode.id, null);
+        autoResizeSection(currentParent);
       } else {
-        // Simple position update inside the same parent or root canvas
+        // Position update inside the same parent or root canvas
         updateNodePosition(draggedNode.id, draggedNode.position.x, draggedNode.position.y);
         if (targetSection) {
           autoResizeSection(targetSection);
@@ -108,3 +80,4 @@ export const useSectionDrag = () => {
 
   return { onNodeDragStop };
 };
+

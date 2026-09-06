@@ -2,9 +2,16 @@ import { useEffect, useRef } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { useAppStore } from '../../../store/useAppStore';
 import { toRfNode } from './utils';
+import { getNodeDepth } from './sectionHierarchyUtils';
 
 const buildRfNodesFromState = (logicalData: any, visualData: any): Node[] => {
-  const sortedLogical = [...(logicalData.nodes || [])].sort((a, b) => {
+  const logicalNodes = logicalData.nodes || [];
+
+  // Sort logical nodes topologically by depth ascending so parent nodes always precede child nodes
+  const sortedLogical = [...logicalNodes].sort((a, b) => {
+    const depthA = getNodeDepth(a.id, logicalNodes);
+    const depthB = getNodeDepth(b.id, logicalNodes);
+    if (depthA !== depthB) return depthA - depthB;
     const aS = a.type === 'section' ? 0 : 1;
     const bS = b.type === 'section' ? 0 : 1;
     return aS - bS;
@@ -12,7 +19,7 @@ const buildRfNodesFromState = (logicalData: any, visualData: any): Node[] => {
 
   const logicalRfNodes: Node[] = sortedLogical.map((ln) => {
     const vn = visualData.layoutNodes[ln.id] ?? { x: 0, y: 0 };
-    return toRfNode(ln, vn, logicalData.nodes);
+    return toRfNode(ln, vn, logicalNodes);
   });
 
   const annotations = visualData.annotations || {};
@@ -24,11 +31,40 @@ const buildRfNodesFromState = (logicalData: any, visualData: any): Node[] => {
 
   const all = [...logicalRfNodes, ...stickyRfNodes];
   all.sort((a, b) => {
+    const depthA = getNodeDepth(a.id, logicalNodes);
+    const depthB = getNodeDepth(b.id, logicalNodes);
+    if (depthA !== depthB) return depthA - depthB;
     const aS = a.type === 'sectionNode' ? 0 : 1;
     const bS = b.type === 'sectionNode' ? 0 : 1;
     return aS - bS;
   });
   return all;
+};
+
+const buildRfEdgesFromState = (logicalData: any, visualData: any): Edge[] => {
+  const nodeMap = new Map<string, any>((logicalData.nodes || []).map((n: any) => [n.id, n]));
+  const validEdges = (logicalData.edges || []).filter((le: any) => {
+    const src = nodeMap.get(le.sourceId);
+    const tgt = nodeMap.get(le.targetId);
+    // Disallow edges to/from sections or sticky notes
+    if (!src || !tgt) return false;
+    if (src.type === 'section' || tgt.type === 'section') return false;
+    if (src.type === 'sticky_note' || tgt.type === 'sticky_note') return false;
+    return true;
+  });
+
+  return validEdges.map((le: any) => {
+    const ve = visualData.layoutEdges?.[le.id];
+    return {
+      id: le.id,
+      type: 'customEdge',
+      source: le.sourceId,
+      target: le.targetId,
+      sourceHandle: ve?.sourceHandle ? `${ve.sourceHandle}-source` : undefined,
+      targetHandle: ve?.targetHandle ? `${ve.targetHandle}-target` : undefined,
+      reconnectable: true,
+    };
+  });
 };
 
 export const useCanvasSync = (
@@ -67,20 +103,7 @@ export const useCanvasSync = (
       ) {
         setTimeout(() => {
           const freshState = useAppStore.getState();
-          setRfEdges(() =>
-            freshState.logicalData.edges.map((le) => {
-              const ve = freshState.visualData.layoutEdges[le.id];
-              return {
-                id: le.id,
-                type: 'customEdge',
-                source: le.sourceId,
-                target: le.targetId,
-                sourceHandle: ve?.sourceHandle ? `${ve.sourceHandle}-source` : undefined,
-                targetHandle: ve?.targetHandle ? `${ve.targetHandle}-target` : undefined,
-                reconnectable: true,
-              };
-            })
-          );
+          setRfEdges(() => buildRfEdgesFromState(freshState.logicalData, freshState.visualData));
         }, 50);
       }
     });
@@ -96,19 +119,7 @@ export const useCanvasSync = (
     
     const state = useAppStore.getState();
     const nodes = buildRfNodesFromState(state.logicalData, state.visualData);
-    
-    const edges: Edge[] = state.logicalData.edges.map((le) => {
-      const ve = state.visualData.layoutEdges[le.id];
-      return {
-        id: le.id,
-        type: 'customEdge',
-        source: le.sourceId,
-        target: le.targetId,
-        sourceHandle: ve?.sourceHandle ? `${ve.sourceHandle}-source` : undefined,
-        targetHandle: ve?.targetHandle ? `${ve.targetHandle}-target` : undefined,
-        reconnectable: true,
-      };
-    });
+    const edges = buildRfEdgesFromState(state.logicalData, state.visualData);
     
     setRfNodes(nodes);
     setTimeout(() => {

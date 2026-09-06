@@ -1,5 +1,5 @@
-import React, { memo, useMemo } from 'react';
-import { Handle, Position, NodeResizer, useConnection } from '@xyflow/react';
+import React, { memo, useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import { Handle, Position, NodeResizer, useConnection, useReactFlow } from '@xyflow/react';
 import { MessageSquare } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { CustomSvgRenderer } from './CustomSvgRenderer';
@@ -203,6 +203,94 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
   const connectedHandlesArray = useAppStore((s) => s.derivedConnectedPorts?.[id]);
   const connectedHandles = useMemo(() => new Set(connectedHandlesArray || []), [connectedHandlesArray]);
 
+  const [openHandleMenuId, setOpenHandleMenuId] = useState<string | null>(null);
+  const { setEdges } = useReactFlow();
+  const logicalEdges = useAppStore((s) => s.logicalData.edges);
+  const layoutEdges = useAppStore((s) => s.visualData.layoutEdges);
+  const sequences = useAppStore((s) => s.logicalData.sequences);
+  const allLogicalNodes = useAppStore((s) => s.logicalData.nodes);
+  const setActiveEdgeProperties = useAppStore((s) => s.setActiveEdgeProperties);
+  const openRightSidebar = useAppStore((s) => s.openRightSidebar);
+
+  const handleSelectEdge = useCallback(
+    (edgeId: string) => {
+      setEdges((eds) => eds.map((e) => ({ ...e, selected: e.id === edgeId })));
+      const targetEdge = logicalEdges.find((e) => e.id === edgeId);
+      if (!targetEdge) return;
+      const seqs = sequences.filter((s) => s.edgeId === edgeId);
+      const minStep = seqs.length > 0 ? Math.min(...seqs.map((s) => s.stepNumber)) : undefined;
+
+      setActiveEdgeProperties({
+        id: targetEdge.id,
+        protocol: targetEdge.protocol || '',
+        isAsync: targetEdge.isAsync || false,
+        stepNumber: minStep ?? 1,
+        duration: 1000,
+        delay: 0,
+        tooltipText: '',
+        tooltipDuration: 1000,
+        description: targetEdge.description || '',
+      });
+      openRightSidebar();
+    },
+    [setEdges, logicalEdges, sequences, setActiveEdgeProperties, openRightSidebar]
+  );
+
+  const getEdgesForHandle = useCallback(
+    (handleId: string) => {
+      return logicalEdges.filter((le) => {
+        const ve = layoutEdges[le.id];
+        const isSrc =
+          le.sourceId === id &&
+          (ve?.sourceHandle === handleId || (!ve?.sourceHandle && handleId === 'right:50'));
+        const isTgt =
+          le.targetId === id &&
+          (ve?.targetHandle === handleId || (!ve?.targetHandle && handleId === 'left:50'));
+        return isSrc || isTgt;
+      });
+    },
+    [logicalEdges, layoutEdges, id]
+  );
+
+  const nodeContainerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close handle menu when node is unselected
+  useEffect(() => {
+    if (!selected) {
+      setOpenHandleMenuId(null);
+    }
+  }, [selected]);
+
+  // Elevate parent React Flow node z-index when popover is open so it renders above all other nodes & edge labels
+  useEffect(() => {
+    if (!openHandleMenuId) return;
+    const parentNodeEl = nodeContainerRef.current?.closest('.react-flow__node') as HTMLElement | null;
+    if (parentNodeEl) {
+      const prevZIndex = parentNodeEl.style.zIndex;
+      parentNodeEl.style.zIndex = '10000';
+      return () => {
+        parentNodeEl.style.zIndex = prevZIndex;
+      };
+    }
+  }, [openHandleMenuId]);
+
+  // Close handle menu on clicking outside
+  useEffect(() => {
+    if (!openHandleMenuId) return;
+    const handlePointerDownOutside = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (menuRef.current && !menuRef.current.contains(target as globalThis.Node)) {
+        if (target?.closest('[data-handle-badge]')) {
+          return;
+        }
+        setOpenHandleMenuId(null);
+      }
+    };
+    window.addEventListener('pointerdown', handlePointerDownOutside, true);
+    return () => window.removeEventListener('pointerdown', handlePointerDownOutside, true);
+  }, [openHandleMenuId]);
+
   const handles = useMemo(() => resolveHandles(nodeHandles), [nodeHandles]);
   const style = themeStyles[themeKey] ?? themeStyles.indigo;
   const customTemplate = libraryComponents.find((c: any) => c.componentId === type);
@@ -288,7 +376,7 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
   };
 
   return (
-    <div className={`relative w-full h-full ${isSketchy ? 'font-[family-name:var(--font-sketchy)]' : 'font-sans'}`} style={{ overflow: 'visible' }}>
+    <div ref={nodeContainerRef} className={`relative w-full h-full ${isSketchy ? 'font-[family-name:var(--font-sketchy)]' : 'font-sans'}`} style={{ overflow: 'visible' }}>
 
       <NodeResizer
         minWidth={isVertical ? 32 : 120}
@@ -323,6 +411,8 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
         const handleClass = isConnected ? 'handle-connected' : 'handle-idle';
         const activeHandle = selected || isConnecting;
         const sizeClass = activeHandle ? '!w-4 !h-4' : '!w-2.5 !h-2.5';
+        const handleEdges = getEdgesForHandle(h.id);
+        const isMenuOpen = openHandleMenuId === h.id;
 
         return (
           <React.Fragment key={h.id}>
@@ -354,6 +444,78 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
                 (isBorderOnly || contrastColors?.isLight) ? '!border-slate-400 dark:!border-slate-600' : '!border-white dark:!border-slate-900'
               } !transition-all !duration-150 ${handleClass}`}
             />
+
+            {/* Multi-Edge Disambiguation Badge & Quick Reconnect Picker */}
+            {selected && handleEdges.length > 1 && !isConnecting && (
+              <div
+                style={posStyle}
+                className="absolute pointer-events-auto z-30"
+              >
+                <button
+                  type="button"
+                  data-handle-badge="true"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenHandleMenuId(isMenuOpen ? null : h.id);
+                  }}
+                  className="absolute -top-3.5 -right-3.5 min-w-4 h-4 px-1 rounded-full bg-indigo-600 dark:bg-indigo-500 text-white text-[9px] font-extrabold flex items-center justify-center shadow-md border border-white dark:border-slate-900 cursor-pointer hover:scale-110 active:scale-95 transition-all select-none"
+                  title={`${handleEdges.length} bağlantı. İstenen bağlantıyı seçip taşımak için tıklayın.`}
+                >
+                  {handleEdges.length}
+                </button>
+
+                {isMenuOpen && (
+                  <div
+                    ref={menuRef}
+                    className="absolute z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-lg shadow-xl border border-slate-200 dark:border-slate-800 p-1.5 min-w-[180px] max-w-[240px] text-xs nodrag nopan select-none"
+                    style={{
+                      top: h.side === 'bottom' ? '14px' : h.side === 'top' ? 'auto' : '-10px',
+                      bottom: h.side === 'top' ? '14px' : 'auto',
+                      left: h.side === 'right' ? '14px' : h.side === 'left' ? 'auto' : '-50px',
+                      right: h.side === 'left' ? '14px' : 'auto',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1.5 py-0.5 border-b border-slate-200/50 dark:border-slate-800/50 mb-1 flex items-center justify-between">
+                      <span>Bağlantılar ({handleEdges.length})</span>
+                      <span className="text-[9px] text-indigo-500 font-medium">Seç / Taşı</span>
+                    </div>
+                    {handleEdges.map((le) => {
+                      const isOut = le.sourceId === id;
+                      const otherNodeId = isOut ? le.targetId : le.sourceId;
+                      const otherNode = allLogicalNodes.find((n) => n.id === otherNodeId);
+                      const seqs = sequences.filter((s) => s.edgeId === le.id);
+                      const stepNums = seqs.map((s) => s.stepNumber).sort((a, b) => a - b);
+                      const stepStr = stepNums.length > 0 ? `Adım ${stepNums.join(',')}` : 'Stepsiz';
+
+                      return (
+                        <button
+                          key={le.id}
+                          type="button"
+                          onClick={() => {
+                            handleSelectEdge(le.id);
+                            setOpenHandleMenuId(null);
+                          }}
+                          className="w-full text-left flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer group"
+                        >
+                          <span className="text-[10px] font-bold text-indigo-500 shrink-0">
+                            {isOut ? '→' : '←'}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold truncate text-[11px] leading-tight">
+                              {otherNode?.name || otherNodeId}
+                            </div>
+                            <div className="text-[9px] text-slate-400 dark:text-slate-500 truncate">
+                              {stepStr} {le.protocol ? `• ${le.protocol}` : ''}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </React.Fragment>
         );
       })}

@@ -320,3 +320,18 @@ input[type=number] {
   font-size: 1.05em !important;
 }
 
+/* ── Selected Edge Reconnect Handle Enhancements ────────────────────────── */
+.react-flow__edge.selected .react-flow__edgeupdater {
+  r: 12 !important;
+  stroke: var(--color-indigo-500) !important;
+  stroke-width: 2.5px !important;
+  fill: rgba(99, 102, 241, 0.25) !important;
+  cursor: grab !important;
+}
+
+.react-flow__edge.selected .react-flow__edgeupdater:hover {
+  r: 14 !important;
+  fill: rgba(99, 102, 241, 0.45) !important;
+  cursor: grabbing !important;
+}
+

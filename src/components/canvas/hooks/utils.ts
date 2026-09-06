@@ -9,19 +9,22 @@ export const toRfNode = (ln: any, vn: any, allNodes?: any[]): Node => {
   const w = vn.width  ?? (isSection ? 400 : isStickyNote ? 220 : isFreeForm ? 320 : 224);
   const h = vn.height ?? (isSection ? 300 : isStickyNote ? 160 : isFreeForm ? 220 : 52);
 
-  let sectionZIndex = -1;
+  let sectionZIndex = -100;
   if (isSection) {
     let depth = 0;
     let current = ln.parentId;
-    while (current && allNodes) {
+    const visited = new Set<string>();
+    while (current && allNodes && !visited.has(current)) {
+      visited.add(current);
       depth++;
       const parentNode = allNodes.find((n: any) => n.id === current);
       current = parentNode?.parentId;
     }
-    sectionZIndex = -1 + depth;
+    sectionZIndex = -100 + depth * 5;
   }
 
   const rfType = isSection ? 'sectionNode' : isStickyNote ? 'stickyNoteNode' : isFreeForm ? 'freeFormNode' : 'customNode';
+  const nodeZIndex = vn.zIndex != null ? vn.zIndex : isSection ? sectionZIndex : isStickyNote ? 20 : 1;
 
   return {
     id: ln.id,
@@ -31,7 +34,7 @@ export const toRfNode = (ln: any, vn: any, allNodes?: any[]): Node => {
     width: w,
     height: h,
     ...(ln.parentId ? { parentId: ln.parentId } : {}),
-    ...(vn.zIndex != null ? { zIndex: vn.zIndex } : isSection ? { zIndex: sectionZIndex } : {}),
+    zIndex: nodeZIndex,
     style: isSection || isStickyNote || isFreeForm ? { width: w, height: h } : undefined,
   };
 };

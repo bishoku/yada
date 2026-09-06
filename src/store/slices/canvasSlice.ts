@@ -395,8 +395,14 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
   },
 
   reconnectEdge: (edgeId, sourceId, targetId, sourceHandle, targetHandle) => {
-    get().pushToHistory();
     const state = get();
+    const sourceNode = state.logicalData.nodes.find((n) => n.id === sourceId);
+    const targetNode = state.logicalData.nodes.find((n) => n.id === targetId);
+    if (!sourceNode || !targetNode) return;
+    if (sourceNode.type === 'section' || targetNode.type === 'section') return;
+    if (sourceNode.type === 'sticky_note' || targetNode.type === 'sticky_note') return;
+
+    get().pushToHistory();
     const edges = state.logicalData.edges.map((e) => {
       if (e.id === edgeId) {
         return { ...e, sourceId, targetId };
@@ -801,6 +807,12 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
         },
         isDirty: true
       }));
+
+      // If this section is nested inside a parent section, recursively resize parent
+      const secLogical = state.logicalData.nodes.find(n => n.id === sectionId);
+      if (secLogical?.parentId) {
+        get().autoResizeSection(secLogical.parentId);
+      }
     }
   },
 
@@ -1133,10 +1145,15 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
       const secId = 'sec-' + Math.random().toString(36).slice(2, 9);
       const defaultTitle = state.language === 'tr' ? 'Yeni Bölüm' : 'New Section';
 
+      const firstParent = targets[0]?.logical?.parentId;
+      const allShareSameParent = targets.every((t: any) => t.logical?.parentId === firstParent);
+      const commonParentId = allShareSameParent ? firstParent : undefined;
+
       const newSectionLogical = {
         id: secId,
         type: 'section',
         name: title || defaultTitle,
+        ...(commonParentId ? { parentId: commonParentId } : {}),
       };
 
       const newSectionVisual = {
@@ -1164,6 +1181,12 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
         };
       });
       layoutNodes[secId] = newSectionVisual;
+
+      if (commonParentId) {
+        setTimeout(() => {
+          get().autoResizeSection(commonParentId);
+        }, 0);
+      }
 
       return {
         logicalData: { ...state.logicalData, nodes: updatedLogicalNodes },
