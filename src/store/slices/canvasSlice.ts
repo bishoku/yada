@@ -17,6 +17,7 @@ import {
 import { ParticleType } from '../../config/particles';
 import { getLayoutedElements } from '../../utils/layout';
 import { generateNodeId } from '../../utils/idGenerator';
+import { collabManager } from '../../services/collab/CollabManager';
 
 
 export interface CanvasSlice {
@@ -122,7 +123,6 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
   },
 
   addNode: (logical, visual) => {
-
     get().pushToHistory();
     set((state) => {
       const nodes = [...state.logicalData.nodes, logical];
@@ -134,6 +134,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
         isDirty: true
       };
     });
+    collabManager.sendMutation({ type: 'SYNC_NODE_ADD', logical, visual });
   },
 
   cloneNode: (id) => {
@@ -221,6 +222,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
   },
 
   updateNodeDimensions: (id, width, height) => {
+    collabManager.sendMutation({ type: 'SYNC_NODE_DIMENSIONS', id, width, height });
     set((state) => {
       const layoutNode = state.visualData.layoutNodes[id];
       if (!layoutNode) return {};
@@ -243,6 +245,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
         isDirty: true
       };
     });
+    collabManager.sendMutation({ type: 'SYNC_STICKY_ADD', visual, annotation });
   },
 
   updateStickyNote: (id, updates) => {
@@ -259,6 +262,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
         isDirty: true
       };
     });
+    collabManager.sendMutation({ type: 'SYNC_STICKY_UPDATE', id, updates });
   },
 
   deleteStickyNote: (id) => {
@@ -275,6 +279,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
         isDirty: true
       };
     });
+    collabManager.sendMutation({ type: 'SYNC_STICKY_DELETE', id });
   },
 
   addEdge: (logical, visual) => {
@@ -287,6 +292,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
         isDirty: true
       };
     });
+    collabManager.sendMutation({ type: 'SYNC_EDGE_ADD', logical, visual });
   },
 
   swapEdgeDirection: (edgeId) => {
@@ -379,9 +385,11 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
         isDirty: true
       };
     });
+    collabManager.sendMutation({ type: 'SYNC_NODE_DELETE', id });
   },
 
   updateEdgeWaypoints: (edgeId, waypoints) => {
+    collabManager.sendMutation({ type: 'SYNC_EDGE_UPDATE', edgeId, updates: { waypoints } });
     set((state) => {
       const layoutEdge = state.visualData.layoutEdges[edgeId];
       if (!layoutEdge) return {};
@@ -422,6 +430,14 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
       visualData: { ...state.visualData, layoutEdges },
       isDirty: true,
     });
+    collabManager.sendMutation({
+      type: 'SYNC_EDGE_RECONNECT',
+      edgeId,
+      sourceId,
+      targetId,
+      sourceHandle,
+      targetHandle,
+    });
   },
 
   deleteEdge: (id) => {
@@ -449,6 +465,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
         isDirty: true
       };
     });
+    collabManager.sendMutation({ type: 'SYNC_EDGE_DELETE', id });
   },
 
   updateCanvasViewport: (zoom, pan) => {
@@ -519,6 +536,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
 
   addFreehandStroke: (stroke) => {
     get().pushToHistory();
+    collabManager.sendMutation({ type: 'SYNC_FREEHAND_ADD', stroke });
     set((state) => {
       const freehandStrokes = {
         ...(state.visualData.freehandStrokes || {}),
@@ -536,6 +554,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
 
   updateFreehandStroke: (id, updates) => {
     get().pushToHistory();
+    collabManager.sendMutation({ type: 'SYNC_FREEHAND_UPDATE', id, updates });
     set((state) => {
       const existing = state.visualData.freehandStrokes?.[id];
       if (!existing) return {};
@@ -555,6 +574,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
 
   deleteFreehandStroke: (id) => {
     get().pushToHistory();
+    collabManager.sendMutation({ type: 'SYNC_FREEHAND_DELETE', id });
     set((state) => {
       const freehandStrokes = { ...(state.visualData.freehandStrokes || {}) };
       delete freehandStrokes[id];
@@ -570,6 +590,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
 
   clearFreehandStrokes: () => {
     get().pushToHistory();
+    collabManager.sendMutation({ type: 'SYNC_FREEHAND_CLEAR' });
     set((state) => ({
       visualData: {
         ...state.visualData,
@@ -604,22 +625,39 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
   startDrag: (type, name) => set({ pendingDrop: { type, name } }),
   cancelDrag: () => set({ pendingDrop: null }),
 
-  clearCanvas: () => set((state) => ({
-    logicalData: { schemaVersion: state.logicalData.schemaVersion, nodes: [], edges: [], sequences: [] },
-    visualData: { 
-      canvas: state.visualData.canvas, 
-      layoutNodes: {}, 
-      layoutEdges: {},
-      timelines: {} 
-    },
-    isDirty: true,
-    isPlaying: false,
-    currentTime: 0,
-    activeSequenceIds: [],
-    selectedSequenceId: null
-  })),
+  clearCanvas: () => {
+    collabManager.sendMutation({ type: 'SYNC_CLEAR_CANVAS' });
+    set((state) => ({
+      logicalData: { schemaVersion: state.logicalData.schemaVersion, nodes: [], edges: [], sequences: [] },
+      visualData: { 
+        canvas: state.visualData.canvas, 
+        layoutNodes: {}, 
+        layoutEdges: {},
+        timelines: {} 
+      },
+      isDirty: true,
+      isPlaying: false,
+      currentTime: 0,
+      activeSequenceIds: [],
+      selectedSequenceId: null
+    }));
+  },
 
   updateNodeDetails: (id, name, type, theme, handles, displayMode, rotation, customStyles, properties) => {
+    collabManager.sendMutation({
+      type: 'SYNC_NODE_UPDATE',
+      id,
+      updates: {
+        name,
+        type,
+        theme,
+        displayMode,
+        rotation,
+        customStyles,
+        ...(handles !== undefined ? { handles } : {}),
+        ...(properties !== undefined ? { properties } : {}),
+      },
+    });
     set((state) => {
       // Logical: name, type, properties (handles now live in visual layer)
       const nodes = state.logicalData.nodes.map((n) => 
@@ -662,6 +700,11 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
 
   updateNodeHandles: (nodeId, handles) => {
     get().pushToHistory();
+    collabManager.sendMutation({
+      type: 'SYNC_NODE_UPDATE',
+      id: nodeId,
+      updates: { handles },
+    });
     set((state) => {
       // Handles are now in VisualNode — update visual layer only
       const existingVisual = state.visualData.layoutNodes[nodeId] ?? { id: nodeId, x: 0, y: 0 };
@@ -698,6 +741,30 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     labelPosition?: number,
     glowIntensity?: import('../../types').EdgeGlowIntensity
   ) => {
+    collabManager.sendMutation({
+      type: 'SYNC_EDGE_UPDATE',
+      edgeId: id,
+      updates: {
+        protocol,
+        isAsync,
+        description,
+        duration,
+        delay,
+        tooltipText,
+        particleType,
+        showArrow,
+        color,
+        properties,
+        connectionType,
+        strokeWidth,
+        lineStyle,
+        arrowStart,
+        arrowEnd,
+        gradientColor,
+        labelPosition,
+        glowIntensity,
+      },
+    });
     set((state) => {
       // Update logical layer: protocol, isAsync, description, properties
       const edges = state.logicalData.edges.map((e) =>

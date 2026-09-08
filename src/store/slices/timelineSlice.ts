@@ -1,6 +1,7 @@
 import { StateCreator } from 'zustand';
 import { AppState, SequenceStep, TimelineTiming } from '../../types';
 import { simulationClock } from '../simulationClock';
+import { collabManager } from '../../services/collab/CollabManager';
 
 export interface TimelineSlice {
   isPlaying: boolean;
@@ -31,7 +32,7 @@ export interface TimelineSlice {
   setTimelineHeight: (height: number) => void;
 }
 
-export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> = (set) => ({
+export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> = (set, get) => ({
   isPlaying: false,
   currentTime: 0,
   playbackRate: 1,
@@ -79,6 +80,7 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   setSelectedSequenceId: (id) => set({ selectedSequenceId: id }),
 
   addSequenceStep: (step, timing) => {
+    collabManager.sendMutation({ type: 'SYNC_SEQUENCE_ADD', step, timing });
     set((state) => {
       const sequences = [...state.logicalData.sequences, step];
       const timelines = { ...state.visualData.timelines, [timing.sequenceId]: timing };
@@ -91,6 +93,7 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   },
 
   updateSequenceTiming: (seqId, duration, delay) => {
+    collabManager.sendMutation({ type: 'SYNC_SEQUENCE_TIMING', seqId, duration, delay });
     set((state) => {
       const timing = state.visualData.timelines[seqId] || { sequenceId: seqId, duration: 1000, delay: 0 };
       const updatedTiming = { ...timing, duration, delay };
@@ -103,6 +106,11 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   },
 
   updateSequenceProcess: (seqId, text, duration) => {
+    collabManager.sendMutation({
+      type: 'SYNC_SEQUENCE_UPDATE',
+      seqId,
+      timingUpdates: { internalProcess: text ? { text, duration } : undefined }
+    });
     set((state) => {
       const timing = state.visualData.timelines[seqId] || { sequenceId: seqId, duration: 1000, delay: 0 };
       const updatedTiming = {
@@ -118,6 +126,7 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   },
 
   deleteSequenceStep: (seqId) => {
+    collabManager.sendMutation({ type: 'SYNC_SEQUENCE_DELETE', seqId });
     set((state) => {
       const sequences = state.logicalData.sequences.filter((s) => s.id !== seqId);
       const timelines = { ...state.visualData.timelines };
@@ -137,6 +146,11 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   },
 
   setSequenceStepOrder: (seqId, stepNumber) => {
+    collabManager.sendMutation({
+      type: 'SYNC_SEQUENCE_UPDATE',
+      seqId,
+      stepUpdates: { stepNumber }
+    });
     set((state) => {
       const sequences = state.logicalData.sequences.map((s) => 
         s.id === seqId ? { ...s, stepNumber } : s
@@ -149,6 +163,11 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   },
 
   setSequenceStepRoundTrip: (seqId, isRoundTrip) => {
+    collabManager.sendMutation({
+      type: 'SYNC_SEQUENCE_UPDATE',
+      seqId,
+      stepUpdates: { isRoundTrip }
+    });
     set((state) => {
       const sequences = state.logicalData.sequences.map((s) => 
         s.id === seqId ? { ...s, isRoundTrip } : s
@@ -161,6 +180,15 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   },
 
   setSequenceStepAnimationMode: (seqId, mode, particleCount) => {
+    collabManager.sendMutation({
+      type: 'SYNC_SEQUENCE_UPDATE',
+      seqId,
+      stepUpdates: { isRoundTrip: mode === 'roundTrip' },
+      timingUpdates: {
+        animationMode: mode,
+        ...(mode === 'repeat' && particleCount !== undefined ? { repeatParticleCount: particleCount } : {})
+      }
+    });
     set((state) => {
       const sequences = state.logicalData.sequences.map((s) =>
         s.id === seqId ? {
@@ -193,6 +221,14 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   },
 
   toggleSequenceAsync: (seqId) => {
+    const target = get().logicalData.sequences.find((s) => s.id === seqId);
+    if (target) {
+      collabManager.sendMutation({
+        type: 'SYNC_SEQUENCE_UPDATE',
+        seqId,
+        stepUpdates: { isAsync: !target.isAsync }
+      });
+    }
     set((state) => {
       const sequences = state.logicalData.sequences.map((s) => 
         s.id === seqId ? { ...s, isAsync: !s.isAsync } : s

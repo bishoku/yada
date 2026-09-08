@@ -6,7 +6,7 @@ import {
   PanelLeft, PanelRight, PanelBottom,
   Undo, Redo, FileDown, Copy, ChevronDown, Save, Loader2,
   ListOrdered, LayoutDashboard, Grid, Code2,
-  Cloud, CloudUpload, CheckCircle2, AlertCircle, Maximize, Minimize
+  Cloud, CloudUpload, CheckCircle2, AlertCircle, Maximize, Minimize, Lock
 } from 'lucide-react';
 import { translations } from '../../i18n/translations';
 import { generateStandaloneHtml } from '../../utils/exportTemplate';
@@ -24,7 +24,8 @@ import { AiCopyModal } from './topbar/AiCopyModal';
 import { CanvasBgSelector } from './topbar/CanvasBgSelector';
 import { ShareModal } from './topbar/ShareModal';
 import { EmbedSnippetModal } from './topbar/EmbedSnippetModal';
-import { Share2 } from 'lucide-react';
+import { StartCollabModal } from '../collab/StartCollabModal';
+import { Share2, Users } from 'lucide-react';
 
 export const TopBar: React.FC = () => {
   const currentWorkspace = useAppStore((s) => s.currentWorkspace);
@@ -59,6 +60,10 @@ export const TopBar: React.FC = () => {
   const googleUser = useAppStore((s) => s.googleUser);
   const syncState = useAppStore((s) => s.syncState);
   const hasUnsyncedChanges = useAppStore((s) => s.hasUnsyncedChanges);
+
+  // Collab State
+  const isCollabActive = useAppStore((s) => s.isCollabActive);
+  const setStartCollabModalOpen = useAppStore((s) => s.setStartCollabModalOpen);
 
   const t = translations[language];
 
@@ -244,7 +249,23 @@ export const TopBar: React.FC = () => {
       <div className="flex items-center gap-2 shrink-0">
         {/* Logo */}
         <div
-          onClick={!isEmbedMode ? handleBackToWelcome : undefined}
+          onClick={
+            !isEmbedMode
+              ? () => {
+                  if (isCollabActive) {
+                    openAlert({
+                      title: language === 'tr' ? 'Ortak Çalışma Aktif' : 'Collaboration Active',
+                      message:
+                        language === 'tr'
+                          ? 'Canlı ortak çalışma oturumundasınız. Çıkmak için önce oturumu sonlandırın veya "Ayrıl" butonunu kullanın.'
+                          : 'You are currently in a live collaboration session. Please leave the session before returning to the welcome screen.',
+                    });
+                    return;
+                  }
+                  handleBackToWelcome();
+                }
+              : undefined
+          }
           className={`flex items-center gap-1.5 ${!isEmbedMode ? 'cursor-pointer group' : ''} shrink-0`}
           title={isEmbedMode ? 'YADA Diagram Editor' : (language === 'tr' ? 'Giriş ekranına dön' : 'Go back to welcome screen')}
         >
@@ -259,15 +280,30 @@ export const TopBar: React.FC = () => {
         {/* Workspace pill */}
         {!isEmbedMode && (
           <div
-            className="hidden sm:flex items-center gap-1.5 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group cursor-pointer"
-            title={currentWorkspace?.path}
-            onClick={() => setShowSettings(true)}
+            className={`hidden sm:flex items-center gap-1.5 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 transition-colors group ${
+              isCollabActive ? 'cursor-default' : 'hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer'
+            }`}
+            title={
+              isCollabActive
+                ? (language === 'tr' ? 'Ortak çalışma süresince çalışma alanı kilitlidir' : 'Workspace is locked during collaboration')
+                : currentWorkspace?.path
+            }
+            onClick={() => {
+              if (isCollabActive) return;
+              setShowSettings(true);
+            }}
           >
-            <Database className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" />
+            {isCollabActive ? (
+              <Lock className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            ) : (
+              <Database className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" />
+            )}
             <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 max-w-[80px] truncate hidden md:inline">
               {currentWorkspace?.name}
             </span>
-            <Settings className="w-3 h-3 text-slate-400 group-hover:rotate-45 transition-transform duration-300 shrink-0" />
+            {!isCollabActive && (
+              <Settings className="w-3 h-3 text-slate-400 group-hover:rotate-45 transition-transform duration-300 shrink-0" />
+            )}
           </div>
         )}
 
@@ -506,6 +542,16 @@ export const TopBar: React.FC = () => {
                           <Share2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                           {language === 'tr' ? 'Diyagramı Paylaş (URL)' : 'Share Diagram (URL)'}
                         </button>
+                        <button
+                          onClick={() => { setStartCollabModalOpen(true); setShowExportMenu(false); }}
+                          className="w-full text-left px-3 py-2 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-semibold cursor-pointer flex items-center justify-between"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Users className="w-3.5 h-3.5 text-blue-500" />
+                            {language === 'tr' ? 'Canlı Ortak Çalış (P2P)' : 'Live Collaboration (P2P)'}
+                          </span>
+                          <span className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-md font-bold">Max 4</span>
+                        </button>
                       </>
                     )}
                   </div>
@@ -513,6 +559,25 @@ export const TopBar: React.FC = () => {
               </div>
             )}
           </>
+        )}
+
+        {!isReadOnly && !isEmbedMode && (
+          <button
+            onClick={() => setStartCollabModalOpen(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all shadow-sm active:scale-95 ${
+              isCollabActive
+                ? 'bg-emerald-50 text-emerald-600 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
+                : 'bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 border-blue-200/80 dark:border-blue-800/60'
+            }`}
+            title={language === 'tr' ? 'Canlı Ortak Çalışma Başlat (Figma Tarzı P2P)' : 'Start Live Collaboration (Figma-style P2P)'}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">
+              {isCollabActive
+                ? (language === 'tr' ? 'Canlı Açık' : 'Live Active')
+                : (language === 'tr' ? 'Birlikte Çalış' : 'Live Collab')}
+            </span>
+          </button>
         )}
 
         <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
@@ -639,6 +704,8 @@ export const TopBar: React.FC = () => {
       {showEmbedModal && (
         <EmbedSnippetModal onClose={() => setShowEmbedModal(false)} />
       )}
+
+      <StartCollabModal />
     </header>
   );
 };

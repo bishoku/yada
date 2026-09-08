@@ -7,6 +7,7 @@ import { createCanvasSlice } from './slices/canvasSlice';
 import { createTimelineSlice } from './slices/timelineSlice';
 import { createStudioSlice } from './slices/studioSlice';
 import { createHistorySlice } from './slices/historySlice';
+import { createCollabSlice } from './slices/collabSlice';
 
 import { calculateSchedules, deriveTopologyIndices } from './scheduler';
 
@@ -73,6 +74,7 @@ export const useAppStore = create<AppState>()((set, get, store) => {
     ...createTimelineSlice(...a),
     ...createStudioSlice(...a),
     ...createHistorySlice(...a),
+    ...createCollabSlice(...a),
 
     // Phase 2 Canvas Initial State
     logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
@@ -184,7 +186,7 @@ const performSave = async (): Promise<boolean> => {
   if (isSavingLock) return false;
   
   const state = useAppStore.getState();
-  if (!state.currentWorkspace || state.isReadOnly) return false;
+  if (!state.currentWorkspace || state.isReadOnly || state.currentWorkspace.path.startsWith('memory://')) return false;
 
   isSavingLock = true;
   useAppStore.setState({ isSaving: true });
@@ -234,6 +236,7 @@ const performSave = async (): Promise<boolean> => {
 
 // ── Auto-Save Loop ────────────────────────────────────────────────────────
 let autoSaveInterval: any = null;
+let beforeUnloadHandler: (() => void) | null = null;
 
 export const startAutoSave = () => {
   if (autoSaveInterval) return;
@@ -245,11 +248,25 @@ export const startAutoSave = () => {
       await performSave();
     }
   }, 5000);
+
+  if (typeof window !== 'undefined' && !beforeUnloadHandler) {
+    beforeUnloadHandler = () => {
+      const state = useAppStore.getState();
+      if (state.isDirty && state.currentWorkspace && !state.isReadOnly && !isSavingLock) {
+        performSave();
+      }
+    };
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+  }
 };
 
 export const stopAutoSave = () => {
   if (autoSaveInterval) {
     clearInterval(autoSaveInterval);
     autoSaveInterval = null;
+  }
+  if (typeof window !== 'undefined' && beforeUnloadHandler) {
+    window.removeEventListener('beforeunload', beforeUnloadHandler);
+    beforeUnloadHandler = null;
   }
 };

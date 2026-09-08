@@ -153,7 +153,13 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   isReadOnly: false,
   isFullscreen: false,
 
-  setWorkspace: (ws) => set({ currentWorkspace: ws, isReadOnly: false }),
+  setWorkspace: (ws) => {
+    if (get().isCollabActive && ws === null) {
+      console.warn('[Workspace] Leaving workspace is disabled during active collaboration.');
+      return;
+    }
+    set({ currentWorkspace: ws, isReadOnly: false });
+  },
   setDiagrams: (diagrams) => set({ diagrams }),
   setActiveDiagramId: (id) => set({ activeDiagramId: id }),
   setOpenDiagramIds: (ids) => set({ openDiagramIds: ids }),
@@ -162,6 +168,9 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   setRecentWorkspaces: (workspaces) => set({ recentWorkspaces: workspaces }),
 
   createDiagram: async (name: string) => {
+    if (get().isCollabActive) {
+      throw new Error('Diagram creation is disabled during active collaboration.');
+    }
     const state = get();
     if (!state.currentWorkspace) throw new Error("No active workspace");
 
@@ -186,6 +195,9 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   },
 
   renameDiagram: async (id: string, name: string) => {
+    if (get().isCollabActive) {
+      throw new Error('Diagram renaming is disabled during active collaboration.');
+    }
     const state = get();
     if (!state.currentWorkspace) throw new Error("No active workspace");
     
@@ -196,6 +208,9 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   },
 
   deleteDiagram: async (id: string) => {
+    if (get().isCollabActive) {
+      throw new Error('Diagram deletion is disabled during active collaboration.');
+    }
     const state = get();
     if (!state.currentWorkspace) throw new Error("No active workspace");
     
@@ -226,6 +241,10 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
 
   switchDiagram: async (id: string) => {
     const state = get();
+    if (state.isCollabActive && state.activeDiagramId !== id) {
+      console.warn('[Workspace] Diagram switching is locked during live collaboration.');
+      return;
+    }
     if (!state.currentWorkspace || state.activeDiagramId === id) return;
     
     // 1. Wait if currently saving to avoid race conditions
@@ -308,6 +327,10 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   },
 
   closeDiagram: (id: string) => {
+    if (get().isCollabActive) {
+      console.warn('[Workspace] Diagram closing is locked during live collaboration.');
+      return;
+    }
     const state = get();
     const remainingIds = state.openDiagramIds.filter(did => did !== id);
     if (state.activeDiagramId === id) {
@@ -331,6 +354,9 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
 
 
   createWorkspace: async (name: string, description: string) => {
+    if (get().isCollabActive) {
+      throw new Error('Workspace creation is disabled during active collaboration.');
+    }
     try {
       const resJson = await StorageService.create_workspace(name, description);
       const ws: WorkspaceMeta = JSON.parse(resJson);
@@ -371,6 +397,10 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     }
   },
   loadWorkspace: async (path: string) => {
+    if (get().isCollabActive) {
+      console.warn('[Workspace] Workspace switching is locked during active collaboration.');
+      return get().currentWorkspace!;
+    }
     try {
       const resJson = await StorageService.load_workspace(path);
       const ws: WorkspaceMeta = JSON.parse(resJson);
@@ -793,6 +823,9 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     }
   },
   deleteWorkspace: async (path: string) => {
+    if (get().isCollabActive) {
+      throw new Error('Workspace deletion is disabled during active collaboration.');
+    }
     try {
       await StorageService.delete_workspace(path);
       await get().fetchRecentWorkspaces();

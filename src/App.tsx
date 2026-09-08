@@ -25,6 +25,7 @@ const WelcomeScreen = lazy(() => import('./components/welcome/WelcomeScreen').th
 const SharedDiagramLayout = lazy(() => import('./components/layout/SharedDiagramLayout').then(m => ({ default: m.SharedDiagramLayout })));
 const ImportPreviewLayout = lazy(() => import('./components/layout/ImportPreviewLayout').then(m => ({ default: m.ImportPreviewLayout })));
 const ShareLoader = lazy(() => import('./components/share/ShareLoader').then(m => ({ default: m.ShareLoader })));
+const CollabJoinModal = lazy(() => import('./components/collab/CollabJoinModal').then(m => ({ default: m.CollabJoinModal })));
 
 // ── Loading fallback for lazy components ──────────────────────────────────
 const LazyFallback = () => (
@@ -299,14 +300,19 @@ function App() {
     );
   }
 
-  // Check if loading a shared URL or embed URL
-  const isShareOrEmbedUrl = window.location.href.includes('share=') || window.location.href.includes('ref=') || window.location.href.includes('embed');
+  // Check if loading a shared URL, embed URL, or collab session
+  const isShareOrEmbedUrl =
+    window.location.href.includes('share=') ||
+    window.location.href.includes('ref=') ||
+    window.location.href.includes('embed') ||
+    window.location.href.includes('collab=');
 
   // ── Desktop/Web Welcome Screen ──────────────────────────────────────────
   if (!currentWorkspace && viewMode !== 'import-preview' && !isForgeMode && !isDcMode && !isShareOrEmbedUrl) {
     return (
       <Suspense fallback={<LazyFallback />}>
         <ShareLoader />
+        <CollabJoinModal />
         <GlobalConfirmAlertModal />
         <WelcomeScreen />
       </Suspense>
@@ -317,6 +323,7 @@ function App() {
   return (
     <Suspense fallback={<LazyFallback />}>
       <ShareLoader />
+      <CollabJoinModal />
       <GlobalConfirmAlertModal />
       {viewMode === 'import-preview' ? (
         <ImportPreviewLayout />

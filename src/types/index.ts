@@ -687,6 +687,32 @@ export interface AppState {
   closeConfirm: (value: boolean) => void;
   openAlert: (options: AlertOptions) => Promise<void>;
   closeAlert: () => void;
+
+  // Collaboration State
+  isCollabActive: boolean;
+  collabRoomId: string | null;
+  collabMyPeerId: string | null;
+  collabRole: 'host' | 'guest' | null;
+  collabDiagramId: string | null;
+  collabDiagramName: string | null;
+  collabWorkspaceName: string | null;
+  collabPeers: Record<string, import('../services/collab/types').CollabPeer>;
+  collabTimeRemainingMs: number;
+  isStartCollabModalOpen: boolean;
+  isJoinCollabModalOpen: boolean;
+  pendingJoinRoomId: string | null;
+
+  // Collaboration Actions
+  setCollabActive: (active: boolean, roomId: string | null, myPeerId: string | null, role: 'host' | 'guest' | null) => void;
+  setCollabTimeRemaining: (ms: number) => void;
+  addCollabPeer: (peer: import('../services/collab/types').CollabPeer) => void;
+  removeCollabPeer: (peerId: string) => void;
+  updateCollabPeer: (peerId: string, updates: Partial<import('../services/collab/types').CollabPeer>) => void;
+  setStartCollabModalOpen: (open: boolean) => void;
+  setJoinCollabModalOpen: (open: boolean, roomId?: string | null) => void;
+  startCollabSession: (durationMinutes?: number) => Promise<string>;
+  joinCollabSession: (roomId: string, name: string, color: string) => Promise<void>;
+  leaveCollabSession: () => void | Promise<void>;
 }
 
 export interface ConfirmOptions {

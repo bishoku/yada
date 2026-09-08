@@ -49,6 +49,10 @@ import {
   useSnapping,
 } from './hooks';
 
+import { collabManager } from '../../services/collab/CollabManager';
+import { RemoteCursorsOverlay } from './RemoteCursorsOverlay';
+import { CollabTopBar } from '../collab/CollabTopBar';
+
 
 const nodeTypes = { customNode: BaseNode, sectionNode: SectionNode, stickyNoteNode: StickyNoteNode, freeFormNode: FreeFormNode };
 const edgeTypes = { customEdge: AnimatedEdge };
@@ -224,7 +228,35 @@ const FlowWrapper: React.FC = () => {
     }
   }, [isPlaying, setRfNodes, setRfEdges, clearActiveProperties]);
 
-  const { onNodeDragStop } = useSectionDrag();
+  const { onNodeDragStop: internalSectionDragStop } = useSectionDrag();
+
+  const onNodeDragStop = useCallback(
+    (e: any, node: Node) => {
+      internalSectionDragStop(e, node);
+      collabManager.sendNodeDrop(node.id, node.position.x, node.position.y);
+    },
+    [internalSectionDragStop]
+  );
+
+  // ── Remote Collaboration Drag / Drop Listener ──────────────────────────────
+  useEffect(() => {
+    const unsubDrag = collabManager.onRemoteDrag((id, x, y) => {
+      setRfNodes((nds) =>
+        nds.map((n) => (n.id === id ? { ...n, position: { x, y } } : n))
+      );
+    });
+
+    const unsubDrop = collabManager.onRemoteDrop((id, x, y) => {
+      setRfNodes((nds) =>
+        nds.map((n) => (n.id === id ? { ...n, position: { x, y } } : n))
+      );
+    });
+
+    return () => {
+      unsubDrag();
+      unsubDrop();
+    };
+  }, [setRfNodes]);
 
   // ── View Interactions ─────────────────────────────────────────────────────
   const handleNodeClick = useCallback((e: React.MouseEvent, node: Node) => {
@@ -416,8 +448,15 @@ const FlowWrapper: React.FC = () => {
       changes.forEach((change) => {
         if (change.type === 'position' && change.position) {
           updateNodePosition(change.id, change.position.x, change.position.y);
+          collabManager.sendNodeDrag(change.id, change.position.x, change.position.y);
         } else if (change.type === 'dimensions' && change.dimensions) {
           updateNodeDimensions(change.id, Math.round(change.dimensions.width), Math.round(change.dimensions.height));
+          collabManager.sendMutation({
+            type: 'SYNC_NODE_DIMENSIONS',
+            id: change.id,
+            width: Math.round(change.dimensions.width),
+            height: Math.round(change.dimensions.height),
+          });
         } else if (change.type === 'remove') {
           const state = useAppStore.getState();
           const node = state.logicalData.nodes.find(n => n.id === change.id);
@@ -425,11 +464,11 @@ const FlowWrapper: React.FC = () => {
             return;
           }
           deleteNode(change.id);
+          collabManager.sendMutation({ type: 'SYNC_NODE_DELETE', id: change.id });
         }
       });
     },
     [setRfNodes, updateNodePosition, updateNodeDimensions, deleteNode, isPlaying, setSelectedSequenceId, setRfEdges, handleSnapping]
-
   );
 
   // ── Edge changes ──────────────────────────────────────────────────────────
@@ -999,9 +1038,17 @@ const FlowWrapper: React.FC = () => {
     return () => window.removeEventListener('canvas:applyNodeProperties', handleApplyFromSidebar);
   }, [handleApplyNodeProperties]);
 
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isPlaying) {
+      const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      collabManager.sendCursor(flowPos.x, flowPos.y);
+    }
+  }, [screenToFlowPosition, isPlaying]);
+
   return (
     <div
       ref={wrapperRef}
+      onMouseMove={handleCanvasMouseMove}
       className={`w-full h-full relative ${isSketchy ? 'sketchy-canvas' : ''}`}
       style={{
         cursor: pendingDrop ? 'crosshair' : undefined,
@@ -1160,6 +1207,12 @@ const FlowWrapper: React.FC = () => {
 
       {/* Sticky Note Editor Modal */}
       <StickyNoteEditorModal />
+
+      {/* Remote Multiplayer Cursors & Selection Halos */}
+      <RemoteCursorsOverlay />
+
+      {/* Floating Collab Session TopBar */}
+      <CollabTopBar />
     </div>
 
   );
