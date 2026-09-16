@@ -45,7 +45,8 @@ export default defineConfig(async ({ command }) => {
           ]
         },
         workbox: {
-          maximumFileSizeToCacheInBytes: 15 * 1024 * 1024
+          maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
+          navigateFallbackDenylist: [/\.json$/]
         }
       })
     ],
