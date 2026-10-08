@@ -67,8 +67,7 @@ export const ConfluenceViewerLayout: React.FC<ConfluenceViewerLayoutProps> = ({ 
 
   return (
     <div
-      className="w-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none transition-colors duration-300 font-sans relative"
-      style={{ height: '480px' }}
+      className="w-full h-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none transition-colors duration-300 font-sans relative"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >

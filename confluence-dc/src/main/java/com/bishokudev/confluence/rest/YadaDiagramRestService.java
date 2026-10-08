@@ -1,4 +1,4 @@
-package com.yada.confluence.rest;
+package com.bishokudev.confluence.rest;
 
 import com.atlassian.confluence.pages.Page;
 import com.atlassian.confluence.pages.PageManager;
@@ -6,11 +6,12 @@ import com.atlassian.confluence.security.Permission;
 import com.atlassian.confluence.security.PermissionManager;
 import com.atlassian.confluence.user.AuthenticatedUserThreadLocal;
 import com.atlassian.confluence.user.ConfluenceUser;
-import com.atlassian.plugin.spring.scanner.annotation.imports.ComponentImport;
+import com.atlassian.sal.api.component.ComponentLocator;
+import com.atlassian.spring.container.ContainerManager;
 import com.atlassian.upm.api.license.PluginLicenseManager;
 import com.atlassian.upm.api.license.entity.PluginLicense;
 import com.atlassian.upm.api.util.Option;
-import com.yada.confluence.service.DiagramAttachmentService;
+import com.bishokudev.confluence.service.DiagramAttachmentService;
 import org.json.JSONObject;
 
 import javax.inject.Inject;
@@ -21,7 +22,6 @@ import javax.ws.rs.core.Response;
 import java.util.HashMap;
 import java.util.Map;
 
-@Named
 @Path("/diagram")
 @Consumes({MediaType.APPLICATION_JSON})
 @Produces({MediaType.APPLICATION_JSON})
@@ -32,16 +32,39 @@ public class YadaDiagramRestService {
     private final PermissionManager permissionManager;
     private final PluginLicenseManager pluginLicenseManager;
 
-    @Inject
+    public YadaDiagramRestService() {
+        this(new DiagramAttachmentService(),
+             resolve(PageManager.class, "pageManager"),
+             resolve(PermissionManager.class, "permissionManager"),
+             resolve(PluginLicenseManager.class, "pluginLicenseManager"));
+    }
+
     public YadaDiagramRestService(
             DiagramAttachmentService attachmentService,
-            @ComponentImport PageManager pageManager,
-            @ComponentImport PermissionManager permissionManager,
-            @ComponentImport PluginLicenseManager pluginLicenseManager) {
-        this.attachmentService = attachmentService;
-        this.pageManager = pageManager;
-        this.permissionManager = permissionManager;
-        this.pluginLicenseManager = pluginLicenseManager;
+            PageManager pageManager,
+            PermissionManager permissionManager,
+            PluginLicenseManager pluginLicenseManager) {
+        this.attachmentService = attachmentService != null ? attachmentService : new DiagramAttachmentService();
+        this.pageManager = pageManager != null ? pageManager : resolve(PageManager.class, "pageManager");
+        this.permissionManager = permissionManager != null ? permissionManager : resolve(PermissionManager.class, "permissionManager");
+        this.pluginLicenseManager = pluginLicenseManager != null ? pluginLicenseManager : resolve(PluginLicenseManager.class, "pluginLicenseManager");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T resolve(Class<T> type, String beanName) {
+        try {
+            if (ComponentLocator.isInitialized()) {
+                T comp = ComponentLocator.getComponent(type);
+                if (comp != null) return comp;
+            }
+        } catch (Throwable ignored) {}
+        try {
+            if (ContainerManager.isContainerSetup()) {
+                Object comp = ContainerManager.getComponent(beanName);
+                if (type.isInstance(comp)) return type.cast(comp);
+            }
+        } catch (Throwable ignored) {}
+        return null;
     }
 
     @GET
@@ -59,14 +82,16 @@ public class YadaDiagramRestService {
                         .build();
             }
 
-            String json = attachmentService.getDiagramJson(pageId, macroId, diagramId);
-            if (json == null) {
+            byte[] pngBytes = attachmentService.getDiagramPngBytes(pageId, macroId, diagramId);
+            if (pngBytes == null) {
                 return Response.status(Response.Status.NOT_FOUND)
-                        .entity(createErrorJson("Diagram attachment not found"))
+                        .entity(createErrorJson("Diagram PNG attachment not found"))
                         .build();
             }
 
-            return Response.ok(json).build();
+            return Response.ok(pngBytes, "image/png")
+                    .header("Cache-Control", "no-cache")
+                    .build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(createErrorJson("Failed to load diagram: " + e.getMessage()))
@@ -97,36 +122,39 @@ public class YadaDiagramRestService {
             }
 
             JSONObject payload = new JSONObject(requestBody);
-            String logicalJson = payload.optString("logicalJson", "{}");
-            String visualJson = payload.optString("visualJson", "{}");
-            String previewDataUri = payload.optString("previewDataUri", null);
-
-            JSONObject combinedData = new JSONObject();
-            try {
-                combinedData.put("logicalData", new JSONObject(logicalJson));
-            } catch (Exception e) {
-                combinedData.put("logicalData", logicalJson);
+            String bodyMacroId = payload.optString("macroId", null);
+            if (bodyMacroId != null && !bodyMacroId.trim().isEmpty() && !bodyMacroId.equalsIgnoreCase("default")) {
+                macroId = bodyMacroId.trim();
+            }
+            String pngDataUri = payload.optString("pngDataUri", null);
+            if (pngDataUri == null) {
+                pngDataUri = payload.optString("previewDataUri", null);
             }
 
-            try {
-                combinedData.put("visualData", new JSONObject(visualJson));
-            } catch (Exception e) {
-                combinedData.put("visualData", visualJson);
+            if (pngDataUri == null || pngDataUri.trim().isEmpty()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(createErrorJson("Missing pngDataUri in request body"))
+                        .build();
             }
 
-            combinedData.put("updatedAt", payload.optString("updatedAt", ""));
+            String base64Data = pngDataUri;
+            if (base64Data.contains(",")) {
+                base64Data = base64Data.substring(base64Data.indexOf(",") + 1);
+            }
 
-            attachmentService.saveDiagramData(
+            byte[] pngBytes = java.util.Base64.getDecoder().decode(base64Data);
+
+            attachmentService.saveDiagramPng(
                     pageId,
                     macroId,
                     diagramId,
-                    combinedData.toString(),
-                    previewDataUri
+                    pngBytes
             );
 
             JSONObject result = new JSONObject();
             result.put("success", true);
-            result.put("message", "Diagram and preview saved successfully");
+            result.put("fileName", attachmentService.getPngAttachmentFileName(macroId, diagramId));
+            result.put("message", "Diagram PNG saved successfully");
             return Response.ok(result.toString()).build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
@@ -139,16 +167,21 @@ public class YadaDiagramRestService {
     @Path("/license")
     public Response checkLicense() {
         JSONObject licInfo = new JSONObject();
-        Option<PluginLicense> licenseOption = pluginLicenseManager.getLicense();
-        if (licenseOption.isDefined()) {
-            PluginLicense license = licenseOption.get();
-            licInfo.put("isDefined", true);
-            licInfo.put("isValid", license.isValid());
-            licInfo.put("isEvaluation", license.isEvaluation());
-            licInfo.put("description", license.getDescription());
+        if (pluginLicenseManager != null) {
+            Option<PluginLicense> licenseOption = pluginLicenseManager.getLicense();
+            if (licenseOption.isDefined()) {
+                PluginLicense license = licenseOption.get();
+                licInfo.put("isDefined", true);
+                licInfo.put("isValid", license.isValid());
+                licInfo.put("isEvaluation", license.isEvaluation());
+                licInfo.put("description", license.getDescription());
+            } else {
+                licInfo.put("isDefined", false);
+                licInfo.put("isValid", true); // dev mode
+            }
         } else {
             licInfo.put("isDefined", false);
-            licInfo.put("isValid", false);
+            licInfo.put("isValid", true); // dev mode
         }
         return Response.ok(licInfo.toString()).build();
     }

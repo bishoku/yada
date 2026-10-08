@@ -1,21 +1,41 @@
-<div class="yada-macro-container" style="height: $!{height};">
-    <div class="yada-macro-header">
-        <div class="yada-macro-title">
-            <span class="yada-macro-badge">YADA</span>
-            <span>$!{title}</span>
-        </div>
+<div class="yada-macro-container"#if($customWidth) style="max-width: $!{customWidth};"#end data-page-id="$!{pageId}" data-macro-id="$!{macroId}" data-png-url="$!{contextPath}/download/attachments/$!{pageId}/$!{pngFileName}">
+    #if($hasDiagram)
+    <div class="yada-macro-toolbar">
+        <button type="button" class="yada-btn yada-play-btn" onclick="YadaConfluence.playSimulation(this, '$!{pageId}', '$!{macroId}');" title="Simülasyonu Başlat">
+            <svg class="yada-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+            </svg>
+            <span class="yada-btn-text">Simülasyonu Başlat</span>
+        </button>
         #if($canEdit)
-        <div>
-            <button type="button" class="yada-macro-edit-btn" onclick="YadaConfluence.openEditor('$!{pageId}', '$!{macroId}');">
-                ✏️ Edit Diagram
-            </button>
-        </div>
+        <button type="button" class="yada-btn yada-edit-btn" onclick="YadaConfluence.openEditor('$!{pageId}', '$!{macroId}');" title="Diyagramı Düzenle">
+            <svg class="yada-btn-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            <span class="yada-btn-text">Düzenle</span>
+        </button>
         #end
     </div>
-    <div style="height: calc(100% - 41px); position: relative;">
-        <iframe class="yada-macro-iframe"
-                src="$!{contextPath}/download/resources/com.yada.confluence.yada-confluence-dc:yada-resources/static/index.html?mode=view&target=confluence-dc&pageId=$!{pageId}&macroId=$!{macroId}&cp=$!{contextPath}"
-                allow="fullscreen">
-        </iframe>
+    <div class="yada-macro-body">
+        <div class="yada-macro-preview-wrapper"#if($customHeight || $customWidth) style="#if($customHeight)max-height: $!{customHeight};#end #if($customWidth)max-width: $!{customWidth};#end"#end>
+            <img class="yada-macro-preview-img" 
+                 src="$!{contextPath}/download/attachments/$!{pageId}/$!{pngFileName}?t=$!{timestamp}" 
+                 alt="$!{title}"#if($customHeight || $customWidth) style="#if($customHeight)max-height: $!{customHeight};#end #if($customWidth)max-width: $!{customWidth};#end"#end />
+        </div>
     </div>
+    #else
+    <div class="yada-macro-body" style="min-height: 240px;">
+        <div class="yada-macro-empty-state">
+            <div class="yada-macro-empty-icon">📐</div>
+            <div class="yada-macro-empty-title">$!{title}</div>
+            <div class="yada-macro-empty-desc">Bu sayfa için henüz bir mimari diyagramı oluşturulmadı.</div>
+            #if($canEdit)
+            <button type="button" class="yada-macro-create-btn" onclick="YadaConfluence.openEditor('$!{pageId}', '$!{macroId}');">
+                ➕ Yeni Diyagram Çiz
+            </button>
+            #end
+        </div>
+    </div>
+    #end
 </div>

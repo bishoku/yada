@@ -1,0 +1,42 @@
+/* ── YADA Architecture Diagram - TinyMCE Editor Content Styles ── */
+.editor-inline-macro[data-macro-name="yada"],
+.editor-inline-macro[data-macro-name="yada-diagram"],
+.editor-inline-macro[data-macro-name="yada-architecture-diagram"] {
+    display: block !important;
+    max-width: 100% !important;
+    min-width: 160px !important;
+    height: auto !important;
+    margin: 12px 0 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    background-color: transparent !important;
+    object-fit: contain !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+}
+
+.editor-inline-macro[data-macro-name="yada"]::selection,
+.editor-inline-macro[data-macro-name="yada-diagram"]::selection,
+.editor-inline-macro[data-macro-name="yada-architecture-diagram"]::selection {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+.editor-inline-macro[data-macro-name="yada"]::-moz-selection,
+.editor-inline-macro[data-macro-name="yada-diagram"]::-moz-selection,
+.editor-inline-macro[data-macro-name="yada-architecture-diagram"]::-moz-selection {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+.editor-inline-macro[data-macro-name="yada"]:hover,
+.editor-inline-macro[data-macro-name="yada-diagram"]:hover,
+.editor-inline-macro[data-macro-name="yada-architecture-diagram"]:hover {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
+}

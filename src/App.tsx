@@ -43,7 +43,6 @@ function App() {
   const currentView = useAppStore((state) => state.currentView);
   const isReadOnly = useAppStore((state) => state.isReadOnly);
   const viewMode = useAppStore((state) => state.viewMode);
-  const manualSave = useAppStore((state) => state.manualSave);
   const language = useAppStore((state) => state.language);
 
   const [isEditingInConfluence, setIsEditingInConfluence] = useState(false);
@@ -69,7 +68,10 @@ function App() {
         loadedVisual = diag.visual || loadedVisual;
       }
 
-      setDiagramDataInStore(loadedLogical, loadedVisual, false);
+      const searchParams = new URLSearchParams(window.location.search);
+      const shouldAutoPlay = searchParams.get('autoplay') === 'true';
+
+      setDiagramDataInStore(loadedLogical, loadedVisual, shouldAutoPlay);
     } catch (e) {
       console.log('No diagram data found to reload:', e);
     }
@@ -241,6 +243,8 @@ function App() {
     }
   }, [isForgeMode, isForgeModal, isEditingInConfluence]);
 
+  const [isSavingConfluence, setIsSavingConfluence] = useState(false);
+
   const handleEditClick = () => {
     if (isForgeMode) {
       const localId = currentWorkspace?.id || 'default_macro';
@@ -249,8 +253,50 @@ function App() {
           reloadCurrentForgeDiagram(currentWorkspace.path);
         }
       });
+    } else if (isDcMode) {
+      const dcCtx = getConfluenceDcContext();
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'CONFLUENCE_DC_OPEN_MODAL', pageId: dcCtx.pageId, macroId: dcCtx.macroId }, '*');
+      } else {
+        setIsEditingInConfluence(true);
+      }
     } else {
       setIsEditingInConfluence(true);
+    }
+  };
+
+  const handleConfluenceSaveAndClose = async () => {
+    if (isSavingConfluence) return;
+    setIsSavingConfluence(true);
+    try {
+      const freshState = useAppStore.getState();
+      if (freshState.currentWorkspace && freshState.activeDiagramId) {
+        const logicalJson = JSON.stringify(freshState.logicalData);
+        const visualJson = JSON.stringify(freshState.visualData);
+        const diagramFile = {
+          schemaVersion: freshState.logicalData.schemaVersion ?? 2,
+          logical: freshState.logicalData,
+          visual: freshState.visualData,
+        };
+        await StorageService.save_diagram(
+          freshState.currentWorkspace.path,
+          freshState.activeDiagramId,
+          logicalJson,
+          visualJson,
+          JSON.stringify(diagramFile)
+        );
+        useAppStore.setState({ isDirty: false });
+      }
+    } catch (err) {
+      console.error('Failed to save Confluence diagram:', err);
+    } finally {
+      setIsSavingConfluence(false);
+    }
+
+    if (isForgeModal) {
+      await closeForgeModal({ saved: true });
+    } else if (isDcMode) {
+      closeConfluenceDcModal(true);
     }
   };
 
@@ -278,17 +324,18 @@ function App() {
             {language === 'tr' ? '✏️ Confluence Diyagram Düzenleyici (Tam Ekran)' : '✏️ Editing Confluence Diagram (Full Screen)'}
           </span>
           <button
-            onClick={async () => {
-              await manualSave();
-              if (isForgeModal) {
-                await closeForgeModal({ saved: true });
-              } else if (isDcMode) {
-                closeConfluenceDcModal(true);
-              }
-            }}
-            className="px-4 py-1.5 bg-white text-indigo-700 hover:bg-indigo-50 rounded-md text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+            onClick={handleConfluenceSaveAndClose}
+            disabled={isSavingConfluence}
+            className="px-4 py-1.5 bg-white text-indigo-700 hover:bg-indigo-50 rounded-md text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
           >
-            {language === 'tr' ? '✓ Tamamla & Kaydet' : '✓ Done & Save'}
+            {isSavingConfluence ? (
+              <>
+                <span className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                <span>{language === 'tr' ? 'Kaydediliyor...' : 'Saving...'}</span>
+              </>
+            ) : (
+              <span>{language === 'tr' ? '✓ Tamamla & Kaydet' : '✓ Done & Save'}</span>
+            )}
           </button>
         </div>
         <div className="flex-1 min-h-0 relative flex flex-col">
@@ -341,15 +388,20 @@ function App() {
               </span>
               <button
                 onClick={async () => {
-                  await manualSave();
+                  await handleConfluenceSaveAndClose();
                   setIsEditingInConfluence(false);
-                  if (isDcMode && getConfluenceDcContext().isEditMode) {
-                    closeConfluenceDcModal(true);
-                  }
                 }}
-                className="px-3 py-1 bg-white text-indigo-700 hover:bg-indigo-50 rounded-md text-xs font-bold transition-all shadow-sm cursor-pointer"
+                disabled={isSavingConfluence}
+                className="px-3 py-1 bg-white text-indigo-700 hover:bg-indigo-50 rounded-md text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
-                {language === 'tr' ? '✓ Düzenlemeyi Kaydet & Kapat' : '✓ Done & Save'}
+                {isSavingConfluence ? (
+                  <>
+                    <span className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                    <span>{language === 'tr' ? 'Kaydediliyor...' : 'Saving...'}</span>
+                  </>
+                ) : (
+                  <span>{language === 'tr' ? '✓ Düzenlemeyi Kaydet & Kapat' : '✓ Done & Save'}</span>
+                )}
               </button>
             </div>
           )}

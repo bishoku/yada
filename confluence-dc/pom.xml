@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.yada</groupId>
+    <groupId>com.bishokudev</groupId>
     <artifactId>yada-confluence-dc</artifactId>
     <version>1.0.0</version>
     <packaging>atlassian-plugin</packaging>
@@ -26,6 +26,38 @@
         <bannedDependencies>false</bannedDependencies>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>atlassian-public</id>
+            <url>https://packages.atlassian.com/mvn/maven-atlassian-external/</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+                <checksumPolicy>warn</checksumPolicy>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+                <checksumPolicy>warn</checksumPolicy>
+            </releases>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>atlassian-public</id>
+            <url>https://packages.atlassian.com/mvn/maven-atlassian-external/</url>
+            <releases>
+                <enabled>true</enabled>
+                <checksumPolicy>warn</checksumPolicy>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+                <checksumPolicy>warn</checksumPolicy>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+
     <dependencies>
         <!-- Confluence Core API (Provided by Confluence Host at runtime) -->
         <dependency>
@@ -33,6 +65,12 @@
             <artifactId>confluence</artifactId>
             <version>${confluence.version}</version>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.transaction</groupId>
+                    <artifactId>jta</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Atlassian REST API -->
@@ -64,18 +102,18 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Spring Scanner for Dependency Injection -->
+        <!-- SAL and Confluence Spring Container for Safe Component Resolution -->
         <dependency>
-            <groupId>com.atlassian.plugin</groupId>
-            <artifactId>atlassian-spring-scanner-annotation</artifactId>
-            <version>${atlassian.spring.scanner.version}</version>
+            <groupId>com.atlassian.sal</groupId>
+            <artifactId>sal-api</artifactId>
+            <version>5.1.3</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.atlassian.plugin</groupId>
-            <artifactId>atlassian-spring-scanner-runtime</artifactId>
-            <version>${atlassian.spring.scanner.version}</version>
-            <scope>runtime</scope>
+            <groupId>com.atlassian.spring</groupId>
+            <artifactId>atlassian-spring</artifactId>
+            <version>2.0.8</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- JSON and Utilities -->
@@ -141,44 +179,24 @@
                     <jvmArgs>-Xmx2048m -Xms1024m -XX:+UseG1GC -Datlassian.dev.mode=true -Dconfluence.synchrony.disable=true</jvmArgs>
                     
                     <instructions>
-                        <Atlassian-Plugin-Key>com.yada.confluence.yada-confluence-dc</Atlassian-Plugin-Key>
+                        <Atlassian-Plugin-Key>com.bishokudev.confluence.yada-confluence-dc</Atlassian-Plugin-Key>
                         <Spring-Context>*</Spring-Context>
-                        <Atlassian-Scan-Folders>META-INF/plugin-descriptors</Atlassian-Scan-Folders>
                         <Export-Package>
-                            com.yada.confluence.api.*
+                            com.bishokudev.confluence.api.*
                         </Export-Package>
                         <Import-Package>
+                            com.atlassian.plugin.osgi.bridge.external,
                             com.atlassian.confluence.*;version="0.0.0",
+                            com.atlassian.sal.api.*;version="0.0.0",
+                            com.atlassian.spring.container.*;version="0.0.0",
                             com.atlassian.upm.api.*;version="0.0.0",
                             *;resolution:=optional
                         </Import-Package>
                     </instructions>
 
-                    <!-- Multi-Node Clustered DC Testing Setup -->
-                    <products>
-                        <product>
-                            <id>confluence</id>
-                            <instanceId>confluence-node1</instanceId>
-                            <httpPort>1990</httpPort>
-                            <contextPath>/confluence</contextPath>
-                        </product>
-                    </products>
+                    <httpPort>1990</httpPort>
+                    <contextPath>/confluence</contextPath>
                 </configuration>
-            </plugin>
-
-            <!-- Spring Scanner Runtime Processor -->
-            <plugin>
-                <groupId>com.atlassian.plugin</groupId>
-                <artifactId>atlassian-spring-scanner-maven-plugin</artifactId>
-                <version>${atlassian.spring.scanner.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>atlassian-spring-scanner</goal>
-                        </goals>
-                        <phase>process-classes</phase>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

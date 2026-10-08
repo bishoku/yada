@@ -1,56 +1,128 @@
+/* ── YADA Confluence DC Macro Styles ── */
 .yada-macro-container {
     position: relative;
     width: 100%;
-    border: 1px solid #dfe1e6;
-    border-radius: 8px;
-    background-color: #0f172a;
-    overflow: hidden;
     margin: 16px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: transparent;
+    border: 1px solid #e2e8f0;
+    box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    transition: height 0.2s ease, border-color 0.2s ease;
 }
 
-.yada-macro-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 14px;
-    background-color: #1e293b;
-    border-bottom: 1px solid #334155;
-    color: #f8fafc;
+.yada-macro-container:hover {
+    border-color: #cbd5e1;
 }
 
-.yada-macro-title {
-    font-size: 13px;
-    font-weight: 600;
-    display: flex;
+/* Floating Action Toolbar in Top-Right Corner */
+.yada-macro-toolbar {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 25;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 5px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.yada-macro-badge {
-    background-color: #4f46e5;
-    color: #ffffff;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 6px;
-    border-radius: 4px;
-    letter-spacing: 0.5px;
-}
-
-.yada-macro-edit-btn {
-    background-color: #4f46e5;
-    color: #ffffff;
-    border: none;
-    border-radius: 5px;
-    padding: 5px 12px;
+/* Button Base */
+.yada-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
     font-size: 12px;
     font-weight: 600;
+    line-height: 1;
+    border-radius: 6px;
+    border: none;
     cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
 }
 
-.yada-macro-edit-btn:hover {
-    background-color: #4338ca;
+.yada-btn .yada-btn-icon {
+    flex-shrink: 0;
+}
+
+/* Play Button */
+.yada-play-btn {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+}
+
+.yada-play-btn:hover {
+    background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.6);
+    transform: translateY(-1px);
+}
+
+/* Stop Button (Active during simulation playback) */
+.yada-stop-btn {
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4) !important;
+}
+
+.yada-stop-btn:hover {
+    background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%) !important;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.6) !important;
+}
+
+/* Edit Button */
+.yada-edit-btn {
+    background: rgba(30, 41, 59, 0.85);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.yada-edit-btn:hover {
+    background: #334155;
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Container & Body */
+.yada-macro-body {
+    width: 100%;
+    position: relative;
+    background-color: transparent;
+    overflow: hidden;
+}
+
+/* Preview Image & Wrapper */
+.yada-macro-preview-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    overflow: hidden;
+}
+
+.yada-macro-preview-img {
+    width: 100%;
+    height: auto;
+    max-height: 650px;
+    object-fit: contain;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+    border-radius: 6px;
+    background: transparent;
 }
 
 .yada-macro-iframe {
@@ -58,17 +130,228 @@
     height: 100%;
     border: none;
     display: block;
+    background-color: transparent;
 }
 
-/* Modal Dialog */
-#yada-editor-dialog.aui-dialog2 {
-    width: 95vw !important;
-    height: 92vh !important;
-    max-width: 1800px !important;
+/* Empty State */
+.yada-macro-empty-state {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.yada-macro-empty-icon {
+    font-size: 42px;
+    margin-bottom: 12px;
+    opacity: 0.9;
+}
+
+.yada-macro-empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 6px;
+}
+
+.yada-macro-empty-desc {
+    font-size: 13px;
+    color: #64748b;
+    max-width: 380px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.yada-macro-create-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #4f46e5;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.yada-macro-create-btn:hover {
+    background: #4338ca;
+    transform: translateY(-1px);
+}
+
+/* Modal Dialog — Hidden State */
+#yada-editor-dialog.aui-dialog2[aria-hidden="true"],
+#yada-editor-dialog.aui-dialog2.aui-layer[aria-hidden="true"],
+#yada-editor-dialog.aui-dialog2[hidden] {
+    display: none !important;
+}
+
+/* Modal Dialog — Active/Open State */
+#yada-editor-dialog.aui-dialog2:not([aria-hidden="true"]) {
+    position: fixed !important;
+    top: 2vh !important;
+    left: 2vw !important;
+    right: 2vw !important;
+    width: 96vw !important;
+    max-width: 96vw !important;
+    height: 96vh !important;
+    max-height: 96vh !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    border: 1px solid #334155 !important;
+    background-color: #0f172a !important;
+    z-index: 5000 !important;
+}
+
+#yada-editor-dialog .aui-dialog2-header {
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    padding: 0 16px !important;
+    box-sizing: border-box !important;
+    background-color: #1e293b !important;
+    border-bottom: 1px solid #334155 !important;
+    color: #f8fafc !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-shrink: 0 !important;
+}
+
+#yada-editor-dialog .aui-dialog2-header h2 {
+    color: #f8fafc !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+    letter-spacing: 0.3px !important;
+}
+
+#yada-editor-dialog .aui-close-button {
+    color: #94a3b8 !important;
 }
 
 #yada-editor-dialog .aui-dialog2-content {
+    flex: 1 1 auto !important;
+    height: calc(100% - 44px) !important;
+    max-height: calc(100% - 44px) !important;
+    min-height: 0 !important;
     padding: 0 !important;
-    height: calc(100% - 50px) !important;
+    margin: 0 !important;
     overflow: hidden !important;
+    background-color: #0f172a !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
+
+#yada-editor-dialog #yada-editor-iframe {
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1 1 auto !important;
+    border: none !important;
+    display: block !important;
+}
+
+/* Macro Property Panel Custom Width Input & Sizing Buttons */
+#property-panel .yada-size-input-item {
+    display: inline-flex !important;
+    align-items: center !important;
+    vertical-align: top !important;
+}
+
+#property-panel input.yada-size-input {
+    width: 68px !important;
+    height: 26px !important;
+    line-height: 26px !important;
+    text-align: center !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    background-color: #ffffff !important;
+    border: 1px solid #c1c7d0 !important;
+    border-radius: 4px !important;
+    padding: 0 4px !important;
+    margin: 2px 6px 2px 0 !important;
+    box-sizing: border-box !important;
+    cursor: text !important;
+    outline: none !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+#property-panel input.yada-size-input:focus {
+    border-color: #4f46e5 !important;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25) !important;
+}
+
+#property-panel a.macro-size-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    line-height: 18px !important;
+    min-width: 28px !important;
+    height: 26px !important;
+    margin: 2px 2px !important;
+    text-align: center !important;
+    color: #475569 !important;
+    background-color: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px !important;
+    padding: 0 8px !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+
+#property-panel a.macro-size-btn span.panel-button-text {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 18px !important;
+    color: inherit !important;
+    display: inline-block !important;
+}
+
+#property-panel a.macro-size-btn span.icon {
+    display: none !important;
+}
+
+#property-panel a.macro-size-btn:hover {
+    background-color: #e2e8f0 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+}
+
+#property-panel a.macro-size-btn.active,
+#property-panel a.macro-size-btn.selected {
+    background: #344563 !important;
+    color: #ffffff !important;
+    border-color: #253858 !important;
+}
+
+#property-panel a.macro-size-btn.active span.panel-button-text,
+#property-panel a.macro-size-btn.selected span.panel-button-text {
+    color: #ffffff !important;
+}
+
+#property-panel a.macro-size-btn.resize-original {
+    min-width: 64px !important;
+    font-weight: 600 !important;
+}
+
+

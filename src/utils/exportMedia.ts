@@ -98,7 +98,7 @@ export const generatePngDataUrl = async (containerSelector: string, embedMetadat
     const isWebKit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
     const optimalPixelRatio = isWebKit ? Math.min(2, window.devicePixelRatio || 2) : 3;
 
-    let dataUrl = await toPng(node, {
+    const toPngPromise = toPng(node, {
       quality: 1,
       pixelRatio: optimalPixelRatio,
       backgroundColor: bgColor,
@@ -106,7 +106,14 @@ export const generatePngDataUrl = async (containerSelector: string, embedMetadat
       height: node.clientHeight,
       style: { transform: 'scale(1)', transformOrigin: 'top left' },
       filter: (domNode) => !shouldExcludeNode(domNode as HTMLElement),
+      skipFonts: false,
     });
+
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('toPng timed out after 8000ms')), 8000)
+    );
+
+    let dataUrl = await Promise.race([toPngPromise, timeoutPromise]);
 
     if (embedMetadata) {
       try {

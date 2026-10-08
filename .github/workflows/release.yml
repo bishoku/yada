@@ -1,13 +1,14 @@
 # .github/workflows/release.yml
-name: Release Tauri App
+name: Release Tauri App & Confluence DC Plugin
 
 on:
   push:
     tags:
-      - 'v*' # v1.0.0, v0.0.1, vb.c.d vb. şeklinde etiketler pushlandığında tetiklenir
+      - 'v*' # v1.0.0, v0.0.1, vb.
 
 jobs:
-  release:
+  release-tauri:
+    name: Release Tauri (${{ matrix.platform }})
     permissions:
       contents: write
     strategy:
@@ -53,6 +54,54 @@ jobs:
         with:
           tagName: ${{ github.ref_name }} # Pushlanan tag adını kullanır (örn: v0.0.1)
           releaseName: 'YADA ${{ github.ref_name }}'
-          releaseBody: 'Release version ${{ github.ref_name }}. See below for platform binaries.'
+          releaseBody: 'Release version ${{ github.ref_name }}. See below for platform binaries and Confluence DC plugin.'
           releaseDraft: false
           prerelease: false
+
+  release-confluence-dc:
+    name: Release Confluence DC Plugin (.jar / .obr)
+    needs: release-tauri
+    if: always() && !cancelled()
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build Confluence DC Frontend Assets
+        run: npm run build:dc
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Build Confluence DC Plugin (JAR and OBR)
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Building Confluence DC plugin version: $VERSION"
+          mvn versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false -f confluence-dc/pom.xml
+          mvn clean package -DskipTests -f confluence-dc/pom.xml
+
+      - name: Upload Confluence DC Artifacts to GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            confluence-dc/target/yada-confluence-dc-*.jar
+            confluence-dc/target/yada-confluence-dc-*.obr
+

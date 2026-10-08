@@ -2,6 +2,7 @@ import { IStorageDriver, StorageMode } from '../types';
 import { LocalStorageDriver } from './LocalStorageDriver';
 import { getConfluenceDcContext } from '../../confluenceDcBridge';
 import { generatePngDataUrl } from '../../../utils/exportMedia';
+import { extractPngMetadata } from '../../../utils/imageMetadata';
 
 export class ConfluenceDcDriver implements IStorageDriver {
   private fallbackDriver = new LocalStorageDriver();
@@ -70,21 +71,34 @@ export class ConfluenceDcDriver implements IStorageDriver {
   ): Promise<void> {
     const { pageId, macroId, restBaseUrl } = getConfluenceDcContext();
 
-    let previewDataUri = '';
+    // Generate PNG with embedded project metadata in tEXt chunk
+    let pngDataUri = '';
     try {
-      previewDataUri = await generatePngDataUrl('.react-flow');
+      pngDataUri = await generatePngDataUrl('.react-flow', true);
     } catch (e) {
-      console.warn('[ConfluenceDcDriver] Failed to capture PNG preview:', e);
+      console.warn('[ConfluenceDcDriver] Failed to capture embedded PNG:', e);
+    }
+
+    if (!pngDataUri) {
+      const fallbackBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
+      try {
+        const storeState = (await import('../../../store/useAppStore')).useAppStore.getState();
+        const projectPayload = {
+          logicalData: storeState.logicalData,
+          visualData: storeState.visualData,
+        };
+        const { injectPngDataUrlMetadata } = await import('../../../utils/imageMetadata');
+        pngDataUri = injectPngDataUrlMetadata(fallbackBase64, projectPayload);
+      } catch (err) {
+        pngDataUri = fallbackBase64;
+      }
     }
 
     const payload = {
       pageId,
       macroId,
       diagramId,
-      logicalJson,
-      visualJson,
-      diagramFileJson,
-      previewDataUri,
+      pngDataUri,
       updatedAt: new Date().toISOString()
     };
 
@@ -100,7 +114,7 @@ export class ConfluenceDcDriver implements IStorageDriver {
         throw new Error(`Server returned HTTP ${response.status}: ${response.statusText}`);
       }
 
-      console.log('[ConfluenceDcDriver] Diagram saved successfully to Confluence Attachment for Page:', pageId);
+      console.log('[ConfluenceDcDriver] Diagram PNG saved successfully to Confluence Attachment for Page:', pageId);
     } catch (err) {
       console.error('[ConfluenceDcDriver] Failed to save diagram to Confluence DC backend, falling back to LocalStorage:', err);
       return this.fallbackDriver.save_diagram(path, diagramId, logicalJson, visualJson, diagramFileJson);
@@ -111,16 +125,17 @@ export class ConfluenceDcDriver implements IStorageDriver {
     const { pageId, macroId, restBaseUrl } = getConfluenceDcContext();
 
     try {
-      const endpoint = `${restBaseUrl}/diagram/${encodeURIComponent(pageId)}/${encodeURIComponent(diagramId)}?macroId=${encodeURIComponent(macroId)}`;
+      const endpoint = `${restBaseUrl}/diagram/${encodeURIComponent(pageId)}/${encodeURIComponent(diagramId)}?macroId=${encodeURIComponent(macroId)}&t=${Date.now()}`;
       const response = await fetch(endpoint, {
         method: 'GET',
+        cache: 'no-store',
         headers: this.getAuthHeaders()
       });
 
       if (!response.ok) {
         if (response.status === 404) {
           // New diagram on this page
-          console.log('[ConfluenceDcDriver] Diagram not found on server, returning empty default structure');
+          console.log('[ConfluenceDcDriver] Diagram PNG not found on server, returning empty default structure');
           return JSON.stringify({
             logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
             visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {}, annotations: {} }
@@ -129,8 +144,17 @@ export class ConfluenceDcDriver implements IStorageDriver {
         throw new Error(`Server returned HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      return typeof data === 'string' ? data : JSON.stringify(data);
+      const pngBuffer = await response.arrayBuffer();
+      const extracted = extractPngMetadata(pngBuffer);
+      if (extracted) {
+        return typeof extracted === 'string' ? extracted : JSON.stringify(extracted);
+      }
+
+      console.warn('[ConfluenceDcDriver] PNG was found, but no embedded metadata was present');
+      return JSON.stringify({
+        logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
+        visualData: { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {}, annotations: {} }
+      });
     } catch (err) {
       console.warn('[ConfluenceDcDriver] Failed to load from Confluence DC backend, trying fallback:', err);
       return this.fallbackDriver.load_diagram(path, diagramId);

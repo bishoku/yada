@@ -242,7 +242,8 @@ export const startAutoSave = () => {
   if (autoSaveInterval) return;
   autoSaveInterval = setInterval(async () => {
     const state = useAppStore.getState();
-    const isEmbedOrModal = StorageService.getMode() === 'embed';
+    const mode = StorageService.getMode();
+    const isEmbedOrModal = mode === 'embed' || mode === 'confluence-dc' || mode === 'forge';
     if (state.isDirty && state.currentWorkspace && !state.isReadOnly && !isSavingLock && !isEmbedOrModal) {
       console.log('[AutoSave] Triggering save...');
       await performSave();
@@ -252,7 +253,9 @@ export const startAutoSave = () => {
   if (typeof window !== 'undefined' && !beforeUnloadHandler) {
     beforeUnloadHandler = () => {
       const state = useAppStore.getState();
-      if (state.isDirty && state.currentWorkspace && !state.isReadOnly && !isSavingLock) {
+      const mode = StorageService.getMode();
+      const isEmbedOrModal = mode === 'embed' || mode === 'confluence-dc' || mode === 'forge';
+      if (state.isDirty && state.currentWorkspace && !state.isReadOnly && !isSavingLock && !isEmbedOrModal) {
         performSave();
       }
     };
