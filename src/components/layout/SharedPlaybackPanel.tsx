@@ -1,3 +1,5 @@
+import { playbackEnd } from '../../store/playbackModel';
+import { usePlaybackLoop } from '../timeline/hooks/usePlaybackLoop';
 import { simulationClock } from '../../store/simulationClock';
 import React from 'react';
 import { 
@@ -26,63 +28,8 @@ export const SharedPlaybackPanel: React.FC = () => {
   const setPlaybackRate = useAppStore((s) => s.setPlaybackRate);
   const playbackRate = useAppStore((s) => s.playbackRate);
 
-  // Find max simulation time
-  const maxTime = Math.max(
-    2000,
-    ...Object.values(schedules).map((s) => {
-      const seqId = Object.keys(schedules).find(k => schedules[k] === s);
-      const seq = seqId ? logicalData.sequences.find(q => q.id === seqId) : null;
-      const timing = seqId ? visualData.timelines?.[seqId] : null;
-      const tooltipDur = (!seq?.isRoundTrip && timing?.internalProcess) ? (timing.internalProcess.duration ?? 0) : 0;
-      return s.end + tooltipDur;
-    })
-  );
-
-  // Playback Animation Loop (Updates playhead directly in the store)
-  const requestRef = React.useRef<number | null>(null);
-
-  React.useEffect(() => {
-    if (!isPlaying) {
-      if (requestRef.current !== null) {
-        cancelAnimationFrame(requestRef.current);
-        requestRef.current = null;
-      }
-      return;
-    }
-
-    let previousTime: number | null = null;
-
-    const tick = (timestamp: number) => {
-      if (previousTime !== null) {
-        const delta = timestamp - previousTime;
-        const state = useAppStore.getState();
-        const nextTime = state.currentTime + delta * state.playbackRate;
-
-        if (nextTime >= maxTime) {
-          if (state.loopPlayback) {
-            state.setCurrentTime(0);
-            previousTime = timestamp;
-          } else {
-            state.stopPlayback();
-          }
-        } else {
-          state.setCurrentTime(nextTime);
-        }
-      }
-
-      previousTime = timestamp;
-      requestRef.current = requestAnimationFrame(tick);
-    };
-
-    requestRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      if (requestRef.current !== null) {
-        cancelAnimationFrame(requestRef.current);
-        requestRef.current = null;
-      }
-    };
-  }, [isPlaying, maxTime]);
+  const maxTime = React.useMemo(() => playbackEnd(logicalData.sequences, visualData.timelines, schedules), [logicalData.sequences, visualData.timelines, schedules]);
+  usePlaybackLoop(isPlaying, maxTime);
 
   return (
     <div className="w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-3 select-none font-sans flex flex-col gap-2.5 shrink-0 transition-colors duration-300">

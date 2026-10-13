@@ -1,5 +1,7 @@
+import { visibleSequenceEdges } from './sequenceVisibility';
+import { subscribeSequenceCapture, isFullSequenceCapture } from '../../services/sequenceCapture';
 import { translations } from '../../i18n/translations';
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useSyncExternalStore } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -9,6 +11,8 @@ import {
   type NodeTypes,
   type EdgeTypes,
   useReactFlow,
+  useViewport,
+  useStore,
 } from '@xyflow/react';
 import { useAppStore } from '../../store/useAppStore';
 import { useSequenceLayout } from './useSequenceLayout';
@@ -51,6 +55,10 @@ function SeqFlowWrapper() {
   const bgColor = useAppStore((s) => s.visualData.canvas.bgColor);
   const { rfNodes, rfEdges } = useSequenceLayout();
   const { fitView } = useReactFlow();
+  const viewport = useViewport();
+  const viewportHeight = useStore(state => state.height);
+  const fullCapture = useSyncExternalStore(subscribeSequenceCapture, isFullSequenceCapture, isFullSequenceCapture);
+  const visibleEdges = useMemo(() => visibleSequenceEdges(rfEdges, viewport, viewportHeight, fullCapture), [rfEdges, viewport, viewportHeight, fullCapture]);
 
   // Listen for export requests to fit the view before capturing image
   useEffect(() => {
@@ -127,7 +135,7 @@ function SeqFlowWrapper() {
     >
       <ReactFlow
         nodes={rfNodes}
-        edges={rfEdges}
+        edges={visibleEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         nodesDraggable={false}

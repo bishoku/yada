@@ -1,3 +1,4 @@
+import { ensureSavedForNavigation, saveCurrentDiagram } from '../../services/saveCoordinator';
 import { simulationClock } from '../simulationClock';
 import { getPlatformCapabilities, assertCanCreateDiagram } from '../../services/platformCapabilities';
 import { StateCreator } from 'zustand';
@@ -8,6 +9,8 @@ import { migratePortFormat } from '../../utils/portMigration';
 import { migrateToSchemaV2 } from '../../utils/schemaMigration';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { encryptCredential, decryptCredential } from '../../services/ai/cryptoVault';
+
+let latestDiagramLoad = 0;
 
 const applyTheme = (theme: Theme) => {
   // Remove custom theme classes first
@@ -39,6 +42,9 @@ export interface WorkspaceSlice {
   leftSidebarOpen: boolean;
   rightSidebarOpen: boolean;
   isSaving: boolean;
+  saveError: string | null;
+  navigationPending: boolean;
+  navigationError: string | null;
   isReadOnly: boolean;
   isEmbed: boolean;
   isFullscreen: boolean;
@@ -48,7 +54,7 @@ export interface WorkspaceSlice {
   exitFullscreen: () => Promise<void>;
   initFullscreenListener: () => void;
 
-  setWorkspace: (ws: WorkspaceMeta | null) => void;
+  setWorkspace: (ws: WorkspaceMeta | null) => Promise<boolean>;
   setDiagrams: (diagrams: import('../../types').DiagramMeta[]) => void;
   setActiveDiagramId: (id: string | null) => void;
   setOpenDiagramIds: (ids: string[]) => void;
@@ -56,7 +62,7 @@ export interface WorkspaceSlice {
   renameDiagram: (id: string, name: string) => Promise<void>;
   deleteDiagram: (id: string) => Promise<void>;
   switchDiagram: (id: string) => Promise<void>;
-  closeDiagram: (id: string) => void;
+  closeDiagram: (id: string) => Promise<void>;
   setDirty: (status: boolean) => void;
   setRecentWorkspaces: (workspaces: WorkspaceMeta[]) => void;
   setCreateDiagramModalOpen: (open: boolean) => void;
@@ -92,7 +98,7 @@ export interface WorkspaceSlice {
   moveDiagramToWorkspace: (diagramId: string, targetWorkspacePath: string, newName?: string) => Promise<string>;
   importPreviewToWorkspace: (targetWorkspacePath: string, diagramName: string) => Promise<string>;
   importPreviewToNewWorkspace: (workspaceName: string, diagramName: string) => Promise<{ ws: WorkspaceMeta; diagramId: string }>;
-  manualSave: () => Promise<void>;
+  manualSave: () => Promise<boolean>;
   deleteWorkspace: (path: string) => Promise<void>;
 }
 
@@ -152,15 +158,20 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   leftSidebarOpen: true,
   rightSidebarOpen: false,
   isSaving: false,
+  saveError: null,
+  navigationPending: false,
+  navigationError: null,
   isReadOnly: false,
   isFullscreen: false,
 
-  setWorkspace: (ws) => {
+  setWorkspace: async (ws) => {
     if (get().isCollabActive && ws === null) {
       console.warn('[Workspace] Leaving workspace is disabled during active collaboration.');
-      return;
+      return false;
     }
-    set({ currentWorkspace: ws, isReadOnly: false });
+    if (!await ensureSavedForNavigation()) return false;
+    set({ currentWorkspace: ws, isReadOnly: false, navigationError: null });
+    return true;
   },
   setDiagrams: (diagrams) => set({ diagrams }),
   setActiveDiagramId: (id) => set({ activeDiagramId: id }),
@@ -243,6 +254,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   },
 
   switchDiagram: async (id: string) => {
+    const request = ++latestDiagramLoad;
     const state = get();
     if (state.isCollabActive && state.activeDiagramId !== id) {
       console.warn('[Workspace] Diagram switching is locked during live collaboration.');
@@ -250,21 +262,19 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     }
     if (!state.currentWorkspace || state.activeDiagramId === id) return;
     
-    // 1. Wait if currently saving to avoid race conditions
-    if (get().isSaving) {
-      while (get().isSaving) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-    }
-    
-    // 2. Save current if still dirty
-    if (get().isDirty) {
-      await get().manualSave();
-    }
-    
-    const ws = state.currentWorkspace;
+    if (!await ensureSavedForNavigation()) return;
+
+    const baseline = get();
+    const ws = baseline.currentWorkspace;
+    if (!ws || request !== latestDiagramLoad) return;
     try {
       const diagJson = await StorageService.load_diagram(ws.path, id);
+      const current = get();
+      if (request !== latestDiagramLoad || current.currentWorkspace?.path !== ws.path || current.activeDiagramId !== baseline.activeDiagramId) return;
+      if (current.logicalData !== baseline.logicalData || current.visualData !== baseline.visualData) {
+        set({ saveError: 'CHANGES_NOT_SAVED' });
+        return;
+      }
       const diag = JSON.parse(diagJson);
       
       let logicalData: import('../../types').LogicalDiagram = { schemaVersion: 2, nodes: [], edges: [], sequences: [] };
@@ -332,7 +342,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     }
   },
 
-  closeDiagram: (id: string) => {
+  closeDiagram: async (id: string) => {
     if (get().isCollabActive) {
       console.warn('[Workspace] Diagram closing is locked during live collaboration.');
       return;
@@ -340,8 +350,10 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     const state = get();
     const remainingIds = state.openDiagramIds.filter(did => did !== id);
     if (state.activeDiagramId === id) {
+      if (!await ensureSavedForNavigation()) return;
       if (remainingIds.length > 0) {
-        get().switchDiagram(remainingIds[remainingIds.length - 1]);
+        await get().switchDiagram(remainingIds[remainingIds.length - 1]);
+        if (get().activeDiagramId === id) return;
         set({ openDiagramIds: remainingIds }); // switchDiagram will set activeDiagramId
       } else {
         set({ 
@@ -363,6 +375,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     if (get().isCollabActive) {
       throw new Error('Workspace creation is disabled during active collaboration.');
     }
+    if (!await ensureSavedForNavigation()) throw new Error('CHANGES_NOT_SAVED');
     try {
       const resJson = await StorageService.create_workspace(name, description);
       const ws: WorkspaceMeta = JSON.parse(resJson);
@@ -407,6 +420,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       console.warn('[Workspace] Workspace switching is locked during active collaboration.');
       return get().currentWorkspace!;
     }
+    if (!await ensureSavedForNavigation()) throw new Error('CHANGES_NOT_SAVED');
     try {
       const resJson = await StorageService.load_workspace(path);
       const ws: WorkspaceMeta = JSON.parse(resJson);
@@ -811,25 +825,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     }
   },
 
-  manualSave: async () => {
-    const state = get();
-    if (!state.currentWorkspace || !state.isDirty || state.isSaving) return;
-    if (!state.activeDiagramId) return;
-    
-    set({ isSaving: true });
-    try {
-      const logicalJson = JSON.stringify(state.logicalData);
-      const visualJson = JSON.stringify(state.visualData);
-      
-      await StorageService.save_diagram(state.currentWorkspace.path, state.activeDiagramId, logicalJson, visualJson);
-      
-      set({ isDirty: false });
-    } catch (err) {
-      console.error('Error saving diagram manually:', err);
-    } finally {
-      set({ isSaving: false });
-    }
-  },
+  manualSave: () => saveCurrentDiagram(),
   deleteWorkspace: async (path: string) => {
     if (get().isCollabActive) {
       throw new Error('Workspace deletion is disabled during active collaboration.');

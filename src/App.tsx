@@ -1,3 +1,5 @@
+import { useBrowserNavigation } from './services/navigation/useBrowserNavigation';
+import { saveCurrentDiagram } from './services/saveCoordinator';
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { useAppStore, startAutoSave, stopAutoSave, setDiagramDataInStore } from './store/useAppStore';
 import { StorageService } from './services/storage';
@@ -38,6 +40,7 @@ const LazyFallback = () => (
 );
 
 function App() {
+  useBrowserNavigation();
   const currentWorkspace = useAppStore((state) => state.currentWorkspace);
   const loadAppPreferences = useAppStore((state) => state.loadAppPreferences);
   const currentView = useAppStore((state) => state.currentView);
@@ -269,35 +272,15 @@ function App() {
     if (isSavingConfluence) return;
     setIsSavingConfluence(true);
     try {
-      const freshState = useAppStore.getState();
-      if (freshState.currentWorkspace && freshState.activeDiagramId) {
-        const logicalJson = JSON.stringify(freshState.logicalData);
-        const visualJson = JSON.stringify(freshState.visualData);
-        const diagramFile = {
-          schemaVersion: freshState.logicalData.schemaVersion ?? 2,
-          logical: freshState.logicalData,
-          visual: freshState.visualData,
-        };
-        await StorageService.save_diagram(
-          freshState.currentWorkspace.path,
-          freshState.activeDiagramId,
-          logicalJson,
-          visualJson,
-          JSON.stringify(diagramFile)
-        );
-        useAppStore.setState({ isDirty: false });
-      }
-    } catch (err) {
-      console.error('Failed to save Confluence diagram:', err);
+      const saved = await saveCurrentDiagram(true);
+      if (!saved || useAppStore.getState().isDirty) { useAppStore.setState({ saveError: useAppStore.getState().saveError ?? 'CHANGES_NOT_SAVED' }); return; }
+      if (isForgeModal) await closeForgeModal({ saved: true });
+      else if (isDcMode) closeConfluenceDcModal(true);
+      setIsEditingInConfluence(false);
     } finally {
       setIsSavingConfluence(false);
     }
 
-    if (isForgeModal) {
-      await closeForgeModal({ saved: true });
-    } else if (isDcMode) {
-      closeConfluenceDcModal(true);
-    }
   };
 
   // ── Confluence View Mode (inline macro on page) ─────────────────────────
@@ -389,7 +372,6 @@ function App() {
               <button
                 onClick={async () => {
                   await handleConfluenceSaveAndClose();
-                  setIsEditingInConfluence(false);
                 }}
                 disabled={isSavingConfluence}
                 className="px-3 py-1 bg-white text-indigo-700 hover:bg-indigo-50 rounded-md text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"

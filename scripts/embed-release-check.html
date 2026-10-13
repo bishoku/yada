@@ -1,0 +1,17 @@
+<!doctype html><html><head><title>YADA embed release check</title></head><body><h1>Embed host protocol check</h1><button id="save">Request save and close</button><pre id="status">Waiting for READY</pre><iframe title="Embedded YADA" src="/?integration=iframe&amp;embed_editor=true" style="width:95vw;height:75vh"></iframe><script type="module">
+const frame = document.querySelector('iframe');
+const events = [];
+const logical = {schemaVersion:2,nodes:[{id:'client',name:'Legacy client',type:'client'},{id:'server',name:'Legacy server',type:'server'}],edges:[{id:'e',sourceId:'client',targetId:'server',isAsync:false}],sequences:[{id:'s',edgeId:'e',stepNumber:1,isAsync:false,isRoundTrip:true}]};
+const visual = {canvas:{zoom:1,pan:{x:0,y:0}},layoutNodes:{client:{id:'client',x:0,y:0},server:{id:'server',x:400,y:0}},layoutEdges:{},timelines:{s:{sequenceId:'s',duration:1000,delay:0}}};
+window.addEventListener('message', event => {
+ if(event.source !== frame.contentWindow) return;
+ const type = event.data?.type;
+ if(type === 'READY') frame.contentWindow.postMessage({type:'LOAD_DIAGRAM',payload:{logicalJson:JSON.stringify(logical),visualJson:JSON.stringify(visual)}},location.origin);
+ if(type === 'SAVE_DIAGRAM') {
+  const saved = JSON.parse(event.data.payload.logicalJson);
+  events.push({type,sequence:saved.sequences[0]?.id,roundTrip:saved.sequences[0]?.isRoundTrip,preview:event.data.payload.previewDataUri.startsWith('data:image/png')});
+ } else events.push({type});
+ document.querySelector('#status').textContent = JSON.stringify(events,null,2);
+});
+document.querySelector('#save').onclick = () => frame.contentWindow.postMessage({type:'REQUEST_SAVE_AND_CLOSE'},location.origin);
+</script></body></html>

@@ -461,7 +461,7 @@ export interface AppState {
   initFullscreenListener: () => void;
 
   // Actions
-  setWorkspace: (ws: WorkspaceMeta | null) => void;
+  setWorkspace: (ws: WorkspaceMeta | null) => Promise<boolean>;
   setDiagrams: (diagrams: DiagramMeta[]) => void;
   setActiveDiagramId: (id: string | null) => void;
   setOpenDiagramIds: (ids: string[]) => void;
@@ -472,7 +472,7 @@ export interface AppState {
   renameDiagram: (id: string, name: string) => Promise<void>;
   deleteDiagram: (id: string) => Promise<void>;
   switchDiagram: (id: string) => Promise<void>;
-  closeDiagram: (id: string) => void;
+  closeDiagram: (id: string) => Promise<void>;
   
   // Async Operations
   createWorkspace: (name: string, description: string) => Promise<WorkspaceMeta>;
@@ -653,7 +653,10 @@ export interface AppState {
 
   // Save Actions
   isSaving: boolean;
-  manualSave: () => Promise<void>;
+  saveError: string | null;
+  navigationPending: boolean;
+  navigationError: string | null;
+  manualSave: () => Promise<boolean>;
 
   // Google Drive Sync State
   googleUser: GoogleUser | null;

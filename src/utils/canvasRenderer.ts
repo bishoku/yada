@@ -1,3 +1,4 @@
+import { getCanvasGeometry } from './canvasGeometry';
 import { LogicalDiagram, VisualDiagram, CustomComponentTemplate } from '../types';
 import { getThemeEdgeColors } from './themeUtils';
 
@@ -37,14 +38,7 @@ function getAbsolutePos(
   logicalData: LogicalDiagram, 
   visualData: VisualDiagram
 ): { x: number; y: number; width: number; height: number } {
-  const layout = visualData.layoutNodes;
-  const node = logicalData.nodes.find(n => n.id === nodeId);
-  const vis = layout[nodeId] || { x: 0, y: 0, width: 224, height: 52 };
-  if (node && node.parentId) {
-    const parentPos = getAbsolutePos(node.parentId, logicalData, visualData);
-    return { x: vis.x + parentPos.x, y: vis.y + parentPos.y, width: vis.width || 224, height: vis.height || 52 };
-  }
-  return { x: vis.x, y: vis.y, width: vis.width || 224, height: vis.height || 52 };
+  return getCanvasGeometry(logicalData, visualData).absolutePosition(nodeId);
 }
 
 export function calculateViewportBounds(
@@ -320,29 +314,7 @@ function calculateBezierCoords(edge: any, logicalData: LogicalDiagram, visualDat
   else if (targetPort.side === 'top') { tX += tW * (targetPort.offset / 100); }
   else { tX += tW * (targetPort.offset / 100); tY += tH; }
 
-  const siblings = logicalData.edges.filter(
-    e => (e.sourceId === edge.sourceId && e.targetId === edge.targetId) || (e.sourceId === edge.targetId && e.targetId === edge.sourceId)
-  ).sort((a, b) => {
-    const aSeqs = logicalData.sequences.filter(s => s.edgeId === a.id);
-    const bSeqs = logicalData.sequences.filter(s => s.edgeId === b.id);
-    const aMinStep = aSeqs.length > 0 ? Math.min(...aSeqs.map(s => s.stepNumber)) : 999;
-    const bMinStep = bSeqs.length > 0 ? Math.min(...bSeqs.map(s => s.stepNumber)) : 999;
-    if (aMinStep !== bMinStep) return aMinStep - bMinStep;
-    return a.id.localeCompare(b.id);
-  });
-
-  const total = siblings.length;
-  const index = siblings.findIndex(e => e.id === edge.id);
-
-  let offset = 0;
-  if (total > 1 && index >= 0) {
-    const step = 30;
-    const start = -((total - 1) * step) / 2;
-    offset = start + index * step;
-  }
-  if (edge.sourceId > edge.targetId) {
-    offset = -offset;
-  }
+  const offset = getCanvasGeometry(logicalData, visualData).offsets.get(edge.id) ?? 0;
 
   const dx = tX - sX;
   const dy = tY - sY;
@@ -531,10 +503,10 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
   const activeSequences: any[] = [];
   
   for (const s of currentSchedules) {
-    const seq = logicalData.sequences.find(q => q.id === s.id);
+    const seq = getCanvasGeometry(logicalData, visualData).sequences.get(s.id);
     if (!seq) continue;
     activeSequences.push({ s, seq });
-    const edge = logicalData.edges.find(e => e.id === seq.edgeId);
+    const edge = getCanvasGeometry(logicalData, visualData).edges.get(seq.edgeId);
     if (edge) activeEdges.add(edge.id);
 
     if (s.internalProcess && currentTime >= s.internalProcess.start && currentTime <= s.internalProcess.end) {
@@ -547,7 +519,7 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
       const transitDone = s.isRoundTrip ? (elapsed >= s.duration / 2) : (elapsed >= s.duration);
       if (transitDone) {
         const tgtId = s.direction === 'reverse' ? edge.sourceId : edge.targetId;
-        const tgtNode = logicalData.nodes.find(n => n.id === tgtId);
+        const tgtNode = getCanvasGeometry(logicalData, visualData).nodes.get(tgtId);
         if (tgtNode?.type === 'section') processingNodes.add(tgtId);
       }
     }
@@ -842,7 +814,7 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
     ctx.restore();
     
     // Badge
-    const edgeSeqs = logicalData.sequences.filter(seq => seq.edgeId === edge.id).sort((a, b) => a.stepNumber - b.stepNumber);
+    const edgeSeqs = (getCanvasGeometry(logicalData, visualData).stepsByEdge.get(edge.id) ?? []);
     if (edgeSeqs.length > 0) {
       const midPt = getBezierPoint(0.5, coords.sX, coords.sY, coords.c1x, coords.c1y, coords.c2x, coords.c2y, coords.tX, coords.tY);
       const stepNums = edgeSeqs.map(s => s.stepNumber).sort((a, b) => a - b).filter((value, index, self) => self.indexOf(value) === index);
@@ -1287,7 +1259,7 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
   const particleGlowColor = `rgba(${hexToRgb(particleMainColor)}, 0.3)`;
 
   for (const { s, seq } of activeSequences) {
-    const edge = logicalData.edges.find(e => e.id === seq.edgeId);
+    const edge = getCanvasGeometry(logicalData, visualData).edges.get(seq.edgeId);
     if (!edge) continue;
     const coords = calculateBezierCoords(edge, logicalData, visualData);
     if (!coords) continue;
@@ -1340,7 +1312,7 @@ export function renderDiagramFrame(ctx: CanvasRenderingContext2D, options: Canva
   // Draw Sequence Tooltips
   for (const item of activeSequences) {
     const { s, seq } = item;
-    const edge = logicalData.edges.find(e => e.id === seq.edgeId);
+    const edge = getCanvasGeometry(logicalData, visualData).edges.get(seq.edgeId);
     if (!edge) continue;
     
     // Check if within internalProcess duration

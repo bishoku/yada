@@ -1,0 +1,12 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`canvas drawing backward compatibility > retains legacy drawing commands at transit, process, return and idle frames 1`] = `
+[
+  "14b22186",
+  "4c4b28a1",
+  "d3ff41a4",
+  "3ada37dd",
+  "42650583",
+  "42650583",
+]
+`;

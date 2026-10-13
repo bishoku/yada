@@ -63,11 +63,11 @@ export class ConfluenceDcDriver implements IStorageDriver {
   async delete_workspace(_path: string): Promise<void> {}
 
   async save_diagram(
-    path: string, 
+    _path: string,
     diagramId: string = 'default', 
     logicalJson: string, 
     visualJson: string, 
-    diagramFileJson?: string
+    _diagramFileJson?: string
   ): Promise<void> {
     const { pageId, macroId, restBaseUrl } = getConfluenceDcContext();
 
@@ -82,10 +82,9 @@ export class ConfluenceDcDriver implements IStorageDriver {
     if (!pngDataUri) {
       const fallbackBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
       try {
-        const storeState = (await import('../../../store/useAppStore')).useAppStore.getState();
         const projectPayload = {
-          logicalData: storeState.logicalData,
-          visualData: storeState.visualData,
+          logicalData: JSON.parse(logicalJson),
+          visualData: JSON.parse(visualJson),
         };
         const { injectPngDataUrlMetadata } = await import('../../../utils/imageMetadata');
         pngDataUri = injectPngDataUrlMetadata(fallbackBase64, projectPayload);
@@ -116,8 +115,8 @@ export class ConfluenceDcDriver implements IStorageDriver {
 
       console.log('[ConfluenceDcDriver] Diagram PNG saved successfully to Confluence Attachment for Page:', pageId);
     } catch (err) {
-      console.error('[ConfluenceDcDriver] Failed to save diagram to Confluence DC backend, falling back to LocalStorage:', err);
-      return this.fallbackDriver.save_diagram(path, diagramId, logicalJson, visualJson, diagramFileJson);
+      console.error('[ConfluenceDcDriver] Failed to save diagram to Confluence DC backend:', err);
+      throw err;
     }
   }
 

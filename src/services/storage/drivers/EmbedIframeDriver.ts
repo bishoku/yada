@@ -37,7 +37,8 @@ export class EmbedIframeDriver implements IStorageDriver {
         }
       } else if (event.data?.type === 'REQUEST_SAVE_AND_CLOSE') {
         import('../../../store/useAppStore').then(async ({ useAppStore }) => {
-          await useAppStore.getState().manualSave();
+          const saved = await useAppStore.getState().manualSave();
+          if (!saved || useAppStore.getState().isDirty) return;
           if (window.parent !== window) {
             window.parent.postMessage({ type: 'CLOSE_DIAGRAM' }, '*');
           }

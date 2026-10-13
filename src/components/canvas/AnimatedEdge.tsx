@@ -531,11 +531,11 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
       />
       
       {/* Playback particles using refs */}
-      {particleRefs.map((ref, idx) => (
+      {isAnimating && particleRefs.map((ref, idx) => (
         <g
           key={`particle-${idx}`}
           ref={ref}
-          style={{ pointerEvents: 'none', display: 'none', willChange: 'transform' }}
+          style={{ pointerEvents: 'none', display: 'none' }}
         >
           <AnimationParticle
             type={particleType}

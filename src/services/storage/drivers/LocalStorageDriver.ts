@@ -21,10 +21,9 @@ const safeStorage = {
   },
   setItem(key: string, value: string): void {
     if (typeof localStorage !== 'undefined') {
-      try {
-        localStorage.setItem(key, value);
-        return;
-      } catch {}
+      // A failed browser write must never be acknowledged as durable storage.
+      localStorage.setItem(key, value);
+      return;
     }
     memoryStore.set(key, value);
   },

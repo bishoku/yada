@@ -195,7 +195,7 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
           r={5}
           fill={dotColor}
           filter={`url(#${glowId})`}
-          style={{ display: 'none', zIndex: 10, willChange: 'cx' }}
+          style={{ display: 'none', zIndex: 10 }}
         />
       )}
 
@@ -221,7 +221,6 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
                 background: isActive
                   ? isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.1)'
                   : isDark ? 'rgba(30,41,59,0.75)'   : 'rgba(255,255,255,0.82)',
-                backdropFilter: 'blur(8px)',
                 border: `1px solid ${
                   isActive
                     ? isDark ? 'rgba(129,140,248,0.35)' : 'rgba(99,102,241,0.25)'

@@ -214,3 +214,21 @@ Contributions are what make the open source community such an amazing place to l
 ## 📝 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
+
+
+### Saving and browser navigation
+
+Standalone YADA records workspace, diagram and freeform/sequence view changes in browser history. Back/Forward and reload restore locally available diagrams; these local navigation URLs require the original workspace and are not share links. Forge, Confluence Data Center and embedded hosts retain their own navigation.
+
+Navigation waits for unsaved diagram changes to save. Failed writes display retry controls, and edits made while saving remain unsaved until the next successful save. Closing a browser with unsaved changes requests the browser's standard warning where supported; crash recovery is not provided. Existing diagram formats are unchanged.
+
+
+### Playback performance profiling
+
+With the development server running, open `/scripts/playback-profile.html` to measure the real freeform or sequence canvas using disposable 25/250/1,000-message fixtures. Select a view and size, then choose **Measure playback**. Results include frame intervals, React rendering time and browser heap usage when available. The page does not persist fixtures and is excluded from the production application entry point. Short development samples are diagnostic; see `evaluation.md` for measured results and limitations.
+
+
+Large sequence diagrams render messages near the viewport while retaining the complete participant layout for **Fit View**. PNG/SVG and DOM video capture temporarily render all messages, then restore viewport rendering. This is a display optimization; existing files, timing and seeking semantics are unchanged. The profiling page includes paused-seek and PNG/SVG capture checks.
+
+
+Editor and shared/embed simulation playback share one clock-driven loop. Canvas media rendering caches document geometry across frames; these caches are derived and do not change saved files. The development profiler also provides **Shared freeform**, **Seek visible message**, and **Check Canvas 2D renderer** checks. Dense live freeform rendering still has known performance limits described in `evaluation.md`.

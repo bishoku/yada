@@ -1,3 +1,4 @@
+import { playbackEnd } from '../../../store/playbackModel';
 import { timelineScale } from '../timingModel';
 import { useMemo } from 'react';
 import type { LogicalDiagram, VisualDiagram, SequenceStep, LogicalNode, LogicalEdge } from '../../../types';
@@ -64,26 +65,7 @@ export const useTimelineCalculations = ({
   }, [logicalData.sequences]);
 
   // Memoized max simulation time
-  const maxTime = useMemo(() => {
-    const sequenceMap = new Map<string, SequenceStep>();
-    for (const seq of logicalData.sequences) {
-      sequenceMap.set(seq.id, seq);
-    }
-
-    let calculatedMax = 2000;
-    for (const [seqId, schedule] of Object.entries(schedules)) {
-      const seq = sequenceMap.get(seqId);
-      const timing = visualData.timelines[seqId];
-      const tooltipDur = (!seq?.isRoundTrip && timing?.internalProcess)
-        ? (timing.internalProcess.duration ?? 0)
-        : 0;
-      const totalEnd = schedule.end + tooltipDur;
-      if (totalEnd > calculatedMax) {
-        calculatedMax = totalEnd;
-      }
-    }
-    return calculatedMax;
-  }, [schedules, logicalData.sequences, visualData.timelines]);
+  const maxTime = useMemo(() => playbackEnd(logicalData.sequences, visualData.timelines, schedules), [schedules, logicalData.sequences, visualData.timelines]);
 
   // Dynamic scale (pixels per millisecond) with 24px right padding
   const { pxPerMs, contentWidth } = useMemo(() => timelineScale(rightPanelWidth, maxTime, zoom), [rightPanelWidth, maxTime, zoom]);

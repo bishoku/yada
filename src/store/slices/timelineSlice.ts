@@ -1,3 +1,4 @@
+import { activeSequencesAt } from '../playbackModel';
 import { StateCreator } from 'zustand';
 import { AppState, SequenceStep, TimelineTiming } from '../../types';
 import { simulationClock } from '../simulationClock';
@@ -46,15 +47,15 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   startPlayback: () => {
     simulationClock.setTime(0);
     simulationClock.setIsPlaying(true);
-    set({ isPlaying: true, currentTime: 0, selectedSequenceId: null });
+    set({ isPlaying: true, currentTime: 0, activeSequenceIds: activeSequencesAt(get().schedules, 0), selectedSequenceId: null });
   },
   resumePlayback: () => {
     simulationClock.setIsPlaying(true);
-    set({ isPlaying: true, currentTime: simulationClock.getTime() });
+    set({ isPlaying: true, currentTime: simulationClock.getTime(), activeSequenceIds: activeSequencesAt(get().schedules, simulationClock.getTime()) });
   },
   pausePlayback: () => {
     simulationClock.setIsPlaying(false);
-    set({ isPlaying: false, currentTime: simulationClock.getTime() });
+    set({ isPlaying: false, currentTime: simulationClock.getTime(), activeSequenceIds: activeSequencesAt(get().schedules, simulationClock.getTime()) });
   },
   stopPlayback: () => {
     simulationClock.reset();
@@ -65,14 +66,7 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   setCurrentTime: (time) => {
     simulationClock.setTime(time);
     set((state) => {
-      const schedules = state.schedules;
-      const activeSequenceIds: string[] = [];
-      
-      Object.entries(schedules).forEach(([seqId, sched]) => {
-        if (time >= sched.start && time < sched.end) {
-          activeSequenceIds.push(seqId);
-        }
-      });
+      const activeSequenceIds = activeSequencesAt(state.schedules, time);
 
       return {
         currentTime: time,

@@ -143,11 +143,11 @@ export const ImportPreviewLayout: React.FC = () => {
     return () => { cancelled = true; clearTimeout(timeout); };
   }, [filterAst, nodeTypeMappings, simulationMultiplier, importRawData, importAdapterId, language]); // intentionally omitting loadImportPreview
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    // Leave while still marked as a temporary preview, which is explicitly discarded.
+    if (!await setWorkspace(null)) return;
     setViewMode('freeform');
     setImportState(null, null);
-
-    setWorkspace(null);
   };
 
   const handleSaveConfirm = async (

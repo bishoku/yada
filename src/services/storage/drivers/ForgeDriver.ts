@@ -40,8 +40,8 @@ export class ForgeDriver implements IStorageDriver {
     try {
       await safeForgeInvoke('saveWorkspace', { metaJson });
       return;
-    } catch {
-      return this.fallbackDriver.save_workspace(metaJson);
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -69,8 +69,8 @@ export class ForgeDriver implements IStorageDriver {
       console.log('[ForgeDriver] Diagram successfully saved to Forge Storage API for path:', path);
       return;
     } catch (err) {
-      console.error('[ForgeDriver] Failed to save to Forge Storage API, falling back to LocalStorage:', err);
-      return this.fallbackDriver.save_diagram(path, diagramId, logicalJson, visualJson, diagramFileJson);
+      console.error('[ForgeDriver] Failed to save to Forge Storage API:', err);
+      throw err;
     }
   }
 

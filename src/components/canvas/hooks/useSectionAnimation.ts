@@ -1,60 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
+import { simulationClock } from '../../../store/simulationClock';
+import { buildSectionIntervals, sectionActiveAt } from './sectionPlayback';
 
 export const useSectionAnimation = (sectionId: string) => {
   const [isActive, setIsActive] = useState(false);
-
   useEffect(() => {
-    const unsub = useAppStore.subscribe((state, prevState) => {
-      const currentTime = state.currentTime;
-      if (currentTime === prevState.currentTime && 
-          state.logicalData === prevState.logicalData && 
-          state.schedules === prevState.schedules) {
-        return;
+    let intervals = buildSectionIntervals(sectionId, useAppStore.getState().logicalData, useAppStore.getState().schedules);
+    let previous: boolean | undefined;
+    const update = (time: number) => {
+      const active = sectionActiveAt(intervals, time);
+      if (active !== previous) { previous = active; setIsActive(active); }
+    };
+    const unsubscribeStore = useAppStore.subscribe((state, previousState) => {
+      if (state.logicalData.nodes !== previousState.logicalData.nodes || state.logicalData.edges !== previousState.logicalData.edges || state.logicalData.sequences !== previousState.logicalData.sequences || state.schedules !== previousState.schedules) {
+        intervals = buildSectionIntervals(sectionId, state.logicalData, state.schedules);
+        update(simulationClock.getTime());
       }
-
-      let active = false;
-      try {
-        const { schedules, logicalData: { nodes, edges, sequences } } = state;
-        
-        const getDescendantNodeIds = (parentId: string, result = new Set<string>()): Set<string> => {
-          const children = nodes.filter((n: any) => n.parentId === parentId);
-          for (const child of children) {
-            result.add(child.id);
-            getDescendantNodeIds(child.id, result);
-          }
-          return result;
-        };
-
-        const descendantIds = getDescendantNodeIds(sectionId);
-
-        const relevantEdgeIds = new Set(
-          edges
-            .filter((e: any) => descendantIds.has(e.sourceId) || descendantIds.has(e.targetId))
-            .map((e: any) => e.id)
-        );
-
-        for (const seq of sequences) {
-          if (relevantEdgeIds.has(seq.edgeId)) {
-            const sched = schedules[seq.id];
-            if (sched && currentTime >= sched.start && currentTime < sched.end) {
-              active = true;
-              break;
-            }
-          }
-        }
-      } catch (err) {
-        // Silently handle errors
-      }
-
-      setIsActive((prev) => {
-        if (prev !== active) return active;
-        return prev;
-      });
     });
-
-    return unsub;
+    const unsubscribeClock = simulationClock.subscribe(update);
+    return () => { unsubscribeStore(); unsubscribeClock(); };
   }, [sectionId]);
-
   return isActive;
 };

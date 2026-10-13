@@ -497,3 +497,153 @@ Step editing distinguishes configurable duration/delay/internal process from cal
 A shared English/Turkish glossary now drives timeline/sequence terms, view switchers and core timing labels in connection properties. Timeline row controls, help, sequence badges and empty/loading states are localized; millisecond readouts use locale-aware number formatting. User labels, schema keys, IDs and scheduling rules are unchanged. This is a focused terminology migration; older unrelated UI areas and annotation-drag behavior have not been fully rewritten.
 
 Validation: 136 tests pass, including compatibility/no-op edits, exact decimal timing, one-step undo/redo, concurrent-step navigation, zoomed/scroll-aware seeking, restricted/stale edit guards, resume/reset behavior, and locale-key/semantic consistency. The production build passes. Browser checks verified zoomed overflow, navigation, numeric apply/undo, drag/undo, Escape-discarded drafts, an existing diagram reopening, and Turkish terms/number formatting without runtime errors. Physical touch-device and screen-reader testing remain outstanding.
+
+
+## Implementation progress: reliable saves and browser navigation (13 October 2026)
+
+Manual save and autosave now share one coordinator. A successful write acknowledges only the captured diagram revision, so edits made during saving remain dirty. Failed writes are visible with localized retry controls; browser storage quota failures no longer silently fall back to temporary memory. Workspace replacement, diagram switching/closing and browser navigation require saved editable data. Host save-and-close flows remain open when saving fails or newer edits remain. Temporary import previews can still be explicitly discarded. Browser unload protection is synchronous and best effort; this does not implement crash recovery.
+
+Standalone navigation now uses browser history for workspaces, diagrams and freeform/sequence views. Reload restores locally available destinations through opaque workspace identifiers without exposing filesystem paths in URLs. Failed saves or unavailable destinations restore the previous working state and history position. Rapid Back/Forward events are serialized. Existing share/reference/collaboration links are preserved, and Forge, Confluence Data Center and embedded host navigation remain host controlled. These local routes require access to the original workspace and are not portable sharing links.
+
+Validation: 164 tests pass, including save failure, edits during saves, close/switch guards, browser quota failure, unload protection, Back/Forward, rapid navigation, deep-link restoration, missing destinations and host/link exclusions. Existing legacy format tests remain passing; stored schema and timing are unchanged. TypeScript and the production build pass, with existing bundle-size/chunking warnings. A browser smoke test verified Back, Forward and reload restoring a persisted sequence-view destination with no console errors. Real Confluence host and desktop filesystem end-to-end testing remain outstanding.
+
+
+## Implementation progress: simulation performance profiling (13 October 2026)
+
+### Changes and compatibility
+
+Freeform sections previously rebuilt descendants with repeated node filtering, rebuilt incident-edge sets and scanned every sequence during each throttled store time update. Section activity now builds merged half-open intervals on topology/schedule revisions and uses binary search on the simulation clock. The activity boundaries remain `start <= time < end`, including nested sections and concurrent steps. Initial mount, pause/seek and changes to the document update immediately. Malformed parent cycles no longer recurse indefinitely. Scheduling and stored data remain unchanged.
+
+Edge instances share a weakly cached maximum schedule end by schedule-object identity. Hidden freeform particles stop repeatedly writing `display:none`, and edge React state setters run only when active status/step changes. Sequence particles deliver their initial position immediately and skip identical subsequent positions, particularly repeated hidden states. Seeking backward, reset, phase transitions and subscription cleanup retain their previous behavior. Cache invalidation relies on the application's existing immutable schedule updates. No new persistent fields were introduced.
+
+### Reproducible CPU comparison
+
+`sectionPlayback.test.ts` compares the previous algorithm with the cached algorithm over 240 samples using nested synthetic fixtures. It also compares exact activity results across reverse seeks, fractional boundaries, concurrent/touching intervals, missing schedules, empty sections and zero-duration steps. One local isolated run produced:
+
+| Steps | Previous scans (240 samples) | Cached queries (240 samples) | One-time interval build |
+| --- | ---: | ---: | ---: |
+| 25 | 0.63 ms | 0.012 ms | 0.019 ms |
+| 250 | 27.21 ms | 0.015 ms | 0.226 ms |
+| 1,000 | 410.61 ms | 0.033 ms | 0.589 ms |
+
+These timings measure this calculation alone, not application FPS. Reproduce with `npx vitest run src/components/canvas/hooks/sectionPlayback.test.ts --disableConsoleIntercept --reporter=verbose`. Correctness is asserted; unstable wall-clock speed thresholds are deliberately not test gates.
+
+### Actual canvas observations
+
+A development-only profiler at `/scripts/playback-profile.html` mounts the real freeform/sequence canvases with the production playback hook. It offers 25/250/1,000-message fixtures with 20 participants, a section, mixed one-way/round-trip messages and concurrent steps. Each sample records two seconds of requestAnimationFrame intervals, canvas React commits/render duration and optional browser heap usage. It does not write fixture data to storage and is not imported into the shipped application.
+
+Final observed results in the local in-app browser:
+
+| View | Steps | FPS | p95 frame interval | Canvas React render time | Reported JS heap |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Freeform | 25 | 117.0 | 9.9 ms | 55.2 ms | 49.4 MB |
+| Freeform | 250 | 68.5 | 33.4 ms | 76.6 ms | 72.1 MB |
+| Freeform | 1,000 | 30.0 | 125.0 ms | 204.8 ms | 160.3 MB |
+| Sequence | 25 | 115.5 | 10.2 ms | 18.4 ms | 37.2 MB |
+| Sequence | 250 | 47.1 | 25.4 ms | 25.2 ms | 74.7 MB |
+| Sequence | 1,000 | 3.6 | 308.3 ms | 34.0 ms | 107.7 MB |
+
+A same-method sequence comparison before the particle callback change observed 120.0/45.1/3.6 FPS for 25/250/1,000 messages. The final measurements do **not** establish a meaningful overall FPS gain. The CPU reduction is real, but the large sequence canvas remains slow and requires a further rendering investigation, potentially viewport-aware message rendering. Any such change must preserve full-diagram export, fit-view, participant handles and seeking.
+
+Limits: these are short synthetic development-build samples from one browser, without the full timeline panel or Confluence/Tauri host. They are diagnostic observations, not release performance budgets. Heap readings are total live browser heap at that moment; garbage collection and fixture order affect them, so they do not establish a memory leak or reduction. RAF rate is not a compositor/presentation measurement. Production-build tracing and real user diagrams remain needed before making broad speed claims.
+
+Validation: all 169 tests and the production build pass, including existing legacy format, timing, pause/resume and sequence compatibility tests. Browser profiler checks completed in both views with no captured console errors. Existing build chunk-size warnings remain.
+
+
+## Implementation progress: large sequence rendering (13 October 2026)
+
+The sequence canvas now mounts message edges only within the vertical viewport plus 120 screen pixels of overscan for labels and smooth panning. Culling depends on viewport position/zoom and height, not simulation time. Participants, lifelines, fragments, complete slot maps and all incident handles remain intact. Consequently Fit view continues to use complete diagram bounds, and message endpoints retain their original handle coordinates. Unknown geometry and unmeasured viewports fall back to rendering all messages. Labels no longer request a backdrop blur and particles no longer request individual `will-change` hints.
+
+This changes rendering only. Existing diagram schema, participant ordering, forward/return slot placement, sequence timings and stored metadata are unchanged. Offscreen edges unsubscribe on unmount; returning edges derive phase and particle position immediately from the current simulation clock, including seeks while paused. Horizontal culling is deliberately omitted to avoid clipping long messages/labels through approximate width checks. Participant handles still scale with the complete document, so initial mount and very large participant counts remain potential bottlenecks.
+
+PNG, SVG and DOM video capture now enter a reference-counted full-render scope before cloning. It synchronously enables all message edges, waits for frame preparation and restores viewport rendering in `finally`, including capture errors and overlapping captures. Data-driven HTML, Mermaid and canvas-rendered media exports continue to read complete document data and need no viewport override. Image capture retains its previous viewport sizing/Fit view/minimum-zoom behavior; this change does not introduce a full-page export mode or change existing image dimensions.
+
+### Measurements and verification
+
+Using the same local development-browser profiler and two-second sequence samples:
+
+| Messages | Previous FPS | Viewport-rendered FPS | New p95 frame interval |
+| --- | ---: | ---: | ---: |
+| 25 | 115.5 | 119.5 | 9.0 ms |
+| 250 | 47.1 | 118.0 | 9.2 ms |
+| 1,000 | 3.6 | 81.7 | 17.6 ms |
+
+A fresh repeat of the 1,000-message case reached 106.0 FPS with a 16.7 ms p95 and no intervals above 33 ms. These short synthetic development runs establish a substantial improvement for this fixture, not a cross-device release guarantee or precise speedup. Viewport height, visible rows, warmup, garbage collection and concurrent browser load affect the results.
+
+The 1,000-message browser fixture contains 1,334 forward/return edges. Normal rendering mounted 83–131 depending on viewport position/height. SVG capture was parsed and contained all 1,334 edges; normal rendering resumed afterward. PNG capture also succeeded. Both checks compared logical/visual data before and after and found no changes. Large SVG DOM exports remain expensive (the resulting data URL was about 103 million characters); reducing export size is separate work. The automated download check stalled, so delivery to a downloaded file was not verified in this pass.
+
+Browser checks also exercised complete-layout Fit view, paused seeking into a visible forward message, and seeking backward to hide its particle. A clean final profiling tab had no captured console errors. The development profiler now includes seek and image-capture verification controls and cleans up its React root during hot reload.
+
+Validation: 177 tests pass and TypeScript/production build pass. New regressions cover bounded rendering on a 1,000-step legacy-style diagram, return messages, fractional zoom/panning, exact overscan boundaries, unknown geometry, unchanged layout/handles, complete capture restoration, overlapping captures and cleanup on preparation/capture failures. Existing migration, export-layout, timing, seek/reset and subscription tests remain passing. Real Confluence/Tauri host tests and video encoding end-to-end remain outstanding; existing bundle warnings remain.
+
+
+## Implementation progress: freeform canvas and simulation review (13 October 2026)
+
+Editor and shared/embed playback now use the same frame-loop controller. The simulation clock still advances on every animation frame, while global store updates are throttled to 150 ms. Shared playback no longer updates the whole store and rebuilds its maximum duration on every frame. The shared and editor duration calculations use one memoized linear helper, preserving the two-second minimum and one-way internal-process tail. Playback rates, explicit stop/reset and loop overshoot behavior are unchanged.
+
+Loop reset now synchronizes active-step IDs along with time zero, and pausing synchronizes active IDs at the exact clock position. This fixes stale highlights between throttled store updates. Queued callbacks stop after pause/disposal or non-loop completion. A browser smoke test caught an incorrect native frame-function binding during extraction; it was corrected before final validation.
+
+Freeform edges mount particle groups only while an interaction is active, rather than keeping five particle groups for every edge. On the 1,000-edge fixture, a paused seek showed 100 mounted groups for 20 active edges instead of 5,000 groups. Remounting recomputes particle position from the current clock, including paused seeks; sampled path geometry is retained across activation changes and invalidated when the SVG path changes. Node animation state is only submitted to React when its displayed values change. Complete edge paths, labels, handles and editing controls remain mounted; freeform editing has not been virtualized.
+
+### Canvas 2D media rendering
+
+The media renderer now weakly caches node/edge/sequence indexes, nested absolute positions, edge step lists and parallel-edge offsets by immutable logical/visual document revision. It reuses these across simulation frames and invalidates after document/layout edits. This removes repeated nested position searches and parallel-edge sorting/sequence filtering from the frame loop. Existing ordering, dimensions/defaults and reverse-direction offset signs are preserved. Malformed parent cycles terminate rather than overflowing recursion.
+
+A benchmark with 1,000 edges and 240 parallel-offset queries measured 153.01 ms with the previous searches versus 0.061 ms for cached queries, plus 1.23 ms setup. This is geometry CPU cost, not total export or playback time. The real browser Canvas 2D renderer drew twelve 1,000-edge simulation frames in 49.0 ms (4.08 ms/frame), and twelve 250-edge frames in 16.2 ms (1.35 ms/frame), with logical/visual data unchanged. These are short synthetic samples, not encoder-throughput guarantees.
+
+A drawing-command regression fixture was recorded from the pre-cache renderer and verified against the new renderer at six transit/process/return/idle times. The drawing fingerprints match exactly. Additional tests check parallel/reverse offsets, nested positions, missing-node defaults, cache reuse/invalidation and no document writes.
+
+### Live rendering observations and remaining work
+
+Browser samples observed approximately 118 FPS for 25 freeform edges, 30 FPS for 250 edges and 28–30 FPS for 1,000 edges, with substantial long-frame variability. The actual shared freeform panel measured 31.6 FPS on 250 edges. These results do **not** establish a live-canvas FPS improvement; the dense freeform canvas remains the next performance bottleneck. Geometry/export gains and fewer mounted particles must not be presented as solving dense live SVG rendering. Existing labels, path glow/style transitions, overlapping parallel curves and path measurement should be investigated with production-browser tracing before further changes.
+
+The development profiler now exercises shared freeform playback, paused freeform particle seeking, Canvas 2D frames and image capture. A 250-edge SVG capture included all 250 edges. As before, freeform export requests Fit view, which can update the stored viewport through the canvas move handler; export compatibility should compare logical data, timing and layout separately from that existing viewport behavior. Real Confluence/Tauri host and full GIF/video encoding checks remain outstanding.
+
+Validation: 188 tests pass, TypeScript/production build pass, and whitespace checks pass. Existing diagram migration and timing tests remain passing. New simulation regressions cover throttling, rate changes, exact pause state, seek/resume, loop highlights, stop/disposal and one-way process tails. Existing bundle-size warnings remain.
+
+
+## Combined release review and verification (13 October 2026)
+
+**Decision: hold broad publication pending live Confluence verification and uninterrupted native save/close testing.** Automated and local browser checks pass after the fixes below. No deployment, marketplace publication, release tag or signed distribution was created.
+
+### Review findings addressed
+
+1. **Confluence save failures could appear successful.** Forge and Data Center diagram saves previously fell back to browser storage on backend errors, allowing the coordinator to clear dirty state and the editor to close. Host saves now propagate backend failures. Forge workspace save failures also propagate. Existing read fallbacks and document envelopes remain unchanged. Regression checks cover Forge rejection, Data Center HTTP 403, successful attachment payloads and no false local acknowledgement.
+2. **Preview capture could make a successful save look stale.** Export Fit view previously persisted a new visual viewport revision during PNG generation. Capture now suppresses viewport persistence for its full-render scope, while ordinary pan/zoom remains dirty/persistent. Final browser PNG and SVG captures reported `unchanged: true` with no changed logical/visual fields. This supersedes the earlier observation that export fitting changes saved viewport state.
+3. **Host modal parameters could choose the wrong storage driver.** Recognized Forge/Data Center contexts now take precedence over generic iframe/embed parameters. Seven driver-selection cases cover build targets, runtime Data Center flags, iframe/editor/viewer and ordinary web contexts. Navigation remains disabled in recognized hosts.
+4. **Media export resumed from zero.** GIF, canvas video and DOM-video capture now snapshot the high-resolution clock time and resume from that position, rather than calling the explicit reset/start action. Browser smoke checks produced GIF89a and MP4 `ftyp/isom` headers and restored playing state at nonzero times.
+5. **Collaboration could replace/leave a diagram after a failed save.** Join and leave now honor the shared save guard instead of ignoring its boolean result. A regression verifies that failed saves preserve the document and active session.
+6. **Slow diagram loads could overwrite newer edits or win out of order.** Switching now verifies the captured document revision/workspace and latest request before installing loaded data. Regression checks preserve edits during loading and reject an older request completing after the latest one.
+
+### Completed checks
+
+| Area | Result | Evidence and scope |
+| --- | --- | --- |
+| Combined regression suite | PASS | 205 tests, zero failures; machine-readable result at `/tmp/yada-release-tests.json`. Includes migration, format, sequence, timing, save, navigation, host failure and rendering cases. |
+| Web production build | PASS | TypeScript and Vite build, including the frontend used by the final native package. Existing chunk warnings remain. |
+| Forge frontend | PASS | `npm run build:forge`, after review fixes. |
+| Data Center frontend | PASS | `npm run build:dc`, after review fixes. |
+| Forge CLI lint | PASS WITH WARNING | Zero errors; existing `@forge/api` storage deprecation. Successful run used Node 26 with a CLI runtime-support warning. Installed Node 22.23.1 was explicitly rejected by the CLI patch-version guard, so a supported-runtime lint rerun remains desirable. No guard was bypassed. |
+| Data Center Maven verify | PASS, NOT HOST TESTED | Local cached dependencies; initial sandbox socket restriction resolved with elevated local test access. Maven reports no integration tests and no configured database source. This validates packaging, not Confluence behavior. |
+| Final Data Center package | PASS | `mvn -o package -q` after the final frontend build. Log: `/tmp/yada-dc-package.log`. |
+| Tauri Rust check/build | PASS | Locked offline Cargo check and build succeeded. |
+| Final unsigned Tauri bundle | PASS | A separate debug `YADA Release Check.app` was built from the reviewed frontend without replacing the open test app. Product-name override only; no signing or notarization. Log: `/tmp/yada-tauri-release-build.log`. |
+| Native launch | PARTIAL | The earlier unsigned test bundle opened at `tauri://localhost#yada=home` and rendered a workspace. Native UI automation stopped after another interaction selected an existing workspace. Save/close was not exercised on user data. |
+| Real local iframe protocol | PASS | `scripts/embed-release-check.html` loaded a schema-v2 round-trip fixture into the real editor. Observed READY → SAVE_DIAGRAM (same sequence ID/round-trip flag, PNG preview) → CLOSE_DIAGRAM. Existing message names/payloads retained. |
+| Embed failed-save close protection | PASS | Driver tests prevent CLOSE_DIAGRAM after a failed save or newer unsaved edits. Generic iframe protocol still lacks a durable parent-storage acknowledgement; local handoff success does not establish backend persistence. |
+| PNG/SVG DOM capture | PASS | Actual local browser capture; all fields unchanged after capture fix. Earlier large sequence SVG check included all 1,334 message edges before restoring viewport culling. |
+| GIF encoding | PASS, SMOKE | Produced a 17,649-byte `image/gif` blob with GIF89a header; resumed playback at a nonzero position. Short synthetic fixture only. |
+| Canvas MP4 encoding | PASS, SMOKE | Produced a 22,400-byte `video/mp4` blob with MP4 header; resumed playback at a nonzero position. |
+| DOM MP4 encoding | PASS, SMOKE | Produced an 81,364-byte `video/mp4` blob with MP4 header; resumed playback at a nonzero position. Full-render capture and cleanup exercised. |
+| Whitespace validation | PASS | `git diff --check`. |
+
+Media checks used actual export entry points and encoders with a development-only blob observer; download code ran, but OS file delivery and playback in independent media players were not verified. These are encoding smoke checks rather than complete media compatibility certification. The local host/profiler pages are development tools and are not production entry points.
+
+### Remaining publication gates
+
+- **Live Forge and Data Center:** install the reviewed candidate on a staging site; open an existing macro, play/seek and switch views; verify collaboration/new-diagram controls remain absent and action boundaries reject them. Edit/save/reopen and verify attachment contents, multiple macro IDs, page permissions and a denied/offline save that keeps the editor open. Packaging/CLI checks do not replace this. A staging URL has been requested; no credentials should be posted in chat.
+- **Native Tauri save and close:** use a disposable workspace to verify edit → manual save → reopen, Back/Forward and seeking in both views, failed filesystem writes, and immediate window close with unsaved changes. Source review found no explicit native CloseRequested guard; browser beforeunload alone is insufficient evidence that native closing preserves changes. This is an unresolved release gate, not a verified successful check.
+- **Native exports and distribution:** confirm file dialogs/write permissions for PNG/SVG/GIF/video and .dproj; verify signing/notarization and installer behavior on the intended release platforms. The local bundle is unsigned/debug and must not be distributed as the release.
+- **Independent media playback:** open saved GIF/MP4/WebM output in target browsers/players and verify representative longer and large diagrams. WebCodecs fallback and native file delivery remain unverified.
+
+Dense freeform playback remains a documented performance limitation rather than a demonstrated solved bottleneck. These local checks do not establish frame-rate guarantees across embedded hosts or native webviews. Existing users' diagram schemas and timing semantics remain unchanged by the reviewed fixes.

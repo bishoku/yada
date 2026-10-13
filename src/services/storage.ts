@@ -30,15 +30,15 @@ class StorageManager implements IStorageDriver {
       search.get('embed') === 'true'
     );
 
-    if (isEmbedDriver) {
-      this.activeDriver = new EmbedIframeDriver();
-      this.mode = 'embed';
-    } else if (isForge()) {
+    if (isForge()) {
       this.activeDriver = new ForgeDriver();
       this.mode = 'forge';
     } else if (isConfluenceDC()) {
       this.activeDriver = new ConfluenceDcDriver();
       this.mode = 'confluence-dc';
+    } else if (isEmbedDriver) {
+      this.activeDriver = new EmbedIframeDriver();
+      this.mode = 'embed';
     } else if (isTauri()) {
       this.activeDriver = new TauriDriver();
       const savedMode = (typeof localStorage !== 'undefined' ? (localStorage.getItem(STORAGE_MODE_KEY) as StorageMode) : null) || 'tauri';

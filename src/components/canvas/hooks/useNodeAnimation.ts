@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
+import type { NodeScheduleItem } from '../../../store/scheduler';
 import { simulationClock } from '../../../store/simulationClock';
 
 export const useNodeAnimation = (nodeId: string) => {
@@ -9,7 +10,7 @@ export const useNodeAnimation = (nodeId: string) => {
     nodeActive: false,
   });
 
-  const nodeSchedulesRef = useRef<any[]>([]);
+  const nodeSchedulesRef = useRef<NodeScheduleItem[]>([]);
 
   useEffect(() => {
     // Keep a synchronous ref of node schedules to avoid searching on every frame
@@ -33,6 +34,7 @@ export const useNodeAnimation = (nodeId: string) => {
       }
     });
 
+    let previous: { tooltipActive: boolean; tooltipText: string; nodeActive: boolean } | undefined;
     const checkAnimState = (currentTime: number) => {
       let tooltipActive = false;
       let tooltipText = '';
@@ -99,16 +101,10 @@ export const useNodeAnimation = (nodeId: string) => {
         }
       }
 
-      setAnimState((prev) => {
-        if (
-          prev.tooltipActive !== tooltipActive ||
-          prev.tooltipText !== tooltipText ||
-          prev.nodeActive !== nodeActive
-        ) {
-          return { tooltipActive, tooltipText, nodeActive };
-        }
-        return prev;
-      });
+      if (!previous || previous.tooltipActive !== tooltipActive || previous.tooltipText !== tooltipText || previous.nodeActive !== nodeActive) {
+        previous = { tooltipActive, tooltipText, nodeActive };
+        setAnimState(previous);
+      }
     };
 
     const unsubClock = simulationClock.subscribe((time) => {

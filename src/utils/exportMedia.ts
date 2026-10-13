@@ -1,3 +1,5 @@
+import { simulationClock } from '../store/simulationClock';
+import { withFullSequenceRendering } from '../services/sequenceCapture';
 import { toPng, toSvg } from 'html-to-image';
 // @ts-ignore — gifenc ships ESM-only; types are inferred at runtime
 import { GIFEncoder, quantize, applyPalette } from 'gifenc';
@@ -74,7 +76,7 @@ const restoreShadows = (el: HTMLStyleElement): void => {
 // ─────────────────────────────────────────────────────────────
 // PNG Export (with Embedded Scene Data)
 // ─────────────────────────────────────────────────────────────
-export const generatePngDataUrl = async (containerSelector: string, embedMetadata = true): Promise<string> => {
+const generatePngDataUrlInternal = async (containerSelector: string, embedMetadata = true): Promise<string> => {
   const node = document.querySelector(containerSelector) as HTMLElement;
   if (!node) {
     throw new Error('Diagram container not found.');
@@ -174,7 +176,7 @@ export const exportToPng = async (
 // ─────────────────────────────────────────────────────────────
 // SVG Export (with Embedded Scene Data)
 // ─────────────────────────────────────────────────────────────
-export const generateSvgDataUrl = async (containerSelector: string, embedMetadata = true): Promise<string> => {
+const generateSvgDataUrlInternal = async (containerSelector: string, embedMetadata = true): Promise<string> => {
   const node = document.querySelector(containerSelector) as HTMLElement;
   if (!node) {
     throw new Error('Diagram container not found.');
@@ -432,7 +434,7 @@ export const exportToGif = async (
 
   const store = useAppStore.getState();
   const wasPlaying = store.isPlaying;
-  const originalTime = store.currentTime;
+  const originalTime = simulationClock.getTime();
   if (wasPlaying) store.pausePlayback();
 
   try {
@@ -510,7 +512,7 @@ export const exportToGif = async (
     }
   } finally {
     store.setCurrentTime(originalTime);
-    if (wasPlaying) store.startPlayback();
+    if (wasPlaying) store.resumePlayback();
   }
 };
 
@@ -862,7 +864,7 @@ export const exportToVideo = async (
 
   const store = useAppStore.getState();
   const wasPlaying  = store.isPlaying;
-  const originalTime = store.currentTime;
+  const originalTime = simulationClock.getTime();
   if (wasPlaying) store.pausePlayback();
 
   try {
@@ -923,7 +925,7 @@ export const exportToVideo = async (
     }
   } finally {
     store.setCurrentTime(originalTime);
-    if (wasPlaying) store.startPlayback();
+    if (wasPlaying) store.resumePlayback();
   }
 };
 
@@ -934,7 +936,7 @@ export const exportToVideo = async (
 // simulation at 1× speed and capturing the canvas stream.
 // Perfect visual fidelity — what you see is what you get.
 // ─────────────────────────────────────────────────────────────
-export const exportToVideoScreenCapture = async (
+const exportToVideoScreenCaptureInternal = async (
   containerSelector: string,
   maxDuration: number,
   defaultName: string,
@@ -948,7 +950,7 @@ export const exportToVideoScreenCapture = async (
 
   const store = useAppStore.getState();
   const wasPlaying = store.isPlaying;
-  const originalTime = store.currentTime;
+  const originalTime = simulationClock.getTime();
   if (wasPlaying) store.pausePlayback();
 
   // Temporarily hide UI controls during capture
@@ -1050,7 +1052,13 @@ export const exportToVideoScreenCapture = async (
     restoreShadows(shadowStyle);
     restoreUIElements(elementsToHide);
     store.setCurrentTime(originalTime);
-    if (wasPlaying) store.startPlayback();
+    if (wasPlaying) store.resumePlayback();
   }
 };
 
+
+export const generatePngDataUrl = (...args: Parameters<typeof generatePngDataUrlInternal>) => withFullSequenceRendering(() => generatePngDataUrlInternal(...args));
+
+export const generateSvgDataUrl = (...args: Parameters<typeof generateSvgDataUrlInternal>) => withFullSequenceRendering(() => generateSvgDataUrlInternal(...args));
+
+export const exportToVideoScreenCapture = (...args: Parameters<typeof exportToVideoScreenCaptureInternal>) => withFullSequenceRendering(() => exportToVideoScreenCaptureInternal(...args));

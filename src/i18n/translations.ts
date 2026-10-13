@@ -1,6 +1,7 @@
 import { terminology } from './terminology';
 export const translations = {
   tr: {
+    navigationUi: { savingFailed: 'Değişiklikleriniz kaydedilemedi. Düzenleyicide korunuyor.', retry: 'Kaydetmeyi yeniden dene', retryHint: 'Kayıt tamamlandıktan sonra gezinmeyi yeniden deneyin.', opening: 'Diyagram açılıyor…', unavailable: 'Çalışma alanı veya diyagram açılamadı. Depolama veya klasör izinlerini kontrol edip yeniden deneyin.', locked: 'Gezinmeden önce ortak çalışma oturumundan ayrılın.', details: 'Ayrıntılar', changed: 'Daha yeni değişiklikler henüz kaydedilmedi.' },
     terms: terminology.tr,
     timelineUi: {
       previous: 'Önceki adım', next: 'Sonraki adım', zoomIn: 'Zaman çizelgesini yakınlaştır', zoomOut: 'Zaman çizelgesini uzaklaştır', fit: 'Zaman çizelgesini sığdır', goToPlayhead: 'Oynatma konumuna git', seek: 'Oynatma konumu', editStep: 'Adımı düzenle', deleteStep: 'Adımı sil', deleteNote: 'Yapışkan notu sil', processText: 'İşlem açıklaması', processDuration: 'İşlem süresi (ms)', processPlaceholder: 'örn. Veri kaydediliyor', duration: 'Süre (ms)', delay: 'Gecikme (ms)', order: 'Adım sırası', help: 'Zamanlama yardımı',
@@ -271,6 +272,7 @@ export const translations = {
     no: "Hayır"
   },
   en: {
+    navigationUi: { savingFailed: 'Your changes could not be saved. They are still open.', retry: 'Retry saving', retryHint: 'Save successfully, then try navigation again.', opening: 'Opening diagram…', unavailable: 'This workspace or diagram could not be opened. Check its storage or folder permissions and try again.', locked: 'Leave the collaboration session before navigating.', details: 'Details', changed: 'Newer changes remain unsaved.' },
     terms: terminology.en,
     timelineUi: {
       previous: 'Previous step', next: 'Next step', zoomIn: 'Zoom in on timeline', zoomOut: 'Zoom out of timeline', fit: 'Fit timeline', goToPlayhead: 'Go to playhead', seek: 'Playback position', editStep: 'Edit step', deleteStep: 'Delete step', deleteNote: 'Delete sticky note', processText: 'Process description', processDuration: 'Process duration (ms)', processPlaceholder: 'e.g. Saving data', duration: 'Duration (ms)', delay: 'Delay (ms)', order: 'Step order', help: 'Timing help',

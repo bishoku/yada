@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo, RefObject } from 'react';
+import { useEffect, useState, useMemo, useRef, RefObject } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { simulationClock } from '../../../store/simulationClock';
+import { maximumTimelineEnd } from './sectionPlayback';
 
 interface PathSample {
   x: number;
@@ -60,18 +61,24 @@ export const useEdgeAnimation = (
 
   const [isAnimating, setIsAnimating] = useState(false);
   const [activeStepNumber, setActiveStepNumber] = useState<number | null>(null);
+  const pathSamples = useRef<{ d: string; samples: PathSample[] }>({ d: '', samples: [] });
 
   const seqsForEdge = useMemo(() => logicalData.sequences.filter((s) => s.edgeId === edgeId), [logicalData.sequences, edgeId]);
   const isSelected = useMemo(() => seqsForEdge.some((s) => s.id === selectedSequenceId), [seqsForEdge, selectedSequenceId]);
   const isAsync = useMemo(() => seqsForEdge.some((s) => s.isAsync), [seqsForEdge]);
 
   useEffect(() => {
-    let lastPathD = '';
-    let cachedSamples: PathSample[] = [];
+    let lastPathD = pathSamples.current.d;
+    let cachedSamples: PathSample[] = pathSamples.current.samples;
     let cachedMaxTimelineEnd = 0;
     let lastSchedulesRef: Record<string, { start: number; end: number }> | null = null;
+    let particlesHidden = false;
+    let previousAnimating: boolean | undefined;
+    let previousStep: number | null | undefined;
 
     const hideAllParticles = () => {
+      if (particlesHidden) return;
+      particlesHidden = true;
       particleRefs.forEach(ref => {
         if (ref.current) ref.current.style.display = 'none';
       });
@@ -84,11 +91,7 @@ export const useEdgeAnimation = (
 
       if (schedules !== lastSchedulesRef) {
         lastSchedulesRef = schedules;
-        let maxEnd = 0;
-        for (const k in schedules) {
-          if (schedules[k].end > maxEnd) maxEnd = schedules[k].end;
-        }
-        cachedMaxTimelineEnd = maxEnd;
+        cachedMaxTimelineEnd = maximumTimelineEnd(schedules);
       }
 
       let activeSeq = null;
@@ -112,10 +115,16 @@ export const useEdgeAnimation = (
       }
 
       const newIsAnimating = !!activeSeq;
-      setIsAnimating((prev) => (prev !== newIsAnimating ? newIsAnimating : prev));
+      if (previousAnimating !== newIsAnimating) {
+        previousAnimating = newIsAnimating;
+        setIsAnimating(newIsAnimating);
+      }
 
       const nextStepNum = activeSeq ? activeSeq.stepNumber : null;
-      setActiveStepNumber((prev) => (prev !== nextStepNum ? nextStepNum : prev));
+      if (previousStep !== nextStepNum) {
+        previousStep = nextStepNum;
+        setActiveStepNumber(nextStepNum);
+      }
 
       const pathEl = pathRef.current;
       if (!pathEl || !newIsAnimating || !activeSeq) {
@@ -139,6 +148,7 @@ export const useEdgeAnimation = (
         if (currentD !== lastPathD || cachedSamples.length === 0) {
           lastPathD = currentD;
           cachedSamples = samplePath(pathEl);
+          pathSamples.current = { d: currentD, samples: cachedSamples };
         }
 
         if (cachedSamples.length === 0) {
@@ -146,6 +156,7 @@ export const useEdgeAnimation = (
           return;
         }
 
+        particlesHidden = false;
         switch (effectiveMode) {
           case 'repeat': {
             const count = timing?.repeatParticleCount ?? 1;
@@ -253,7 +264,7 @@ export const useEdgeAnimation = (
       unsubStore();
       hideAllParticles();
     };
-  }, [seqsForEdge, pathRef, particleRefs]);
+  }, [seqsForEdge, pathRef, particleRefs, isAnimating]);
 
   return {
     isAnimating,

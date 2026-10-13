@@ -127,6 +127,25 @@ describe('clock driven message playback', () => {
     expect(messageParticle(0, { start: 0, end: 0 }, 0, false)).toBeNull();
   });
 
+  it('skips unchanged hidden particles but delivers seeks and phase transitions', () => {
+    const update = vi.fn();
+    const unsubscribe = subscribeMessageParticle({ start: 100, end: 1000 }, 200, false, update);
+    expect(update).toHaveBeenCalledExactlyOnceWith(null);
+    for (let time = 1; time < 100; time++) simulationClock.setTime(time);
+    expect(update).toHaveBeenCalledTimes(1);
+    simulationClock.setTime(150);
+    expect(update).toHaveBeenLastCalledWith(0.25);
+    simulationClock.setTime(350);
+    expect(update).toHaveBeenLastCalledWith(null);
+    const calls = update.mock.calls.length;
+    simulationClock.setTime(500);
+    simulationClock.setTime(1001);
+    expect(update).toHaveBeenCalledTimes(calls);
+    simulationClock.setTime(150);
+    expect(update).toHaveBeenLastCalledWith(0.25);
+    unsubscribe();
+  });
+
   it('delivers frame positions immediately, supports seek/pause/reset and unsubscribes', () => {
     simulationClock.setTime(200);
     const update = vi.fn();

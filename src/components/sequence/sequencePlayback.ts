@@ -78,5 +78,11 @@ export function subscribeMessageParticle(
   schedule: Schedule | undefined, halfTransit: number, isReturn: boolean,
   update: (progress: number | null) => void,
 ) {
-  return simulationClock.subscribe(time => update(messageParticle(time, schedule, halfTransit, isReturn)));
+  let previous: number | null | undefined;
+  return simulationClock.subscribe(time => {
+    const progress = messageParticle(time, schedule, halfTransit, isReturn);
+    if (progress === previous) return;
+    previous = progress;
+    update(progress);
+  });
 }

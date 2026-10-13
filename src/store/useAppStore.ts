@@ -1,3 +1,4 @@
+import { saveCurrentDiagram } from '../services/saveCoordinator';
 import { simulationClock } from './simulationClock';
 import { create } from 'zustand';
 import { AppState } from '../types';
@@ -181,64 +182,9 @@ export const setDiagramDataInStore = (logicalData: any, visualData: any, autoPla
   });
 };
 
-// ── Shared Save Logic ─────────────────────────────────────────────────────
-let isSavingLock = false;
-
-const performSave = async (): Promise<boolean> => {
-  if (isSavingLock) return false;
-  
-  const state = useAppStore.getState();
-  if (!state.currentWorkspace || state.isReadOnly || state.currentWorkspace.path.startsWith('memory://')) return false;
-
-  isSavingLock = true;
-  useAppStore.setState({ isSaving: true });
-
-  try {
-    const path = state.currentWorkspace.path;
-    const freshState = useAppStore.getState();
-    if (!freshState.activeDiagramId) return false;
-    
-    await StorageService.save_workspace(JSON.stringify(freshState.currentWorkspace));
-    
-    // Wrap with schemaVersion envelope for forward-compatible loading
-    const diagramFile = {
-      schemaVersion: freshState.logicalData.schemaVersion ?? 1,
-      logical: freshState.logicalData,
-      visual: freshState.visualData,
-    };
-    await StorageService.save_diagram( 
-      path,
-      freshState.activeDiagramId,
-      JSON.stringify(freshState.logicalData),
-      JSON.stringify(freshState.visualData),
-      JSON.stringify(diagramFile)
-    );
-    
-    const afterSaveState = useAppStore.getState();
-    if (afterSaveState.logicalData === freshState.logicalData && 
-        afterSaveState.visualData === freshState.visualData) {
-      useAppStore.setState({ isDirty: false });
-    }
-    
-    // Mark as unsynced if the user is logged in
-    if (afterSaveState.googleUser) {
-      useAppStore.setState({ hasUnsyncedChanges: true });
-    }
-    
-    console.log('[Save] Saved successfully.');
-    return true;
-  } catch (err) {
-    console.error('[Save] Save failed:', err);
-    return false;
-  } finally {
-    isSavingLock = false;
-    useAppStore.setState({ isSaving: false });
-  }
-};
-
 // ── Auto-Save Loop ────────────────────────────────────────────────────────
 let autoSaveInterval: any = null;
-let beforeUnloadHandler: (() => void) | null = null;
+let beforeUnloadHandler: ((event: BeforeUnloadEvent) => void) | null = null;
 
 export const startAutoSave = () => {
   if (autoSaveInterval) return;
@@ -246,19 +192,20 @@ export const startAutoSave = () => {
     const state = useAppStore.getState();
     const mode = StorageService.getMode();
     const isEmbedOrModal = mode === 'embed' || mode === 'confluence-dc' || mode === 'forge';
-    if (state.isDirty && state.currentWorkspace && !state.isReadOnly && !isSavingLock && !isEmbedOrModal) {
+    if (state.isDirty && state.currentWorkspace && !state.isReadOnly && !state.isSaving && !isEmbedOrModal) {
       console.log('[AutoSave] Triggering save...');
-      await performSave();
+      await saveCurrentDiagram();
     }
   }, 5000);
 
   if (typeof window !== 'undefined' && !beforeUnloadHandler) {
-    beforeUnloadHandler = () => {
+    beforeUnloadHandler = (event) => {
       const state = useAppStore.getState();
       const mode = StorageService.getMode();
       const isEmbedOrModal = mode === 'embed' || mode === 'confluence-dc' || mode === 'forge';
-      if (state.isDirty && state.currentWorkspace && !state.isReadOnly && !isSavingLock && !isEmbedOrModal) {
-        performSave();
+      if (state.isDirty && state.currentWorkspace && !state.isReadOnly && !isEmbedOrModal) {
+        event.preventDefault();
+        event.returnValue = '';
       }
     };
     window.addEventListener('beforeunload', beforeUnloadHandler);

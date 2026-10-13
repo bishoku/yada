@@ -1,3 +1,4 @@
+import { isFullSequenceCapture } from '../../services/sequenceCapture';
 import { StateCreator } from 'zustand';
 import { 
   AppState, 
@@ -469,6 +470,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
   },
 
   updateCanvasViewport: (zoom, pan) => {
+    if (isFullSequenceCapture()) return;
     set((state) => {
       return {
         visualData: {

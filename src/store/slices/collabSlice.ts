@@ -1,3 +1,4 @@
+import { ensureSavedForNavigation } from '../../services/saveCoordinator';
 import { getPlatformCapabilities, assertCanCollaborate } from '../../services/platformCapabilities';
 import { StateCreator } from 'zustand';
 import { AppState, WorkspaceMeta } from '../../types';
@@ -132,11 +133,7 @@ export const createCollabSlice: StateCreator<AppState, [], [], CollabSlice> = (s
     // 1. If the user currently has an open dirty workspace, save it before switching
     const existingWs = get().currentWorkspace;
     if (existingWs && !existingWs.path.startsWith('memory://')) {
-      try {
-        await get().manualSave();
-      } catch (e) {
-        console.warn('[Collab] Failed to auto-save existing workspace before joining:', e);
-      }
+      if (!await ensureSavedForNavigation()) throw new Error('CHANGES_NOT_SAVED');
     }
 
     // 2. Create a persistent workspace in storage for this session
@@ -192,12 +189,7 @@ export const createCollabSlice: StateCreator<AppState, [], [], CollabSlice> = (s
     const { isCollabActive } = get();
     if (!isCollabActive) return;
 
-    // Persist final diagram and workspace state to storage before disconnecting
-    try {
-      await get().manualSave();
-    } catch (e) {
-      console.warn('[Collab] Failed to save before leaving session:', e);
-    }
+    if (!await ensureSavedForNavigation()) throw new Error('CHANGES_NOT_SAVED');
 
     collabManager.leaveRoom();
 
