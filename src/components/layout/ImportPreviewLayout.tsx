@@ -1,3 +1,5 @@
+import { MermaidImportError } from '../../adapters/mermaidAdapter';
+import type { ImportDiagnostic } from '../../adapters/types';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { DiagramCanvas } from '../canvas/DiagramCanvas';
@@ -38,6 +40,9 @@ export const ImportPreviewLayout: React.FC = () => {
   const [simulationMultiplier, setSimulationMultiplier] = useState<number>(1);
   
   const [loading, setLoading] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<ImportDiagnostic[]>([]);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const [isResizing, setIsResizing] = useState(false);
@@ -107,19 +112,27 @@ export const ImportPreviewLayout: React.FC = () => {
     const adapter = availableAdapters.find(a => a.id === importAdapterId);
     if (!adapter) return;
 
+    let cancelled = false;
+    setReady(false);
     const reParse = async () => {
       setLoading(true);
+      setParseError(null);
       try {
         const result = await adapter.parse(importRawData, { 
           ast: filterAst || undefined,
           nodeTypeMappings: nodeTypeMappings.length > 0 ? nodeTypeMappings : undefined,
           simulationMultiplier
         });
+        if (cancelled) return;
         loadImportPreview(result.logicalData, result.visualData);
+        setDiagnostics(result.diagnostics ?? []);
+        setReady(true);
       } catch (err) {
-        console.error("Failed to parse trace with filters", err);
+        if (cancelled) return;
+        setDiagnostics([]);
+        setParseError(err instanceof MermaidImportError ? `${t.mermaid.line} ${err.line}: ${t.mermaid.errors[err.code]}` : String(err instanceof Error ? err.message : err));
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -127,8 +140,8 @@ export const ImportPreviewLayout: React.FC = () => {
       reParse();
     }, 300);
 
-    return () => clearTimeout(timeout);
-  }, [filterAst, nodeTypeMappings, simulationMultiplier, importRawData, importAdapterId]); // intentionally omitting loadImportPreview
+    return () => { cancelled = true; clearTimeout(timeout); };
+  }, [filterAst, nodeTypeMappings, simulationMultiplier, importRawData, importAdapterId, language]); // intentionally omitting loadImportPreview
 
   const handleCancel = () => {
     setViewMode('freeform');
@@ -191,7 +204,7 @@ export const ImportPreviewLayout: React.FC = () => {
       <div className="h-14 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between shrink-0 shadow-sm z-20">
         <div className="flex items-center gap-3">
           <Activity className="w-5 h-5 text-indigo-500" />
-          <h1 className="font-bold text-slate-800 dark:text-slate-100">Trace Import Preview</h1>
+          <h1 className="font-bold text-slate-800 dark:text-slate-100">{t.mermaid.previewTitle}</h1>
         </div>
 
         <div className="flex items-center gap-3">
@@ -203,6 +216,7 @@ export const ImportPreviewLayout: React.FC = () => {
             Cancel
           </button>
           <button
+            disabled={!ready || loading || !!parseError}
             onClick={() => setPickerOpen(true)}
             className="px-4 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center gap-2 transition-colors shadow-sm"
           >
@@ -212,6 +226,11 @@ export const ImportPreviewLayout: React.FC = () => {
         </div>
       </div>
 
+      {parseError && <div role="alert" className="p-3 text-sm bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300">{parseError}</div>}
+      {diagnostics.length > 0 && <details open className="px-4 py-2 text-xs bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200 max-h-36 overflow-auto">
+        <summary>{t.mermaid.diagnosticsTitle} ({diagnostics.length})</summary>
+        <ul>{diagnostics.map((item, index) => <li key={index}>{t.mermaid.line} {item.line}: {t.mermaid[item.code]} {item.source && <code>{item.source}</code>}</li>)}</ul>
+      </details>}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar */}
         <div className="w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0">

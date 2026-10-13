@@ -1,3 +1,5 @@
+import { participantActivityKey, type ParticipantInterval } from '../sequencePlayback';
+import { useSimulationSelector } from '../useSimulationSelector';
 import React, { memo, useMemo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { useAppStore } from '../../../store/useAppStore';
@@ -132,79 +134,20 @@ const defaultTheme: ThemeStyle = {
 
 // ── Activity tracking ─────────────────────────────────────────────────────────
 // Returns the slot range that this participant should show an activity box for.
-function useParticipantActivity(
-  logicalId: string,
-): { minSlot: number | null; maxSlot: number | null; isActive: boolean } {
-  const str = useAppStore((s) => {
-    const { currentTime, schedules: layoutSchedules, logicalData } = s;
-    const { sequences, edges } = logicalData;
-
-    // Build slot map from time-ordered events
-    interface SlotEvent { seqId: string; time: number; isReturn: boolean; }
-    const events: SlotEvent[] = [];
-    sequences.forEach((seq) => {
-      const sched = layoutSchedules[seq.id];
-      const start = sched?.start ?? 0;
-      const end   = sched?.end   ?? start + 1;
-      events.push({ seqId: seq.id, time: start, isReturn: false });
-      if (seq.isRoundTrip) events.push({ seqId: seq.id, time: end, isReturn: true });
-    });
-    
-    events.sort((a, b) => a.time !== b.time ? a.time - b.time : a.isReturn ? -1 : 1);
-
-    const fwdSlotMap = new Map<string, number>();
-    const retSlotMap = new Map<string, number>();
-    events.forEach((ev, idx) => {
-      if (ev.isReturn) retSlotMap.set(ev.seqId, idx);
-      else fwdSlotMap.set(ev.seqId, idx);
-    });
-
-    let minSlot: number | null = null;
-    let maxSlot: number | null = null;
-
-    sequences.forEach((seq) => {
-      const sched = layoutSchedules[seq.id];
-      if (!sched) return;
-
-      const seqActive = currentTime >= sched.start && currentTime <= sched.end;
-      if (!seqActive) return;
-
-      const edge = edges.find((e) => e.id === seq.edgeId);
-      if (!edge) return;
-
-      const isInvolved = edge.sourceId === logicalId || edge.targetId === logicalId;
-      if (!isInvolved) return;
-
-      const fwd = fwdSlotMap.get(seq.id);
-      const ret = retSlotMap.get(seq.id);
-
-      if (fwd !== undefined) {
-        minSlot = minSlot === null ? fwd : Math.min(minSlot, fwd);
-        maxSlot = maxSlot === null ? fwd : Math.max(maxSlot, fwd);
-      }
-      if (ret !== undefined) {
-        maxSlot = maxSlot === null ? ret : Math.max(maxSlot, ret);
-      }
-    });
-
-    return JSON.stringify({
-      minSlot,
-      maxSlot,
-      isActive: minSlot !== null,
-    });
-  });
-  
-  return useMemo(() => JSON.parse(str), [str]);
+function useParticipantActivity(intervals: ParticipantInterval[]) {
+  const key = useSimulationSelector(time => participantActivityKey(intervals, time));
+  const [minSlot, maxSlot] = key ? key.split(':').map(Number) : [null, null];
+  return { minSlot, maxSlot, isActive: minSlot !== null };
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export const SeqParticipantNode = memo(function SeqParticipantNode({
   data,
 }: NodeProps) {
-  const { name, nodeType, lifelineHeight, totalSlots, logicalId } =
+  const { name, nodeType, lifelineHeight, messageSlots, activityIntervals } =
     data as unknown as SeqParticipantData;
 
-  const { minSlot, maxSlot, isActive } = useParticipantActivity(logicalId);
+  const { minSlot, maxSlot, isActive } = useParticipantActivity(activityIntervals);
 
   const themeName = useAppStore((s) => s.theme);
   const bgColor = useAppStore((s) => s.visualData.canvas.bgColor);
@@ -252,12 +195,12 @@ export const SeqParticipantNode = memo(function SeqParticipantNode({
     );
   }, [minSlot, maxSlot, theme]);
 
-  // ── Handles — Invisible handles on the lifeline — 4 per slot (both src+tgt on each side)
+  // ── Handles — Only slots incident to this participant
   // Needed because forward edges use left=target/right=source,
   // while return edges use left=source/right=target.
   const handles = useMemo(() => {
     const result: React.ReactNode[] = [];
-    for (let i = 0; i < totalSlots; i++) {
+    for (const i of messageSlots) {
       const yOffset = HEADER_HEIGHT + (i + 0.5) * MESSAGE_ROW_HEIGHT;
       const centerX = PARTICIPANT_WIDTH / 2;
       const sharedStyle: React.CSSProperties = {
@@ -279,7 +222,7 @@ export const SeqParticipantNode = memo(function SeqParticipantNode({
       );
     }
     return result;
-  }, [totalSlots]);
+  }, [messageSlots]);
 
   // ── Card classes (matches BaseNode card exactly) ──────────────────────────
   const cardClasses = [

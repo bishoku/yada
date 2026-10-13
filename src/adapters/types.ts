@@ -39,12 +39,23 @@ export interface TraceMetadata {
   attributes: AttributeMetadata[];
 }
 
+export interface ImportDiagnostic {
+  code: 'unsupportedStatement' | 'approximatePlayback' | 'activationMismatch';
+  line: number;
+  source?: string;
+}
+export interface DiagramImportResult {
+  logicalData: LogicalDiagram;
+  visualData: VisualDiagram;
+  diagnostics?: ImportDiagnostic[];
+}
+
 export interface DiagramAdapter {
   id: string;
   name: string;
   description: string;
   supportedFormats: string[]; // e.g., ['.json']
   importMethod?: 'file-picker' | 'text-modal';
-  parse: (rawInput: string, filters?: ImportFilter) => Promise<{ logicalData: LogicalDiagram; visualData: VisualDiagram }>;
+  parse: (rawInput: string, filters?: ImportFilter) => Promise<DiagramImportResult>;
   extractMetadata?: (rawInput: string) => Promise<TraceMetadata>;
 }

@@ -1,86 +1,37 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type React from 'react';
+import { seekFromPosition } from './timingModel';
+import { useAppStore } from '../../store/useAppStore';
 
-export const usePlayheadScrub = (
-  trackAreaRef: React.RefObject<HTMLDivElement | null>,
-  playheadRef: React.RefObject<HTMLDivElement | null>,
-  maxTime: number,
-  pxPerMs: number,
-  setCurrentTime: (time: number) => void
-) => {
+export function usePlayheadScrub(trackAreaRef: React.RefObject<HTMLDivElement | null>, _playheadRef: React.RefObject<HTMLDivElement | null>, maxTime: number, pxPerMs: number, setCurrentTime: (time: number) => void) {
   const [isScrubbing, setIsScrubbing] = useState(false);
-  const scrubTimeRef = useRef<number | null>(null);
-  const lastDispatchedTimeRef = useRef<number>(0);
-
-  const msPerPx = 1 / pxPerMs;
-
-  // High-Performance Scrubbing Frame-Throttle Loop
+  const active = useRef<{ pointerId: number; scale: number; limit: number } | null>(null);
+  const pending = useRef<number | null>(null);
+  const frame = useRef<number | null>(null);
   useEffect(() => {
-    if (!isScrubbing) return;
-
-    let active = true;
-    const dispatchTick = () => {
-      if (!active) return;
-      if (scrubTimeRef.current !== null && scrubTimeRef.current !== lastDispatchedTimeRef.current) {
-        setCurrentTime(scrubTimeRef.current);
-        lastDispatchedTimeRef.current = scrubTimeRef.current;
-      }
-      requestAnimationFrame(dispatchTick);
+    const update = (event: PointerEvent) => {
+      const gesture = active.current;
+      if (!gesture || gesture.pointerId !== event.pointerId || !trackAreaRef.current) return;
+      pending.current = seekFromPosition(event.clientX, trackAreaRef.current.getBoundingClientRect().left, gesture.scale, gesture.limit);
+      if (frame.current === null) frame.current = requestAnimationFrame(() => { frame.current = null; if (pending.current !== null) setCurrentTime(pending.current); });
     };
-
-    requestAnimationFrame(dispatchTick);
-    return () => {
-      active = false;
+    const end = (event: PointerEvent) => {
+      if (!active.current || event.pointerId !== active.current.pointerId) return;
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+      frame.current = null;
+      if (pending.current !== null) setCurrentTime(pending.current);
+      pending.current = null; active.current = null; setIsScrubbing(false);
     };
-  }, [isScrubbing, setCurrentTime]);
-
-  const handleTrackMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!trackAreaRef.current) return;
-    
-    const rect = trackAreaRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-
-    setIsScrubbing(true);
-    const time = Math.min(Math.max(0, x * msPerPx), maxTime);
-    
-    scrubTimeRef.current = time;
-    setCurrentTime(time);
-  }, [trackAreaRef, maxTime, setCurrentTime, msPerPx]);
-
-  const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
-    if (!isScrubbing || !trackAreaRef.current) return;
-
-    const rect = trackAreaRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const time = Math.min(Math.max(0, x * msPerPx), maxTime);
-
-    scrubTimeRef.current = time;
-
-    if (playheadRef.current) {
-      playheadRef.current.style.left = `${time * pxPerMs}px`;
-    }
-  }, [isScrubbing, trackAreaRef, maxTime, playheadRef, pxPerMs, msPerPx]);
-
-  const handleGlobalMouseUp = useCallback(() => {
-    if (!isScrubbing) return;
-    setIsScrubbing(false);
-
-    if (scrubTimeRef.current !== null) {
-      setCurrentTime(scrubTimeRef.current);
-      scrubTimeRef.current = null;
-    }
-  }, [isScrubbing, setCurrentTime]);
-
-  useEffect(() => {
-    window.addEventListener('mousemove', handleGlobalMouseMove);
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleGlobalMouseMove);
-      window.removeEventListener('mouseup', handleGlobalMouseUp);
-    };
-  }, [handleGlobalMouseMove, handleGlobalMouseUp]);
-
-  return {
-    isScrubbing,
-    handleTrackMouseDown,
+    window.addEventListener('pointermove', update); window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end);
+    return () => { if (frame.current !== null) cancelAnimationFrame(frame.current); window.removeEventListener('pointermove', update); window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end); };
+  }, [trackAreaRef, setCurrentTime]);
+  const handleTrackPointerDown = (event: React.PointerEvent) => {
+    if (event.button !== 0 || !trackAreaRef.current) return;
+    useAppStore.getState().pausePlayback();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    active.current = { pointerId: event.pointerId, scale: pxPerMs, limit: maxTime };
+    const time = seekFromPosition(event.clientX, trackAreaRef.current.getBoundingClientRect().left, pxPerMs, maxTime);
+    pending.current = time; setCurrentTime(time); setIsScrubbing(true);
   };
-};
+  return { isScrubbing, handleTrackPointerDown };
+}

@@ -1,3 +1,4 @@
+import { getPlatformCapabilities, assertCanCollaborate } from '../../services/platformCapabilities';
 import { StateCreator } from 'zustand';
 import { AppState, WorkspaceMeta } from '../../types';
 import { CollabPeer } from '../../services/collab/types';
@@ -93,11 +94,12 @@ export const createCollabSlice: StateCreator<AppState, [], [], CollabSlice> = (s
       };
     }),
 
-  setStartCollabModalOpen: (open) => set({ isStartCollabModalOpen: open }),
+  setStartCollabModalOpen: (open) => set({ isStartCollabModalOpen: open && getPlatformCapabilities().canCollaborate }),
   setJoinCollabModalOpen: (open, roomId = null) =>
-    set({ isJoinCollabModalOpen: open, pendingJoinRoomId: roomId }),
+    set({ isJoinCollabModalOpen: open && getPlatformCapabilities().canCollaborate, pendingJoinRoomId: getPlatformCapabilities().canCollaborate ? roomId : null }),
 
   startCollabSession: async (durationMinutes = 30) => {
+    assertCanCollaborate();
     const state = get();
     const activeDiagramId = state.activeDiagramId;
     const currentWorkspace = state.currentWorkspace;
@@ -126,6 +128,7 @@ export const createCollabSlice: StateCreator<AppState, [], [], CollabSlice> = (s
   },
 
   joinCollabSession: async (roomId, name, color) => {
+    assertCanCollaborate();
     // 1. If the user currently has an open dirty workspace, save it before switching
     const existingWs = get().currentWorkspace;
     if (existingWs && !existingWs.path.startsWith('memory://')) {

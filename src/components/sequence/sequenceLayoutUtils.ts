@@ -16,6 +16,11 @@ export function computeParticipantOrder(
   participants: LogicalNode[],
   edges: LogicalEdge[]
 ): Map<string, number> {
+  // Optional source order applies only to newly imported Mermaid participants.
+  if (participants.length && participants.some(p => typeof p.properties?.mermaidOrder === 'number')) {
+    const sourceOrder = (node: LogicalNode) => typeof node.properties?.mermaidOrder === 'number' && Number.isFinite(node.properties.mermaidOrder) ? node.properties.mermaidOrder : Number.MAX_SAFE_INTEGER;
+    return new Map([...participants].sort((a, b) => sourceOrder(a) - sourceOrder(b)).map((p, index) => [p.id, index]));
+  }
   const g = new dagre.graphlib.Graph();
   g.setGraph({ rankdir: 'LR', ranksep: 80, nodesep: 40 });
   g.setDefaultEdgeLabel(() => ({}));
@@ -69,7 +74,8 @@ export function computeSlots(
   // Tiebreaker at same timestamp: RETURN before FORWARD.
   events.sort((a, b) => {
     if (a.time !== b.time) return a.time - b.time;
-    return a.isReturn ? -1 : 1; 
+    // Stable input order for events of the same kind; returns precede forwards.
+    return Number(b.isReturn) - Number(a.isReturn);
   });
 
   const fwdSlotMap = new Map<string, number>();
@@ -101,7 +107,13 @@ export function computeFragmentBounds(
   retSlotMap: Map<string, number>
 ): FragmentBounds[] {
   return sections.flatMap((section) => {
-    const children = participants.filter((n) => n.parentId === section.id);
+    const explicitIds = Array.isArray(section.properties?.sequenceIds) ? new Set(section.properties.sequenceIds as string[]) : null;
+    const selectedSequences = explicitIds ? sequences.filter(seq => explicitIds.has(seq.id)) : sequences;
+    const involved = new Set(selectedSequences.flatMap(seq => {
+      const edge = edgeMap.get(seq.edgeId);
+      return edge ? [edge.sourceId, edge.targetId] : [];
+    }));
+    const children = participants.filter(n => explicitIds ? involved.has(n.id) : n.parentId === section.id);
     if (!children.length) return [];
 
     const childIds = new Set(children.map((c) => c.id));
@@ -114,7 +126,7 @@ export function computeFragmentBounds(
     if (!isFinite(minCol)) return [];
 
     let minSlot = Infinity, maxSlot = -Infinity;
-    sequences.forEach((seq) => {
+    selectedSequences.forEach((seq) => {
       const edge = edgeMap.get(seq.edgeId);
       if (!edge) return;
       if (childIds.has(edge.sourceId) || childIds.has(edge.targetId)) {

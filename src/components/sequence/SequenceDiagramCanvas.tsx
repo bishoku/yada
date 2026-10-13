@@ -1,3 +1,4 @@
+import { translations } from '../../i18n/translations';
 import React, { useMemo, useEffect } from 'react';
 import {
   ReactFlow,
@@ -43,6 +44,8 @@ function isColorDark(color: string): boolean {
 
 // ── Inner wrapper (must be inside ReactFlowProvider) ────────────────────────
 function SeqFlowWrapper() {
+  const language = useAppStore(s => s.language);
+  const t = translations[language];
   const theme = useAppStore((s) => s.theme);
   const gridVisible = useAppStore((s) => s.visualData.canvas.gridVisible !== false);
   const bgColor = useAppStore((s) => s.visualData.canvas.bgColor);
@@ -107,7 +110,7 @@ function SeqFlowWrapper() {
             <circle cx="8" cy="18" r="1.5" fill="currentColor" />
           </svg>
           <p style={{ margin: 0 }}>
-            Add nodes and sequences to generate the sequence diagram.
+            {t.timelineUi.emptySequence}
           </p>
         </div>
       </div>

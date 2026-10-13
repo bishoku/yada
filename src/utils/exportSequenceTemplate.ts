@@ -1,3 +1,4 @@
+import { buildSequencePlayback } from '../components/sequence/sequencePlayback';
 import { LogicalDiagram } from '../types';
 import {
   PARTICIPANT_SPACING,
@@ -9,7 +10,6 @@ import {
   FRAGMENT_PADDING_X,
   FRAGMENT_PADDING_Y,
   computeParticipantOrder,
-  computeSlots,
   computeFragmentBounds,
 } from '../components/sequence/sequenceLayoutUtils';
 
@@ -24,7 +24,7 @@ export const generateSequenceHtml = (
   
   const participantOrder = computeParticipantOrder(participants, logicalData.edges);
   const edgeMap = new Map(logicalData.edges.map((e) => [e.id, e]));
-  const { fwdSlotMap, retSlotMap, totalSlots } = computeSlots(logicalData.sequences, schedules);
+  const { fwdSlotMap, retSlotMap, totalSlots } = buildSequencePlayback(logicalData.sequences, logicalData.edges, schedules);
   
   const fragmentBounds = computeFragmentBounds(
     sections, participants, participantOrder, edgeMap,

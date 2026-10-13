@@ -13,6 +13,7 @@ export function validateAndRepairAiPayload(
   // 1. STRUCTURAL INTEGRITY & DEFAULTS
   // ---------------------------------------------------------
   const safeLogical: LogicalDiagram = {
+    ...(logicalPayload?.sequenceDiagram?.version === 1 ? { sequenceDiagram: logicalPayload.sequenceDiagram } : {}),
     schemaVersion: 2,
     nodes: Array.isArray(logicalPayload?.nodes) ? logicalPayload.nodes : [],
     edges: Array.isArray(logicalPayload?.edges) ? logicalPayload.edges : [],

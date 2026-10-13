@@ -14,6 +14,7 @@ export interface TimelineSlice {
   loopPlayback: boolean;
 
   startPlayback: () => void;
+  resumePlayback: () => void;
   pausePlayback: () => void;
   stopPlayback: () => void;
   setCurrentTime: (time: number) => void;
@@ -46,6 +47,10 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
     simulationClock.setTime(0);
     simulationClock.setIsPlaying(true);
     set({ isPlaying: true, currentTime: 0, selectedSequenceId: null });
+  },
+  resumePlayback: () => {
+    simulationClock.setIsPlaying(true);
+    set({ isPlaying: true, currentTime: simulationClock.getTime() });
   },
   pausePlayback: () => {
     simulationClock.setIsPlaying(false);

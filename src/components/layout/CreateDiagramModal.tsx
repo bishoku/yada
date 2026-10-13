@@ -1,3 +1,4 @@
+import { getPlatformCapabilities } from '../../services/platformCapabilities';
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { translations } from '../../i18n/translations';
@@ -42,7 +43,7 @@ export const CreateDiagramModal: React.FC = () => {
   }, [isCreateDiagramModalOpen, setCreateDiagramModalOpen]);
 
 
-  if (!isCreateDiagramModalOpen) return null;
+  if (!isCreateDiagramModalOpen || !getPlatformCapabilities().canCreateDiagram) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

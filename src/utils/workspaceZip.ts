@@ -377,6 +377,7 @@ export const importWorkspace = async (
     });
     
     const cleanLogical = {
+      ...logicalData,
       nodes,
       edges: logicalData.edges || [],
       sequences: logicalData.sequences || []

@@ -1,3 +1,5 @@
+import { simulationClock } from '../simulationClock';
+import { getPlatformCapabilities, assertCanCreateDiagram } from '../../services/platformCapabilities';
 import { StateCreator } from 'zustand';
 import { AppState, WorkspaceMeta } from '../../types';
 import { Language, Theme } from '../../i18n/translations';
@@ -163,11 +165,12 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   setDiagrams: (diagrams) => set({ diagrams }),
   setActiveDiagramId: (id) => set({ activeDiagramId: id }),
   setOpenDiagramIds: (ids) => set({ openDiagramIds: ids }),
-  setCreateDiagramModalOpen: (open) => set({ isCreateDiagramModalOpen: open }),
+  setCreateDiagramModalOpen: (open) => set({ isCreateDiagramModalOpen: open && getPlatformCapabilities().canCreateDiagram }),
   setDirty: (status) => set({ isDirty: status }),
   setRecentWorkspaces: (workspaces) => set({ recentWorkspaces: workspaces }),
 
   createDiagram: async (name: string) => {
+    assertCanCreateDiagram();
     if (get().isCollabActive) {
       throw new Error('Diagram creation is disabled during active collaboration.');
     }
@@ -269,6 +272,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       
       if (diag.logicalData && Array.isArray(diag.logicalData.nodes) && Array.isArray(diag.logicalData.edges)) {
         logicalData = {
+          ...diag.logicalData,
           schemaVersion: diag.logicalData.schemaVersion ?? 1,
           nodes: diag.logicalData.nodes,
           edges: diag.logicalData.edges,
@@ -276,7 +280,8 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         };
       } else if (diag.logical) {
         logicalData = {
-          schemaVersion: diag.schemaVersion ?? 1,
+          ...diag.logical,
+          schemaVersion: diag.logical.schemaVersion ?? diag.schemaVersion ?? 1,
           nodes: diag.logical.nodes || [],
           edges: diag.logical.edges || [],
           sequences: diag.logical.sequences || []
@@ -306,6 +311,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       const openIds = new Set(state.openDiagramIds);
       openIds.add(id);
       
+      simulationClock.reset();
       set({ 
         activeDiagramId: id,
         openDiagramIds: Array.from(openIds),
@@ -731,6 +737,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
 
 
   cloneSharedToWorkspace: async (name: string) => {
+    assertCanCreateDiagram();
     return get().saveSharedToWorkspace(null, true, name, 'Default Diagram');
   },
 
@@ -740,6 +747,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     newWorkspaceName?: string,
     targetDiagramName?: string
   ) => {
+    assertCanCreateDiagram();
     try {
       const state = get();
       const diagName = targetDiagramName || state.currentWorkspace?.name || 'Shared Diagram';
@@ -844,6 +852,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   },
 
   copyDiagramToWorkspace: async (diagramId: string, targetWorkspacePath: string, newName?: string) => {
+    assertCanCreateDiagram();
     const state = get();
     if (!state.currentWorkspace) throw new Error("No active workspace");
     const sourceWorkspacePath = state.currentWorkspace.path;
@@ -937,6 +946,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   },
 
   importPreviewToWorkspace: async (targetWorkspacePath: string, diagramName: string) => {
+    assertCanCreateDiagram();
     const state = get();
     const logicalJson = JSON.stringify(state.logicalData);
     const visualJson = JSON.stringify(state.visualData);
@@ -977,6 +987,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   },
 
   importPreviewToNewWorkspace: async (workspaceName: string, diagramName: string) => {
+    assertCanCreateDiagram();
     const state = get();
     const resJson = await StorageService.create_workspace(workspaceName, state.currentWorkspace?.description || '');
     const ws: WorkspaceMeta = JSON.parse(resJson);

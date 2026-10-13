@@ -50,6 +50,28 @@ Unlike static diagramming tools, YADA allows you to define sequence steps on you
   - Animated Sticky Notes with custom timing and styling
 - **📱 Responsive Mobile & Desktop Support**: Desktop app powered by Tauri v2 (Mac, Windows, Linux) plus fully responsive Web UI.
 
+## Timeline editing
+
+The timeline supports zoom (1×–8×), horizontal scrolling, **Fit timeline**, **Go to playhead**, previous/next step navigation, and a keyboard-operable playback-position slider. Play resumes from the current position; Stop returns to the beginning. These are playback controls and do not change saved step timing.
+
+Select a step to see its calculated start/end times, then use **Edit step** for precise duration, delay and internal-process values in milliseconds. Delay is added according to the existing scheduler's predecessor rules; it is not an absolute start time. Concurrent steps and nested round trips retain their existing behavior. Fractional timing values are retained.
+
+Sequence timing bars accept mouse, touch and pen pointer input. Dragging previews delay changes; resizing previews duration changes. Release applies one undoable edit, while Escape cancels the preview. Editing is disabled during playback and in read-only views. A stale edit cannot overwrite a different active document.
+
+Timeline and sequence controls share English/Turkish domain terminology. Number formatting follows the selected language; diagram labels, schema keys and stored numeric values remain unchanged. Remaining older UI areas may still use legacy translation patterns.
+
+## Mermaid sequence import and export
+
+Import Mermaid text or `.mmd`/`.mermaid` files from the welcome screen's import menu. The preview lists unsupported statements with source line numbers and explains playback approximations. Invalid block nesting prevents saving the preview.
+
+Supported interchange includes participants/actors and aliases, declaration order, repeated/reverse/self messages, solid/dashed/open/cross/bidirectional arrows, notes and line breaks, explicit and shorthand activations, boxes, title/autonumber, and nested `alt`/`else`, `opt`, `loop`, `par`/`and`, `critical`/`option`, `break`, and `rect` blocks. This is a supported subset, not a claim of complete Mermaid syntax compatibility. Participant JSON configurations, creation/destruction, actor menus, newer half-arrow/central-connection syntax, and configuration directives are not interpreted.
+
+Use **Export → Mermaid sequence diagram (.mmd)** to preview, copy or download text. Current participant names, connection descriptions and note text are exported. Imported block structure and activation directives are retained through saving/reloading; deleting referenced content produces an export warning, and new steps are appended to imported structure. If step ordering has changed, the exporter warns that the retained block order may differ. Existing YADA round trips export as forward and return messages using their scheduled order.
+
+Mermaid does not encode YADA timing, animation, custom SVG assets or canvas styling. Keep `.dproj` for a lossless editable project. Imported blocks/activations are preserved semantically for Mermaid re-export; YADA playback presents all messages and does not evaluate alternatives, repeat loops or reproduce full Mermaid activation semantics. Notes remain sticky notes on the topology canvas. New imports receive authored-order playback defaults; existing diagrams keep their stored IDs, durations, delays and round-trip behavior. Optional metadata uses schema v2 and requires no migration of existing files.
+
+Syntax reference: [Mermaid sequence diagrams](https://mermaid.js.org/syntax/sequenceDiagram.html).
+
 ## 🔌 Embedding YADA in External Applications
 
 YADA supports seamless embedding into third-party web apps, note-taking applications, wikis, or CMS platforms via `iframe` and bidirectional `window.postMessage`.

@@ -37,7 +37,7 @@ export const TimelineStepList: React.FC<TimelineStepListProps> = memo(({
 
   return (
     <div
-      className="w-[340px] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-850 flex flex-col shrink-0"
+      className="w-[260px] lg:w-[340px] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-850 flex flex-col shrink-0"
       onMouseDown={(e) => e.stopPropagation()} // Prevent setting playhead when clicking left panel
     >
       {/* Header Spacer Row */}
@@ -68,10 +68,10 @@ export const TimelineStepList: React.FC<TimelineStepListProps> = memo(({
               isPlaying={isPlaying}
               maxSteps={maxSteps}
               onSelect={setSelectedSequenceId}
-              onOrderChange={setSequenceStepOrder}
-              onToggleAsync={toggleSequenceAsync}
+              onOrderChange={(id, order) => { useAppStore.getState().pushToHistory(); setSequenceStepOrder(id, order); }}
+              onToggleAsync={id => { useAppStore.getState().pushToHistory(); toggleSequenceAsync(id); }}
               onOpenTooltip={onOpenTooltip}
-              onDelete={deleteSequenceStep}
+              onDelete={id => { useAppStore.getState().pushToHistory(); deleteSequenceStep(id); }}
             />
           );
         })

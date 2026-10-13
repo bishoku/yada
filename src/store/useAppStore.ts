@@ -1,3 +1,4 @@
+import { simulationClock } from './simulationClock';
 import { create } from 'zustand';
 import { AppState } from '../types';
 import { StorageService } from '../services/storage';
@@ -153,6 +154,7 @@ export const useAppStore = create<AppState>()((set, get, store) => {
 });
 
 export const setDiagramDataInStore = (logicalData: any, visualData: any, autoPlay: boolean = false) => {
+  simulationClock.reset();
   const schedules = calculateSchedules(
     logicalData.sequences || [],
     visualData.timelines || {},

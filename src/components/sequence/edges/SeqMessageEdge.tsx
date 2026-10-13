@@ -1,3 +1,6 @@
+import { translations } from '../../../i18n/translations';
+import { messagePhase, subscribeMessageParticle } from '../sequencePlayback';
+import { useSimulationSelector } from '../useSimulationSelector';
 import { memo, useRef, useEffect } from 'react';
 import { type EdgeProps, EdgeLabelRenderer } from '@xyflow/react';
 import { useAppStore } from '../../../store/useAppStore';
@@ -45,6 +48,8 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
 }: EdgeProps) {
   ensureStyles();
 
+  const language = useAppStore(s => s.language);
+  const t = translations[language];
   const themeName    = useAppStore((s) => s.theme);
   const bgColor      = useAppStore((s) => s.visualData.canvas.bgColor);
   const isDark       = bgColor ? isColorDark(bgColor) : themeName !== 'light';
@@ -54,7 +59,7 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
   const msgData = data as unknown as SeqMessageData;
   if (!msgData) return null;
 
-  const { stepNumber, protocol, isAsync, isReturn, isRoundTrip, seqId, description } = msgData;
+  const { stepNumber, protocol, isAsync, isReturn, isRoundTrip, seqId, description, arrowType } = msgData;
 
   // ── Schedule ──────────────────────────────────────────────────────────────
   const schedule = schedules[seqId];
@@ -65,68 +70,21 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
 
   // ── Phase for forward edge: forward-travel vs waiting vs return-travel ─────
   // Derived selector: component only re-renders when phase changes, NOT every frame!
-  const phase = useAppStore((state): 'idle' | 'forward' | 'waiting' | 'return' => {
-    const t = state.currentTime;
-    if (!schedule || t < schedule.start || t > schedule.end) return 'idle';
-    
-    const elapsed = t - schedule.start;
-    const total   = schedule.end - schedule.start;
-    
-    if (total <= 0) return 'forward';
-    if (elapsed < halfTransit) return 'forward';
-    if (!isRoundTrip) return 'waiting';
-    
-    const returnPhaseStart = total - halfTransit;
-    if (elapsed >= returnPhaseStart) return 'return';
-    return 'waiting';
-  });
+  const phase = useSimulationSelector(time => messagePhase(time, schedule, halfTransit, isRoundTrip));
 
   const isActive = phase !== 'idle';
-  const showDot = isActive && (
-    isReturn ? phase === 'return' : phase === 'forward'
-  );
-
-  // ── Animated dot progress via DOM Ref (Bypasses React Render) ────────────
+  const noArrowhead = arrowType === '->' || arrowType === '-->';
+  const lost = arrowType?.endsWith('x');
+  const bidirectional = arrowType?.startsWith('<<');
+  const dashed = isReturn || (arrowType ? arrowType.includes('--') : isAsync);
+  // Keep the particle mounted so a phase change never waits for a React commit.
   const dotRef = useRef<SVGCircleElement>(null);
-
-  useEffect(() => {
-    if (!schedule) return;
-    
-    return useAppStore.subscribe((state) => {
-      if (!dotRef.current) return;
-      const t = state.currentTime;
-      if (t < schedule.start || t > schedule.end) {
-        dotRef.current.style.display = 'none';
-        return;
-      }
-
-      const elapsed = t - schedule.start;
-      const total = schedule.end - schedule.start;
-      let dotProgress = 0;
-      let shouldShow = false;
-
-      if (isReturn) {
-        const returnPhaseStart = total - halfTransit;
-        if (elapsed >= returnPhaseStart) {
-          dotProgress = halfTransit <= 0 ? 1 : Math.min((elapsed - returnPhaseStart) / halfTransit, 1);
-          shouldShow = true;
-        }
-      } else {
-        if (elapsed < halfTransit) {
-          dotProgress = halfTransit <= 0 ? 1 : Math.min(elapsed / halfTransit, 1);
-          shouldShow = true;
-        }
-      }
-
-      if (shouldShow) {
-        dotRef.current.style.display = 'block';
-        const cx = sourceX + (targetX - sourceX) * dotProgress;
-        dotRef.current.setAttribute('cx', cx.toString());
-      } else {
-        dotRef.current.style.display = 'none';
-      }
-    });
-  }, [schedule, halfTransit, isReturn, sourceX, targetX]);
+  useEffect(() => subscribeMessageParticle(schedule, halfTransit, isReturn, progress => {
+    const dot = dotRef.current;
+    if (!dot) return;
+    dot.style.display = progress === null ? 'none' : 'block';
+    if (progress !== null) dot.setAttribute('cx', String(sourceX + (targetX - sourceX) * progress));
+  }), [schedule, halfTransit, isReturn, sourceX, targetX]);
 
   // ── Colors ────────────────────────────────────────────────────────────────
   const syncColor        = isDark ? 'rgba(156, 163, 175, 0.85)' : 'rgba(71, 85, 105, 0.8)';
@@ -180,7 +138,9 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
           markerHeight="9"
           orient="auto-start-reverse"
         >
-          {(isAsync && !isReturn) ? (
+          {lost && !isReturn ? (
+            <path d="M 2 1 L 10 11 M 2 11 L 10 1" fill="none" stroke={strokeColor} strokeWidth="2" />
+          ) : (isAsync && !isReturn) ? (
             /* Open chevron for async forward */
             <path
               d="M 0 1 L 10 6 L 0 11"
@@ -203,7 +163,7 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
         </marker>
 
         {/* Glow filter for dot only */}
-        {showDot && (
+        {totalLen > 0 && (
           <filter id={glowId} x="-100%" y="-100%" width="300%" height="300%">
             <feGaussianBlur stdDeviation="2.5" result="blur" />
             <feMerge>
@@ -220,13 +180,14 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
         fill="none"
         stroke={strokeColor}
         strokeWidth={strokeWidth}
-        strokeDasharray={isReturn ? '6 3' : isAsync ? '8 4' : 'none'}
-        markerEnd={`url(#${markerId})`}
+        strokeDasharray={dashed ? '6 3' : 'none'}
+        markerEnd={noArrowhead && !isReturn ? undefined : `url(#${markerId})`}
+        markerStart={bidirectional && !isReturn ? `url(#${markerId})` : undefined}
         style={{ transition: 'stroke 0.25s ease, stroke-width 0.25s ease' }}
       />
 
       {/* ── Animated particle dot (rendered ON TOP of path, never replacing it) ── */}
-      {showDot && totalLen > 0 && (
+      {totalLen > 0 && (
         <circle
           ref={dotRef}
           className="seq-dot"
@@ -234,7 +195,7 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
           r={5}
           fill={dotColor}
           filter={`url(#${glowId})`}
-          style={{ zIndex: 10, willChange: 'cx' }}
+          style={{ display: 'none', zIndex: 10, willChange: 'cx' }}
         />
       )}
 
@@ -315,7 +276,7 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
                     : isDark ? 'rgba(148,163,184,0.45)' : 'rgba(100,116,139,0.4)',
                 }}
               >
-                {phase === 'waiting' ? '⟳ processing' : '↩ round-trip'}
+                {phase === 'waiting' ? `⟳ ${t.terms.process}` : `↩ ${t.terms.roundTrip}`}
               </div>
             )}
 
@@ -335,7 +296,7 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
                   textTransform: 'uppercase',
                 }}
               >
-                async
+                {t.terms.asynchronous}
               </div>
             )}
           </div>

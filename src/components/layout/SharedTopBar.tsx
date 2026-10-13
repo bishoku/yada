@@ -95,10 +95,10 @@ export const SharedTopBar: React.FC = () => {
                 ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
                 : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
-            title={isTr ? 'Sequence Diagram Görünümü' : 'Sequence Diagram View'}
+            title={t.terms.sequenceDiagram}
           >
             <ListOrdered className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden md:inline whitespace-nowrap">{isTr ? 'Sequence' : 'Sequence'}</span>
+            <span className="hidden md:inline whitespace-nowrap">{t.terms.sequenceDiagram}</span>
           </button>
         </div>
 

@@ -4,6 +4,7 @@ import type { StickyNote } from '../../../types';
 interface AnnotationTrackRowProps {
   id: string;
   note: StickyNote;
+  editable: boolean;
   pxPerMs: number;
   onBarMouseDown: (e: React.MouseEvent, id: string, start: number, end: number) => void;
   onResizeLeftMouseDown: (e: React.MouseEvent, id: string, start: number, end: number) => void;
@@ -15,7 +16,7 @@ interface AnnotationTrackRowProps {
  */
 export const AnnotationTrackRow: React.FC<AnnotationTrackRowProps> = memo(({
   id,
-  note,
+  note, editable,
   pxPerMs,
   onBarMouseDown,
   onResizeLeftMouseDown,
@@ -28,7 +29,8 @@ export const AnnotationTrackRow: React.FC<AnnotationTrackRowProps> = memo(({
   return (
     <div className="h-16 border-b border-slate-200/50 dark:border-slate-800/20 relative flex items-center w-full">
       <div
-        onMouseDown={(e) => onBarMouseDown(e, id, note.startTime, note.endTime)}
+        onPointerDown={e => e.stopPropagation()}
+        onMouseDown={(e) => { if (editable) onBarMouseDown(e, id, note.startTime, note.endTime); }}
         className="h-6 rounded-lg absolute cursor-grab active:cursor-grabbing transition-shadow flex items-center px-2 group border shadow-sm"
         style={{
           left,
@@ -39,7 +41,7 @@ export const AnnotationTrackRow: React.FC<AnnotationTrackRowProps> = memo(({
           opacity: note.alwaysVisible ? 0.5 : 1,
         }}
       >
-        {!note.alwaysVisible && (
+        {editable && !note.alwaysVisible && (
           <>
             <div
               className="absolute -left-1 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-black/10 rounded-l transition-colors"

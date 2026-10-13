@@ -1,3 +1,4 @@
+import { timelineScale } from '../timingModel';
 import { useMemo } from 'react';
 import type { LogicalDiagram, VisualDiagram, SequenceStep, LogicalNode, LogicalEdge } from '../../../types';
 
@@ -11,11 +12,13 @@ interface UseTimelineCalculationsProps {
   visualData: VisualDiagram;
   schedules: Record<string, ScheduleItem>;
   rightPanelWidth: number;
+  zoom?: number;
 }
 
 export interface TimelineCalculations {
   maxTime: number;
   pxPerMs: number;
+  contentWidth: number;
   sortedSequences: SequenceStep[];
   nodeMap: Map<string, LogicalNode>;
   edgeMap: Map<string, LogicalEdge>;
@@ -30,6 +33,7 @@ export const useTimelineCalculations = ({
   visualData,
   schedules,
   rightPanelWidth,
+  zoom = 1,
 }: UseTimelineCalculationsProps): TimelineCalculations => {
   // O(1) Node lookup map
   const nodeMap = useMemo(() => {
@@ -82,13 +86,12 @@ export const useTimelineCalculations = ({
   }, [schedules, logicalData.sequences, visualData.timelines]);
 
   // Dynamic scale (pixels per millisecond) with 24px right padding
-  const pxPerMs = useMemo(() => {
-    return Math.max(0.0001, (rightPanelWidth - 24) / maxTime);
-  }, [rightPanelWidth, maxTime]);
+  const { pxPerMs, contentWidth } = useMemo(() => timelineScale(rightPanelWidth, maxTime, zoom), [rightPanelWidth, maxTime, zoom]);
 
   return {
     maxTime,
     pxPerMs,
+    contentWidth,
     sortedSequences,
     nodeMap,
     edgeMap,

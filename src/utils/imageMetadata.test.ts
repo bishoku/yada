@@ -75,7 +75,7 @@ describe('imageMetadata - PNG & SVG embedded scene data', () => {
     }
 
     const enrichedBytes = injectPngMetadata(bytes.buffer, sampleDiagramData);
-    const extracted = extractPngMetadata(enrichedBytes.buffer) as typeof sampleDiagramData;
+    const extracted = extractPngMetadata(new Uint8Array(enrichedBytes).buffer) as typeof sampleDiagramData;
 
     expect(extracted).not.toBeNull();
     expect(extracted.logicalData.nodes.length).toBe(2);

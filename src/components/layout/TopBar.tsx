@@ -1,3 +1,5 @@
+import { MermaidExportModal } from './topbar/MermaidExportModal';
+import { getPlatformCapabilities } from '../../services/platformCapabilities';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppStore } from '../../store/useAppStore';
@@ -61,6 +63,8 @@ export const TopBar: React.FC = () => {
   const syncState = useAppStore((s) => s.syncState);
   const hasUnsyncedChanges = useAppStore((s) => s.hasUnsyncedChanges);
 
+  const { canCollaborate } = getPlatformCapabilities();
+
   // Collab State
   const isCollabActive = useAppStore((s) => s.isCollabActive);
   const setStartCollabModalOpen = useAppStore((s) => s.setStartCollabModalOpen);
@@ -70,6 +74,7 @@ export const TopBar: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showMermaidExport, setShowMermaidExport] = useState(false);
   const [exportProgress, setExportProgress] = useState<number | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showEmbedModal, setShowEmbedModal] = useState(false);
@@ -359,10 +364,10 @@ export const TopBar: React.FC = () => {
                   ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
                   : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
-              title={language === 'tr' ? 'Sequence Diagram Görünümü' : 'Sequence Diagram View'}
+              title={t.terms.sequenceDiagram}
             >
               <ListOrdered className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden md:inline whitespace-nowrap">{language === 'tr' ? 'Sequence' : 'Sequence'}</span>
+              <span className="hidden md:inline whitespace-nowrap">{t.terms.sequenceDiagram}</span>
             </button>
           </div>
         )}
@@ -389,7 +394,7 @@ export const TopBar: React.FC = () => {
                 ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 shadow-sm'
                 : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
-              title={language === 'tr' ? 'Zaman çizelgesi' : 'Timeline'}
+              title={t.terms.timeline}
             >
               <PanelBottom className="w-3.5 h-3.5" />
             </button>
@@ -493,6 +498,9 @@ export const TopBar: React.FC = () => {
 
                 {showExportMenu && (
                   <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1 overflow-hidden">
+                    <button onClick={() => { setShowMermaidExport(true); setShowExportMenu(false); }} className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer">
+                      {t.mermaid.exportLabel}
+                    </button>
                     <button
                       onClick={() => { handleExportPng(); setShowExportMenu(false); }}
                       className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center justify-between"
@@ -542,7 +550,7 @@ export const TopBar: React.FC = () => {
                           <Share2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                           {language === 'tr' ? 'Diyagramı Paylaş (URL)' : 'Share Diagram (URL)'}
                         </button>
-                        <button
+                        {canCollaborate && <button
                           onClick={() => { setStartCollabModalOpen(true); setShowExportMenu(false); }}
                           className="w-full text-left px-3 py-2 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-semibold cursor-pointer flex items-center justify-between"
                         >
@@ -551,7 +559,7 @@ export const TopBar: React.FC = () => {
                             {language === 'tr' ? 'Canlı Ortak Çalış (P2P)' : 'Live Collaboration (P2P)'}
                           </span>
                           <span className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-md font-bold">Max 4</span>
-                        </button>
+                        </button>}
                       </>
                     )}
                   </div>
@@ -561,7 +569,7 @@ export const TopBar: React.FC = () => {
           </>
         )}
 
-        {!isReadOnly && !isEmbedMode && (
+        {canCollaborate && !isReadOnly && !isEmbedMode && (
           <button
             onClick={() => setStartCollabModalOpen(true)}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all shadow-sm active:scale-95 ${
@@ -705,6 +713,7 @@ export const TopBar: React.FC = () => {
         <EmbedSnippetModal onClose={() => setShowEmbedModal(false)} />
       )}
 
+      {showMermaidExport && <MermaidExportModal onClose={() => setShowMermaidExport(false)} />}
       <StartCollabModal />
     </header>
   );

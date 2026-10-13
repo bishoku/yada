@@ -1,547 +1,182 @@
-import { DiagramAdapter } from './types';
-import { LogicalDiagram, LogicalNode, LogicalEdge, SequenceStep, VisualDiagram, TimelineTiming, StickyNote } from '../types';
+import type { DiagramAdapter, DiagramImportResult, ImportDiagnostic } from './types';
+import type { LogicalDiagram, LogicalNode, StickyNote } from '../types';
+import type { MermaidArrow, MermaidEvent, MermaidFragmentKind } from '../types/mermaid';
 import { generateLayout } from './layoutGenerator';
-
-// ── Arrow type definitions ──────────────────────────────────────────────────
-interface ArrowInfo {
-  isDotted: boolean;    // Dashed line (return/async response)
-  hasArrowhead: boolean; // >> or ) at end
-  isLost: boolean;      // -x / --x (cross at end)
-  isOpenArrow: boolean; // -) / --) (async open arrow)
-}
-
-const ARROW_MAP: Record<string, ArrowInfo> = {
-  '->>':  { isDotted: false, hasArrowhead: true,  isLost: false, isOpenArrow: false },
-  '-->>': { isDotted: true,  hasArrowhead: true,  isLost: false, isOpenArrow: false },
-  '->':   { isDotted: false, hasArrowhead: false, isLost: false, isOpenArrow: false },
-  '-->':  { isDotted: true,  hasArrowhead: false, isLost: false, isOpenArrow: false },
-  '-x':   { isDotted: false, hasArrowhead: false, isLost: true,  isOpenArrow: false },
-  '--x':  { isDotted: true,  hasArrowhead: false, isLost: true,  isOpenArrow: false },
-  '-)':   { isDotted: false, hasArrowhead: false, isLost: false, isOpenArrow: true },
-  '--)':  { isDotted: true,  hasArrowhead: false, isLost: false, isOpenArrow: true },
-};
-
-
-
-// ── Parser helper types ─────────────────────────────────────────────────────
-interface ParsedInteraction {
-  from: string;
-  to: string;
-  message: string;
-  arrowRaw: string;
-  arrowInfo: ArrowInfo;
-  activateTarget: boolean;   // +
-  deactivateTarget: boolean; // -
-}
-
-interface ParsedNote {
-  position: 'left' | 'right' | 'over';
-  participants: string[]; // 1 or 2 participant names
-  text: string;
-  afterInteractionIndex: number; // Index of the last interaction before this note
-}
-
-interface FragmentFrame {
-  id: string;
-  type: string; // alt, loop, opt, par, critical, break, rect
-  label: string;
-  startInteractionIndex: number;
-  participantNames: Set<string>; // Track which participants are involved
-}
-
-interface BoxFrame {
-  id: string;
-  label: string;
-  color?: string;
-  participantNames: string[];
-}
-
-// ── Main adapter ────────────────────────────────────────────────────────────
-export const mermaidAdapter: DiagramAdapter = {
-  id: 'mermaid-sequence',
-  name: 'Mermaid Sequence Diagram',
-  description: 'Import Mermaid.js sequence diagrams with full syntax support',
-  importMethod: 'text-modal',
-  supportedFormats: ['.mmd', '.txt'],
-
-  parse: async (rawInput: string): Promise<{ logicalData: LogicalDiagram; visualData: VisualDiagram }> => {
-    const lines = rawInput.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-
-    // ── State ─────────────────────────────────────────────────────────────
-    const participantOrder: string[] = [];             // Ordered participant IDs (first-seen order)
-    const participantAliases = new Map<string, string>(); // id → display name
-    const participantTypes = new Map<string, string>();   // id → 'participant' | 'actor'
-    const interactions: ParsedInteraction[] = [];
-    const notes: ParsedNote[] = [];
-    const fragmentStack: FragmentFrame[] = [];         // Stack for nested fragments
-    const completedFragments: FragmentFrame[] = [];    // Finished fragments with their interaction ranges
-    const boxes: BoxFrame[] = [];
-    let currentBox: BoxFrame | null = null;
-    let fragmentCounter = 0;
-    let boxCounter = 0;
-    let autonumber = false; // Tracked for potential future use
-    void autonumber; // suppress TS6133
-
-    // Helper: ensure participant is registered
-    function ensureParticipant(name: string, type: string = 'service') {
-      if (!participantOrder.includes(name)) {
-        participantOrder.push(name);
-        participantTypes.set(name, type);
-      }
-    }
-
-    // ── Arrow regex ───────────────────────────────────────────────────────
-    // Matches: Source ARROW [+|-] Target : Message
-    // Arrow types: -->> | ->> | --> | -> | --x | -x | --) | -)
-    // The +/- modifier comes AFTER the arrow, BEFORE the target name
-    // Examples:
-    //   A->>+B: hello     → from=A, arrow=->>, modifier=+, to=B, msg=hello
-    //   A-->>-B: goodbye  → from=A, arrow=-->>, modifier=-, to=B, msg=goodbye
-    //   A->>B: normal     → from=A, arrow=->>, modifier=none, to=B, msg=normal
-    const arrowRegex = /^(.+?)\s*(-->>|--\)|--x|-->|->>|-\)|-x|->)\s*(\+|-)?\s*(.+?)\s*:\s*(.*)$/;
-
-    // ── Line-by-line parsing ──────────────────────────────────────────────
-    for (const line of lines) {
-      // Skip diagram declaration
-      if (line.toLowerCase() === 'sequencediagram' || line.toLowerCase() === 'sequence-diagram') {
-        continue;
-      }
-
-      // Skip comments
-      if (line.startsWith('%%')) {
-        continue;
-      }
-
-      // Title (metadata only, skip)
-      if (line.toLowerCase().startsWith('title ') || line.toLowerCase().startsWith('title:')) {
-        continue;
-      }
-
-      // Autonumber
-      if (line.toLowerCase() === 'autonumber') {
-        autonumber = true;
-        continue;
-      }
-
-      // ── Participant / Actor declaration ───────────────────────────────
-      const participantMatch = line.match(/^(participant|actor)\s+(.+)$/i);
-      if (participantMatch) {
-        const pType = participantMatch[1].toLowerCase();
-        let rest = participantMatch[2].trim();
-
-        let id: string;
-        let displayName: string;
-
-        if (rest.includes(' as ')) {
-          const parts = rest.split(' as ');
-          id = parts[0].trim();
-          displayName = parts[1].trim();
-        } else {
-          id = rest;
-          displayName = rest;
-        }
-
-        ensureParticipant(id, pType === 'actor' ? 'client' : 'service');
-        if (displayName !== id) {
-          participantAliases.set(id, displayName);
-        }
-
-        // If inside a box, add to box
-        if (currentBox) {
-          currentBox.participantNames.push(id);
-        }
-        continue;
-      }
-
-      // ── Box grouping ──────────────────────────────────────────────────
-      const boxMatch = line.match(/^box\s*(.*)?$/i);
-      if (boxMatch) {
-        const boxContent = (boxMatch[1] || '').trim();
-        // Parse optional color and label from box content
-        // e.g. "Purple Application Layer", "rgb(200,255,200) Green Group", "transparent Data Layer"
-        let color: string | undefined;
-        let label = boxContent;
-
-        // Check for color prefix
-        const colorPatterns = [
-          /^(rgb\([^)]+\)|rgba\([^)]+\))\s*(.*)/i,
-          /^(transparent)\s*(.*)/i,
-          /^(#[0-9a-fA-F]{3,8})\s*(.*)/,
-          /^([a-zA-Z]+)\s+(".*"|.+)/,  // Named color + label
-        ];
-
-        for (const pat of colorPatterns) {
-          const cm = boxContent.match(pat);
-          if (cm) {
-            color = cm[1];
-            label = cm[2].replace(/^"(.*)"$/, '$1').trim();
-            break;
-          }
-        }
-
-        if (!label) label = 'Group';
-
-        currentBox = {
-          id: `box_${boxCounter++}`,
-          label,
-          color,
-          participantNames: [],
-        };
-        continue;
-      }
-
-      // ── activate / deactivate keywords ────────────────────────────────
-      const activateMatch = line.match(/^(activate|deactivate)\s+(.+)$/i);
-      if (activateMatch) {
-        // Track activation state — the visual rendering handles this
-        // via the activity box in SeqParticipantNode, so we just need
-        // to ensure the participant exists
-        const participantName = activateMatch[2].trim();
-        ensureParticipant(participantName);
-        continue;
-      }
-
-      // ── Note ──────────────────────────────────────────────────────────
-      const noteMatch = line.match(/^Note\s+(left\s+of|right\s+of|over)\s+(.+?)\s*:\s*(.*)$/i);
-      if (noteMatch) {
-        const posRaw = noteMatch[1].toLowerCase().replace(/\s+/g, ' ');
-        const participantsPart = noteMatch[2].trim();
-        const text = noteMatch[3].trim();
-
-        let position: 'left' | 'right' | 'over';
-        if (posRaw === 'left of') position = 'left';
-        else if (posRaw === 'right of') position = 'right';
-        else position = 'over';
-
-        // Note over A,B → spans two participants
-        const noteParticipants = participantsPart.split(',').map(p => p.trim());
-        noteParticipants.forEach(p => ensureParticipant(p));
-
-        notes.push({
-          position,
-          participants: noteParticipants,
-          text: text.replace(/<br\s*\/?>/gi, '\n'),
-          afterInteractionIndex: interactions.length - 1,
-        });
-        continue;
-      }
-
-      // ── Fragment keywords (alt, loop, opt, par, critical, break, rect, else, and, option) ──
-      const fragmentOpenMatch = line.match(/^(alt|opt|loop|par|critical|break|rect)\s*(.*)?$/i);
-      if (fragmentOpenMatch) {
-        const fType = fragmentOpenMatch[1].toLowerCase();
-        const fLabel = (fragmentOpenMatch[2] || '').trim();
-
-        const frame: FragmentFrame = {
-          id: `fragment_${fragmentCounter++}`,
-          type: fType,
-          label: fLabel || fType,
-          startInteractionIndex: interactions.length,
-          participantNames: new Set(),
-        };
-        fragmentStack.push(frame);
-        continue;
-      }
-
-      // Section dividers within fragments (else, and, option)
-      const sectionMatch = line.match(/^(else|and|option)\s*(.*)?$/i);
-      if (sectionMatch && fragmentStack.length > 0) {
-        // Close current fragment section and start new one
-        const parentFrame = fragmentStack[fragmentStack.length - 1];
-        // Record end index for the current section
-        const endIndex = interactions.length - 1;
-        if (endIndex >= parentFrame.startInteractionIndex) {
-          completedFragments.push({ ...parentFrame, participantNames: new Set(parentFrame.participantNames) });
-        }
-        // Start a new section within the same fragment level
-        parentFrame.startInteractionIndex = interactions.length;
-        parentFrame.label = (sectionMatch[2] || sectionMatch[1]).trim();
-        parentFrame.participantNames = new Set();
-        continue;
-      }
-
-      // ── End keyword ───────────────────────────────────────────────────
-      if (line.toLowerCase() === 'end') {
-        if (currentBox) {
-          // Close a box
-          boxes.push(currentBox);
-          currentBox = null;
-        } else if (fragmentStack.length > 0) {
-          // Close a fragment
-          const frame = fragmentStack.pop()!;
-          const endIndex = interactions.length - 1;
-          if (endIndex >= frame.startInteractionIndex) {
-            completedFragments.push(frame);
-          }
-        }
-        continue;
-      }
-
-      // ── Message/Arrow line ────────────────────────────────────────────
-      const arrowMatch = line.match(arrowRegex);
-      if (arrowMatch) {
-        const from = arrowMatch[1].trim();
-        const arrowRaw = arrowMatch[2].trim();
-        const modifier = arrowMatch[3] || '';     // + or - or empty
-        const to = arrowMatch[4].trim();
-        const message = arrowMatch[5].trim();
-
-        const arrowInfo = ARROW_MAP[arrowRaw];
-        if (!arrowInfo) continue; // Unknown arrow type, skip
-
-        ensureParticipant(from);
-        ensureParticipant(to);
-
-        const interaction: ParsedInteraction = {
-          from,
-          to,
-          message,
-          arrowRaw,
-          arrowInfo,
-          activateTarget: modifier === '+',
-          deactivateTarget: modifier === '-',
-        };
-
-        interactions.push(interaction);
-
-        // Track participants in current fragment
-        if (fragmentStack.length > 0) {
-          const currentFrame = fragmentStack[fragmentStack.length - 1];
-          currentFrame.participantNames.add(from);
-          currentFrame.participantNames.add(to);
-        }
-        continue;
-      }
-
-      // ── Unrecognized line — ignore silently ───────────────────────────
-    }
-
-    // ── Validation ────────────────────────────────────────────────────────
-    if (participantOrder.length === 0 && interactions.length === 0) {
-      throw new Error('No valid Mermaid sequence diagram content found.');
-    }
-
-    // ── Build logical data ────────────────────────────────────────────────
-    const logicalNodes: LogicalNode[] = [];
-    const logicalEdges: LogicalEdge[] = [];
-    const sequences: SequenceStep[] = [];
-    const timelines: Record<string, TimelineTiming> = {};
-    const annotations: Record<string, StickyNote> = {};
-
-    // Participant ID mapping: mermaid name → internal ID
-    const participantIdMap = new Map<string, string>();
-
-    participantOrder.forEach((name, index) => {
-      const id = `node_mermaid_${index}`;
-      participantIdMap.set(name, id);
-
-      const displayName = participantAliases.get(name) || name;
-      const nodeType = participantTypes.get(name) || 'service';
-
-      logicalNodes.push({
-        id,
-        name: displayName,
-        type: nodeType,
-        properties: {},
-      });
-    });
-
-    // ── Fragment → Section nodes ──────────────────────────────────────────
-    // Create section nodes for completed fragments
-    completedFragments.forEach((fragment) => {
-      const sectionId = `section_${fragment.id}`;
-
-      logicalNodes.push({
-        id: sectionId,
-        name: fragment.label,
-        type: 'section',
-        properties: {
-          fragmentType: fragment.type,
-        },
-      });
-
-      // Set parentId on participants that are inside the fragment
-      // We don't set parentId on participant nodes directly because a
-      // participant can span multiple fragments. Instead, the fragment
-      // bounds are computed from the edges (sequences) within the fragment.
-      // The SeqFragmentNode positions itself by computing which participants
-      // and slots are inside it.
-    });
-
-    // ── Box → Section nodes ──────────────────────────────────────────────
-    boxes.forEach((box) => {
-      const sectionId = `section_${box.id}`;
-
-      logicalNodes.push({
-        id: sectionId,
-        name: box.label,
-        type: 'section',
-        properties: {
-          boxColor: box.color,
-        },
-      });
-
-      // Set parentId on participants within this box
-      box.participantNames.forEach(pName => {
-        const nodeId = participantIdMap.get(pName);
-        if (nodeId) {
-          const node = logicalNodes.find(n => n.id === nodeId);
-          if (node) {
-            node.parentId = sectionId;
-          }
-        }
-      });
-    });
-
-    // ── Interactions → Edges & Sequences ─────────────────────────────────
-    const edgeMap = new Map<string, string>(); // "sourceId-targetId" → edgeId
-    let currentTime = 0;
-    const stepDuration = 1000;
-    let stepNumber = 1;
-
-    interactions.forEach((interaction, index) => {
-      const sourceId = participantIdMap.get(interaction.from)!;
-      const targetId = participantIdMap.get(interaction.to)!;
-
-      const isReturn = interaction.arrowInfo.isDotted && interaction.arrowInfo.hasArrowhead;
-      const isAsync = interaction.arrowInfo.isOpenArrow ||
-                      (interaction.arrowInfo.isDotted && !interaction.arrowInfo.hasArrowhead);
-
-      // Edge lookup: reuse existing edge for same pair (bidirectional)
-      const edgeKey1 = `${sourceId}-${targetId}`;
-      const edgeKey2 = `${targetId}-${sourceId}`;
-
-      let edgeId = edgeMap.get(edgeKey1) || edgeMap.get(edgeKey2);
-
-      if (!edgeId) {
-        edgeId = `edge_mermaid_${index}`;
-        edgeMap.set(edgeKey1, edgeId);
-        logicalEdges.push({
-          id: edgeId,
-          sourceId,
-          targetId,
-          description: interaction.message,
-          isAsync: isAsync,
-          properties: {
-            arrowType: interaction.arrowRaw,
-            isLost: interaction.arrowInfo.isLost,
-          },
-        });
-      }
-
-      // Return message handling: mark previous step as round-trip
-      if (isReturn) {
-        const lastStepForEdge = [...sequences].reverse().find(s => s.edgeId === edgeId);
-        if (lastStepForEdge) {
-          lastStepForEdge.isRoundTrip = true;
-          if (timelines[lastStepForEdge.id]) {
-            timelines[lastStepForEdge.id].duration += 500;
-            if (!timelines[lastStepForEdge.id].internalProcess) {
-              timelines[lastStepForEdge.id].internalProcess = { text: interaction.message, duration: 500 };
-            }
-          }
-          return; // Don't create a new sequence step for the return
-        }
-      }
-
-      // Forward message — create new sequence step
-      const stepId = `step_${index}`;
-      sequences.push({
-        id: stepId,
-        stepNumber: stepNumber++,
-        edgeId,
-        isAsync: isAsync,
-      });
-
-      timelines[stepId] = {
-        sequenceId: stepId,
-        duration: stepDuration,
-        delay: currentTime,
-      };
-
-      currentTime += stepDuration;
-    });
-
-    // ── Notes → StickyNote annotations ───────────────────────────────────
-    notes.forEach((note, noteIndex) => {
-      const noteId = `note_mermaid_${noteIndex}`;
-
-      // Determine timing based on the interaction this note follows
-      let startTime = 0;
-      let endTime = currentTime || stepDuration;
-
-      if (note.afterInteractionIndex >= 0 && note.afterInteractionIndex < interactions.length) {
-        // Position the note at the same time as the interaction it follows
-        const stepId = `step_${note.afterInteractionIndex}`;
-        const timing = timelines[stepId];
-        if (timing) {
-          startTime = timing.delay;
-          endTime = startTime + timing.duration;
-        }
-      }
-
-      // Determine position hint for the note header
-      const posLabel = note.position === 'left' ? '← '
-                     : note.position === 'right' ? '→ '
-                     : '↔ ';
-      const participantNames = note.participants
-        .map(p => participantAliases.get(p) || p)
-        .join(', ');
-
-      annotations[noteId] = {
-        id: noteId,
-        header: `${posLabel}${participantNames}`,
-        body: note.text,
-        style: {
-          backgroundColor: '#fef9c3',  // Light yellow
-          borderColor: '#fbbf24',
-          textColor: '#78350f',
-          fontFamily: 'Inter',
-          fontSize: 12,
-          borderRadius: 8,
-          opacity: 0.95,
-        },
-        startTime,
-        endTime,
-        alwaysVisible: true,
-      };
-    });
-
-    // ── Assign fragment parentId to participants ─────────────────────────
-    // For each completed fragment, set parentId on participants that are
-    // involved in the fragment. This allows the layout engine to compute
-    // fragment bounds via computeFragmentBounds().
-    completedFragments.forEach((fragment) => {
-      const sectionId = `section_${fragment.id}`;
-      fragment.participantNames.forEach((pName) => {
-        const nodeId = participantIdMap.get(pName);
-        if (nodeId) {
-          const node = logicalNodes.find(n => n.id === nodeId);
-          // Only set parentId if the node doesn't already belong to a box
-          // (boxes take precedence since they're explicit groupings)
-          if (node && !node.parentId) {
-            node.parentId = sectionId;
-          }
-        }
-      });
-    });
-
-    // ── Build output ──────────────────────────────────────────────────────
-    const logicalData: LogicalDiagram = {
-      schemaVersion: 2,
-      nodes: logicalNodes,
-      edges: logicalEdges,
-      sequences,
-    };
-
-    const visualData = generateLayout(logicalData);
-    visualData.timelines = timelines;
-
-    // Add annotations to visual data
-    if (Object.keys(annotations).length > 0) {
-      visualData.annotations = annotations;
-    }
-
-    return { logicalData, visualData };
+import { decodeMermaidText } from '../utils/mermaidText';
+import { calculateSchedules } from '../store/scheduler';
+
+export class MermaidImportError extends Error {
+  constructor(public code: 'empty' | 'unbalanced' | 'invalidBranch' | 'invalidParticipant', public line: number) {
+    super(`Mermaid ${code} (line ${line})`);
   }
+}
+
+/** Split semicolon statements, retaining escaped entities and quoted text. */
+function statements(raw: string) {
+  return raw.replace(/^\uFEFF/, '').split(/\r?\n/).flatMap((line, index) => {
+    if (line.trim().startsWith('%%')) return [];
+    const result: { text: string; line: number }[] = [];
+    let current = '', quoted = false;
+    for (const character of line) {
+      if (character === '"') quoted = !quoted;
+      if (character === ';' && !quoted && !/#(?:\d+|quot|amp|lt|gt)$/.test(current)) {
+        result.push({ text: current.trim(), line: index + 1 }); current = '';
+      } else current += character;
+    }
+    result.push({ text: current.trim(), line: index + 1 });
+    return result.filter(item => item.text && !/^```(?:mermaid)?$/.test(item.text));
+  });
+}
+
+const identifier = /^[\p{L}\p{N}_][\p{L}\p{N}_.-]*$/u;
+const messagePattern = /^([\p{L}\p{N}_][\p{L}\p{N}_.-]*?)\s*(<<-->>|<<->>|-->>|->>|-->|->|--x|-x|--\)|-\))\s*([+-])?\s*([\p{L}\p{N}_][\p{L}\p{N}_.-]*)\s*:\s*(.*)$/u;
+const fragmentPattern = /^(alt|opt|loop|par|critical|break|rect)(?:\s+(.*))?$/i;
+
+export function parseMermaidSequence(rawInput: string): DiagramImportResult {
+  const logical: LogicalDiagram = { schemaVersion: 2, nodes: [], edges: [], sequences: [], sequenceDiagram: { version: 1, events: [] } };
+  const metadata = logical.sequenceDiagram!;
+  const participants = new Map<string, LogicalNode>();
+  const diagnostics: ImportDiagnostic[] = [];
+  const annotations: Record<string, StickyNote> = {};
+  const stack: { type: 'box' | 'fragment'; node: LogicalNode; line: number; event?: Extract<MermaidEvent, { type: 'fragment' }> }[] = [];
+  const activationDepth = new Map<string, number>();
+  let sectionCount = 0, lastSequenceId: string | undefined;
+  const noteSteps = new Map<string, string | undefined>();
+  const events = (): MermaidEvent[] => {
+    const frame = [...stack].reverse().find(item => item.event);
+    const branches = frame?.event?.branches;
+    return branches?.[branches.length - 1]?.events ?? metadata.events;
+  };
+  const ensureParticipant = (name: string, line: number): LogicalNode => {
+    if (!identifier.test(name)) throw new MermaidImportError('invalidParticipant', line);
+    let node = participants.get(name);
+    if (!node) {
+      node = { id: `node_mermaid_${participants.size}`, name, type: 'service', properties: { mermaidOrder: participants.size } };
+      participants.set(name, node); logical.nodes.push(node);
+    }
+    return node;
+  };
+  const activate = (participantId: string, active: boolean, line: number) => {
+    if (!diagnostics.some(item => item.code === 'approximatePlayback')) diagnostics.push({ code: 'approximatePlayback', line });
+    const depth = activationDepth.get(participantId) ?? 0;
+    if (!active && depth === 0) {
+      diagnostics.push({ code: 'activationMismatch', line });
+      return;
+    }
+    activationDepth.set(participantId, depth + (active ? 1 : -1));
+    events().push({ type: 'activation', participantId, active });
+  };
+
+  for (const { text, line } of statements(rawInput)) {
+    if (/^sequenceDiagram$/i.test(text) || /^sequence-diagram$/i.test(text)) continue;
+    const title = text.match(/^title\s*:?\s+(.+)$/i);
+    if (title) { metadata.title = decodeMermaidText(title[1]); continue; }
+    const autonumber = text.match(/^autonumber(?:\s+(\d+(?:\.\d+)?)(?:\s+(\d+(?:\.\d+)?))?)?$/i);
+    if (autonumber) {
+      metadata.autonumber = autonumber[1] ? { start: Number(autonumber[1]), ...(autonumber[2] ? { increment: Number(autonumber[2]) } : {}) } : {};
+      continue;
+    }
+    const participant = text.match(/^(participant|actor)\s+(\S+)(?:\s+as\s+(.+))?$/i);
+    if (participant) {
+      const node = ensureParticipant(participant[2], line);
+      node.type = participant[1].toLowerCase() === 'actor' ? 'client' : 'service';
+      node.properties!.mermaidActor = participant[1].toLowerCase() === 'actor';
+      node.name = decodeMermaidText((participant[3] ?? participant[2]).replace(/^"(.*)"$/, '$1'));
+      const box = [...stack].reverse().find(item => item.type === 'box');
+      if (box) node.parentId = box.node.id;
+      continue;
+    }
+    const box = text.match(/^box(?:\s+(.*))?$/i);
+    if (box) {
+      if (stack.length) { diagnostics.push({ code: 'unsupportedStatement', line, source: text }); }
+      const content = box[1] ?? '';
+      // Recognize actual colors, not arbitrary first words in a group label.
+      const color = content.match(/^(transparent|rgba?\([^)]*\)|hsla?\([^)]*\)|red|blue|green|purple|aqua|yellow|orange|pink|gray|grey|black|white)(?:\s+(.*))?$/i);
+      const node: LogicalNode = { id: `section_mermaid_${sectionCount++}`, type: 'section', name: decodeMermaidText((color ? color[2] : content) || 'Group'), properties: { mermaidBox: true, boxColor: color?.[1] ?? 'transparent' } };
+      logical.nodes.push(node); stack.push({ type: 'box', node, line }); continue;
+    }
+    const open = text.match(fragmentPattern);
+    if (open) {
+      const kind = open[1].toLowerCase() as MermaidFragmentKind;
+      const label = decodeMermaidText(open[2] ?? '');
+      const node: LogicalNode = { id: `section_mermaid_${sectionCount++}`, type: 'section', name: label || kind, properties: { fragmentType: kind, sequenceIds: [] } };
+      const event: Extract<MermaidEvent, { type: 'fragment' }> = { type: 'fragment', sectionId: node.id, kind, label, branches: [{ events: [] }] };
+      events().push(event); logical.nodes.push(node); stack.push({ type: 'fragment', node, line, event });
+      if (kind !== 'rect' && !diagnostics.some(item => item.code === 'approximatePlayback')) diagnostics.push({ code: 'approximatePlayback', line, source: kind });
+      continue;
+    }
+    const branch = text.match(/^(else|and|option)(?:\s+(.*))?$/i);
+    if (branch) {
+      const frame = stack[stack.length - 1];
+      const valid = { else: 'alt', and: 'par', option: 'critical' }[branch[1].toLowerCase()];
+      if (!frame?.event || frame.event.kind !== valid) throw new MermaidImportError('invalidBranch', line);
+      frame.event.branches.push({ divider: branch[1].toLowerCase() as 'else' | 'and' | 'option', label: decodeMermaidText(branch[2] ?? ''), events: [] });
+      continue;
+    }
+    if (/^end$/i.test(text)) {
+      if (!stack.pop()) throw new MermaidImportError('unbalanced', line);
+      continue;
+    }
+    const activation = text.match(/^(activate|deactivate)\s+(\S+)$/i);
+    if (activation) { activate(ensureParticipant(activation[2], line).id, activation[1].toLowerCase() === 'activate', line); continue; }
+    const note = text.match(/^note\s+(left\s+of|right\s+of|over)\s+([^:]+):\s*(.*)$/i);
+    if (note) {
+      if (!diagnostics.some(item => item.code === 'approximatePlayback')) diagnostics.push({ code: 'approximatePlayback', line });
+      const ids = note[2].split(',').map(name => ensureParticipant(name.trim(), line).id);
+      if (ids.length > 2 || (!/^over$/i.test(note[1]) && ids.length !== 1)) { diagnostics.push({ code: 'unsupportedStatement', line, source: text }); continue; }
+      const id = `note_mermaid_${Object.keys(annotations).length}`;
+      annotations[id] = { id, header: ids.map(id => logical.nodes.find(n => n.id === id)!.name).join(', '), body: decodeMermaidText(note[3]), style: { backgroundColor: '#fef9c3', borderColor: '#fbbf24', textColor: '#78350f', fontFamily: 'Inter', fontSize: 12, borderRadius: 8, opacity: 0.95 }, startTime: 0, endTime: 1000, alwaysVisible: true };
+      events().push({ type: 'note', annotationId: id, participantIds: ids, position: note[1].toLowerCase().replace(/\s+/g, ' ') as 'over' | 'left of' | 'right of' });
+      noteSteps.set(id, lastSequenceId); continue;
+    }
+    const message = text.match(messagePattern);
+    if (message) {
+      const source = ensureParticipant(message[1], line), target = ensureParticipant(message[4], line);
+      const arrow = message[2] as MermaidArrow;
+      const index = logical.sequences.length, edgeId = `edge_mermaid_${index}`, sequenceId = `step_${index}`;
+      const isAsync = arrow.endsWith(')');
+      logical.edges.push({ id: edgeId, sourceId: source.id, targetId: target.id, description: decodeMermaidText(message[5]), isAsync, properties: { arrowType: arrow } });
+      logical.sequences.push({ id: sequenceId, edgeId, stepNumber: index + 1, isAsync });
+      events().push({ type: 'message', sequenceId }); lastSequenceId = sequenceId;
+      for (const frame of stack) if (frame.event) (frame.node.properties!.sequenceIds as string[]).push(sequenceId);
+      if (message[3] === '+') activate(target.id, true, line);
+      if (message[3] === '-') activate(source.id, false, line);
+      continue;
+    }
+    diagnostics.push({ code: 'unsupportedStatement', line, source: text });
+  }
+  if (stack.length) throw new MermaidImportError('unbalanced', stack[stack.length - 1]!.line);
+  if (!participants.size) throw new MermaidImportError('empty', 1);
+  if ([...activationDepth.values()].some(depth => depth > 0)) diagnostics.push({ code: 'activationMismatch', line: rawInput.split('\n').length });
+  const visual = generateLayout(logical);
+  // Mermaid defines order, not elapsed time. Defaults apply only to new imports.
+  const sourceReady = new Map<string, number>();
+  let floor = 0;
+  logical.sequences.forEach((step, index) => {
+    const edge = logical.edges[index];
+    const base = sourceReady.get(edge.sourceId) ?? floor;
+    const start = index * 1000;
+    visual.timelines[step.id] = { sequenceId: step.id, duration: 1000, delay: Math.max(0, start - base) };
+    if (!step.isAsync) {
+      sourceReady.set(edge.targetId, start + 1000);
+      floor = Math.max(floor, start + 1000);
+    }
+  });
+  const schedules = calculateSchedules(logical.sequences, visual.timelines, logical.edges, logical.nodes);
+  for (const [id, seq] of noteSteps) {
+    const schedule = seq ? schedules[seq] : undefined;
+    annotations[id].startTime = schedule?.start ?? 0;
+    annotations[id].endTime = schedule?.end ?? 1000;
+    // Keep sticky notes reachable on the topology canvas.
+    visual.layoutNodes[id] = { id, x: 40, y: 120 + Object.keys(visual.layoutNodes).length * 20, width: 220, height: 120 };
+  }
+  visual.annotations = annotations;
+  return { logicalData: logical, visualData: visual, diagnostics };
+}
+
+export const mermaidAdapter: DiagramAdapter = {
+  id: 'mermaid-sequence', name: 'Mermaid Sequence Diagram',
+  description: 'Import Mermaid sequence messages, participants, notes, activations and nested blocks',
+  importMethod: 'text-modal', supportedFormats: ['.mmd', '.mermaid', '.txt'],
+  parse: async raw => parseMermaidSequence(raw),
 };

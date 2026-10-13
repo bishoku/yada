@@ -1,3 +1,4 @@
+import { simulationClock } from '../../store/simulationClock';
 import React from 'react';
 import { 
   Play, Pause, Square, Repeat, Clock
@@ -101,7 +102,7 @@ export const SharedPlaybackPanel: React.FC = () => {
             </button>
           ) : (
             <button 
-              onClick={startPlayback}
+              onClick={() => simulationClock.getTime() >= maxTime ? startPlayback() : useAppStore.getState().resumePlayback()}
               disabled={logicalData.sequences.length === 0}
               className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-colors cursor-pointer shadow-md shadow-indigo-500/10"
               title={t.playTooltip}

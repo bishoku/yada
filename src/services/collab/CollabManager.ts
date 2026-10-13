@@ -1,3 +1,4 @@
+import { assertCanCollaborate } from '../platformCapabilities';
 import { CollabMessage, ServerToClientSignalingMsg, OutgoingCollabMessage } from './types';
 import { CollabSignalingClient } from './CollabSignalingClient';
 import { useAppStore, setDiagramDataInStore } from '../../store/useAppStore';
@@ -43,6 +44,7 @@ class CollabManagerService {
     color: string,
     durationMinutes: number = 30
   ): Promise<void> {
+    assertCanCollaborate();
     this.leaveRoom();
 
     this.roomId = roomId;

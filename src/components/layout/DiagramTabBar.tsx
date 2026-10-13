@@ -3,7 +3,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { X, Plus, Lock } from 'lucide-react';
 import { translations } from '../../i18n/translations';
 
-import { isForge } from '../../services/forgeBridge';
+import { getPlatformCapabilities } from '../../services/platformCapabilities';
 
 export const DiagramTabBar: React.FC = () => {
   const diagrams = useAppStore((s) => s.diagrams);
@@ -23,7 +23,7 @@ export const DiagramTabBar: React.FC = () => {
     setCreateDiagramModalOpen(true);
   };
 
-  if (!currentWorkspace || openDiagramIds.length === 0 || isForge()) {
+  if (!currentWorkspace || openDiagramIds.length === 0 || !getPlatformCapabilities().canCreateDiagram) {
     return null;
   }
 

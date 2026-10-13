@@ -1,3 +1,7 @@
+import { useAppStore } from '../../../store/useAppStore';
+import { translations } from '../../../i18n/translations';
+import { formatMilliseconds } from '../../../i18n/terminology';
+import type { TimingValues } from '../timingModel';
 import React, { memo } from 'react';
 import type { SequenceStep, TimelineTiming } from '../../../types';
 
@@ -7,10 +11,12 @@ interface SequenceTrackRowProps {
   schedule?: { start: number; end: number };
   pxPerMs: number;
   isSelected: boolean;
+  editable: boolean;
+  preview?: { initial: TimingValues; values: TimingValues };
   onSelect: (seqId: string) => void;
   onOpenTooltip: (seqId: string) => void;
-  onBarMouseDown: (e: React.MouseEvent, seqId: string, delay: number, duration: number) => void;
-  onResizeMouseDown: (e: React.MouseEvent, seqId: string, delay: number, duration: number) => void;
+  onBarPointerDown: (e: React.PointerEvent, seqId: string, delay: number, duration: number) => void;
+  onResizePointerDown: (e: React.PointerEvent, seqId: string, delay: number, duration: number) => void;
 }
 
 /**
@@ -21,26 +27,34 @@ export const SequenceTrackRow: React.FC<SequenceTrackRowProps> = memo(({
   timing,
   schedule,
   pxPerMs,
-  isSelected,
+  isSelected, editable, preview,
   onSelect,
   onOpenTooltip,
-  onBarMouseDown,
-  onResizeMouseDown,
+  onBarPointerDown,
+  onResizePointerDown,
 }) => {
-  if (!schedule) return null;
+  const language = useAppStore(s => s.language);
+  const t = translations[language];
+  if (!schedule) return <div className="h-16" />;
 
-  const duration = timing?.duration ?? 1000;
-  const delay = timing?.delay ?? 0;
-  const left = schedule.start * pxPerMs;
+  const duration = preview?.values.duration ?? timing?.duration ?? 1000;
+  const delay = preview?.values.delay ?? timing?.delay ?? 0;
+  const left = (schedule.start + (preview ? preview.values.delay - preview.initial.delay : 0)) * pxPerMs;
   const width = duration * pxPerMs;
 
   return (
     <div className="h-16 border-b border-slate-200/50 dark:border-slate-800/20 relative flex items-center w-full">
       {/* Interactive Drag Bar */}
       <div
-        onMouseDown={(e) => {
+        role="button"
+        tabIndex={0}
+        aria-label={`${t.terms.step} ${seq.stepNumber}: ${t.timelineUi.editStep}`}
+        title={t.timelineUi.timingHint}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(seq.id); onOpenTooltip(seq.id); } }}
+        onPointerDown={(e) => {
           onSelect(seq.id);
-          onBarMouseDown(e, seq.id, delay, duration);
+          if (editable) onBarPointerDown(e, seq.id, delay, duration);
+          else e.stopPropagation();
         }}
         onDoubleClick={() => onOpenTooltip(seq.id)}
         className={`h-6 rounded-lg absolute cursor-grab active:cursor-grabbing transition-shadow flex items-center justify-between px-2 text-[10px] font-bold text-white group border ${
@@ -54,20 +68,21 @@ export const SequenceTrackRow: React.FC<SequenceTrackRowProps> = memo(({
         }`}
         style={{
           left,
-          width,
+          width: Math.max(width, 4),
+          touchAction: 'none',
         }}
       >
         <span className="truncate pr-4 pointer-events-none select-none">
-          {duration}ms
+          {formatMilliseconds(duration, language)}
         </span>
 
         {/* Resize handle on right */}
-        {!seq.isAsync && (
+        {editable && (
           <div
             className="absolute -right-1 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-white/30 rounded-r transition-colors"
-            onMouseDown={(e) => {
+            onPointerDown={(e) => {
               onSelect(seq.id);
-              onResizeMouseDown(e, seq.id, delay, duration);
+              onResizePointerDown(e, seq.id, delay, duration);
             }}
           />
         )}

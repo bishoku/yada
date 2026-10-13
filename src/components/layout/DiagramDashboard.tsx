@@ -1,3 +1,4 @@
+import { getPlatformCapabilities } from '../../services/platformCapabilities';
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { 
@@ -67,7 +68,7 @@ export const DiagramDashboard: React.FC = () => {
     }
   }[language];
 
-  if (!currentWorkspace) return null;
+  if (!currentWorkspace || !getPlatformCapabilities().canCreateDiagram) return null;
 
   const handleCreate = () => {
     setCreateDiagramModalOpen(true);

@@ -10,13 +10,15 @@ import { useAnnotationBarDrag } from '../useAnnotationBarDrag';
 import type { SequenceStep } from '../../../types';
 
 interface TimelineTrackListProps {
+  viewportRef: RefObject<HTMLDivElement | null>;
+  contentWidth: number;
   rightPanelRef: RefObject<HTMLDivElement | null>;
   playheadRef: RefObject<HTMLDivElement | null>;
   maxTime: number;
   pxPerMs: number;
   sortedSequences: SequenceStep[];
   isScrubbing: boolean;
-  onTrackMouseDown: (e: React.MouseEvent) => void;
+  onTrackPointerDown: (e: React.PointerEvent) => void;
   onOpenTooltip: (seqId: string) => void;
 }
 
@@ -24,13 +26,13 @@ interface TimelineTrackListProps {
  * Right scrollable timeline track area containing Ruler, Grid, Timing Bars, and Playhead.
  */
 export const TimelineTrackList: React.FC<TimelineTrackListProps> = memo(({
-  rightPanelRef,
+  viewportRef, contentWidth, rightPanelRef,
   playheadRef,
   maxTime,
   pxPerMs,
   sortedSequences,
   isScrubbing,
-  onTrackMouseDown,
+  onTrackPointerDown,
   onOpenTooltip,
 }) => {
   const visualData = useAppStore((s) => s.visualData);
@@ -38,12 +40,9 @@ export const TimelineTrackList: React.FC<TimelineTrackListProps> = memo(({
   const isPlaying = useAppStore((s) => s.isPlaying);
   const selectedSequenceId = useAppStore((s) => s.selectedSequenceId);
   const setSelectedSequenceId = useAppStore((s) => s.setSelectedSequenceId);
-  const updateSequenceTiming = useAppStore((s) => s.updateSequenceTiming);
+  const isReadOnly = useAppStore(s => s.isReadOnly);
 
-  const { handleBarMouseDown, handleResizeMouseDown } = useTimingBarDrag(
-    updateSequenceTiming,
-    pxPerMs
-  );
+  const { preview, handleBarPointerDown, handleResizePointerDown } = useTimingBarDrag(pxPerMs);
 
   const {
     handleBarMouseDown: handleAnnotationBarMouseDown,
@@ -52,10 +51,12 @@ export const TimelineTrackList: React.FC<TimelineTrackListProps> = memo(({
   } = useAnnotationBarDrag(pxPerMs);
 
   return (
+    <div ref={viewportRef} className="flex-1 min-w-0 overflow-x-auto">
     <div
       ref={rightPanelRef}
-      className="flex-1 flex flex-col relative h-full min-w-0"
-      onMouseDown={onTrackMouseDown}
+      className="flex flex-col relative min-h-full"
+      style={{ width: contentWidth, touchAction: 'pan-y' }}
+      onPointerDown={onTrackPointerDown}
     >
       {/* Ruler Header Spacer Row */}
       <TimelineRuler maxTime={maxTime} pxPerMs={pxPerMs} />
@@ -78,12 +79,14 @@ export const TimelineTrackList: React.FC<TimelineTrackListProps> = memo(({
                 seq={seq}
                 timing={timing}
                 schedule={sched}
+                editable={!isPlaying && !isReadOnly}
+                preview={preview?.id === seq.id ? preview : undefined}
                 pxPerMs={pxPerMs}
                 isSelected={isSelected}
                 onSelect={setSelectedSequenceId}
                 onOpenTooltip={onOpenTooltip}
-                onBarMouseDown={handleBarMouseDown}
-                onResizeMouseDown={handleResizeMouseDown}
+                onBarPointerDown={handleBarPointerDown}
+                onResizePointerDown={handleResizePointerDown}
               />
             );
           })}
@@ -94,6 +97,7 @@ export const TimelineTrackList: React.FC<TimelineTrackListProps> = memo(({
               key={`track-ann-${id}`}
               id={id}
               note={note}
+              editable={!isPlaying && !isReadOnly}
               pxPerMs={pxPerMs}
               onBarMouseDown={handleAnnotationBarMouseDown}
               onResizeLeftMouseDown={handleResizeLeftMouseDown}
@@ -110,6 +114,7 @@ export const TimelineTrackList: React.FC<TimelineTrackListProps> = memo(({
           playheadRef={playheadRef}
         />
       </div>
+    </div>
     </div>
   );
 });

@@ -1,3 +1,4 @@
+import { getPlatformCapabilities } from '../../services/platformCapabilities';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppStore } from '../../store/useAppStore';
@@ -28,6 +29,7 @@ export const CollabJoinModal: React.FC = () => {
 
   // Auto-detect #collab=<roomId> from URL on mount
   useEffect(() => {
+    if (!getPlatformCapabilities().canCollaborate) return;
     const href = window.location.href;
     const match = href.match(/collab=([A-Za-z0-9_\-.]+)/);
     if (match && match[1]) {
@@ -44,7 +46,7 @@ export const CollabJoinModal: React.FC = () => {
     }
   }, [googleUser, isTr]);
 
-  if (!isOpen || !pendingJoinRoomId) return null;
+  if (!isOpen || !pendingJoinRoomId || !getPlatformCapabilities().canCollaborate) return null;
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();

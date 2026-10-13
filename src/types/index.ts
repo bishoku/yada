@@ -1,3 +1,4 @@
+import type { MermaidSequenceMetadata } from './mermaid';
 import { Language, Theme } from '../i18n/translations';
 import { ParticleType } from '../config/particles';
 export type { ParticleType };
@@ -93,6 +94,7 @@ export interface SequenceStep {
 }
 
 export interface LogicalDiagram {
+  sequenceDiagram?: MermaidSequenceMetadata;
   schemaVersion: number;   // Schema version for future-proof migrations (current: 2)
   nodes: LogicalNode[];
   edges: LogicalEdge[];
@@ -540,6 +542,7 @@ export interface AppState {
 
   // Phase 3 Actions
   startPlayback: () => void;
+  resumePlayback: () => void;
   pausePlayback: () => void;
   stopPlayback: () => void;
   setCurrentTime: (time: number) => void;

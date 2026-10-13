@@ -1,3 +1,4 @@
+import { translations } from '../../../i18n/translations';
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { ActiveEdgeProperties } from '../../../types';
 import { ParticleType, resolveParticleType } from '../../../config/particles';
@@ -308,6 +309,7 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
        connectionType, strokeWidth, lineStyle, arrowStart, arrowEnd, gradientColor, labelPosition, glowIntensity, orig, onSubmit, onPreview]);
 
   const tr = (t: string, e: string) => lang === 'tr' ? t : e;
+  const copy = translations[lang === 'tr' ? 'tr' : 'en'];
 
   return (
     <div className="flex flex-col gap-2">
@@ -324,7 +326,7 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
           />
         </div>
         <div className="flex flex-col gap-1">
-          <Label>{tr('Adım', 'Step')}</Label>
+          <Label>{copy.terms.step}</Label>
           <select
             value={stepNumber}
             onChange={(e) => { setStepNumber(Number(e.target.value)); preview({ s: Number(e.target.value) }); }}
@@ -604,7 +606,7 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       {/* Duration + Delay — side by side */}
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-1">
-          <Label>{tr('Süre (ms)', 'Duration')}</Label>
+          <Label>{copy.timelineUi.duration}</Label>
           <CompactInput
             type="number"
             value={duration}
@@ -620,7 +622,7 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
           />
         </div>
         <div className="flex flex-col gap-1">
-          <Label>{tr('Gecikme (ms)', 'Delay')}</Label>
+          <Label>{copy.timelineUi.delay}</Label>
           <CompactInput
             type="number"
             value={delay}
@@ -663,7 +665,7 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
             className="accent-indigo-600 w-3.5 h-3.5 cursor-pointer"
           />
           <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">
-            {tr('Gidiş-Dönüş', 'Round-Trip')}
+            {copy.terms.roundTrip}
           </span>
         </label>
 
@@ -711,11 +713,11 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       />
 
       {/* Internal process tooltip — compact two-column layout */}
-      <Divider label={tr('Tooltip', 'Tooltip')} />
+      <Divider label={copy.terms.process} />
       <div className="grid grid-cols-[1fr_72px] gap-2">
         <CompactInput
           type="text"
-          placeholder={tr('İşlem adı...', 'Process name...')}
+          placeholder={copy.timelineUi.processPlaceholder}
           value={tooltipText}
           onChange={(e) => { setTooltipText(e.target.value); preview({ tt: e.target.value }); }}
         />

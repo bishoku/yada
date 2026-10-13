@@ -1,3 +1,4 @@
+import { getPlatformCapabilities } from '../../services/platformCapabilities';
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { Users, Copy, Check, LogOut, Clock } from 'lucide-react';
@@ -18,7 +19,7 @@ export const CollabTopBar: React.FC = () => {
 
   // Countdown timer effect
   useEffect(() => {
-    if (!isCollabActive) return;
+    if (!isCollabActive || !getPlatformCapabilities().canCollaborate) return;
 
     const interval = setInterval(() => {
       setCollabTimeRemaining(Math.max(0, collabTimeRemainingMs - 1000));
@@ -29,12 +30,12 @@ export const CollabTopBar: React.FC = () => {
 
   // Auto-leave and persist when room timer expires
   useEffect(() => {
-    if (isCollabActive && collabTimeRemainingMs <= 0) {
+    if (getPlatformCapabilities().canCollaborate && isCollabActive && collabTimeRemainingMs <= 0) {
       leaveCollabSession();
     }
   }, [isCollabActive, collabTimeRemainingMs, leaveCollabSession]);
 
-  if (!isCollabActive) return null;
+  if (!isCollabActive || !getPlatformCapabilities().canCollaborate) return null;
 
   const peers = Object.values(collabPeers);
   const totalUsers = 1 + peers.length;

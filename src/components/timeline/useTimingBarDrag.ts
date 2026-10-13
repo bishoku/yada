@@ -1,85 +1,47 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import type { LogicalDiagram } from '../../types';
+import { useEffect, useRef, useState } from 'react';
+import type React from 'react';
+import { useAppStore } from '../../store/useAppStore';
+import { commitStepTiming } from './timingActions';
+import { timingFromDrag, type TimingValues } from './timingModel';
 
-export const useTimingBarDrag = (
-  updateSequenceTiming: (seqId: string, duration: number, delay: number) => void,
-  pxPerMs: number
-) => {
-  const [activeDrag, setActiveDrag] = useState<{
-    id: string;
-    type: 'drag' | 'resize';
-    startX: number;
-    initialDelay: number;
-    initialDuration: number;
-  } | null>(null);
+type Gesture = { document: LogicalDiagram; id: string; pointerId: number; startX: number; scale: number; initial: TimingValues; resize: boolean; preview: TimingValues };
 
-  const msPerPx = 1 / pxPerMs;
-
-  const handleBarMouseDown = useCallback((
-    e: React.MouseEvent,
-    seqId: string,
-    initialDelay: number,
-    initialDuration: number
-  ) => {
-    e.stopPropagation();
-    setActiveDrag({
-      id: seqId,
-      type: 'drag',
-      startX: e.clientX,
-      initialDelay,
-      initialDuration,
-    });
-  }, []);
-
-  const handleResizeMouseDown = useCallback((
-    e: React.MouseEvent,
-    seqId: string,
-    initialDelay: number,
-    initialDuration: number
-  ) => {
-    e.stopPropagation();
-    setActiveDrag({
-      id: seqId,
-      type: 'resize',
-      startX: e.clientX,
-      initialDelay,
-      initialDuration,
-    });
-  }, []);
-
-  const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
-    if (!activeDrag) return;
-
-    const deltaX = e.clientX - activeDrag.startX;
-    // Snap to 50ms grid ticks
-    const deltaMs = Math.round((deltaX * msPerPx) / 50) * 50;
-
-    if (activeDrag.type === 'drag') {
-      const newDelay = Math.max(0, activeDrag.initialDelay + deltaMs);
-      updateSequenceTiming(activeDrag.id, activeDrag.initialDuration, newDelay);
-    } else if (activeDrag.type === 'resize') {
-      const newDuration = Math.max(100, activeDrag.initialDuration + deltaMs);
-      updateSequenceTiming(activeDrag.id, newDuration, activeDrag.initialDelay);
-    }
-  }, [activeDrag, updateSequenceTiming, msPerPx]);
-
-  const handleGlobalMouseUp = useCallback(() => {
-    if (activeDrag) {
-      setActiveDrag(null);
-    }
-  }, [activeDrag]);
-
+/** Preview locally; save once on release. Escape/pointer cancellation writes nothing. */
+export function useTimingBarDrag(pxPerMs: number) {
+  const active = useRef<Gesture | null>(null);
+  const [preview, setPreview] = useState<{ id: string; initial: TimingValues; values: TimingValues } | null>(null);
   useEffect(() => {
-    window.addEventListener('mousemove', handleGlobalMouseMove);
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleGlobalMouseMove);
-      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    const move = (event: PointerEvent) => {
+      const gesture = active.current;
+      if (!gesture || gesture.pointerId !== event.pointerId) return;
+      gesture.preview = timingFromDrag(gesture.initial, event.clientX - gesture.startX, gesture.scale, gesture.resize);
+      setPreview({ id: gesture.id, initial: gesture.initial, values: gesture.preview });
     };
-  }, [handleGlobalMouseMove, handleGlobalMouseUp]);
-
-  return {
-    activeDrag,
-    handleBarMouseDown,
-    handleResizeMouseDown,
+    const finish = (event: PointerEvent) => {
+      const gesture = active.current;
+      if (!gesture || gesture.pointerId !== event.pointerId) return;
+      const current = useAppStore.getState().visualData.timelines[gesture.id];
+      // Do not overwrite a concurrent edit made while this gesture was in progress.
+      if ((current?.duration ?? 1000) === gesture.initial.duration && (current?.delay ?? 0) === gesture.initial.delay) commitStepTiming(gesture.id, gesture.preview, undefined, gesture.document);
+      active.current = null; setPreview(null);
+    };
+    const cancel = (event?: PointerEvent) => { if (event && active.current?.pointerId !== event.pointerId) return; active.current = null; setPreview(null); };
+    const key = (event: KeyboardEvent) => { if (event.key === 'Escape' && active.current) { event.preventDefault(); cancel(); } };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', cancel); window.addEventListener('keydown', key);
+    return () => { active.current = null; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', finish); window.removeEventListener('pointercancel', cancel); window.removeEventListener('keydown', key); };
+  }, []);
+  const begin = (event: React.PointerEvent, id: string, delay: number, duration: number, resize: boolean) => {
+    event.stopPropagation();
+    if (event.button !== 0 || (active.current && active.current.pointerId !== event.pointerId) || useAppStore.getState().isPlaying || useAppStore.getState().isReadOnly) return;
+    event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
+    const initial = { duration, delay };
+    active.current = { document: useAppStore.getState().logicalData, id, pointerId: event.pointerId, startX: event.clientX, scale: pxPerMs, initial, resize, preview: initial };
   };
-};
+  return {
+    preview,
+    handleBarPointerDown: (event: React.PointerEvent, id: string, delay: number, duration: number) => begin(event, id, delay, duration, false),
+    handleResizePointerDown: (event: React.PointerEvent, id: string, delay: number, duration: number) => begin(event, id, delay, duration, true),
+  };
+}

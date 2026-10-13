@@ -1,3 +1,5 @@
+import { useAppStore } from '../../store/useAppStore';
+import { formatMilliseconds } from '../../i18n/terminology';
 import React from 'react';
 import { getOptimalTickInterval } from './utils';
 
@@ -7,6 +9,7 @@ interface TimelineRulerProps {
 }
 
 export const TimelineRuler: React.FC<TimelineRulerProps> = ({ maxTime, pxPerMs }) => {
+  const language = useAppStore(s => s.language);
   const tickInterval = getOptimalTickInterval(pxPerMs);
   const steps = Math.ceil(maxTime / tickInterval);
   return (
@@ -21,7 +24,7 @@ export const TimelineRuler: React.FC<TimelineRulerProps> = ({ maxTime, pxPerMs }
               style={{ width: tickInterval * pxPerMs }}
             >
               <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500 pl-1 font-extrabold">
-                {ms}ms
+                {formatMilliseconds(ms, language)}
               </span>
             </div>
           );

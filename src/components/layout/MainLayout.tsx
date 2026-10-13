@@ -1,3 +1,4 @@
+import { translations } from '../../i18n/translations';
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { TopBar } from './TopBar';
 import { SidebarLeft } from './SidebarLeft';
@@ -21,6 +22,7 @@ export const MainLayout: React.FC = () => {
   const _timelineOpen = useAppStore((s) => s.timelineOpen);
   const setTimelineHeight = useAppStore((s) => s.setTimelineHeight);
   const language = useAppStore((s) => s.language);
+  const t = translations[language];
   const viewMode = useAppStore((s) => s.viewMode);
   const _leftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
   const _rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
@@ -105,7 +107,7 @@ export const MainLayout: React.FC = () => {
               ) : (
                 <Suspense fallback={
                   <div className="flex items-center justify-center w-full h-full text-slate-400 dark:text-slate-600">
-                    <div className="animate-pulse text-sm font-medium">Loading Sequence Diagram...</div>
+                    <div className="animate-pulse text-sm font-medium">{t.timelineUi.loadingSequence}</div>
                   </div>
                 }>
                   <SequenceDiagramCanvas />
@@ -120,7 +122,7 @@ export const MainLayout: React.FC = () => {
               ref={resizerRef}
               onMouseDown={handleMouseDown}
               className="h-1 bg-slate-200/60 hover:h-1.5 hover:bg-indigo-500 dark:bg-slate-800 dark:hover:bg-indigo-500 cursor-ns-resize transition-all duration-150 relative z-30 flex-shrink-0"
-              title={language === 'tr' ? 'Zaman çizelgesini boyutlandır' : 'Resize timeline'}
+              title={t.timelineUi.resize}
             />
           )}
 

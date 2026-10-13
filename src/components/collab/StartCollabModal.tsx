@@ -1,3 +1,4 @@
+import { getPlatformCapabilities } from '../../services/platformCapabilities';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppStore } from '../../store/useAppStore';
@@ -23,7 +24,7 @@ export const StartCollabModal: React.FC = () => {
   const activeDiagram = diagrams.find((d) => d.id === activeDiagramId);
   const hasActiveDiagram = !!(activeDiagramId && activeDiagram && currentWorkspace);
 
-  if (!isOpen) return null;
+  if (!isOpen || !getPlatformCapabilities().canCollaborate) return null;
 
   const handleStart = async () => {
     if (!hasActiveDiagram) return;

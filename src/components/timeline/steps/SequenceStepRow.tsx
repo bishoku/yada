@@ -1,3 +1,5 @@
+import { useAppStore } from '../../../store/useAppStore';
+import { translations } from '../../../i18n/translations';
 import React, { memo } from 'react';
 import { ArrowRightLeft, Settings, Trash2 } from 'lucide-react';
 import type { SequenceStep, LogicalEdge, TimelineTiming } from '../../../types';
@@ -36,13 +38,13 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
   onOpenTooltip,
   onDelete,
 }) => {
+  const language = useAppStore(s => s.language);
+  const isReadOnly = useAppStore(s => s.isReadOnly);
+  const t = translations[language];
   const hasProcess = !!timing?.internalProcess;
 
   return (
     <div
-      onClick={() => {
-        if (!isPlaying) onSelect(seq.id);
-      }}
       className={`h-16 overflow-hidden py-1.5 px-3 border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between transition-colors duration-150 group ${
         isPlaying ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
       } ${
@@ -51,10 +53,10 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
           : isPlaying ? '' : 'hover:bg-slate-100/50 dark:hover:bg-slate-900/30'
       }`}
     >
-      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+      <button type="button" aria-pressed={isSelected} onClick={() => onSelect(seq.id)} className="flex flex-col gap-0.5 min-w-0 flex-1 text-left" title={`${srcName} → ${dstName}`}>
         <div className="flex items-center gap-1.5">
-          <span className="text-[9px] font-bold bg-indigo-500/10 dark:bg-indigo-500/25 text-indigo-600 dark:text-indigo-400 px-1 py-0.5 rounded">
-            S{seq.stepNumber}
+          <span className="text-[9px] font-bold whitespace-nowrap bg-indigo-500/10 dark:bg-indigo-500/25 text-indigo-600 dark:text-indigo-400 px-1 py-0.5 rounded">
+            {t.terms.step} {seq.stepNumber}
           </span>
           <span className="text-xs font-bold truncate text-slate-700 dark:text-slate-200">
             {srcName} → {dstName}
@@ -62,7 +64,7 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
         </div>
         {hasProcess && (
           <span className="text-[9px] font-medium text-emerald-600 dark:text-emerald-500 truncate pl-1">
-            ↳ Process: {timing?.internalProcess?.text}
+            ↳ {t.terms.process}: {timing?.internalProcess?.text}
           </span>
         )}
         {edge?.description && (
@@ -70,18 +72,20 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
             ↳ {edge.description}
           </span>
         )}
-      </div>
+      </button>
 
       {/* Row Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
         <select
+          aria-label={t.timelineUi.order}
+          disabled={isPlaying || isReadOnly}
           value={seq.stepNumber}
           onChange={(e) => onOrderChange(seq.id, Number(e.target.value))}
           className="text-[9px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-1 py-0.5 font-bold cursor-pointer focus:outline-none"
           onClick={(e) => e.stopPropagation()}
         >
           {Array.from({ length: maxSteps }, (_, i) => i + 1).map((n) => (
-            <option key={n} value={n}>Step {n}</option>
+            <option key={n} value={n}>{t.terms.step} {n}</option>
           ))}
         </select>
 
@@ -90,7 +94,10 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
             e.stopPropagation();
             onToggleAsync(seq.id);
           }}
-          title={seq.isAsync ? 'Asynchronous flow' : 'Synchronous flow'}
+          disabled={isPlaying || isReadOnly}
+          aria-pressed={seq.isAsync}
+          title={seq.isAsync ? t.terms.asynchronous : t.terms.synchronous}
+          aria-label={seq.isAsync ? t.terms.asynchronous : t.terms.synchronous}
           className={`p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer animate-none ${
             seq.isAsync ? 'text-emerald-500' : 'text-slate-400'
           }`}
@@ -104,7 +111,7 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
             onOpenTooltip(seq.id);
           }}
           className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-500 transition-colors cursor-pointer animate-none"
-          title="Configure tooltip"
+          title={t.timelineUi.editStep} aria-label={t.timelineUi.editStep}
         >
           <Settings className="w-3.5 h-3.5" />
         </button>
@@ -115,7 +122,8 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
             onDelete(seq.id);
           }}
           className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-505 transition-colors cursor-pointer animate-none"
-          title="Delete step"
+          disabled={isPlaying || isReadOnly}
+          title={t.timelineUi.deleteStep} aria-label={t.timelineUi.deleteStep}
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>

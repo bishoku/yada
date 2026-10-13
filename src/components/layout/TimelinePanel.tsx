@@ -1,3 +1,7 @@
+import { simulationClock } from '../../store/simulationClock';
+import { stepNavigationTarget } from '../timeline/timingModel';
+import { translations } from '../../i18n/translations';
+import { formatMilliseconds } from '../../i18n/terminology';
 import React, { useRef, useState, useCallback, memo } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { TimelineHeader } from '../timeline/TimelineHeader';
@@ -26,6 +30,11 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = memo(({ forceCollapse
   const _timelineOpen = useAppStore((s: any) => s.timelineOpen);
   const setCurrentTime = useAppStore((s) => s.setCurrentTime);
 
+  const language = useAppStore(s => s.language);
+  const selectedId = useAppStore(s => s.selectedSequenceId);
+  const t = translations[language];
+  const [zoom, setZoom] = useState(1);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const timelineOpen = forceCollapsed ? false : _timelineOpen;
   const [activeTooltipSeqId, setActiveTooltipSeqId] = useState<string | null>(null);
 
@@ -34,18 +43,19 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = memo(({ forceCollapse
   const rightPanelRef = useRef<HTMLDivElement>(null);
 
   // Dynamic width tracking
-  const rightPanelWidth = useTimelineWidth(rightPanelRef, timelineOpen);
+  const rightPanelWidth = useTimelineWidth(viewportRef, timelineOpen);
 
   // High-performance memoized timeline calculations
-  const { maxTime, pxPerMs, sortedSequences, nodeMap, edgeMap } = useTimelineCalculations({
+  const { maxTime, pxPerMs, contentWidth, sortedSequences, nodeMap, edgeMap } = useTimelineCalculations({
     logicalData,
     visualData,
     schedules,
     rightPanelWidth,
+    zoom,
   });
 
   // Playhead scrubbing interaction hook
-  const { isScrubbing, handleTrackMouseDown } = usePlayheadScrub(
+  const { isScrubbing, handleTrackPointerDown } = usePlayheadScrub(
     rightPanelRef,
     playheadRef,
     maxTime,
@@ -57,6 +67,7 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = memo(({ forceCollapse
   usePlaybackLoop(isPlaying, maxTime);
 
   const handleOpenTooltip = useCallback((seqId: string) => {
+    useAppStore.getState().setSelectedSequenceId(seqId);
     setActiveTooltipSeqId(seqId);
   }, []);
 
@@ -64,14 +75,35 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = memo(({ forceCollapse
     setActiveTooltipSeqId(null);
   }, []);
 
+  const navigate = (direction: -1 | 1) => {
+    const state = useAppStore.getState();
+    const step = stepNavigationTarget(sortedSequences, schedules, state.selectedSequenceId, simulationClock.getTime(), direction);
+    if (step) { state.pausePlayback(); state.setSelectedSequenceId(step.id); state.setCurrentTime(schedules[step.id].start); }
+  };
+  const goToPlayhead = () => {
+    if (viewportRef.current) viewportRef.current.scrollLeft = Math.max(0, simulationClock.getTime() * pxPerMs - viewportRef.current.clientWidth / 2);
+  };
+  const selected = selectedId ? schedules[selectedId] : undefined;
+
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-950 transition-colors duration-300 text-slate-800 dark:text-slate-100 select-none font-sans">
       {/* Top Playback Controls Bar */}
       <TimelineHeader
         maxTime={maxTime}
         hasSequences={logicalData.sequences.length > 0}
+        zoom={timelineOpen ? zoom : undefined}
+        onZoom={setZoom}
+        onFit={() => { setZoom(1); if (viewportRef.current) viewportRef.current.scrollLeft = 0; }}
+        onGoToPlayhead={goToPlayhead}
+        onNavigate={navigate}
       />
 
+      <CollapsedPlaybackSlider maxTime={maxTime} />
+      {timelineOpen && <div className="px-3 py-1 flex flex-wrap items-center gap-3 text-[11px] border-b border-slate-200 dark:border-slate-800">
+        <span>{selected ? `${t.terms.start}: ${formatMilliseconds(selected.start, language)} · ${t.terms.end}: ${formatMilliseconds(selected.end, language)}` : t.timelineUi.noSelection}</span>
+        {selectedId && <button className="text-indigo-600 dark:text-indigo-400 underline" onClick={() => handleOpenTooltip(selectedId)}>{t.timelineUi.editStep}</button>}
+        <details className="ml-auto"><summary className="cursor-pointer">{t.timelineUi.help}</summary><p className="max-w-xl py-2">{t.timelineUi.timingHelp} {t.timelineUi.timingHint}</p></details>
+      </div>}
       {/* Main Unified Scrollable Timeline Workspace */}
       {timelineOpen ? (
         <div
@@ -89,21 +121,20 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = memo(({ forceCollapse
 
             {/* Right Side: Track Grid area */}
             <TimelineTrackList
+              viewportRef={viewportRef}
+              contentWidth={contentWidth}
               rightPanelRef={rightPanelRef}
               playheadRef={playheadRef}
               maxTime={maxTime}
               pxPerMs={pxPerMs}
               sortedSequences={sortedSequences}
               isScrubbing={isScrubbing}
-              onTrackMouseDown={handleTrackMouseDown}
+              onTrackPointerDown={handleTrackPointerDown}
               onOpenTooltip={handleOpenTooltip}
             />
           </div>
         </div>
-      ) : (
-        /* Video Slider when timeline tracks are collapsed */
-        <CollapsedPlaybackSlider maxTime={maxTime} />
-      )}
+      ) : null}
 
       {/* Tooltip Internal Process Modal */}
       {activeTooltipSeqId && (
