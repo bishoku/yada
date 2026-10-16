@@ -1,3 +1,7 @@
+import { Input } from '../../ui/Field';
+import { useId } from 'react';
+import { colorLabels } from '../../../i18n/domainLabels';
+import { message } from '../../../i18n/messages';
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { HandleConfig } from '../../../types';
 import { resolveHandles } from '../../../utils/portUtils';
@@ -39,10 +43,10 @@ const BG: Record<string, string> = {
 
 
 /** Compact label used throughout the form */
-const Label: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none">
+const Label: React.FC<{ children: React.ReactNode; htmlFor?: string }> = ({ children, htmlFor }) => (
+  <label htmlFor={htmlFor} className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none">
     {children}
-  </span>
+  </label>
 );
 
 /** Compact text input with auto-select on focus */
@@ -55,7 +59,7 @@ const CompactInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (pro
   };
 
   return (
-    <input
+    <Input
       {...props}
       onFocus={handleFocus}
       className={`w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 ${props.className ?? ''}`}
@@ -67,7 +71,7 @@ const CompactInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (pro
 /** Thin section divider */
 const Divider: React.FC<{ label?: string }> = ({ label }) => (
   <div className="flex items-center gap-2 pt-2 mt-1 border-t border-slate-100 dark:border-slate-800/70">
-    {label && <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider whitespace-nowrap">{label}</span>}
+    {label && <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider whitespace-nowrap">{label}</span>}
     {label && <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800/70" />}
   </div>
 );
@@ -85,6 +89,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
   onPreview,
   onValidationError,
 }, ref) => {
+  const propertyPrefix = useId();
   const [name, setName] = useState(activeNode.name);
   const [type, setType] = useState(activeNode.type);
   const [theme, setTheme] = useState(activeNode.theme);
@@ -171,14 +176,14 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
 
       {/* Name */}
       <div className="flex flex-col gap-1">
-        <Label>{tr('Ad', 'Name')}</Label>
+        <Label htmlFor={`${propertyPrefix}-property-1`}>{message(lang, "NodePropertiesForm.name")}</Label>
         <CompactInput
           value={name}
           onChange={(e) => { setName(e.target.value); preview({ n: e.target.value }); }}
-        />
+         id={`${propertyPrefix}-property-1`}/>
         {nameExists && (
-          <span className="text-[10px] text-rose-500 font-semibold mt-0.5">
-            {tr('Geçersiz - bu isim zaten mevcut', 'Invalid - name already exists')}
+          <span className="text-xs text-rose-500 font-semibold mt-0.5">
+            {message(lang, "NodePropertiesForm.invalidNameAlreadyExists")}
           </span>
         )}
       </div>
@@ -186,7 +191,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
       {/* Type / Subtitle Label (not for sections) */}
       {!isSection && (
         <div className="flex flex-col gap-1">
-          <Label>{tr('Bileşen Tipi', 'Component Type')}</Label>
+          <Label htmlFor={`${propertyPrefix}-property-2`}>{message(lang, "NodePropertiesForm.componentType")}</Label>
           <CompactInput
             value={
               customStyles.customType !== undefined
@@ -195,7 +200,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
             }
             onChange={(e) => {
               const val = e.target.value;
-              
+
               // Check if val matches a built-in NodeRegistry definition (by type ID or translated name)
               const matchedDef = Object.values(NodeRegistry).find(
                 (def) =>
@@ -220,9 +225,9 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
               setCustomStyles(nextStyles);
               preview({ t: nextType, cs: nextStyles });
             }}
-            placeholder={tr('Bileşen tipi (boş bırakılabilir)', 'Component type (can be empty)')}
+            placeholder={message(lang, "NodePropertiesForm.componentTypeCanBeEmpty")}
             list="built-in-component-types"
-          />
+           id={`${propertyPrefix}-property-2`}/>
           <datalist id="built-in-component-types">
             {Object.values(NodeRegistry)
               .filter((def) => def.category === 'standard')
@@ -236,7 +241,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
       {/* Theme color — 4x2 Preset Grid + Custom Color Row */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <Label>{isSection ? tr('Kenarlık Rengi', 'Border Color') : tr('Bileşen Rengi', 'Component Color')}</Label>
+          <Label>{isSection ? message(lang, "NodePropertiesForm.borderColor") : message(lang, "NodePropertiesForm.componentColor")}</Label>
         </div>
 
         {/* 4x2 Presets Grid */}
@@ -256,17 +261,17 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
               className={`h-5 rounded-full ${BG[c]} hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center justify-center ${
                 theme === c ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-105 shadow-sm' : ''
               }`}
-              title={c}
+              title={colorLabels[lang === 'tr' ? 'tr' : 'en'][c] || c}
             />
           ))}
         </div>
 
         {/* Custom Color Picker Row */}
         <div className="flex items-center justify-between pt-0.5">
-          <Label>{tr('Özel Renk Paleti', 'Custom Color')}</Label>
+          <Label>{message(lang, "NodePropertiesForm.customColor")}</Label>
           <div className="flex items-center gap-2">
             {theme.startsWith('#') && (
-              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">
+              <span className="text-xs font-mono text-slate-500 dark:text-slate-400 font-semibold">
                 {theme}
               </span>
             )}
@@ -274,7 +279,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
               className={`w-5 h-5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 ${
                 theme.startsWith('#') ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
               }`}
-              title={tr('Özel Renk Seçici', 'Custom Color Picker')}
+              title={message(lang, "NodePropertiesForm.customColorPicker")}
             >
               <input
                 type="color"
@@ -296,7 +301,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
         </div>
         {!isSection && (
           <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/60 mt-0.5">
-            <Label>{tr('Sadece Çerçeve Rengi', 'Border Only')}</Label>
+            <Label>{message(lang, "NodePropertiesForm.borderOnly")}</Label>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -318,16 +323,16 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
       {/* Section Visual Controls */}
       {isSection && (
         <div className="flex flex-col gap-2.5 pt-1">
-          <Divider label={tr('Section Görsel Ayarları', 'Section Visual Settings')} />
+          <Divider label={message(lang, "NodePropertiesForm.sectionVisualSettings")} />
 
           {/* Section Title Mode (Tag vs Banner vs None) */}
           <div className="flex flex-col gap-1">
-            <Label>{tr('Başlık Görünüm Modu', 'Title Mode')}</Label>
+            <Label>{message(lang, "NodePropertiesForm.titleMode")}</Label>
             <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
               {[
-                { id: 'inline', label: tr('Etiket', 'Inline Tag') },
-                { id: 'header', label: tr('Başlık Bandı', 'Header Banner') },
-                { id: 'none', label: tr('Yok (Gizli)', 'None') },
+                { id: 'inline', label: message(lang, "NodePropertiesForm.inlineTag") },
+                { id: 'header', label: message(lang, "NodePropertiesForm.headerBanner") },
+                { id: 'none', label: message(lang, "NodePropertiesForm.none") },
               ].map((m) => {
                 const currentMode = customStyles.sectionTitleMode ?? 'inline';
                 const active = currentMode === m.id;
@@ -339,7 +344,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                       setCustomStyles(s);
                       preview({ cs: s });
                     }}
-                    className={`flex-1 py-1 text-[10px] rounded-md font-semibold transition-colors leading-none ${
+                    className={`flex-1 py-1 text-xs rounded-md font-semibold transition-colors leading-none ${
                       active
                         ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
                         : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -357,7 +362,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
             <div className="flex flex-col gap-2">
               {/* Title Edge Selection */}
               <div className="flex flex-col gap-1">
-                <Label>{tr('Başlık Konumu', 'Title Edge')}</Label>
+                <Label>{message(lang, "NodePropertiesForm.titleEdge")}</Label>
                 <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
                   {[
                     { id: 'top', label: '↑' },
@@ -375,7 +380,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                           setCustomStyles(s);
                           preview({ cs: s });
                         }}
-                        className={`flex-1 py-1 text-[10px] rounded-md font-semibold transition-colors leading-none ${
+                        className={`flex-1 py-1 text-xs rounded-md font-semibold transition-colors leading-none ${
                           active
                             ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
                             : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -390,12 +395,12 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
 
               {/* Title Alignment */}
               <div className="flex flex-col gap-1">
-                <Label>{tr('Başlık Hizalaması', 'Title Alignment')}</Label>
+                <Label>{message(lang, "NodePropertiesForm.titleAlignment")}</Label>
                 <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
                   {[
-                    { id: 'left', label: tr('Sol', 'Start') },
-                    { id: 'center', label: tr('Orta', 'Center') },
-                    { id: 'right', label: tr('Sağ', 'End') },
+                    { id: 'left', label: message(lang, "NodePropertiesForm.start") },
+                    { id: 'center', label: message(lang, "NodePropertiesForm.center") },
+                    { id: 'right', label: message(lang, "NodePropertiesForm.end") },
                   ].map((a) => {
                     const currentAlign = customStyles.sectionTitleAlign ?? 'left';
                     const active = currentAlign === a.id;
@@ -407,7 +412,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                           setCustomStyles(s);
                           preview({ cs: s });
                         }}
-                        className={`flex-1 py-1 text-[10px] rounded-md font-semibold transition-colors leading-none ${
+                        className={`flex-1 py-1 text-xs rounded-md font-semibold transition-colors leading-none ${
                           active
                             ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
                             : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -426,7 +431,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
           {customStyles.sectionTitleMode === 'header' && (
             <div className="flex flex-col gap-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200/60 dark:border-slate-800">
               <div className="flex items-center justify-between">
-                <Label>{tr('Header Bandı Rengi', 'Header Color')}</Label>
+                <Label>{message(lang, "NodePropertiesForm.headerColor")}</Label>
                 {customStyles.headerBgColor && (
                   <button
                     onClick={() => {
@@ -435,10 +440,10 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                       setCustomStyles(s);
                       preview({ cs: s });
                     }}
-                    className="text-[10px] text-slate-400 hover:text-rose-500 underline"
-                    title={tr('Sıfırla', 'Reset')}
+                    className="text-xs text-slate-400 hover:text-rose-500 underline"
+                    title={message(lang, "NodePropertiesForm.reset")}
                   >
-                    {tr('Sıfırla', 'Reset')}
+                    {message(lang, "NodePropertiesForm.reset")}
                   </button>
                 )}
               </div>
@@ -456,17 +461,17 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                     className={`h-5 rounded-full ${BG[c]} hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center justify-center ${
                       customStyles.headerBgColor === c ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-105 shadow-sm' : ''
                     }`}
-                    title={c}
+                    title={colorLabels[lang === 'tr' ? 'tr' : 'en'][c] || c}
                   />
                 ))}
               </div>
 
               {/* Custom Header Color Picker */}
               <div className="flex items-center justify-between pt-0.5 border-t border-slate-200/40 dark:border-slate-800/80">
-                <Label>{tr('Özel Header Rengi', 'Custom Header Color')}</Label>
+                <Label>{message(lang, "NodePropertiesForm.customHeaderColor")}</Label>
                 <div className="flex items-center gap-2">
                   {customStyles.headerBgColor?.startsWith('#') && (
-                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                    <span className="text-xs font-mono text-slate-500 dark:text-slate-400 font-semibold">
                       {customStyles.headerBgColor}
                     </span>
                   )}
@@ -474,7 +479,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                     className={`w-5 h-5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 ${
                       customStyles.headerBgColor?.startsWith('#') ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
                     }`}
-                    title={tr('Özel Header Renk Seçici', 'Custom Header Color Picker')}
+                    title={message(lang, "NodePropertiesForm.customHeaderColorPicker")}
                   >
                     <input
                       type="color"
@@ -495,12 +500,12 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
 
           {/* Section Border Style (dashed / solid / dotted) */}
           <div className="flex flex-col gap-1">
-            <Label>{tr('Kenarlık Çizgisi Stili', 'Border Style')}</Label>
+            <Label>{message(lang, "NodePropertiesForm.borderStyle")}</Label>
             <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
               {[
-                { id: 'dashed', label: tr('Kesikli', 'Dashed') },
-                { id: 'solid', label: tr('Düz', 'Solid') },
-                { id: 'dotted', label: tr('Noktalı', 'Dotted') },
+                { id: 'dashed', label: message(lang, "NodePropertiesForm.dashed") },
+                { id: 'solid', label: message(lang, "NodePropertiesForm.solid") },
+                { id: 'dotted', label: message(lang, "NodePropertiesForm.dotted") },
               ].map((b) => {
                 const currentBorder = customStyles.borderStyle ?? 'dashed';
                 const active = currentBorder === b.id;
@@ -512,7 +517,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                       setCustomStyles(s);
                       preview({ cs: s });
                     }}
-                    className={`flex-1 py-1 text-[10px] rounded-md font-semibold transition-colors leading-none ${
+                    className={`flex-1 py-1 text-xs rounded-md font-semibold transition-colors leading-none ${
                       active
                         ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
                         : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -528,7 +533,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
           {/* Section Background Color & Opacity */}
           <div className="flex flex-col gap-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200/60 dark:border-slate-800">
             <div className="flex items-center justify-between">
-              <Label>{tr('Arka Plan Rengi', 'Background Color')}</Label>
+              <Label>{message(lang, "NodePropertiesForm.backgroundColor")}</Label>
               {customStyles.backgroundColor && (
                 <button
                   onClick={() => {
@@ -537,10 +542,10 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                     setCustomStyles(s);
                     preview({ cs: s });
                   }}
-                  className="text-[10px] text-slate-400 hover:text-rose-500 underline"
-                  title={tr('Sıfırla', 'Reset')}
+                  className="text-xs text-slate-400 hover:text-rose-500 underline"
+                  title={message(lang, "NodePropertiesForm.reset")}
                 >
-                  {tr('Sıfırla', 'Reset')}
+                  {message(lang, "NodePropertiesForm.reset")}
                 </button>
               )}
             </div>
@@ -558,17 +563,17 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                   className={`h-5 rounded-full ${BG[c]} hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center justify-center ${
                     customStyles.backgroundColor === c ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-105 shadow-sm' : ''
                   }`}
-                  title={c}
+                  title={colorLabels[lang === 'tr' ? 'tr' : 'en'][c] || c}
                 />
               ))}
             </div>
 
             {/* Custom Background Color Picker */}
             <div className="flex items-center justify-between pt-0.5 border-t border-slate-200/40 dark:border-slate-800/80">
-              <Label>{tr('Özel Arka Plan Rengi', 'Custom Background Color')}</Label>
+              <Label>{message(lang, "NodePropertiesForm.customBackgroundColor")}</Label>
               <div className="flex items-center gap-2">
                 {customStyles.backgroundColor?.startsWith('#') && (
-                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">
+                  <span className="text-xs font-mono text-slate-500 dark:text-slate-400 font-semibold">
                     {customStyles.backgroundColor}
                   </span>
                 )}
@@ -576,7 +581,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                   className={`w-5 h-5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 ${
                     customStyles.backgroundColor?.startsWith('#') ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
                   }`}
-                  title={tr('Özel Arka Plan Renk Seçici', 'Custom Background Color Picker')}
+                  title={message(lang, "NodePropertiesForm.customBackgroundColorPicker")}
                 >
                   <input
                     type="color"
@@ -596,8 +601,8 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
             {/* Opacity Slider */}
             <div className="flex flex-col gap-1 pt-1 border-t border-slate-200/40 dark:border-slate-800/80">
               <div className="flex items-center justify-between">
-                <Label>{tr('Arka Plan Opaklığı', 'Background Opacity')}</Label>
-                <span className="text-[10px] font-mono font-semibold text-slate-600 dark:text-slate-300">
+                <Label>{message(lang, "NodePropertiesForm.backgroundOpacity")}</Label>
+                <span className="text-xs font-mono font-semibold text-slate-600 dark:text-slate-300">
                   {Math.round((customStyles.bgOpacity ?? 0.15) * 100)}%
                 </span>
               </div>
@@ -628,19 +633,19 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
         <div className="grid grid-cols-2 gap-2">
           {/* Display mode */}
           <div className="flex flex-col gap-1">
-            <Label>{tr('Görünüm', 'Display')}</Label>
+            <Label>{message(lang, "NodePropertiesForm.display")}</Label>
             <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
               {(['default', 'icon-only'] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => { setDisplayMode(mode); preview({ dm: mode }); }}
-                  className={`flex-1 py-1 text-[10px] rounded-md font-semibold transition-colors leading-none ${
+                  className={`flex-1 py-1 text-xs rounded-md font-semibold transition-colors leading-none ${
                     displayMode === mode
                       ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
                       : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                   }`}
                 >
-                  {mode === 'default' ? tr('Tam', 'Full') : tr('İkon', 'Icon')}
+                  {mode === 'default' ? message(lang, "NodePropertiesForm.full") : message(lang, "NodePropertiesForm.icon")}
                 </button>
               ))}
             </div>
@@ -648,13 +653,13 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
 
           {/* Orientation */}
           <div className="flex flex-col gap-1">
-            <Label>{tr('Yön', 'Orient.')}</Label>
+            <Label>{message(lang, "NodePropertiesForm.orient")}</Label>
             <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
               {([0, 90] as const).map((deg) => (
                 <button
                   key={deg}
                   onClick={() => { setRotation(deg); preview({ r: deg }); }}
-                  className={`flex-1 flex items-center justify-center gap-1 py-1 text-[10px] rounded-md font-semibold transition-colors leading-none ${
+                  className={`flex-1 flex items-center justify-center gap-1 py-1 text-xs rounded-md font-semibold transition-colors leading-none ${
                     rotation === deg
                       ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
                       : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -669,7 +674,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                       <rect x="4" y="1" width="6" height="12" rx="1.5" />
                     </svg>
                   )}
-                  {deg === 0 ? tr('Yatay', 'H') : tr('Dikey', 'V')}
+                  {deg === 0 ? message(lang, "NodePropertiesForm.h") : message(lang, "NodePropertiesForm.v")}
                 </button>
               ))}
             </div>
@@ -680,14 +685,14 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
       {/* Icon-only Label Position (when displayMode === 'icon-only') */}
       {!isSection && displayMode === 'icon-only' && (
         <div className="flex flex-col gap-1 pt-1">
-          <Label>{tr('İkon İsim Hizalaması', 'Icon Label Position')}</Label>
+          <Label>{message(lang, "NodePropertiesForm.iconLabelPosition")}</Label>
           <div className="grid grid-cols-5 gap-1 bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
             {[
-              { id: 'none', label: tr('Yok', 'None') },
-              { id: 'top', label: tr('Üst', 'Top') },
-              { id: 'bottom', label: tr('Alt', 'Bottom') },
-              { id: 'left', label: tr('Sol', 'Left') },
-              { id: 'right', label: tr('Sağ', 'Right') },
+              { id: 'none', label: message(lang, "NodePropertiesForm.none2") },
+              { id: 'top', label: message(lang, "NodePropertiesForm.top") },
+              { id: 'bottom', label: message(lang, "NodePropertiesForm.bottom") },
+              { id: 'left', label: message(lang, "NodePropertiesForm.left") },
+              { id: 'right', label: message(lang, "NodePropertiesForm.right") },
             ].map((p) => {
               const currentPos = customStyles.iconLabelPosition ?? 'none';
               const active = currentPos === p.id;
@@ -700,7 +705,7 @@ export const NodePropertiesForm = forwardRef<NodePropertiesFormRef, NodeProperti
                     setCustomStyles(s);
                     preview({ cs: s });
                   }}
-                  className={`py-1 text-[9px] rounded-md font-semibold transition-colors leading-none ${
+                  className={`py-1 text-xs rounded-md font-semibold transition-colors leading-none ${
                     active
                       ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400'
                       : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'

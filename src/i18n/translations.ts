@@ -1,6 +1,18 @@
 import { terminology } from './terminology';
 export const translations = {
   tr: {
+    commonUi: {
+      loading: 'Yükleniyor…', unknownDate: 'Tarih bilinmiyor', confirm: 'Onayla', ok: 'Tamam', refresh: 'Yenile',
+      showcase: 'Örnekler', importWorkspace: 'Çalışma alanı içe aktar (.dproj)', importAdapter: '{name} içe aktar',
+      quickEditConnection: 'Çift tıkla: Protokol ve açıklamayı hızlı düzenle',
+      moveLayerUp: 'Katmanı üste taşı', moveLayerDown: 'Katmanı alta taşı',
+      browserStorage: 'Verileriniz bu tarayıcıda saklanır. Tarayıcı verilerini silmek kayıtları kaldırabilir.',
+      folderStorage: 'Verileriniz seçtiğiniz yerel klasörde saklanır.',
+      nativeStorage: 'Verileriniz bu cihazdaki YADA klasöründe saklanır.',
+      cloudStorage: 'Verileriniz iCloud Drive içindeki YADA klasöründe saklanır.',
+      hostStorage: 'Verileriniz bağlı uygulama tarafından yönetilir.',
+    },
+
     navigationUi: { savingFailed: 'Değişiklikleriniz kaydedilemedi. Düzenleyicide korunuyor.', retry: 'Kaydetmeyi yeniden dene', retryHint: 'Kayıt tamamlandıktan sonra gezinmeyi yeniden deneyin.', opening: 'Diyagram açılıyor…', unavailable: 'Çalışma alanı veya diyagram açılamadı. Depolama veya klasör izinlerini kontrol edip yeniden deneyin.', locked: 'Gezinmeden önce ortak çalışma oturumundan ayrılın.', details: 'Ayrıntılar', changed: 'Daha yeni değişiklikler henüz kaydedilmedi.' },
     terms: terminology.tr,
     timelineUi: {
@@ -37,7 +49,7 @@ export const translations = {
     sampleDiagramsSub: "Önizleyin ve çalışma alanınıza kopyalayın",
     showcaseTitle: "Örnek Mimari Gösterimler",
     showcaseSub: "SAGA, CQRS, Event Sourcing gibi canlı mikroservis mimari simülasyonlarını inceleyin.",
-    showcaseButton: "Showcase Sayfasını Aç",
+    showcaseButton: "Örnekleri aç",
     createWorkspace: "Yeni Çalışma Alanı Oluştur",
     workspaceName: "Çalışma Alanı Adı",
     workspaceNamePlaceholder: "örn: Yeni Mimari Plan",
@@ -52,7 +64,7 @@ export const translations = {
     theme: "Tema",
     cancel: "İptal",
     save: "Kaydet",
-    explorer: "Explorer",
+    explorer: "Gezgin",
     library: "Bileşen Kütüphanesi",
     librarySub: "Sürükle-bırak destekli diyagram bileşenleri Faz 2'de eklenecektir.",
     canvas: "Çalışma Tuvali",
@@ -94,7 +106,7 @@ export const translations = {
     exportDproj: "Dışa Aktar (.dproj)",
     delete: "Sil",
     deleteWorkspace: "Çalışma Alanını Sil",
-    deleteWorkspaceConfirm: "isimli çalışma alanını silmek istediğinize emin misiniz? Bu işlem dosyaları diskten kalıcı olarak silecektir ve geri alınamaz.",
+    deleteWorkspaceConfirm: "isimli çalışma alanını silmek istediğinize emin misiniz? Bu işlem kayıtları uygulamadan kaldırır ve geri alınamaz.",
     deletePermanently: "Kalıcı Olarak Sil",
     renameWorkspace: "Çalışma Alanını Yeniden Adlandır",
     newName: "Yeni İsim",
@@ -111,7 +123,7 @@ export const translations = {
     noMatchingStandard: "Eşleşen standart bileşen yok.",
     noMatchingCustom: "Eşleşen özel tasarım bulunamadı.",
     noCustomYet: "Henüz özel bileşen yok. Tasarlamak için \"+\" ikonuna tıklayın.",
-    
+
     // Canvas & context menu / modals
     stepOrder: "Adım Sırası",
     addToSequence: "Adım ekle",
@@ -177,8 +189,8 @@ export const translations = {
     configureNodeTooltip: terminology.tr.process,
     tooltipText: "Tooltip Metni",
     displayDurationMs: "Ekranda Kalma Süresi (ms)",
-    drawConnectionPrompt: "Canvas üzerinde bağlantı çizerek otomatik olarak akış oluşturabilirsiniz.",
-    
+    drawConnectionPrompt: "Tuval üzerinde bağlantı çizerek otomatik olarak akış oluşturabilirsiniz.",
+
     // Studio
     componentStudioTitle: "BİLEŞEN STÜDYOSU",
     enterComponentNameError: "Lütfen bileşene bir isim verin.",
@@ -234,7 +246,7 @@ export const translations = {
     canvasPresets: "Hazır Boyutlar",
     customSize: "Özel Boyut",
     fitToContent: "İçeriğe Sığdır",
-    
+
     // Sharing
     shareTitle: "Diyagramı Paylaş",
     shareSubtitle: "Görüntüleme ve İzleme Linki (Sadece Okuma)",
@@ -272,6 +284,18 @@ export const translations = {
     no: "Hayır"
   },
   en: {
+    commonUi: {
+      loading: 'Loading…', unknownDate: 'Date unavailable', confirm: 'Confirm', ok: 'OK', refresh: 'Refresh',
+      showcase: 'Examples', importWorkspace: 'Import workspace (.dproj)', importAdapter: 'Import {name}',
+      quickEditConnection: 'Double-click to edit the protocol and description',
+      moveLayerUp: 'Move layer up', moveLayerDown: 'Move layer down',
+      browserStorage: 'Your data is stored in this browser. Clearing browser data may remove saved work.',
+      folderStorage: 'Your data is stored in your selected local folder.',
+      nativeStorage: 'Your data is stored in the YADA folder on this device.',
+      cloudStorage: 'Your data is stored in the YADA folder in iCloud Drive.',
+      hostStorage: 'Your data is managed by the connected application.',
+    },
+
     navigationUi: { savingFailed: 'Your changes could not be saved. They are still open.', retry: 'Retry saving', retryHint: 'Save successfully, then try navigation again.', opening: 'Opening diagram…', unavailable: 'This workspace or diagram could not be opened. Check its storage or folder permissions and try again.', locked: 'Leave the collaboration session before navigating.', details: 'Details', changed: 'Newer changes remain unsaved.' },
     terms: terminology.en,
     timelineUi: {
@@ -365,7 +389,7 @@ export const translations = {
     exportDproj: "Export (.dproj)",
     delete: "Delete",
     deleteWorkspace: "Delete Workspace",
-    deleteWorkspaceConfirm: "workspace? This will permanently delete the files from disk and cannot be undone.",
+    deleteWorkspaceConfirm: "workspace? This removes its records from the application and cannot be undone.",
     deletePermanently: "Delete Permanently",
     renameWorkspace: "Rename Workspace",
     newName: "New Name",
@@ -382,7 +406,7 @@ export const translations = {
     noMatchingStandard: "No matching standard components.",
     noMatchingCustom: "No matching custom components found.",
     noCustomYet: "No custom components yet. Click \"+\" to design.",
-    
+
     // Canvas & context menu / modals
     stepOrder: "Step Order",
     addToSequence: "Add step",
@@ -449,7 +473,7 @@ export const translations = {
     tooltipText: "Tooltip Text",
     displayDurationMs: "Display Duration (ms)",
     drawConnectionPrompt: "Draw connection line on canvas to auto-create step.",
-    
+
     // Studio
     componentStudioTitle: "COMPONENT STUDIO",
     enterComponentNameError: "Please enter a component name.",
@@ -505,7 +529,7 @@ export const translations = {
     canvasPresets: "Presets",
     customSize: "Custom Size",
     fitToContent: "Fit to Content",
-    
+
     // Sharing
     shareTitle: "Share Diagram",
     shareSubtitle: "Visualization & Tracking Link (Read-Only)",

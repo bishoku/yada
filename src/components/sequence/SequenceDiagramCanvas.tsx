@@ -1,3 +1,4 @@
+import { flowAria } from '../../i18n/flowAria';
 import { visibleSequenceEdges } from './sequenceVisibility';
 import { subscribeSequenceCapture, isFullSequenceCapture } from '../../services/sequenceCapture';
 import { translations } from '../../i18n/translations';
@@ -54,16 +55,25 @@ function SeqFlowWrapper() {
   const gridVisible = useAppStore((s) => s.visualData.canvas.gridVisible !== false);
   const bgColor = useAppStore((s) => s.visualData.canvas.bgColor);
   const { rfNodes, rfEdges } = useSequenceLayout();
-  const { fitView } = useReactFlow();
+  const { fitView, getViewport, setViewport } = useReactFlow();
   const viewport = useViewport();
   const viewportHeight = useStore(state => state.height);
   const fullCapture = useSyncExternalStore(subscribeSequenceCapture, isFullSequenceCapture, isFullSequenceCapture);
   const visibleEdges = useMemo(() => visibleSequenceEdges(rfEdges, viewport, viewportHeight, fullCapture), [rfEdges, viewport, viewportHeight, fullCapture]);
 
+  useEffect(() => {
+    const remember = (event: Event) => {
+      const viewport = getViewport();
+      (event as CustomEvent<Array<() => Promise<unknown>>>).detail.push(() => setViewport(viewport, { duration: 0 }));
+    };
+    window.addEventListener('export:rememberview', remember);
+    return () => window.removeEventListener('export:rememberview', remember);
+  }, [getViewport, setViewport]);
+
   // Listen for export requests to fit the view before capturing image
   useEffect(() => {
     const handleFitView = () => {
-      fitView({ padding: 0.2, duration: 100 });
+      fitView({ padding: 0.2, duration: 0 });
     };
     window.addEventListener('export:fitview', handleFitView);
     return () => {
@@ -133,7 +143,7 @@ function SeqFlowWrapper() {
         background: bgColor || 'transparent',
       }}
     >
-      <ReactFlow
+      <ReactFlow ariaLabelConfig={flowAria[language]}
         nodes={rfNodes}
         edges={visibleEdges}
         nodeTypes={nodeTypes}

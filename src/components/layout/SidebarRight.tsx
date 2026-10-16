@@ -1,9 +1,13 @@
+import { translations } from '../../i18n/translations';
+import { useUiCopy } from '../../i18n/useUiCopy';
+import { message } from '../../i18n/messages';
 import React, { useEffect, useRef } from 'react';
 import { Terminal, Activity, ArrowRight, ArrowRightLeft, CornerDownRight, Server, Layers, Trash2 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { NodeRegistry } from '../../registry/NodeRegistry';
 
 export const SidebarRight: React.FC = () => {
+  const uiCopy = useUiCopy();
   const logicalData = useAppStore((s) => s.logicalData);
   const visualData = useAppStore((s) => s.visualData);
   const language = useAppStore((s) => s.language);
@@ -42,13 +46,13 @@ export const SidebarRight: React.FC = () => {
     <aside className={`border-l border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/40 backdrop-blur-md flex flex-col h-full select-none shrink-0 z-20 transition-all duration-300 ease-in-out overflow-hidden ${
       rightSidebarOpen ? 'w-[300px]' : 'w-0 border-l-0'
     }`}>
-      
+
       {/* TOP SECTION: Simulation Flow Log (50% height) */}
       <div className="flex-1 flex flex-col min-h-0 border-b border-slate-200 dark:border-slate-850">
         {/* Header */}
         <div className="p-3 border-b border-slate-200 dark:border-slate-850 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-900/30">
           <span className="text-xs font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wider">
-            {language === 'tr' ? 'Simülasyon Akış Logu' : 'Simulation Flow Log'}
+            {message(language, "SidebarRight.simulationFlowLog")}
           </span>
           <Terminal className="w-4 h-4 text-slate-400 dark:text-slate-500" />
         </div>
@@ -59,12 +63,10 @@ export const SidebarRight: React.FC = () => {
             <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
               <Activity className="w-8 h-8 text-slate-350 dark:text-slate-500 stroke-[1.5] mb-2 animate-pulse" />
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 font-sans">
-                {language === 'tr' ? 'Log Akışı Bekleniyor' : 'Awaiting Flow Logs'}
+                {message(language, "SidebarRight.awaitingFlowLogs")}
               </span>
               <p className="text-[10px] text-slate-400 dark:text-slate-550 max-w-[200px] mt-1 leading-normal font-sans">
-                {language === 'tr' 
-                  ? 'Canvas üzerinde bağlantılar oluşturun ve simülasyonu başlatın.' 
-                  : 'Create connections on canvas and start playback to see logs.'}
+                {message(language, "SidebarRight.createConnectionsOnCanvasAndStartPlayback")}
               </p>
             </div>
           ) : (
@@ -75,12 +77,12 @@ export const SidebarRight: React.FC = () => {
               const src = logicalData.nodes.find((n) => n.id === edge.sourceId)?.name ?? edge.sourceId;
               const dst = logicalData.nodes.find((n) => n.id === edge.targetId)?.name ?? edge.targetId;
               const protocol = edge.protocol ?? 'Call';
-              
+
               const isRowActive = activeSequenceIds.includes(seq.id);
               const isRowSelected = selectedSequenceId === seq.id;
               const timing = visualData.timelines[seq.id];
               const hasProcess = !!timing?.internalProcess;
-              
+
               const sched = schedules[seq.id];
 
               return (
@@ -107,14 +109,14 @@ export const SidebarRight: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
-                        isRowActive 
-                          ? 'bg-emerald-500 text-white' 
+                        isRowActive
+                          ? 'bg-emerald-500 text-white'
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-550 dark:text-slate-400'
                       }`}>
-                        S{seq.stepNumber}
+                        {message(language, 'common.stepPrefix')}{seq.stepNumber}
                       </span>
                       <span className="text-[9px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">
-                        {seq.isAsync ? 'Asenkron' : 'Senkron'}
+                        {translations[language].terms[seq.isAsync ? 'asynchronous' : 'synchronous']}
                       </span>
                     </div>
                     {sched && (
@@ -142,7 +144,7 @@ export const SidebarRight: React.FC = () => {
                     <div className="flex items-start gap-1 text-[9px] text-slate-500 dark:text-slate-450 font-medium pl-1 border-l border-slate-200 dark:border-slate-850 mt-0.5">
                       <CornerDownRight className="w-3 h-3 text-slate-400 mt-0.5 shrink-0" />
                       <span className="truncate">
-                        Process: {timing.internalProcess?.text} ({timing.internalProcess?.duration}ms)
+                        {uiCopy.process} {timing.internalProcess?.text} ({timing.internalProcess?.duration}ms)
                       </span>
                     </div>
                   )}
@@ -165,7 +167,7 @@ export const SidebarRight: React.FC = () => {
         {/* Header */}
         <div className="p-3 border-b border-slate-200 dark:border-slate-850 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-900/30">
           <span className="text-xs font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wider">
-            {language === 'tr' ? 'Diyagram Bileşenleri' : 'Diagram Components'}
+            {message(language, "SidebarRight.diagramComponents")}
           </span>
           <Layers className="w-4 h-4 text-slate-400 dark:text-slate-500" />
         </div>
@@ -176,12 +178,10 @@ export const SidebarRight: React.FC = () => {
             <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
               <Server className="w-8 h-8 text-slate-350 dark:text-slate-500 stroke-[1.5] mb-2" />
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 font-sans">
-                {language === 'tr' ? 'Bileşen Bulunmuyor' : 'No Components Found'}
+                {message(language, "SidebarRight.noComponentsFound")}
               </span>
               <p className="text-[10px] text-slate-400 dark:text-slate-550 max-w-[200px] mt-1 leading-normal font-sans">
-                {language === 'tr' 
-                  ? 'Sol taraftaki kütüphaneden sürükleyerek tuvale bileşenler ekleyin.' 
-                  : 'Drag components from the left sidebar library onto the canvas.'}
+                {message(language, "SidebarRight.dragComponentsFromTheLeftSidebarLibrary")}
               </p>
             </div>
           ) : (
@@ -199,8 +199,8 @@ export const SidebarRight: React.FC = () => {
                     setFocusedNodeId(node.id);
                   }}
                   className={`p-3 rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 transition-all duration-200 flex items-center justify-between gap-3 group ${
-                    isPlaying 
-                      ? 'cursor-not-allowed opacity-60' 
+                    isPlaying
+                      ? 'cursor-not-allowed opacity-60'
                       : 'cursor-pointer hover:border-indigo-500/50 dark:hover:border-indigo-500/50 hover:shadow-md dark:hover:bg-indigo-500/[0.02]'
                   }`}
                 >
@@ -213,8 +213,8 @@ export const SidebarRight: React.FC = () => {
                         {node.name}
                       </span>
                       <span className="text-[9px] text-slate-450 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-                        {isSection 
-                          ? (language === 'tr' ? 'Alan (Section)' : 'Section') 
+                        {isSection
+                          ? (message(language, "SidebarRight.section"))
                           : (def?.name[language] ?? node.type)}
                       </span>
                     </div>
@@ -223,22 +223,20 @@ export const SidebarRight: React.FC = () => {
                     <button
                       onClick={async (e) => {
                         e.stopPropagation();
-                        const confirmMsg = language === 'tr'
-                          ? `"${node.name}" bileşenini diyagramdan silmek istediğinize emin misiniz?`
-                          : `Are you sure you want to delete "${node.name}" from the diagram?`;
+                        const confirmMsg = message(language, "SidebarRight.areYouSureYouWantToDelete", { value1: node.name });
                         const confirmed = await openConfirm({
-                          title: language === 'tr' ? 'Bileşeni Sil' : 'Delete Component',
+                          title: message(language, "SidebarRight.deleteComponent"),
                           message: confirmMsg,
                           type: 'danger',
-                          confirmText: language === 'tr' ? 'Sil' : 'Delete',
-                          cancelText: language === 'tr' ? 'İptal' : 'Cancel'
+                          confirmText: message(language, "SidebarRight.delete"),
+                          cancelText: message(language, "SidebarRight.cancel")
                         });
                         if (confirmed) {
                           deleteNode(node.id);
                         }
                       }}
                       className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 cursor-pointer transition-all focus:outline-none shrink-0"
-                      title={language === 'tr' ? 'Sil' : 'Delete'}
+                      title={message(language, "SidebarRight.delete")}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -250,7 +248,7 @@ export const SidebarRight: React.FC = () => {
           )}
         </div>
       </div>
-      
+
     </aside>
   );
 };

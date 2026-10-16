@@ -1,0 +1,4 @@
+export const editingCopy={
+  en:{speed:'Playback speed',playback:'Playback',view:'Timeline view',inspect:'Preview flow',timing:'Edit timing',inspectHint:'Select a step to inspect it. Seeking does not change the diagram.',timingHint:'Drag bars to change delay; resize their right edge to change duration. Escape cancels the gesture.',duration:'Transit duration',delay:'Delay',seekStep:'Go to step start',selectStep:'Select step',details:'Timing details'},
+  tr:{speed:'Oynatma hızı',playback:'Oynatma',view:'Zaman çizelgesi görünümü',inspect:'Akışı izle',timing:'Zamanlamayı düzenle',inspectHint:'İncelemek için bir adım seçin. Oynatma konumunu değiştirmek diyagramı değiştirmez.',timingHint:'Gecikme için çubuğu sürükleyin; süre için sağ kenarını boyutlandırın. Escape hareketi iptal eder.',duration:'Geçiş süresi',delay:'Gecikme',seekStep:'Adımın başına git',selectStep:'Adımı seç',details:'Zamanlama ayrıntıları'},
+};

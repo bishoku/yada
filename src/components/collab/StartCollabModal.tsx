@@ -1,3 +1,5 @@
+import { ModalSurface } from '../ui/ModalSurface';
+import { message } from '../../i18n/messages';
 import { getPlatformCapabilities } from '../../services/platformCapabilities';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -11,7 +13,7 @@ export const StartCollabModal: React.FC = () => {
   const isCollabActive = useAppStore((s) => s.isCollabActive);
   const collabRoomId = useAppStore((s) => s.collabRoomId);
   const language = useAppStore((s) => s.language);
-  const isTr = language === 'tr';
+
 
   const [duration, setDuration] = useState<number>(30);
   const [isStarting, setIsStarting] = useState(false);
@@ -59,7 +61,7 @@ export const StartCollabModal: React.FC = () => {
   const activeRoom = createdRoomId || (isCollabActive ? collabRoomId : null);
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+    <ModalSurface label={message(language, "StartCollabModal.liveCollaborationSpace")} onClose={() => setOpen(false)} width="28rem">
       <div
         className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
@@ -72,17 +74,17 @@ export const StartCollabModal: React.FC = () => {
             </div>
             <div>
               <h3 className="text-base font-semibold text-slate-900 dark:text-white">
-                {isTr ? 'Canlı Ortak Çalışma Alanı' : 'Live Collaboration Space'}
+                {message(language, "StartCollabModal.liveCollaborationSpace")}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {isTr ? 'Figma tarzı eşzamanlı mimari çizim (Maks. 4 kişi)' : 'Figma-like simultaneous diagramming (Max 4 peers)'}
+                {message(language, "StartCollabModal.figmaLikeSimultaneousDiagrammingMax4Peers")}
               </p>
             </div>
           </div>
           <button
             onClick={() => setOpen(false)}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
-          >
+           aria-label={message(language, "common.close")}>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -95,31 +97,27 @@ export const StartCollabModal: React.FC = () => {
               {hasActiveDiagram ? (
                 <div className="bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/60 rounded-xl p-3 text-xs space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium">{isTr ? 'Çalışma Alanı:' : 'Workspace:'}</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">{message(language, "StartCollabModal.workspace")}</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">{currentWorkspace.name}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500 dark:text-slate-400 font-medium">{isTr ? 'Aktif Diyagram:' : 'Active Diagram:'}</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">{message(language, "StartCollabModal.activeDiagram")}</span>
                     <span className="font-bold text-blue-600 dark:text-blue-400 truncate max-w-[200px]">{activeDiagram.name}</span>
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 pt-1.5 border-t border-blue-100 dark:border-blue-900/40">
-                    🔒 {isTr
-                      ? 'Oturum boyunca tüm kullanıcılar bu diyagram üzerinde kilitli çalışır.'
-                      : 'All participants will be locked to this diagram during the session.'}
+                    🔒 {message(language, "StartCollabModal.allParticipantsWillBeLockedToThis")}
                   </p>
                 </div>
               ) : (
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-700 dark:text-amber-300 font-medium">
-                  ⚠️ {isTr
-                    ? 'Ortak çalışma başlatmak için lütfen önce bir diyagram açın.'
-                    : 'Please open a diagram before starting a live session.'}
+                  ⚠️ {message(language, "StartCollabModal.pleaseOpenADiagramBeforeStartingA")}
                 </div>
               )}
 
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-blue-500" />
-                  {isTr ? 'Oturum Süresi' : 'Session Duration'}
+                  {message(language, "StartCollabModal.sessionDuration")}
                 </label>
                 <div className="grid grid-cols-3 gap-2.5">
                   {[15, 30, 45].map((mins) => (
@@ -133,7 +131,7 @@ export const StartCollabModal: React.FC = () => {
                           : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40 text-slate-600 dark:text-slate-300'
                       }`}
                     >
-                      {mins} {isTr ? 'dakika' : 'mins'}
+                      {mins} {message(language, "StartCollabModal.mins")}
                     </button>
                   ))}
                 </div>
@@ -142,12 +140,10 @@ export const StartCollabModal: React.FC = () => {
               <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-3.5 border border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 space-y-1.5">
                 <div className="flex items-center gap-1.5 font-medium text-slate-800 dark:text-slate-200">
                   <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-                  {isTr ? 'Zero-Knowledge P2P Güvenliği' : 'Zero-Knowledge P2P Security'}
+                  {message(language, "StartCollabModal.zeroKnowledgeP2PSecurity")}
                 </div>
                 <p>
-                  {isTr
-                    ? 'Diyagram verileriniz ve hareketleriniz doğrudan tarayıcılar arasında (WebRTC) akar. Sunucuda hiçbir çizim verisi saklanmaz.'
-                    : 'Your diagram and canvas actions flow directly peer-to-peer via WebRTC. Zero diagram data is saved on servers.'}
+                  {message(language, "StartCollabModal.yourDiagramAndCanvasActionsFlowDirectly")}
                 </p>
               </div>
 
@@ -159,12 +155,12 @@ export const StartCollabModal: React.FC = () => {
                 {isStarting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{isTr ? 'Oda Başlatılıyor...' : 'Starting Space...'}</span>
+                    <span>{message(language, "StartCollabModal.startingSpace")}</span>
                   </>
                 ) : (
                   <>
                     <Users className="w-4 h-4" />
-                    <span>{isTr ? 'Oturumu Başlat' : 'Start Session'}</span>
+                    <span>{message(language, "StartCollabModal.startSession")}</span>
                   </>
                 )}
               </button>
@@ -177,10 +173,10 @@ export const StartCollabModal: React.FC = () => {
                   <Sparkles className="w-6 h-6" />
                 </div>
                 <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {isTr ? 'Ortak Çalışma Alanı Açıldı!' : 'Collaboration Space Ready!'}
+                  {message(language, "StartCollabModal.collaborationSpaceReady")}
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {isTr ? 'Bu linki diğer 3 ekip arkadaşınızla paylaşarak birlikte çizebilirsiniz.' : 'Share this invite link with up to 3 teammates to draw together.'}
+                  {message(language, "StartCollabModal.shareThisInviteLinkWithUpTo")}
                 </p>
               </div>
 
@@ -198,12 +194,12 @@ export const StartCollabModal: React.FC = () => {
                   {copied ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-300" />
-                      <span>{isTr ? 'Kopyalandı' : 'Copied'}</span>
+                      <span>{message(language, "StartCollabModal.copied")}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5" />
-                      <span>{isTr ? 'Kopyala' : 'Copy'}</span>
+                      <span>{message(language, "StartCollabModal.copy")}</span>
                     </>
                   )}
                 </button>
@@ -213,13 +209,13 @@ export const StartCollabModal: React.FC = () => {
                 onClick={() => setOpen(false)}
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-medium transition-colors"
               >
-                {isTr ? 'Canvas\'a Dön' : 'Return to Canvas'}
+                {message(language, "StartCollabModal.returnToCanvas")}
               </button>
             </div>
           )}
         </div>
       </div>
-    </div>,
+    </ModalSurface>,
     document.body
   );
 };

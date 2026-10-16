@@ -1,3 +1,4 @@
+import { message } from '../../i18n/messages';
 import { getPlatformCapabilities } from '../../services/platformCapabilities';
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
@@ -13,7 +14,7 @@ export const CollabTopBar: React.FC = () => {
   const leaveCollabSession = useAppStore((s) => s.leaveCollabSession);
   const openConfirm = useAppStore((s) => s.openConfirm);
   const language = useAppStore((s) => s.language);
-  const isTr = language === 'tr';
+
 
   const [copied, setCopied] = useState(false);
 
@@ -62,12 +63,10 @@ export const CollabTopBar: React.FC = () => {
 
   const handleLeave = async () => {
     const confirmed = await openConfirm({
-      title: isTr ? 'Ortak Çalışma Oturumundan Ayrıl' : 'Leave Collaboration Session',
-      message: isTr
-        ? 'Oturumdan ayrılmak istediğinize emin misiniz? Yapılan değişiklikler yerel çalışma alanınıza kaydedilecektir.'
-        : 'Are you sure you want to leave? Changes made will be saved to your local workspace.',
-      confirmText: isTr ? 'Ayrıl' : 'Leave',
-      cancelText: isTr ? 'Vazgeç' : 'Cancel',
+      title: message(language, "CollabTopBar.leaveCollaborationSession"),
+      message: message(language, "CollabTopBar.areYouSureYouWantToLeave"),
+      confirmText: message(language, "CollabTopBar.leave"),
+      cancelText: message(language, "CollabTopBar.cancel"),
       type: 'warning',
     });
 
@@ -88,7 +87,7 @@ export const CollabTopBar: React.FC = () => {
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
           </span>
           <span className="text-xs font-semibold tracking-wide uppercase text-emerald-400">
-            {isTr ? 'Canlı' : 'Live'}
+            {message(language, "CollabTopBar.live")}
           </span>
         </div>
 
@@ -102,7 +101,7 @@ export const CollabTopBar: React.FC = () => {
             <div
               className="w-6 h-6 rounded-full border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
               style={{ backgroundColor: '#3B82F6' }}
-              title={isTr ? 'Siz (Oturum Başlatan)' : 'You'}
+              title={message(language, "CollabTopBar.you")}
             >
               {collabRole === 'host' ? 'H' : 'Y'}
             </div>
@@ -138,17 +137,17 @@ export const CollabTopBar: React.FC = () => {
         <button
           onClick={handleCopyLink}
           className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600/60 text-xs font-medium text-slate-200 transition-colors"
-          title={isTr ? 'Davet linkini kopyala' : 'Copy invite link'}
+          title={message(language, "CollabTopBar.copyInviteLink")}
         >
           {copied ? (
             <>
               <Check className="w-3 h-3 text-emerald-400" />
-              <span className="text-emerald-400">{isTr ? 'Kopyalandı' : 'Copied'}</span>
+              <span className="text-emerald-400">{message(language, "CollabTopBar.copied")}</span>
             </>
           ) : (
             <>
               <Copy className="w-3 h-3 text-slate-300" />
-              <span>{isTr ? 'Davet Linki' : 'Invite'}</span>
+              <span>{message(language, "CollabTopBar.invite")}</span>
             </>
           )}
         </button>
@@ -157,7 +156,7 @@ export const CollabTopBar: React.FC = () => {
         <button
           onClick={handleLeave}
           className="p-1.5 rounded-full hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
-          title={isTr ? 'Oturumu Bitir / Ayrıl' : 'Leave session'}
+          title={message(language, "CollabTopBar.leaveSession")}
         >
           <LogOut className="w-3.5 h-3.5" />
         </button>

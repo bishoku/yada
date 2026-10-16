@@ -1,3 +1,6 @@
+import { Input } from '../../ui/Field';
+import { ModalSurface } from '../../ui/ModalSurface';
+import { message } from '../../../i18n/messages';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Share2, Lock, Copy, CheckCircle2, AlertCircle, ExternalLink, Eye, Link2, Loader2 } from 'lucide-react';
@@ -14,7 +17,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
   const visualData = useAppStore((s) => s.visualData);
   const currentView = useAppStore((s) => s.currentView);
   const language = useAppStore((s) => s.language);
-  const isTr = language === 'tr';
+
   const t = translations[language];
 
   const [pin, setPin] = useState('');
@@ -25,15 +28,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+
 
   // Clear stale link when options change (don't auto-generate)
   useEffect(() => {
@@ -113,7 +108,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
   }, [shareUrl]);
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+    <ModalSurface label={t.shareTitle} onClose={onClose} width="28rem">
       <div
         className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={e => e.stopPropagation()}
@@ -143,7 +138,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
         <div className="p-6 space-y-6">
           {/* Options Section */}
           <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl space-y-4">
-            
+
             {/* Embed Mode Checkbox */}
             <label className="flex items-center gap-3 cursor-pointer select-none">
               <input
@@ -154,7 +149,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
               />
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                 <Eye className="w-4 h-4 text-indigo-500" />
-                {isTr ? 'Gömme Modu (Clean Embed - ?embed=true)' : 'Embed Mode (Clean Embed - ?embed=true)'}
+                {message(language, "ShareModal.embedModeCleanEmbedEmbedTrue")}
               </span>
             </label>
 
@@ -177,17 +172,17 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
 
             {usePin && (
               <div className="pl-8 animate-in slide-in-from-top-2">
-                <input
+                <Input
                   type="password"
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
                   placeholder={t.pinPlaceholder}
-                  className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full"
                   maxLength={8}
                 />
                 {pin.length > 0 && pin.length < 4 ? (
                   <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 font-medium">
-                    {isTr ? `PIN en az 4 karakter olmalıdır (Mevcut: ${pin.length}/8)` : `PIN must be at least 4 characters (Current: ${pin.length}/8)`}
+                    {message(language, "ShareModal.pINMustBeAtLeast4Characters", { value1: pin.length })}
                   </p>
                 ) : (
                   <p className="text-xs text-gray-500 mt-2">
@@ -214,11 +209,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
             ) : (
               <div className="space-y-3">
                 {shareUrl && (
-                  <input
+                  <Input
                     type="text"
                     readOnly
                     value={shareUrl}
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-400 outline-none font-mono text-xs truncate"
+                    className="w-full font-mono"
                   />
                 )}
                 <button
@@ -235,7 +230,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
                   {isGenerating ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      {isTr ? 'Oluşturuluyor...' : 'Generating...'}
+                      {message(language, "ShareModal.generating")}
                     </>
                   ) : copied ? (
                     <>
@@ -250,7 +245,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
                   ) : (
                     <>
                       <Link2 className="w-5 h-5" />
-                      {isTr ? 'Oluştur ve Kopyala' : 'Generate & Copy'}
+                      {message(language, "ShareModal.generateCopy")}
                     </>
                   )}
                 </button>
@@ -267,7 +262,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
 
         </div>
       </div>
-    </div>,
+    </ModalSurface>,
     document.body
   );
 };

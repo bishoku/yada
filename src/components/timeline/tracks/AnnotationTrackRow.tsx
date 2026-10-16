@@ -6,9 +6,9 @@ interface AnnotationTrackRowProps {
   note: StickyNote;
   editable: boolean;
   pxPerMs: number;
-  onBarMouseDown: (e: React.MouseEvent, id: string, start: number, end: number) => void;
-  onResizeLeftMouseDown: (e: React.MouseEvent, id: string, start: number, end: number) => void;
-  onResizeRightMouseDown: (e: React.MouseEvent, id: string, start: number, end: number) => void;
+  onBarMouseDown: (e: React.PointerEvent, id: string) => void;
+  onResizeLeftMouseDown: (e: React.PointerEvent, id: string) => void;
+  onResizeRightMouseDown: (e: React.PointerEvent, id: string) => void;
 }
 
 /**
@@ -29,10 +29,10 @@ export const AnnotationTrackRow: React.FC<AnnotationTrackRowProps> = memo(({
   return (
     <div className="h-16 border-b border-slate-200/50 dark:border-slate-800/20 relative flex items-center w-full">
       <div
-        onPointerDown={e => e.stopPropagation()}
-        onMouseDown={(e) => { if (editable) onBarMouseDown(e, id, note.startTime, note.endTime); }}
+        onPointerDown={(e) => {e.stopPropagation();if(editable)onBarMouseDown(e,id);}}
         className="h-6 rounded-lg absolute cursor-grab active:cursor-grabbing transition-shadow flex items-center px-2 group border shadow-sm"
         style={{
+          touchAction: editable ? 'none' : 'auto',
           left,
           width,
           backgroundColor: noteStyle.backgroundColor || '#0f172a',
@@ -45,11 +45,11 @@ export const AnnotationTrackRow: React.FC<AnnotationTrackRowProps> = memo(({
           <>
             <div
               className="absolute -left-1 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-black/10 rounded-l transition-colors"
-              onMouseDown={(e) => onResizeLeftMouseDown(e, id, note.startTime, note.endTime)}
+              onPointerDown={(e) => onResizeLeftMouseDown(e,id)}
             />
             <div
               className="absolute -right-1 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-black/10 rounded-r transition-colors"
-              onMouseDown={(e) => onResizeRightMouseDown(e, id, note.startTime, note.endTime)}
+              onPointerDown={(e) => onResizeRightMouseDown(e,id)}
             />
           </>
         )}

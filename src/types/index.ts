@@ -458,7 +458,7 @@ export interface AppState {
 
   toggleFullscreen: () => Promise<void>;
   exitFullscreen: () => Promise<void>;
-  initFullscreenListener: () => void;
+  initFullscreenListener: () => () => void;
 
   // Actions
   setWorkspace: (ws: WorkspaceMeta | null) => Promise<boolean>;

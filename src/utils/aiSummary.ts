@@ -1,3 +1,4 @@
+import { message } from '../i18n/messages';
 import { LogicalDiagram, VisualDiagram, CustomComponentTemplate } from '../types';
 
 /**
@@ -16,13 +17,11 @@ export function generateDiagramAiSummary(
   const edges = Array.isArray(logicalData.edges) ? logicalData.edges : [];
   const sequences = Array.isArray(logicalData.sequences) ? logicalData.sequences : [];
 
-  let text = `${language === 'tr'
-    ? 'Aşağıdaki sistem mimarisini incele ve analiz et:'
-    : 'Analyze and explain the following system architecture:'}\n\n`;
+  let text = `${message(language, "aiSummary.analyzeAndExplainTheFollowingSystemArchitecture")}\n\n`;
 
-  text += `**${language === 'tr' ? 'Bileşenler' : 'Components'}:**\n`;
+  text += `**${message(language, "aiSummary.components")}:**\n`;
   if (nodes.length === 0) {
-    text += language === 'tr' ? '- Tanımlı bileşen bulunmuyor.\n' : '- No components defined.\n';
+    text += message(language, "aiSummary.noComponentsDefined");
   } else {
     nodes.forEach((node: any) => {
       const customTemplate = libraryComponents.find((c: any) => c.componentId === node.type);
@@ -35,7 +34,7 @@ export function generateDiagramAiSummary(
   }
 
   if (edges.length > 0) {
-    text += `\n**${language === 'tr' ? 'Bağlantılar' : 'Connections'}:**\n`;
+    text += `\n**${message(language, "aiSummary.connections")}:**\n`;
     edges.forEach((edge: any) => {
       const sourceNode = nodes.find((n: any) => n.id === edge.sourceId);
       const targetNode = nodes.find((n: any) => n.id === edge.targetId);
@@ -53,7 +52,7 @@ export function generateDiagramAiSummary(
   }
 
   if (sequences.length > 0) {
-    text += `\n**${language === 'tr' ? 'Etkileşim Akışı' : 'Interaction Flow'}:**\n`;
+    text += `\n**${message(language, "aiSummary.interactionFlow")}:**\n`;
 
     const sortedSeqs = [...sequences].sort((a: any, b: any) => (a.stepNumber ?? 0) - (b.stepNumber ?? 0));
 
@@ -67,8 +66,8 @@ export function generateDiagramAiSummary(
       const targetName = targetNode ? targetNode.name : edge.targetId;
 
       const syncType = seq.isAsync
-        ? (language === 'tr' ? 'Asenkron' : 'Asynchronous')
-        : (language === 'tr' ? 'Senkron' : 'Synchronous');
+        ? (message(language, "aiSummary.asynchronous"))
+        : (message(language, "aiSummary.synchronous"));
       const directionStr = `\`${sourceName}\` → \`${targetName}\`` + (seq.isRoundTrip ? ' ↔' : '');
 
       text += `${seq.stepNumber}. [${syncType}] ${directionStr} (Protocol: ${edge.protocol || 'Call'})\n`;

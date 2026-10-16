@@ -1,3 +1,4 @@
+import { useUiCopy } from '../../i18n/useUiCopy';
 import React, { useState, useCallback, useRef } from 'react';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { ShapeLayer } from '../../types';
@@ -46,6 +47,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   onSvgMouseDown,
   onResizeMouseDown,
 }) => {
+  const uiCopy = useUiCopy();
   const [zoom, setZoom] = useState(1);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
@@ -139,7 +141,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
   const zoomPercent = Math.round(zoom * 100);
 
   return (
-    <main 
+    <main
       ref={containerRef}
       className="flex-1 overflow-hidden bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-8 relative"
       style={{ cursor: isSpaceHeldRef.current ? 'grab' : undefined }}
@@ -148,7 +150,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
       onMouseDown={handleMouseDown}
     >
       {/* Zoom Controls — bottom-right corner */}
-      <div 
+      <div
         className="absolute bottom-4 right-4 z-30 flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg px-1.5 py-1"
         onClick={(e) => e.stopPropagation()}
       >
@@ -156,15 +158,15 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
           onClick={handleZoomOut}
           disabled={zoom <= MIN_ZOOM}
           className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
-          title="Zoom Out"
+          title={uiCopy.zoomOut}
         >
           <ZoomOut className="w-3.5 h-3.5" />
         </button>
-        
+
         <button
           onClick={handleZoomReset}
           className="px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400 min-w-[44px] text-center transition-colors cursor-pointer"
-          title="Reset Zoom"
+          title={uiCopy.resetZoom}
         >
           {zoomPercent}%
         </button>
@@ -173,7 +175,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
           onClick={handleZoomIn}
           disabled={zoom >= MAX_ZOOM}
           className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
-          title="Zoom In"
+          title={uiCopy.zoomIn}
         >
           <ZoomIn className="w-3.5 h-3.5" />
         </button>
@@ -183,14 +185,14 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
         <button
           onClick={handleZoomReset}
           className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors cursor-pointer"
-          title="Fit to View"
+          title={uiCopy.fitToView}
         >
           <Maximize className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* Centered Canvas Border boundaries — with zoom/pan transform */}
-      <div 
+      <div
         className="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 shadow-2xl relative select-none"
         style={{
           width,
@@ -225,8 +227,8 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
             const isLocked = layer.locked === true;
 
             // Shared border styling inside design mode
-            const strokeProps = isSelected 
-              ? { stroke: '#6366f1', strokeWidth: Math.max(2, (style.strokeWidth ?? 0) + 1) } 
+            const strokeProps = isSelected
+              ? { stroke: '#6366f1', strokeWidth: Math.max(2, (style.strokeWidth ?? 0) + 1) }
               : { stroke: style.stroke || 'none', strokeWidth: style.strokeWidth ?? 0 };
 
             const interactiveProps = {
@@ -402,7 +404,7 @@ export const StudioCanvas: React.FC<StudioCanvasProps> = ({
                       strokeDasharray="3,3"
                       style={{ pointerEvents: 'none' }}
                     />
-                    
+
                     {/* Handles (tl, tr, bl, br) */}
                     <circle
                       cx={x}

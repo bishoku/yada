@@ -1,3 +1,4 @@
+import { useUiCopy } from '../../i18n/useUiCopy';
 import React, { memo, useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer, useConnection, useReactFlow } from '@xyflow/react';
 import { MessageSquare } from 'lucide-react';
@@ -132,7 +133,7 @@ const getIcon = (type: string, colorClass: string, isIconOnly: boolean, customCo
   const sizeClass = isIconOnly ? 'w-[80%] h-[80%]' : '';
   const targetColor = customColor || colorClass || def?.colorClass || 'text-indigo-500';
   const isHexOrColor = targetColor.startsWith('#') || targetColor.startsWith('rgb') || targetColor.startsWith('hsl');
-  
+
   let className = `${sizeClass} transition-all duration-300`;
   let style: React.CSSProperties | undefined = (!isIconOnly && iconPx) ? { width: `${iconPx}px`, height: `${iconPx}px` } : undefined;
 
@@ -179,6 +180,8 @@ const themeStyles: Record<string, { border: string; borderHover: string; ring: s
 };
 
 export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) => {
+  const uiCopy = useUiCopy();
+  const language = useAppStore(s => s.language);
   const name = data?.name ?? 'Node';
   const type = data?.type ?? 'server';
 
@@ -477,8 +480,8 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1.5 py-0.5 border-b border-slate-200/50 dark:border-slate-800/50 mb-1 flex items-center justify-between">
-                      <span>Bağlantılar ({handleEdges.length})</span>
-                      <span className="text-[9px] text-indigo-500 font-medium">Seç / Taşı</span>
+                      <span>{uiCopy.connections}{handleEdges.length})</span>
+                      <span className="text-[9px] text-indigo-500 font-medium">{uiCopy.selectMove}</span>
                     </div>
                     {handleEdges.map((le) => {
                       const isOut = le.sourceId === id;
@@ -546,18 +549,18 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
         {roughBg && (
           <svg className="absolute inset-0 w-full h-full pointer-events-none -z-10 overflow-visible" width={nodeWidth} height={nodeHeight}>
             {roughBg.fillPath && (
-              <path 
-                d={roughBg.fillPath} 
-                fill={isBorderOnly ? (appTheme === 'dark' ? '#0f172a' : '#ffffff') : activeBgHex} 
+              <path
+                d={roughBg.fillPath}
+                fill={isBorderOnly ? (appTheme === 'dark' ? '#0f172a' : '#ffffff') : activeBgHex}
                 opacity={isBorderOnly ? 0.95 : 1}
               />
             )}
             {roughBg.strokePath && (
-              <path 
-                d={roughBg.strokePath} 
-                fill="none" 
-                stroke={harmoniousBorder || '#6366f1'} 
-                strokeWidth={2} 
+              <path
+                d={roughBg.strokePath}
+                fill="none"
+                stroke={harmoniousBorder || '#6366f1'}
+                strokeWidth={2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
@@ -665,7 +668,7 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
             {(() => {
               const displaySubtitle = customStyles.customType !== undefined
                 ? customStyles.customType
-                : (customTemplate ? customTemplate.category : type);
+                : (customTemplate ? customTemplate.category : (getNodeDefinition(type)?.name[language] || type));
               if (!displaySubtitle || displaySubtitle.trim() === '') return null;
               return (
                 <div

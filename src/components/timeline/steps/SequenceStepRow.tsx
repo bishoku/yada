@@ -5,6 +5,7 @@ import { ArrowRightLeft, Settings, Trash2 } from 'lucide-react';
 import type { SequenceStep, LogicalEdge, TimelineTiming } from '../../../types';
 
 interface SequenceStepRowProps {
+  editing: boolean;
   seq: SequenceStep;
   edge?: LogicalEdge;
   srcName: string;
@@ -24,7 +25,7 @@ interface SequenceStepRowProps {
  * Memoized row representing a sequence step in the left step list.
  */
 export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
-  seq,
+  editing, seq,
   edge,
   srcName,
   dstName,
@@ -45,7 +46,7 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
 
   return (
     <div
-      className={`h-16 overflow-hidden py-1.5 px-3 border-b border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between transition-colors duration-150 group ${
+      className={`h-16 overflow-hidden py-1.5 px-3 border-b border-slate-200/50 dark:border-slate-800/50 flex ${editing ? "flex-col items-stretch justify-center sm:flex-row sm:items-center sm:justify-between" : "items-center justify-between"} transition-colors duration-150 group ${
         isPlaying ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
       } ${
         isSelected
@@ -53,9 +54,9 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
           : isPlaying ? '' : 'hover:bg-slate-100/50 dark:hover:bg-slate-900/30'
       }`}
     >
-      <button type="button" aria-pressed={isSelected} onClick={() => onSelect(seq.id)} className="flex flex-col gap-0.5 min-w-0 flex-1 text-left" title={`${srcName} → ${dstName}`}>
+      <button type="button" aria-pressed={isSelected} onClick={() => onSelect(seq.id)} className={`yada-timeline-step-select flex flex-col gap-0.5 min-w-0 text-left ${editing ? "flex-none sm:flex-1 [&>span]:hidden sm:[&>span]:block" : "flex-1"}`} title={`${srcName} → ${dstName}`}>
         <div className="flex items-center gap-1.5">
-          <span className="text-[9px] font-bold whitespace-nowrap bg-indigo-500/10 dark:bg-indigo-500/25 text-indigo-600 dark:text-indigo-400 px-1 py-0.5 rounded">
+          <span className="text-xs font-bold whitespace-nowrap bg-indigo-500/10 dark:bg-indigo-500/25 text-indigo-600 dark:text-indigo-400 px-1 py-0.5 rounded">
             {t.terms.step} {seq.stepNumber}
           </span>
           <span className="text-xs font-bold truncate text-slate-700 dark:text-slate-200">
@@ -63,25 +64,25 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
           </span>
         </div>
         {hasProcess && (
-          <span className="text-[9px] font-medium text-emerald-600 dark:text-emerald-500 truncate pl-1">
+          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-500 truncate pl-1">
             ↳ {t.terms.process}: {timing?.internalProcess?.text}
           </span>
         )}
         {edge?.description && (
-          <span className="text-[9px] font-medium text-slate-550 dark:text-slate-400 pl-1 leading-normal break-words">
+          <span className="text-xs font-medium text-slate-550 dark:text-slate-400 pl-1 leading-normal break-words">
             ↳ {edge.description}
           </span>
         )}
       </button>
 
       {/* Row Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+      {editing && <div className="yada-timeline-step-actions flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
         <select
           aria-label={t.timelineUi.order}
           disabled={isPlaying || isReadOnly}
           value={seq.stepNumber}
           onChange={(e) => onOrderChange(seq.id, Number(e.target.value))}
-          className="text-[9px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-1 py-0.5 font-bold cursor-pointer focus:outline-none"
+          className="text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded px-1 py-0.5 font-bold cursor-pointer focus:outline-none"
           onClick={(e) => e.stopPropagation()}
         >
           {Array.from({ length: maxSteps }, (_, i) => i + 1).map((n) => (
@@ -127,7 +128,7 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
-      </div>
+      </div>}
     </div>
   );
 });

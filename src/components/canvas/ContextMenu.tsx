@@ -1,3 +1,5 @@
+import { useUiCopy } from '../../i18n/useUiCopy';
+import { message } from '../../i18n/messages';
 import { Trash2, X, Info, Clock, Copy, FolderOutput } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { translations } from '../../i18n/translations';
@@ -20,6 +22,7 @@ interface ContextMenuProps {
 }
 
 export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelete, onClone, onUnparent, onAutoRoute }) => {
+  const uiCopy = useUiCopy();
   const logicalData = useAppStore((state) => state.logicalData);
   const language = useAppStore((state) => state.language);
   const maxSteps = useAppStore((state) => state.maxSteps);
@@ -54,8 +57,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelet
           {logicalData.sequences
             .filter((s) => s.edgeId === menu.id)
             .map((seq, idx, arr) => (
-              <div 
-                key={seq.id} 
+              <div
+                key={seq.id}
                 className={`px-3 py-1.5 flex items-center justify-between gap-3 ${
                   idx === arr.length - 1 ? 'border-b border-slate-200/40 dark:border-slate-800/40 mb-1' : ''
                 }`}
@@ -72,18 +75,18 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelet
                   className="text-[10px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 font-bold cursor-pointer outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200"
                 >
                   {Array.from({ length: maxSteps }, (_, i) => i + 1).map((n) => (
-                    <option key={n} value={n}>Step {n}</option>
+                    <option key={n} value={n}>{uiCopy.step} {n}</option>
                   ))}
                 </select>
               </div>
             ))}
-          
+
           {/* If connection has no steps, allow adding it to flow */}
           {logicalData.sequences.filter((s) => s.edgeId === menu.id).length === 0 && (
             <button
               onClick={() => {
-                const nextStepNum = logicalData.sequences.length > 0 
-                  ? Math.max(...logicalData.sequences.map(s => s.stepNumber)) + 1 
+                const nextStepNum = logicalData.sequences.length > 0
+                  ? Math.max(...logicalData.sequences.map(s => s.stepNumber)) + 1
                   : 1;
                 const seqId = generateSeqId();
                 addSequenceStep(
@@ -98,14 +101,14 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelet
               <span>{t.addToSequence}</span>
             </button>
           )}
-          
+
           {onAutoRoute && (
             <button
               onClick={onAutoRoute}
               className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 border-b border-slate-200/40 dark:border-slate-800/40 rounded-xl transition-all duration-200 w-full text-left cursor-pointer"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-route"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
-              <span>{language === 'tr' ? 'Otomatik Yönlendir (A*)' : 'Auto Route (A*)'}</span>
+              <span>{message(language, "ContextMenu.autoRouteA")}</span>
             </button>
           )}
         </>
@@ -118,7 +121,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ menu, onClose, onDelet
           className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all duration-200 w-full text-left cursor-pointer"
         >
           <FolderOutput className="w-4 h-4 text-indigo-500" />
-          <span>{language === 'tr' ? 'Section\'dan Çıkar' : 'Remove from Section'}</span>
+          <span>{message(language, "ContextMenu.removeFromSection")}</span>
         </button>
       )}
 

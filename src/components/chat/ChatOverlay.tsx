@@ -1,3 +1,5 @@
+import { useUiCopy } from '../../i18n/useUiCopy';
+import { message } from '../../i18n/messages';
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Send, X, Sparkles, Loader2, Trash2, Square } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
@@ -12,6 +14,7 @@ import {
 } from '../../services/ai/aiAgentService';
 
 export const ChatOverlay: React.FC = () => {
+  const uiCopy = useUiCopy();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -69,11 +72,7 @@ export const ChatOverlay: React.FC = () => {
 
   const handleToggle = () => {
     if (!apiKey.trim() && !isLocalProvider) {
-      alert(
-        language === 'tr'
-          ? 'Lütfen önce Tercihler (Preferences) ekranından LLM API Anahtarınızı giriniz.'
-          : 'Please enter your LLM API Key in Preferences first.'
-      );
+      void useAppStore.getState().openAlert({ title: message(language, 'TopBar.error'), message: message(language, 'ChatOverlay.pleaseEnterYourLLMAPIKeyIn') });
       return;
     }
     setIsOpen(!isOpen);
@@ -100,7 +99,7 @@ export const ChatOverlay: React.FC = () => {
     const cancelMsg: ChatMessage = {
       id: `cancel-${Date.now()}`,
       sender: 'assistant',
-      text: language === 'tr' ? '⚠️ *İstek kullanıcı tarafından iptal edildi.*' : '⚠️ *Request cancelled by user.*',
+      text: message(language, "ChatOverlay.requestCancelledByUser"),
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, cancelMsg]);
@@ -193,7 +192,7 @@ export const ChatOverlay: React.FC = () => {
               </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                  YADA AI Assistant
+                  {uiCopy.yADAAIAssistant}
                 </h4>
                 <span className="text-[10px] text-slate-400 font-medium block truncate max-w-[220px]">
                   {model || provider || 'LLM Agent'}
@@ -205,7 +204,7 @@ export const ChatOverlay: React.FC = () => {
               <button
                 onClick={handleClearMemory}
                 className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                title={language === 'tr' ? 'Sohbeti Temizle' : 'Clear Chat'}
+                title={message(language, "ChatOverlay.clearChat")}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -224,12 +223,10 @@ export const ChatOverlay: React.FC = () => {
               <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400 dark:text-slate-500">
                 <Bot className="w-10 h-10 mb-2 opacity-40 text-indigo-500" />
                 <p className="text-xs font-medium mb-1">
-                  {language === 'tr' ? 'Mimari Asistanınız Hazır' : 'Your Architecture Assistant is Ready'}
+                  {message(language, "ChatOverlay.yourArchitectureAssistantIsReady")}
                 </p>
                 <p className="text-[11px] leading-relaxed opacity-75">
-                  {language === 'tr'
-                    ? 'Diyagram oluşturmak veya mevcut akışı değiştirmek için yazabilirsiniz.'
-                    : 'Ask me to create services, add databases, or modify your system architecture.'}
+                  {message(language, "ChatOverlay.askMeToCreateServicesAddDatabases")}
                 </p>
               </div>
             ) : (
@@ -239,7 +236,7 @@ export const ChatOverlay: React.FC = () => {
             {loading && (
               <div className="flex items-center gap-2 text-indigo-500 text-xs font-medium py-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>{language === 'tr' ? 'Diyagram güncelleniyor...' : 'Updating diagram...'}</span>
+                <span>{message(language, "ChatOverlay.updatingDiagram")}</span>
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -250,9 +247,7 @@ export const ChatOverlay: React.FC = () => {
             <textarea
               rows={2}
               placeholder={
-                language === 'tr'
-                  ? 'Diyagram hakkında yazın... (Enter: Gönder, Shift+Enter: Yeni satır)'
-                  : 'Type a message... (Enter: Send, Shift+Enter: Newline)'
+                message(language, "ChatOverlay.typeAMessageEnterSendShiftEnter")
               }
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -281,8 +276,8 @@ export const ChatOverlay: React.FC = () => {
               }`}
               title={
                 loading
-                  ? (language === 'tr' ? 'İsteği Durdur' : 'Stop Request')
-                  : (language === 'tr' ? 'Gönder' : 'Send')
+                  ? (message(language, "ChatOverlay.stopRequest"))
+                  : (message(language, "ChatOverlay.send"))
               }
             >
               {loading ? <Square className="w-3.5 h-3.5 fill-current" /> : <Send className="w-4 h-4" />}
@@ -295,7 +290,7 @@ export const ChatOverlay: React.FC = () => {
       <button
         onClick={handleToggle}
         className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 text-white shadow-xl shadow-indigo-500/30 hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-all duration-200"
-        title="AI Architecture Assistant"
+        title={uiCopy.aIArchitectureAssistant}
       >
         <Sparkles className="w-6 h-6" />
       </button>

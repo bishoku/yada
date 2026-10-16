@@ -1,7 +1,6 @@
 import { IStorageDriver, StorageMode } from '../types';
 import { LocalStorageDriver } from './LocalStorageDriver';
 import { getConfluenceDcContext } from '../../confluenceDcBridge';
-import { generatePngDataUrl } from '../../../utils/exportMedia';
 import { extractPngMetadata } from '../../../utils/imageMetadata';
 
 export class ConfluenceDcDriver implements IStorageDriver {
@@ -74,7 +73,7 @@ export class ConfluenceDcDriver implements IStorageDriver {
     // Generate PNG with embedded project metadata in tEXt chunk
     let pngDataUri = '';
     try {
-      pngDataUri = await generatePngDataUrl('.react-flow', true);
+      pngDataUri = await (await import('../../../utils/exportMedia')).generatePngDataUrl('.react-flow', true);
     } catch (e) {
       console.warn('[ConfluenceDcDriver] Failed to capture embedded PNG:', e);
     }

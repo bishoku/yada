@@ -1,8 +1,10 @@
+import { formatMilliseconds } from '../../i18n/terminology';
+import { formatPlaybackRate } from '../../i18n/formatters';
 import { playbackEnd } from '../../store/playbackModel';
 import { usePlaybackLoop } from '../timeline/hooks/usePlaybackLoop';
 import { simulationClock } from '../../store/simulationClock';
 import React from 'react';
-import { 
+import {
   Play, Pause, Square, Repeat, Clock
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
@@ -14,7 +16,7 @@ export const SharedPlaybackPanel: React.FC = () => {
   const isPlaying = useAppStore((s) => s.isPlaying);
   const language = useAppStore((s) => s.language);
   const t = translations[language];
-  
+
   const schedules = useAppStore((s) => s.schedules);
   const loopPlayback = useAppStore((s) => s.loopPlayback);
   const toggleLoopPlayback = useAppStore((s) => s.toggleLoopPlayback);
@@ -33,14 +35,14 @@ export const SharedPlaybackPanel: React.FC = () => {
 
   return (
     <div className="w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-3 select-none font-sans flex flex-col gap-2.5 shrink-0 transition-colors duration-300">
-      
+
       {/* Upper row: Playback Buttons and Readouts */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        
+
         {/* Left: Playback Actions */}
         <div className="flex items-center gap-2">
           {isPlaying ? (
-            <button 
+            <button
               onClick={pausePlayback}
               className="p-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 transition-colors cursor-pointer"
               title={t.pauseTooltip}
@@ -48,7 +50,7 @@ export const SharedPlaybackPanel: React.FC = () => {
               <Pause className="w-4 h-4 fill-indigo-600 dark:fill-indigo-400" />
             </button>
           ) : (
-            <button 
+            <button
               onClick={() => simulationClock.getTime() >= maxTime ? startPlayback() : useAppStore.getState().resumePlayback()}
               disabled={logicalData.sequences.length === 0}
               className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-colors cursor-pointer shadow-md shadow-indigo-500/10"
@@ -57,8 +59,8 @@ export const SharedPlaybackPanel: React.FC = () => {
               <Play className="w-4 h-4 fill-white" />
             </button>
           )}
-          
-          <button 
+
+          <button
             onClick={stopPlayback}
             className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-350 transition-colors cursor-pointer"
             title={t.stopTooltip}
@@ -66,11 +68,11 @@ export const SharedPlaybackPanel: React.FC = () => {
             <Square className="w-4 h-4 fill-current" />
           </button>
 
-          <button 
+          <button
             onClick={toggleLoopPlayback}
             className={`p-2 rounded-xl transition-colors cursor-pointer ${
-              loopPlayback 
-                ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20' 
+              loopPlayback
+                ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20'
                 : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-400'
             }`}
             title={t.loopPlaybackTooltip}
@@ -81,13 +83,13 @@ export const SharedPlaybackPanel: React.FC = () => {
 
         {/* Right: Timer and Playback Rate */}
         <div className="flex items-center gap-3">
-          
+
           {/* Readout */}
-          <span 
+          <span
             className="text-[11px] font-semibold font-mono text-slate-650 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-150 dark:border-slate-850 flex items-center gap-1.5"
           >
             <Clock className="w-3.5 h-3.5 text-indigo-500" />
-            {currentTime.toFixed(0)}ms / {maxTime}ms
+            {formatMilliseconds(currentTime, language)} / {formatMilliseconds(maxTime, language)}
           </span>
 
           {/* Playback Rate Speed */}
@@ -97,12 +99,12 @@ export const SharedPlaybackPanel: React.FC = () => {
                 key={rate}
                 onClick={() => setPlaybackRate(rate)}
                 className={`text-[10px] font-bold px-2 py-1 rounded-md cursor-pointer transition-all ${
-                  playbackRate === rate 
-                    ? 'bg-indigo-600 text-white shadow-sm' 
+                  playbackRate === rate
+                    ? 'bg-indigo-600 text-white shadow-sm'
                     : 'text-slate-550 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                 }`}
               >
-                {rate}x
+                {formatPlaybackRate(rate, language)}
               </button>
             ))}
           </div>
@@ -111,8 +113,9 @@ export const SharedPlaybackPanel: React.FC = () => {
 
       {/* Bottom row: scrubbing slider */}
       <div className="flex items-center gap-3 bg-slate-50/50 dark:bg-slate-950/20 px-3 py-2 rounded-xl border border-slate-100 dark:border-slate-800/40">
-        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">0ms</span>
+        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{formatMilliseconds(0, language)}</span>
         <input
+          aria-label={t.timelineUi.seek}
           type="range"
           min={0}
           max={maxTime}
@@ -120,7 +123,7 @@ export const SharedPlaybackPanel: React.FC = () => {
           onChange={(e) => setCurrentTime(Number(e.target.value))}
           className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-650 dark:accent-indigo-500 outline-none"
         />
-        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{maxTime}ms</span>
+        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{formatMilliseconds(maxTime, language)}</span>
       </div>
 
     </div>

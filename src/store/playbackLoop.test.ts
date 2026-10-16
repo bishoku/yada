@@ -42,6 +42,16 @@ describe('shared simulation loop', () => {
     expect(useAppStore.getState().logicalData).toBe(logicalData);
     expect(useAppStore.getState().visualData).toBe(visualData); dispose();
   });
+  it('lets the host viewer loop without changing the editor loop preference', () => {
+    useAppStore.setState({ loopPlayback: false });
+    useAppStore.getState().startPlayback();
+    const dispose = startSimulationLoop(200, driver, { loop: true });
+    frame(0); frame(210);
+    expect(simulationClock.getTime()).toBe(0);
+    expect(useAppStore.getState().isPlaying).toBe(true);
+    expect(useAppStore.getState().loopPlayback).toBe(false);
+    dispose(); expect(queue.size).toBe(0);
+  });
   it('stops at the end with no extra frame and ignores disposed callbacks', () => {
     useAppStore.setState({ loopPlayback: false }); useAppStore.getState().startPlayback();
     const dispose = startSimulationLoop(200, driver); frame(0); frame(210);

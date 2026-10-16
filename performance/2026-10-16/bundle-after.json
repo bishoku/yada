@@ -1,0 +1,91 @@
+{
+  "initial": {
+    "files": 8,
+    "bytes": 560782,
+    "gzipBytes": 168257
+  },
+  "welcome": {
+    "files": 15,
+    "bytes": 631265,
+    "gzipBytes": 188532
+  },
+  "initialFiles": [
+    {
+      "file": "assets/index-o66-g0e1.js",
+      "bytes": 211604,
+      "gzipBytes": 59920
+    },
+    {
+      "file": "assets/react-vendor-Cb2OAULU.js",
+      "bytes": 189068,
+      "gzipBytes": 59132
+    },
+    {
+      "file": "assets/archive-DoBcMfSu.js",
+      "bytes": 101431,
+      "gzipBytes": 30914
+    },
+    {
+      "file": "assets/icons-lucide-QRKSgaDP.js",
+      "bytes": 33205,
+      "gzipBytes": 10469
+    },
+    {
+      "file": "assets/tauri-plugins-Jl26y77d.js",
+      "bytes": 20993,
+      "gzipBytes": 5737
+    },
+    {
+      "file": "assets/index-PE8KZyAE.js",
+      "bytes": 3487,
+      "gzipBytes": 1493
+    },
+    {
+      "file": "assets/_commonjsHelpers-CE1G-McA.js",
+      "bytes": 755,
+      "gzipBytes": 400
+    },
+    {
+      "file": "assets/_commonjs-dynamic-modules-TDtrdbi3.js",
+      "bytes": 239,
+      "gzipBytes": 192
+    }
+  ],
+  "welcomeAdditionalFiles": [
+    {
+      "file": "assets/WelcomeScreen-Ca39Fa1U.js",
+      "bytes": 52692,
+      "gzipBytes": 12163
+    },
+    {
+      "file": "assets/workspaceZip-jzMiFpUq.js",
+      "bytes": 4923,
+      "gzipBytes": 2333
+    },
+    {
+      "file": "assets/useUiCopy-CKrbWnK0.js",
+      "bytes": 6068,
+      "gzipBytes": 2586
+    },
+    {
+      "file": "assets/formatters-IgLwdqA6.js",
+      "bytes": 869,
+      "gzipBytes": 452
+    },
+    {
+      "file": "assets/ModalSurface-D9jSAcvF.js",
+      "bytes": 1264,
+      "gzipBytes": 718
+    },
+    {
+      "file": "assets/shareUtils-BcEEpva6.js",
+      "bytes": 2861,
+      "gzipBytes": 1229
+    },
+    {
+      "file": "assets/index-D1zC5dMu.js",
+      "bytes": 1806,
+      "gzipBytes": 794
+    }
+  ]
+}

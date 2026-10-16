@@ -1,112 +1,31 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type React from 'react';
+import type { StickyNote, LogicalDiagram } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
+import { annotationTimingFromDrag, commitAnnotationTiming, type AnnotationGesture, type AnnotationTiming } from './annotationTiming';
 
-export const useAnnotationBarDrag = (
-  pxPerMs: number
-) => {
-  const dragState = useRef<{
-    isDragging: boolean;
-    isResizing: boolean;
-    resizeSide: 'left' | 'right' | null;
-    noteId: string;
-    startX: number;
-    initialStart: number;
-    initialEnd: number;
-  } | null>(null);
-
-  const updateStickyNote = useAppStore.getState().updateStickyNote;
-
-  const handleBarMouseDown = useCallback((e: React.MouseEvent, noteId: string, start: number, end: number) => {
-    e.stopPropagation();
-    e.preventDefault();
-    dragState.current = {
-      isDragging: true,
-      isResizing: false,
-      resizeSide: null,
-      noteId,
-      startX: e.clientX,
-      initialStart: start,
-      initialEnd: end
+export function useAnnotationBarDrag(pxPerMs:number,enabled=true) {
+  const active=useRef<{id:string;pointerId:number;x:number;scale:number;kind:AnnotationGesture;initial:StickyNote;document:LogicalDiagram;values:AnnotationTiming}|null>(null);
+  const [preview,setPreview]=useState<({id:string}&AnnotationTiming)|null>(null);
+  useEffect(()=>{if(!enabled){active.current=null;setPreview(null);}},[enabled]);
+  useEffect(()=>{
+    const cancel=()=>{active.current=null;setPreview(null);};
+    const move=(event:PointerEvent)=>{const gesture=active.current;if(!gesture||event.pointerId!==gesture.pointerId)return;
+      const state=useAppStore.getState();if(state.isPlaying||state.isReadOnly){cancel();return;}
+      gesture.values=annotationTimingFromDrag(gesture.initial,event.clientX-gesture.x,gesture.scale,gesture.kind);
+      setPreview({id:gesture.id,...gesture.values});
     };
-  }, []);
-
-  const handleResizeLeftMouseDown = useCallback((e: React.MouseEvent, noteId: string, start: number, end: number) => {
-    e.stopPropagation();
-    e.preventDefault();
-    dragState.current = {
-      isDragging: false,
-      isResizing: true,
-      resizeSide: 'left',
-      noteId,
-      startX: e.clientX,
-      initialStart: start,
-      initialEnd: end
-    };
-  }, []);
-
-  const handleResizeRightMouseDown = useCallback((e: React.MouseEvent, noteId: string, start: number, end: number) => {
-    e.stopPropagation();
-    e.preventDefault();
-    dragState.current = {
-      isDragging: false,
-      isResizing: true,
-      resizeSide: 'right',
-      noteId,
-      startX: e.clientX,
-      initialStart: start,
-      initialEnd: end
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const state = dragState.current;
-      if (!state) return;
-
-      const deltaX = e.clientX - state.startX;
-      const deltaMs = Math.round((deltaX / pxPerMs) / 50) * 50; // Snap to 50ms grid
-
-      if (state.isDragging) {
-        let newStart = state.initialStart + deltaMs;
-        if (newStart < 0) newStart = 0;
-        const newEnd = newStart + (state.initialEnd - state.initialStart);
-        
-        updateStickyNote(state.noteId, {
-          startTime: newStart,
-          endTime: newEnd
-        });
-      } else if (state.isResizing) {
-        if (state.resizeSide === 'left') {
-          let newStart = state.initialStart + deltaMs;
-          if (newStart < 0) newStart = 0;
-          if (newStart >= state.initialEnd - 100) newStart = state.initialEnd - 100; // Min 100ms
-          
-          updateStickyNote(state.noteId, {
-            startTime: newStart
-          });
-        } else if (state.resizeSide === 'right') {
-          let newEnd = state.initialEnd + deltaMs;
-          if (newEnd <= state.initialStart + 100) newEnd = state.initialStart + 100; // Min 100ms
-          
-          updateStickyNote(state.noteId, {
-            endTime: newEnd
-          });
-        }
-      }
-    };
-
-    const handleMouseUp = () => {
-      dragState.current = null;
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [pxPerMs]);
-
-  return { handleBarMouseDown, handleResizeLeftMouseDown, handleResizeRightMouseDown };
-};
+    const finish=(event:PointerEvent)=>{const gesture=active.current;if(!gesture||event.pointerId!==gesture.pointerId)return;commitAnnotationTiming(gesture.id,gesture.values,gesture.initial,gesture.document);cancel();};
+    const pointerCancel=(event:PointerEvent)=>{if(active.current?.pointerId===event.pointerId)cancel();};
+    const key=(event:KeyboardEvent)=>{if(event.key==='Escape'&&active.current){event.preventDefault();cancel();}};
+    window.addEventListener('pointermove',move);window.addEventListener('pointerup',finish);window.addEventListener('pointercancel',pointerCancel);window.addEventListener('keydown',key);
+    return()=>{active.current=null;window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',finish);window.removeEventListener('pointercancel',pointerCancel);window.removeEventListener('keydown',key);};
+  },[]);
+  const begin=(event:React.PointerEvent,id:string,kind:AnnotationGesture)=>{
+    event.stopPropagation();const state=useAppStore.getState(),initial=state.visualData.annotations?.[id];
+    if(!enabled||event.button!==0||active.current||state.isReadOnly||state.isPlaying||!initial||initial.alwaysVisible)return;
+    event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);
+    active.current={id,pointerId:event.pointerId,x:event.clientX,scale:pxPerMs,kind,initial,document:state.logicalData,values:initial};
+  };
+  return {preview,handleBarMouseDown:(event:React.PointerEvent,id:string)=>begin(event,id,'move'),handleResizeLeftMouseDown:(event:React.PointerEvent,id:string)=>begin(event,id,'left'),handleResizeRightMouseDown:(event:React.PointerEvent,id:string)=>begin(event,id,'right')};
+}

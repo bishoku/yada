@@ -1,3 +1,7 @@
+import { waitForDocumentFonts } from '../styles/loadSketchFonts';
+import { findDeviconItem, getDeviconComponent } from '../registry/DeviconRegistry';
+import { preloadDevicon } from '../registry/lazyDevicon';
+import { message } from '../i18n/messages';
 import { simulationClock } from '../store/simulationClock';
 import { withFullSequenceRendering } from '../services/sequenceCapture';
 import { toPng, toSvg } from 'html-to-image';
@@ -17,6 +21,18 @@ import {
   type Schedule,
 } from './canvasRenderer';
 
+async function prepareDocumentIcons() {
+  await waitForDocumentFonts();
+  const layouts = useAppStore.getState().visualData.layoutNodes;
+  await Promise.all(Object.values(layouts).map(async layout => {
+    const styles = layout.customStyles;
+    if (!styles?.productIcon) return;
+    const item = findDeviconItem(styles.productIcon);
+    if (item) await preloadDevicon(getDeviconComponent(item, styles.productIconColored !== false, !!styles.productIconWordmark));
+  }));
+  if (typeof requestAnimationFrame === 'function') await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+}
+
 // ─────────────────────────────────────────────────────────────
 const EXCLUDE_SELECTOR = '.react-flow__controls, .react-flow__panel, .react-flow__minimap, .react-flow__attribution, .export-exclude, .react-flow__handle, .react-flow__resize-control';
 
@@ -33,17 +49,27 @@ const shouldExcludeNode = (domNode: HTMLElement): boolean => {
   );
 };
 
+const previousDisplays = new WeakMap<Element, { value: string; priority: string; captures: number }>();
 const hideUIElements = () => {
   const elements = document.querySelectorAll(EXCLUDE_SELECTOR);
   elements.forEach((el) => {
-    (el as HTMLElement).style.setProperty('display', 'none', 'important');
+    const style = (el as HTMLElement).style;
+    const previous = previousDisplays.get(el);
+    if (previous) previous.captures++;
+    else previousDisplays.set(el, { value: style.getPropertyValue('display'), priority: style.getPropertyPriority('display'), captures: 1 });
+    style.setProperty('display', 'none', 'important');
   });
   return elements;
 };
 
 const restoreUIElements = (elements: NodeListOf<Element>) => {
   elements.forEach((el) => {
-    (el as HTMLElement).style.removeProperty('display');
+    const previous = previousDisplays.get(el);
+    if (previous && --previous.captures > 0) return;
+    const style = (el as HTMLElement).style;
+    if (previous?.value) style.setProperty('display', previous.value, previous.priority);
+    else style.removeProperty('display');
+    previousDisplays.delete(el);
   });
 };
 
@@ -111,11 +137,13 @@ const generatePngDataUrlInternal = async (containerSelector: string, embedMetada
       skipFonts: false,
     });
 
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('toPng timed out after 8000ms')), 8000)
-    );
-
-    let dataUrl = await Promise.race([toPngPromise, timeoutPromise]);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('toPng timed out after 8000ms')), 8000);
+    });
+    let dataUrl: string;
+    try { dataUrl = await Promise.race([toPngPromise, timeoutPromise]); }
+    finally { clearTimeout(timer); }
 
     if (embedMetadata) {
       try {
@@ -129,7 +157,7 @@ const generatePngDataUrlInternal = async (containerSelector: string, embedMetada
         console.warn('Failed to embed project metadata in PNG export:', err);
       }
     }
-    
+
     return dataUrl;
   } finally {
     restoreUIElements(elementsToHide);
@@ -147,7 +175,7 @@ export const exportToPng = async (
 
     if (isTauri()) {
       const selectedPath = await save({
-        title: language === 'tr' ? 'PNG Olarak Kaydet' : 'Save as PNG',
+        title: message(language, "exportMedia.saveAsPNG"),
         defaultPath: defaultName,
         filters: [{ name: 'PNG Image', extensions: ['png'] }],
       });
@@ -160,7 +188,7 @@ export const exportToPng = async (
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      
+
       await writeFile(selectedPath, bytes);
     } else {
       const a = document.createElement('a');
@@ -169,7 +197,7 @@ export const exportToPng = async (
       a.click();
     }
   } catch (err) {
-    console.error('Export PNG error:', err);
+    throw err;
   }
 };
 
@@ -234,7 +262,7 @@ export const exportToSvg = async (
 
     if (isTauri()) {
       const selectedPath = await save({
-        title: language === 'tr' ? 'SVG Olarak Kaydet' : 'Save as SVG',
+        title: message(language, "exportMedia.saveAsSVG"),
         defaultPath: defaultName.replace(/\.png$/, '.svg'),
         filters: [{ name: 'SVG Image', extensions: ['svg'] }],
       });
@@ -251,7 +279,7 @@ export const exportToSvg = async (
       a.click();
     }
   } catch (err) {
-    console.error('Export SVG error:', err);
+    throw err;
   }
 };
 
@@ -494,7 +522,7 @@ export const exportToGif = async (
     // ── Phase 3: Save ─────────────────────────────────────────
     if (isTauri()) {
       const selectedPath = await save({
-        title: language === 'tr' ? 'GIF Olarak Kaydet' : 'Save as GIF',
+        title: message(language, "exportMedia.saveAsGIF"),
         defaultPath: defaultName,
         filters: [{ name: 'GIF Image', extensions: ['gif'] }],
       });
@@ -856,9 +884,7 @@ export const exportToVideo = async (
   // Browser-only validation
   if (!isTauri() && !supportsWebCodecs() && typeof MediaRecorder === 'undefined') {
     throw new Error(
-      language === 'tr'
-        ? 'Bu tarayıcı video dışa aktarmayı desteklemiyor.'
-        : 'This browser does not support video export.'
+      message(language, "exportMedia.thisBrowserDoesNotSupportVideoExport")
     );
   }
 
@@ -912,7 +938,7 @@ export const exportToVideo = async (
 
     if (isTauri()) {
       const selectedPath = await save({
-        title:   language === 'tr' ? 'Video Olarak Kaydet' : 'Save as Video',
+        title:   message(language, "exportMedia.saveAsVideo"),
         defaultPath: saveName,
         filters: [{ name: filterName, extensions: [ext] }],
       });
@@ -1037,7 +1063,7 @@ const exportToVideoScreenCaptureInternal = async (
 
     if (isTauri()) {
       const selectedPath = await save({
-        title: language === 'tr' ? 'Video Olarak Kaydet' : 'Save as Video',
+        title: message(language, "exportMedia.saveAsVideo"),
         defaultPath: saveName,
         filters: [{ name: filterName, extensions: [ext] }],
       });
@@ -1057,8 +1083,17 @@ const exportToVideoScreenCaptureInternal = async (
 };
 
 
-export const generatePngDataUrl = (...args: Parameters<typeof generatePngDataUrlInternal>) => withFullSequenceRendering(() => generatePngDataUrlInternal(...args));
+async function withStillCapture<T>(capture: () => Promise<T>): Promise<T> {
+  const store = useAppStore.getState();
+  const wasPlaying = store.isPlaying;
+  const time = simulationClock.getTime();
+  if (wasPlaying) store.pausePlayback();
+  try { return await withFullSequenceRendering(async () => { await prepareDocumentIcons(); return capture(); }); }
+  finally { store.setCurrentTime(time); if (wasPlaying) store.resumePlayback(); }
+}
 
-export const generateSvgDataUrl = (...args: Parameters<typeof generateSvgDataUrlInternal>) => withFullSequenceRendering(() => generateSvgDataUrlInternal(...args));
+export const generatePngDataUrl = (...args: Parameters<typeof generatePngDataUrlInternal>) => withStillCapture(() => generatePngDataUrlInternal(...args));
 
-export const exportToVideoScreenCapture = (...args: Parameters<typeof exportToVideoScreenCaptureInternal>) => withFullSequenceRendering(() => exportToVideoScreenCaptureInternal(...args));
+export const generateSvgDataUrl = (...args: Parameters<typeof generateSvgDataUrlInternal>) => withStillCapture(() => generateSvgDataUrlInternal(...args));
+
+export const exportToVideoScreenCapture = (...args: Parameters<typeof exportToVideoScreenCaptureInternal>) => withFullSequenceRendering(async () => { await prepareDocumentIcons(); return exportToVideoScreenCaptureInternal(...args); });

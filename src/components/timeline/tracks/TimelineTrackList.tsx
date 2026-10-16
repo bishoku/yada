@@ -10,6 +10,7 @@ import { useAnnotationBarDrag } from '../useAnnotationBarDrag';
 import type { SequenceStep } from '../../../types';
 
 interface TimelineTrackListProps {
+  editing: boolean;
   viewportRef: RefObject<HTMLDivElement | null>;
   contentWidth: number;
   rightPanelRef: RefObject<HTMLDivElement | null>;
@@ -26,7 +27,7 @@ interface TimelineTrackListProps {
  * Right scrollable timeline track area containing Ruler, Grid, Timing Bars, and Playhead.
  */
 export const TimelineTrackList: React.FC<TimelineTrackListProps> = memo(({
-  viewportRef, contentWidth, rightPanelRef,
+  editing, viewportRef, contentWidth, rightPanelRef,
   playheadRef,
   maxTime,
   pxPerMs,
@@ -35,20 +36,22 @@ export const TimelineTrackList: React.FC<TimelineTrackListProps> = memo(({
   onTrackPointerDown,
   onOpenTooltip,
 }) => {
-  const visualData = useAppStore((s) => s.visualData);
+  const timelines = useAppStore(s => s.visualData.timelines);
+  const annotations = useAppStore(s => s.visualData.annotations);
   const schedules = useAppStore((s) => s.schedules);
   const isPlaying = useAppStore((s) => s.isPlaying);
   const selectedSequenceId = useAppStore((s) => s.selectedSequenceId);
   const setSelectedSequenceId = useAppStore((s) => s.setSelectedSequenceId);
   const isReadOnly = useAppStore(s => s.isReadOnly);
 
-  const { preview, handleBarPointerDown, handleResizePointerDown } = useTimingBarDrag(pxPerMs);
+  const { preview, handleBarPointerDown, handleResizePointerDown } = useTimingBarDrag(pxPerMs, editing && !isPlaying && !isReadOnly);
 
   const {
+    preview: annotationPreview,
     handleBarMouseDown: handleAnnotationBarMouseDown,
     handleResizeLeftMouseDown,
     handleResizeRightMouseDown,
-  } = useAnnotationBarDrag(pxPerMs);
+  } = useAnnotationBarDrag(pxPerMs, editing && !isPlaying && !isReadOnly);
 
   return (
     <div ref={viewportRef} className="flex-1 min-w-0 overflow-x-auto">
@@ -69,7 +72,7 @@ export const TimelineTrackList: React.FC<TimelineTrackListProps> = memo(({
         {/* Row Timing Tracks */}
         <div className="flex flex-col relative z-20 w-full">
           {sortedSequences.map((seq) => {
-            const timing = visualData.timelines[seq.id] || { sequenceId: seq.id, duration: 1000, delay: 0 };
+            const timing = timelines[seq.id] || { sequenceId: seq.id, duration: 1000, delay: 0 };
             const sched = schedules[seq.id];
             const isSelected = selectedSequenceId === seq.id;
 
@@ -79,7 +82,7 @@ export const TimelineTrackList: React.FC<TimelineTrackListProps> = memo(({
                 seq={seq}
                 timing={timing}
                 schedule={sched}
-                editable={!isPlaying && !isReadOnly}
+                editable={editing && !isPlaying && !isReadOnly}
                 preview={preview?.id === seq.id ? preview : undefined}
                 pxPerMs={pxPerMs}
                 isSelected={isSelected}
@@ -92,12 +95,12 @@ export const TimelineTrackList: React.FC<TimelineTrackListProps> = memo(({
           })}
 
           {/* Annotation Tracks */}
-          {Object.entries(visualData.annotations || {}).map(([id, note]) => (
+          {Object.entries(annotations || {}).map(([id, note]) => (
             <AnnotationTrackRow
               key={`track-ann-${id}`}
               id={id}
-              note={note}
-              editable={!isPlaying && !isReadOnly}
+              note={annotationPreview?.id === id ? {...note,...annotationPreview} : note}
+              editable={editing && !isPlaying && !isReadOnly}
               pxPerMs={pxPerMs}
               onBarMouseDown={handleAnnotationBarMouseDown}
               onResizeLeftMouseDown={handleResizeLeftMouseDown}

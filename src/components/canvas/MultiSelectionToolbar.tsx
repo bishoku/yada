@@ -1,3 +1,4 @@
+import { message } from '../../i18n/messages';
 import React, { memo } from 'react';
 import {
   AlignStartHorizontal,
@@ -31,7 +32,7 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
   if (selectedNodeIds.length < 2) return null;
 
   const count = selectedNodeIds.length;
-  const isTr = language === 'tr';
+
 
   const handleAlign = (alignment: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => {
     alignSelectedNodes(selectedNodeIds, alignment);
@@ -64,7 +65,7 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
     >
       {/* Selection counter badge */}
       <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 mr-1 select-none">
-        {count} {isTr ? 'seçili' : 'selected'}
+        {count} {message(language, "MultiSelectionToolbar.selected")}
       </span>
 
       <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5" />
@@ -76,7 +77,7 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
         onPointerDown={handleButtonMouseDown}
         onClick={(e) => { e.stopPropagation(); handleAlign('left'); }}
         className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-        title={isTr ? 'Sola Hizala' : 'Align Left'}
+        title={message(language, "MultiSelectionToolbar.alignLeft")}
       >
         <AlignStartVertical className="w-4 h-4" />
       </button>
@@ -86,7 +87,7 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
         onPointerDown={handleButtonMouseDown}
         onClick={(e) => { e.stopPropagation(); handleAlign('center'); }}
         className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-        title={isTr ? 'Yatay Ortala' : 'Center Horizontally'}
+        title={message(language, "MultiSelectionToolbar.centerHorizontally")}
       >
         <AlignCenterVertical className="w-4 h-4" />
       </button>
@@ -96,7 +97,7 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
         onPointerDown={handleButtonMouseDown}
         onClick={(e) => { e.stopPropagation(); handleAlign('right'); }}
         className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-        title={isTr ? 'Sağa Hizala' : 'Align Right'}
+        title={message(language, "MultiSelectionToolbar.alignRight")}
       >
         <AlignEndVertical className="w-4 h-4" />
       </button>
@@ -110,7 +111,7 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
         onPointerDown={handleButtonMouseDown}
         onClick={(e) => { e.stopPropagation(); handleAlign('top'); }}
         className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-        title={isTr ? 'Üste Hizala' : 'Align Top'}
+        title={message(language, "MultiSelectionToolbar.alignTop")}
       >
         <AlignStartHorizontal className="w-4 h-4" />
       </button>
@@ -120,7 +121,7 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
         onPointerDown={handleButtonMouseDown}
         onClick={(e) => { e.stopPropagation(); handleAlign('middle'); }}
         className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-        title={isTr ? 'Dikey Ortala' : 'Center Vertically'}
+        title={message(language, "MultiSelectionToolbar.centerVertically")}
       >
         <AlignCenterHorizontal className="w-4 h-4" />
       </button>
@@ -130,7 +131,7 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
         onPointerDown={handleButtonMouseDown}
         onClick={(e) => { e.stopPropagation(); handleAlign('bottom'); }}
         className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-        title={isTr ? 'Alta Hizala' : 'Align Bottom'}
+        title={message(language, "MultiSelectionToolbar.alignBottom")}
       >
         <AlignEndHorizontal className="w-4 h-4" />
       </button>
@@ -145,7 +146,7 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
             onPointerDown={handleButtonMouseDown}
             onClick={(e) => { e.stopPropagation(); handleDistribute('horizontal'); }}
             className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            title={isTr ? 'Yatay Eşit Dağıt' : 'Distribute Horizontally'}
+            title={message(language, "MultiSelectionToolbar.distributeHorizontally")}
           >
             <AlignHorizontalDistributeCenter className="w-4 h-4" />
           </button>
@@ -155,7 +156,7 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
             onPointerDown={handleButtonMouseDown}
             onClick={(e) => { e.stopPropagation(); handleDistribute('vertical'); }}
             className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            title={isTr ? 'Dikey Eşit Dağıt' : 'Distribute Vertically'}
+            title={message(language, "MultiSelectionToolbar.distributeVertically")}
           >
             <AlignVerticalDistributeCenter className="w-4 h-4" />
           </button>
@@ -171,10 +172,10 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
         onPointerDown={handleButtonMouseDown}
         onClick={(e) => { e.stopPropagation(); handlePack(); }}
         className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-xs font-semibold transition-colors cursor-pointer"
-        title={isTr ? 'Seçilenleri Yeni Bölüme Al' : 'Pack Selected into Section'}
+        title={message(language, "MultiSelectionToolbar.packSelectedIntoSection")}
       >
         <BoxSelect className="w-4 h-4" />
-        <span>{isTr ? 'Bölüm Yap' : 'Group Section'}</span>
+        <span>{message(language, "MultiSelectionToolbar.groupSection")}</span>
       </button>
 
       <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-0.5" />
@@ -186,7 +187,7 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
         onPointerDown={handleButtonMouseDown}
         onClick={(e) => { e.stopPropagation(); handleDelete(); }}
         className="p-1.5 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-        title={isTr ? 'Seçilenleri Sil' : 'Delete Selected'}
+        title={message(language, "MultiSelectionToolbar.deleteSelected")}
       >
         <Trash2 className="w-4 h-4" />
       </button>

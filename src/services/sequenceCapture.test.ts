@@ -41,4 +41,12 @@ describe('full sequence capture scope', () => {
     } finally { useAppStore.setState(initial, true); }
   });
 
+  it('restores the actual viewport before ending capture even when output fails', async () => {
+    const restore = vi.fn(async () => { expect(isFullSequenceCapture()).toBe(true); });
+    vi.stubGlobal('window', { dispatchEvent: (event: CustomEvent) => { event.detail.push(restore); } });
+    vi.stubGlobal('CustomEvent', class { detail: unknown; constructor(_name: string, options: {detail: unknown}) { this.detail = options.detail; } });
+    await expect(withFullSequenceRendering(async () => { throw Error('output failed'); })).rejects.toThrow('output failed');
+    expect(restore).toHaveBeenCalledOnce(); expect(isFullSequenceCapture()).toBe(false);
+  });
+
 });

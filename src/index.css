@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Kalam:wght@400;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
@@ -13,7 +12,7 @@
   --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
   --font-sketchy: 'Caveat', 'Kalam', 'Comic Sans MS', cursive, sans-serif;
-  
+
   --color-slate-250: #dce3ec;
   --color-slate-350: #b9c7d8;
   --color-slate-450: #7d8da4;
@@ -72,11 +71,11 @@ h1, h2, h3, h4, h5, h6 {
   --color-slate-200: #d8dee9;
   --color-slate-100: #eceff4;
   --color-slate-50: #2e3440;
-  
+
   --color-indigo-600: #5e81ac; /* primary action buttons */
   --color-indigo-500: #81a1c1; /* action button hover */
   --color-indigo-400: #88c0d0; /* accent light */
-  
+
   color-scheme: dark;
 }
 .theme-nord ::-webkit-scrollbar-thumb {
@@ -99,11 +98,11 @@ h1, h2, h3, h4, h5, h6 {
   --color-slate-200: #f8f8f2;
   --color-slate-100: #ffffff;
   --color-slate-50: #21222c;
-  
+
   --color-indigo-600: #9870db; /* primary action buttons */
   --color-indigo-500: #bd93f9; /* action button hover */
   --color-indigo-400: #bd93f9; /* accent text */
-  
+
   color-scheme: dark;
 }
 .theme-dracula ::-webkit-scrollbar-thumb {
@@ -126,11 +125,11 @@ h1, h2, h3, h4, h5, h6 {
   --color-slate-200: #e2e8f0;
   --color-slate-100: #ffffff;
   --color-slate-50: #181528;
-  
+
   --color-indigo-600: #d84b9e; /* primary action buttons */
   --color-indigo-500: #ff79c6; /* action button hover */
   --color-indigo-400: #ff79c6; /* accent text */
-  
+
   color-scheme: dark;
 }
 .theme-synthwave ::-webkit-scrollbar-thumb {
@@ -153,11 +152,11 @@ h1, h2, h3, h4, h5, h6 {
   --color-slate-200: #f5e6d3;
   --color-slate-100: #fff7ed;
   --color-slate-50: #1a1412;
-  
+
   --color-indigo-600: #b45309; /* primary action buttons */
   --color-indigo-500: #d97706; /* action button hover */
   --color-indigo-400: #ffb703; /* accent gold text */
-  
+
   color-scheme: dark;
 }
 .theme-retro ::-webkit-scrollbar-thumb {
@@ -335,3 +334,305 @@ input[type=number] {
   cursor: grabbing !important;
 }
 
+
+/* Shared controls: theme colors stay in Tailwind; dimensions and focus are consistent. */
+:root {
+  --ui-control-radius: 0.5rem;
+  --ui-control-height: 2rem;
+  --ui-icon-size: 1.875rem;
+  --ui-dialog-radius: 1rem;
+  --ui-focus: #7288ff;
+}
+.yada-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--ui-control-height);
+  padding: 0.3125rem 0.75rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--ui-control-radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  cursor: pointer;
+  transition: background-color 150ms, border-color 150ms;
+}
+.yada-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.yada-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--ui-icon-size);
+  min-height: var(--ui-icon-size);
+  border-radius: var(--ui-control-radius);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.yada-dialog {
+  width: min(28rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 1.5rem;
+  border-width: 1px;
+  border-radius: var(--ui-dialog-radius);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.25);
+  overflow: auto;
+}
+.yada-dialog::backdrop { background: rgb(10 15 25 / 0.65); }
+:where(button, a, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .yada-button, .yada-icon-button, .yada-dialog { animation: none; transition: none; }
+}
+
+.yada-modal {
+  margin: auto;
+  padding: 0;
+  border: 0;
+  max-width: none;
+  max-height: calc(100dvh - 2rem);
+  background: transparent;
+  color: inherit;
+  overflow: auto;
+  border-radius: var(--ui-dialog-radius);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.3);
+}
+.yada-modal::backdrop { background: rgb(10 15 25 / 0.65); }
+.yada-modal > :first-child { width: 100%; max-width: none; }
+.yada-modal-fullscreen { height: 100dvh; max-height: 100dvh; border-radius: 0; }
+.yada-modal :where(input, textarea, select) { font-size: max(0.875rem, 1em); }
+.yada-modal :where(button) { min-height: var(--ui-control-height); }
+@media (max-width: 767px) {
+  .yada-modal :where(input, textarea, select) { font-size: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yada-modal *, .yada-modal { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+.yada-drawer {
+  height: calc(100dvh - 1rem);
+  max-height: calc(100dvh - 1rem);
+  margin: 0.5rem 0.5rem 0.5rem auto;
+}
+.yada-drawer aside { width: 100%; height: 100%; border: 0; }
+.yada-menu-action {
+  display: flex; align-items: center; gap: 0.625rem;
+  width: 100%; min-height: var(--ui-control-height); padding: 0.3125rem 0.625rem;
+  text-align: left; font-size: 0.875rem; border-radius: 0.5rem; cursor: pointer;
+}
+.yada-menu-action:hover { background: rgb(114 136 255 / 0.12); }
+.yada-tools summary::-webkit-details-marker { display: none; }
+.yada-topbar button { min-height: var(--ui-control-height); }
+.yada-topbar .yada-tools-content button { min-height: var(--ui-control-height); }
+.yada-topbar .yada-tools-content > div { flex-wrap: wrap; }
+@media (max-width: 1023px) {
+  .yada-topbar { padding-inline: 0.5rem; gap: 0.25rem; }
+  .yada-topbar > div { gap: 0.25rem; }
+  .yada-topbar button { min-width: 2rem; }
+  .yada-topbar .yada-icon-button { min-width: 2rem; }
+  .yada-drawer .opacity-0.group-hover\:opacity-100 { opacity: 1; }
+}
+
+.yada-tools-content > button[title], .yada-tools-content > div > button[title] {
+  display: flex; align-items: center; gap: 0.625rem; text-align: left; padding: 0.3125rem 0.625rem;
+}
+.yada-tools-content > div { flex-direction: column; align-items: stretch; }
+.yada-tools-content > .w-px { display: none; }
+.yada-tools-content { max-height: calc(100dvh - 5rem); overflow-y: auto; }
+.yada-tools-content svg { flex-shrink: 0; }
+
+.yada-tools-content > button[title], .yada-tools-content > div > button[title] {
+  width: 100%; white-space: normal; border-color: transparent; background: transparent; box-shadow: none;
+  color: var(--color-slate-700);
+}
+.dark .yada-tools-content > button[title], .dark .yada-tools-content > div > button[title] { color: var(--color-slate-200); }
+.yada-tools-content > button[title]:hover, .yada-tools-content > div > button[title]:hover { background: rgb(114 136 255 / 0.12); }
+.yada-tools-content button[title] > span.text-sm { flex: 1; min-width: 0; line-height: 1.4; overflow-wrap: anywhere; }
+.yada-tools-content > button[aria-pressed="true"] { background: rgb(114 136 255 / 0.16); }
+
+@media (max-width: 1023px) {
+  .yada-dashboard .group-hover\:opacity-100 { opacity: 1; }
+  .yada-dashboard button { min-width: var(--ui-control-height); min-height: var(--ui-control-height); }
+}
+
+/* Shared surfaces follow the active theme's semantic slate/indigo roles. */
+@layer components {
+  .yada-input {
+    display: block; width: 100%; min-height: var(--ui-control-height); padding: 0.3125rem 0.625rem;
+    border: 1px solid var(--color-slate-250); border-radius: var(--ui-control-radius);
+    background: white; color: var(--color-slate-850); font: inherit; font-size: 0.875rem; line-height: 1.5;
+    transition: border-color 150ms, box-shadow 150ms;
+  }
+  .dark .yada-input { background: var(--color-slate-950); border-color: var(--color-slate-700); color: var(--color-slate-100); }
+  .yada-input::placeholder { color: var(--color-slate-550); opacity: 1; }
+  .dark .yada-input::placeholder { color: var(--color-slate-400); opacity: 0.7; }
+  .yada-input:focus { outline: 2px solid var(--color-indigo-500); outline-offset: 2px; border-color: var(--color-indigo-500); }
+  .yada-input[aria-invalid="true"] { border-color: var(--color-rose-500); }
+  .yada-input:disabled { opacity: 0.55; cursor: not-allowed; }
+  .yada-input[readonly] { background: var(--color-slate-100); }
+  .dark .yada-input[readonly] { background: var(--color-slate-900); }
+  .yada-textarea { resize: vertical; min-height: 6rem; }
+  .yada-select { padding-right: 1.75rem; cursor: pointer; }
+}
+.yada-field { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+.yada-field-label { display: block; font-size: 0.8125rem; line-height: 1.5; font-weight: 600; color: var(--color-slate-700); }
+.dark .yada-field-label { color: var(--color-slate-200); }
+.yada-field-hint, .yada-field-error { margin: 0; font-size: 0.75rem; line-height: 1.6; overflow-wrap: anywhere; }
+.yada-field-hint { color: var(--color-slate-550); }
+.dark .yada-field-hint { color: var(--color-slate-400); }
+.yada-field-error { color: var(--color-rose-600); }
+.dark .yada-field-error { color: var(--color-rose-400); }
+.yada-tooltip-anchor { position: relative; display: inline-flex; flex-shrink: 0; }
+.yada-tooltip {
+  position: absolute; top: calc(100% + 0.5rem); left: 50%; transform: translateX(-50%); z-index: 100;
+  width: max-content; max-width: min(15rem, calc(100vw - 2rem)); padding: 0.5rem 0.625rem;
+  background: var(--color-slate-850); color: var(--color-slate-50); border-radius: 0.5rem;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.16); font-size: 0.75rem; line-height: 1.5; pointer-events: none;
+}
+.dark .yada-tooltip { background: var(--color-slate-100); color: var(--color-slate-950); }
+.yada-menu-root { position: relative; display: inline-flex; }
+.yada-menu { position: absolute; right: 0; top: calc(100% + 0.375rem); z-index: 60; padding: 0.375rem; width: max-content; min-width: 14rem; max-width: min(22rem, calc(100vw - 2rem)); max-height: min(24rem, 65dvh); overflow: auto; background: white; color: var(--color-slate-800); border: 1px solid var(--color-slate-200); border-radius: 0.875rem; box-shadow: 0 12px 36px rgb(0 0 0 / 0.16); }
+.yada-menu[data-align="start"] { right: auto; left: 0; }
+.dark .yada-menu { background: var(--color-slate-900); color: var(--color-slate-100); border-color: var(--color-slate-700); }
+.yada-menu > button { display: flex; align-items: center; gap: 0.625rem; width: 100%; min-height: var(--ui-control-height); padding: 0.3125rem 0.625rem; border-radius: 0.5rem; text-align: left; font-size: 0.8125rem; line-height: 1.5; cursor: pointer; }
+.yada-menu > button:hover, .yada-menu > button:focus { background: rgb(114 136 255 / 0.12); }
+.yada-menu > button:disabled { opacity: 0.5; cursor: not-allowed; }
+.yada-menu > button[data-danger] { color: var(--color-rose-600); }
+.dark .yada-menu > button[data-danger] { color: var(--color-rose-400); }
+.yada-menu svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+.yada-tabs { display: flex; flex-direction: column; min-height: 0; }
+.yada-tab-list { display: flex; gap: 0.25rem; padding: 0.375rem; border-bottom: 1px solid var(--color-slate-200); flex-shrink: 0; }
+.dark .yada-tab-list { border-color: var(--color-slate-800); }
+.yada-tab-list > button { flex: 1; min-height: var(--ui-control-height); padding: 0.3125rem 0.625rem; font-size: 0.8125rem; font-weight: 600; color: var(--color-slate-550); border-radius: 0.625rem; cursor: pointer; }
+.dark .yada-tab-list > button { color: var(--color-slate-400); }
+.yada-tab-list > button[aria-selected="true"] { background: rgb(114 136 255 / 0.12); color: var(--color-indigo-600); }
+.dark .yada-tab-list > button[aria-selected="true"] { color: var(--color-indigo-400); }
+.yada-tabs > [role="tabpanel"][hidden] { display: none; }
+.yada-empty-state { padding: 1.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.75rem; }
+.yada-empty-icon { display: flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border: 1px solid var(--color-slate-200); border-radius: 0.875rem; color: var(--color-indigo-600); background: rgb(114 136 255 / 0.07); }
+.dark .yada-empty-icon { border-color: var(--color-slate-700); color: var(--color-indigo-400); }
+.yada-empty-state h2 { font-size: 1.125rem; line-height: 1.4; font-weight: 600; margin: 0; }
+.yada-empty-state p { max-width: 32rem; font-size: 0.875rem; line-height: 1.7; margin: 0; color: var(--color-slate-550); }
+.dark .yada-empty-state p { color: var(--color-slate-350); }
+.yada-empty-actions { display: flex; justify-content: center; gap: 0.625rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.yada-toast { display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; border: 1px solid var(--color-slate-250); border-left: 3px solid var(--color-emerald-500); border-radius: 0.875rem; background: white; color: var(--color-slate-800); font-size: 0.875rem; line-height: 1.6; box-shadow: 0 8px 24px rgb(0 0 0 / 0.08); }
+.dark .yada-toast { background: var(--color-slate-900); color: var(--color-slate-100); border-color: var(--color-slate-700); border-left-color: var(--color-emerald-400); }
+.yada-toast[data-variant="error"] { border-left-color: var(--color-rose-500); }
+.yada-toast .yada-icon-button:hover { background: rgb(114 136 255 / 0.12); }
+.yada-ui-caption { font-size: 0.75rem; line-height: 1.6; }
+.yada-ui-data { font-variant-numeric: tabular-nums; }
+@media (max-width: 767px) {
+  .yada-input { font-size: 1rem; }
+  :root { --ui-control-height: 2.25rem; --ui-icon-size: 2.25rem; }
+  .yada-toast { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yada-input, .yada-button, .yada-tabs * { transition: none; }
+}
+
+/* A quiet workspace, with a real client → service → database flow as its signature. */
+.yada-welcome { height: 100dvh; overflow: auto; background: var(--color-slate-50); color: var(--color-slate-850); padding: clamp(1rem, 3vw, 2.5rem); }
+.dark .yada-welcome { background: var(--color-slate-950); color: var(--color-slate-100); }
+.yada-welcome-content { width: min(100%, 68rem); margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; }
+.yada-welcome-nav { display: flex; align-items: center; justify-content: space-between; min-height: 2.75rem; }
+.yada-welcome-nav .yada-icon-button:hover { background: rgb(114 136 255 / 0.1); }
+.yada-start-card { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(17rem, 1fr); gap: 2rem; align-items: center; padding: clamp(1.5rem, 3vw, 2.5rem); border: 1px solid var(--color-slate-200); border-radius: 1.25rem; background: white; box-shadow: 0 8px 28px rgb(15 23 42 / 0.04); }
+.dark .yada-start-card { background: var(--color-slate-900); border-color: var(--color-slate-700); box-shadow: 0 16px 40px rgb(0 0 0 / 0.1); }
+.yada-eyebrow { margin: 0 0 0.75rem; color: var(--color-indigo-600); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; }
+.dark .yada-eyebrow { color: var(--color-indigo-400); }
+.yada-start-card h1 { margin: 0; max-width: 18ch; font-size: clamp(1.75rem, 3vw, 2.75rem); font-weight: 600; line-height: 1.14; letter-spacing: -0.025em; text-wrap: balance; }
+.yada-start-description { margin: 1rem 0 1.5rem; max-width: 36rem; font-size: 0.9375rem; line-height: 1.75; color: var(--color-slate-550); }
+.dark .yada-start-description { color: var(--color-slate-350); }
+.yada-start-actions { display: flex; flex-wrap: wrap; gap: 0.625rem; }
+.yada-named-workspace { margin: 0.75rem 0 0 -0.625rem; padding: 0.5rem 0.625rem; text-align: left; font-size: 0.8125rem; }
+.yada-flow-preview { padding: 1.5rem 1rem; border: 1px solid var(--color-slate-200); border-radius: 1rem; background-color: var(--color-slate-50); background-image: radial-gradient(var(--color-slate-250) 0.8px, transparent 0.8px); background-size: 14px 14px; }
+.dark .yada-flow-preview { background-color: var(--color-slate-950); border-color: var(--color-slate-700); background-image: radial-gradient(var(--color-slate-750) 0.8px, transparent 0.8px); }
+.yada-flow-nodes { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+.yada-flow-nodes > div { display: flex; flex: 1; flex-direction: column; align-items: center; gap: 0.75rem; min-width: 0; padding: 1rem 0.375rem; background: white; border: 1px solid var(--color-slate-250); border-radius: 0.75rem; box-shadow: 0 3px 8px rgb(15 23 42 / 0.05); color: var(--color-indigo-600); }
+.dark .yada-flow-nodes > div { background: var(--color-slate-900); border-color: var(--color-slate-700); color: var(--color-indigo-400); }
+.yada-flow-nodes > div:nth-of-type(2) { color: var(--color-emerald-600); }
+.dark .yada-flow-nodes > div:nth-of-type(2) { color: var(--color-emerald-300); }
+.yada-flow-nodes span { color: var(--color-slate-700); font-size: 0.75rem; font-weight: 600; text-align: center; overflow-wrap: anywhere; }
+.dark .yada-flow-nodes span { color: var(--color-slate-200); }
+.yada-flow-nodes > svg { flex-shrink: 0; color: var(--color-slate-400); }
+.yada-flow-preview > p { margin: 1rem 0 0; color: var(--color-slate-550); font-size: 0.75rem; line-height: 1.6; text-align: center; }
+.dark .yada-flow-preview > p { color: var(--color-slate-350); }
+.yada-recent-workspaces { padding: 1.5rem; border: 1px solid var(--color-slate-200); border-radius: 1.25rem; background: white; }
+.dark .yada-recent-workspaces { background: var(--color-slate-900); border-color: var(--color-slate-700); }
+.yada-recent-workspaces header h2 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+.yada-recent-workspaces header p { margin: 0.375rem 0 1rem; font-size: 0.8125rem; color: var(--color-slate-550); }
+.dark .yada-recent-workspaces header p { color: var(--color-slate-350); }
+.yada-recent-workspaces .yada-empty-state { border: 1px dashed var(--color-slate-250); border-radius: 0.875rem; margin-top: 0.5rem; }
+.dark .yada-recent-workspaces .yada-empty-state { border-color: var(--color-slate-700); }
+.yada-workspace-list { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0.75rem; padding: 0; margin: 0.5rem 0 0; list-style: none; }
+.yada-workspace-list > li { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--color-slate-200); border-radius: 0.875rem; min-width: 0; }
+.dark .yada-workspace-list > li { border-color: var(--color-slate-700); }
+.yada-workspace-open { display: flex; flex: 1; align-items: center; gap: 0.75rem; min-width: 0; text-align: left; cursor: pointer; border-radius: 0.5rem; }
+.yada-workspace-open:disabled { opacity: 0.5; cursor: not-allowed; }
+.yada-workspace-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 2.75rem; height: 2.75rem; background: rgb(114 136 255 / 0.08); border-radius: 0.625rem; color: var(--color-indigo-600); }
+.dark .yada-workspace-icon { color: var(--color-indigo-400); }
+.yada-workspace-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; font-weight: 600; }
+.yada-workspace-date { display: block; margin-top: 0.375rem; color: var(--color-slate-550); font-size: 0.75rem; }
+.dark .yada-workspace-date { color: var(--color-slate-350); }
+.yada-workspace-list .yada-menu-root > button { padding: 0.5rem 0.625rem; font-size: 0.75rem; }
+.yada-permission-note { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding: 0.875rem; border: 1px solid var(--color-amber-400); border-radius: 0.75rem; font-size: 0.8125rem; margin: 0.5rem 0 1rem; }
+.yada-welcome-footer { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: 0 0.25rem 1rem; font-size: 0.75rem; line-height: 1.7; color: var(--color-slate-550); }
+.dark .yada-welcome-footer { color: var(--color-slate-350); }
+.yada-welcome-footer p { display: flex; align-items: flex-start; gap: 0.5rem; max-width: 36rem; margin: 0; }
+.yada-welcome-footer svg { flex-shrink: 0; margin-top: 0.125rem; }
+.yada-welcome-footer a { display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: underline; text-underline-offset: 3px; color: var(--color-indigo-600); }
+.dark .yada-welcome-footer a { color: var(--color-indigo-400); }
+.yada-canvas-start { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 8; width: min(35rem, calc(100% - 2rem)); max-height: calc(100% - 2rem); overflow: auto; border: 1px solid var(--color-slate-200); border-radius: 1rem; background: rgb(255 255 255 / 0.98); box-shadow: 0 8px 32px rgb(15 23 42 / 0.08); }
+.dark .yada-canvas-start { border-color: var(--color-slate-700); background: var(--color-slate-900); }
+.yada-canvas-start .yada-empty-state { padding-bottom: 1.25rem; }
+.yada-first-steps { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); list-style: none; margin: 0; padding: 1.25rem; gap: 1rem; border-top: 1px solid var(--color-slate-200); }
+.dark .yada-first-steps { border-color: var(--color-slate-700); }
+.yada-first-steps li { display: flex; align-items: flex-start; gap: 0.5rem; min-width: 0; }
+.yada-step-number { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 1.5rem; height: 1.5rem; border: 1px solid var(--color-slate-250); border-radius: 0.375rem; color: var(--color-indigo-600); font-size: 0.75rem; font-weight: 600; }
+.dark .yada-step-number { border-color: var(--color-slate-700); color: var(--color-indigo-400); }
+.yada-first-steps h3 { margin: 0; font: 600 0.8125rem/1.5 var(--font-sans); }
+.yada-first-steps p { margin: 0.375rem 0 0; font-size: 0.75rem; line-height: 1.6; color: var(--color-slate-550); }
+.dark .yada-first-steps p { color: var(--color-slate-350); }
+.yada-sidebar-search .yada-tooltip-anchor { position: absolute; right: 0.25rem; }
+.yada-input { font-size: 0.875rem; min-height: var(--ui-control-height); }
+.yada-modal label[for] { font-size: 0.8125rem; line-height: 1.5; text-transform: none; letter-spacing: normal; }
+@media (max-width: 1023px) {
+  .yada-start-card { grid-template-columns: 1fr; }
+  .yada-flow-preview { max-width: 30rem; width: 100%; justify-self: start; }
+}
+@media (max-width: 767px) {
+  .yada-welcome-content { gap: 1rem; }
+  .yada-start-card { gap: 1.25rem; padding: 1.25rem; }
+  .yada-start-card h1 { font-size: 1.875rem; }
+  .yada-start-description { font-size: 0.875rem; }
+  .yada-recent-workspaces { padding: 1.25rem; }
+  .yada-workspace-list { grid-template-columns: 1fr; }
+  .yada-workspace-list > li { padding: 0.625rem; }
+  .yada-workspace-list .yada-menu-root > button { min-width: var(--ui-control-height); }
+  .yada-input { font-size: 1rem; }
+  .yada-first-steps { grid-template-columns: 1fr; padding: 1rem; gap: 0.75rem; }
+  .yada-first-steps p { margin-top: 0.125rem; }
+  .yada-canvas-start .yada-empty-state { padding: 1.25rem 1rem; }
+  .yada-canvas-start .yada-empty-actions { flex-direction: column; width: 100%; }
+}
+
+/* Primary foreground stays readable across all six supported themes. */
+:root { --ui-accent: #4f46e5; --ui-on-accent: #ffffff; }
+.theme-nord { --ui-accent: #446386; }
+.theme-dracula { --ui-accent: #7650b0; }
+.theme-synthwave { --ui-accent: #9e2367; }
+.theme-retro { --ui-accent: #b45309; }
+.yada-button[data-variant="primary"] { background: var(--ui-accent); color: var(--ui-on-accent); border-color: transparent; }
+.yada-button[data-variant="primary"]:hover:not(:disabled) { background: color-mix(in srgb, var(--ui-accent) 88%, black); }
+.yada-button[data-variant="danger"] { background: var(--color-rose-600); color: white; border-color: transparent; }
+.yada-button[data-variant="danger"]:hover:not(:disabled) { background: color-mix(in srgb, var(--color-rose-600) 88%, black); }
+html { font-kerning: normal; -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font-family: inherit; }
+
+/* Timeline rows retain their 64px track alignment inside the mobile drawer. */
+.yada-modal .yada-timeline-step-select,
+.yada-modal .yada-timeline-step-actions button { min-height: 1.5rem; }

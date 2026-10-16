@@ -1,6 +1,10 @@
+import { editingCopy } from '../../i18n/editingCopy';
+import { Button } from '../ui/Button';
+import { IconButton } from '../ui/IconButton';
+import { formatPlaybackRate } from '../../i18n/formatters';
 import { formatMilliseconds } from '../../i18n/terminology';
 import React, { memo } from 'react';
-import { Clock, Play, Pause, Square, Repeat } from 'lucide-react';
+import { Clock, Play, Pause, Square, Repeat, SkipBack, SkipForward, ZoomIn, ZoomOut, Maximize2, Crosshair } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { translations } from '../../i18n/translations';
 
@@ -61,92 +65,37 @@ export const TimelineHeader: React.FC<TimelineHeaderProps> = memo(({
   const toggleLoopPlayback = useAppStore((s) => s.toggleLoopPlayback);
   const setPlaybackRate = useAppStore((s) => s.setPlaybackRate);
 
-  return (
-    <div className="p-2.5 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-2 items-center justify-between bg-slate-50/50 dark:bg-slate-900/60 backdrop-blur-md shrink-0">
-      {/* Left: Section Label & Controls */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Clock className="w-4 h-4 text-indigo-500" />
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-            {t.timelineTitle}
-          </span>
-        </div>
-
-        <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
-
-        {/* PLAYBACK ACTIONS */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {onNavigate && <><button disabled={!hasSequences} onClick={() => onNavigate(-1)} title={t.timelineUi.previous} aria-label={t.timelineUi.previous} className="p-1.5 disabled:opacity-40">◀│</button><button disabled={!hasSequences} onClick={() => onNavigate(1)} title={t.timelineUi.next} aria-label={t.timelineUi.next} className="p-1.5 disabled:opacity-40">│▶</button></>}
-          {isPlaying ? (
-            <button
-              onClick={pausePlayback}
-              className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 transition-colors cursor-pointer"
-              title={t.pauseTooltip} aria-label={t.pauseTooltip}
-            >
-              <Pause className="w-3.5 h-3.5 fill-indigo-600 dark:fill-indigo-400" />
-            </button>
-          ) : (
-            <button
-              onClick={() => simulationClock.getTime() >= maxTime ? startPlayback() : resumePlayback()}
-              disabled={!hasSequences}
-              className="p-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-colors cursor-pointer"
-              title={t.playTooltip} aria-label={t.playTooltip}
-            >
-              <Play className="w-3.5 h-3.5 fill-white" />
-            </button>
-          )}
-
-          <button
-            onClick={stopPlayback}
-            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
-            title={t.stopTooltip} aria-label={t.stopTooltip}
-          >
-            <Square className="w-3.5 h-3.5 fill-current" />
-          </button>
-
-          <button
-            onClick={toggleLoopPlayback}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-              loopPlayback
-                ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20'
-                : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-400'
-            }`}
-            title={t.loopPlaybackTooltip} aria-label={t.loopPlaybackTooltip} aria-pressed={loopPlayback}
-          >
-            <Repeat className="w-3.5 h-3.5" />
-          </button>
-
-          <span className="text-[10px] font-mono text-slate-550 dark:text-slate-400 min-w-[85px] text-center bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-800/50">
-            <TimeReadout maxTime={maxTime} />
-          </span>
-
-          <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-900 p-0.5 rounded border border-slate-200/50 dark:border-slate-800/50">
-            {PLAYBACK_RATES.map((rate) => (
-              <button
-                key={rate}
-                aria-pressed={playbackRate === rate}
-                onClick={() => setPlaybackRate(rate)}
-                className={`text-[9px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition-all duration-150 ${
-                  playbackRate === rate
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-550 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-350'
-                }`}
-              >
-                {rate}x
-              </button>
-            ))}
-          </div>
-        </div>
+  const copy = editingCopy[language];
+  return <div className="yada-timeline-controls px-2 py-1 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-1.5 items-center justify-between bg-slate-50/50 dark:bg-slate-900/60 shrink-0">
+    <div role="group" aria-label={copy.playback} className="flex flex-wrap items-center gap-1">
+      <Clock size={16} className="hidden sm:block text-indigo-500" aria-hidden="true" />
+      <span className="hidden sm:inline text-xs font-bold mr-1">{t.timelineTitle}</span>
+      {onNavigate && <>
+        <IconButton label={t.timelineUi.previous} disabled={!hasSequences} onClick={() => onNavigate(-1)}><SkipBack size={16} aria-hidden="true" /></IconButton>
+        <IconButton label={t.timelineUi.next} disabled={!hasSequences} onClick={() => onNavigate(1)}><SkipForward size={16} aria-hidden="true" /></IconButton>
+      </>}
+      <Button disabled={!hasSequences} onClick={isPlaying ? pausePlayback : () => simulationClock.getTime() >= maxTime ? startPlayback() : resumePlayback()}>
+        {isPlaying ? <Pause size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}{isPlaying ? t.pauseTooltip : t.playTooltip}
+      </Button>
+      <IconButton label={t.stopTooltip} disabled={!hasSequences} onClick={stopPlayback}><Square size={16} aria-hidden="true" /></IconButton>
+      <IconButton label={t.loopPlaybackTooltip} aria-pressed={loopPlayback} onClick={toggleLoopPlayback}><Repeat size={16} aria-hidden="true" /></IconButton>
+      <span className="hidden sm:inline text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400 px-2"><TimeReadout maxTime={maxTime} /></span>
+      <select aria-label={copy.speed} value={playbackRate} onChange={event => setPlaybackRate(Number(event.target.value))} className="yada-input sm:hidden w-auto text-xs px-1">
+        {PLAYBACK_RATES.map(rate => <option key={rate} value={rate}>{formatPlaybackRate(rate, language)}</option>)}
+      </select>
+      <div className="hidden sm:flex gap-0.5 rounded-lg border border-slate-200 dark:border-slate-800 p-0.5">
+        {PLAYBACK_RATES.map(rate=><Button key={rate} variant={playbackRate===rate?'primary':'ghost'} aria-pressed={playbackRate===rate} onClick={()=>setPlaybackRate(rate)} className="px-2 text-xs">{formatPlaybackRate(rate,language)}</Button>)}
       </div>
-      {zoom !== undefined && <div className="flex items-center gap-2 text-xs">
-        <button onClick={() => onZoom?.(Math.max(1, zoom / 2))} disabled={zoom <= 1} aria-label={t.timelineUi.zoomOut} title={t.timelineUi.zoomOut} className="px-2 py-1 disabled:opacity-40">−</button>
-        <span>{zoom}×</span>
-        <button onClick={() => onZoom?.(Math.min(8, zoom * 2))} disabled={zoom >= 8} aria-label={t.timelineUi.zoomIn} title={t.timelineUi.zoomIn} className="px-2 py-1 disabled:opacity-40">+</button>
-        <button onClick={onFit} className="px-2 py-1 rounded border border-slate-300 dark:border-slate-700">{t.timelineUi.fit}</button>
-        <button onClick={onGoToPlayhead} className="px-2 py-1 rounded border border-slate-300 dark:border-slate-700">{t.timelineUi.goToPlayhead}</button>
-      </div>}
     </div>
-  );
+    {zoom!==undefined && <div role="group" aria-label={copy.view} className="flex flex-wrap items-center gap-1">
+      <IconButton label={t.timelineUi.zoomOut} disabled={zoom<=1} onClick={()=>onZoom?.(Math.max(1,zoom/2))}><ZoomOut size={16} aria-hidden="true" /></IconButton>
+      <span className="text-xs tabular-nums">{formatPlaybackRate(zoom,language)}</span>
+      <IconButton label={t.timelineUi.zoomIn} disabled={zoom>=8} onClick={()=>onZoom?.(Math.min(8,zoom*2))}><ZoomIn size={16} aria-hidden="true" /></IconButton>
+      <IconButton label={t.timelineUi.fit} onClick={onFit}><Maximize2 size={16} aria-hidden="true" /></IconButton>
+      <IconButton label={t.timelineUi.goToPlayhead} onClick={onGoToPlayhead}><Crosshair size={16} aria-hidden="true" /></IconButton>
+    </div>}
+  </div>;
+
 });
 
 TimelineHeader.displayName = 'TimelineHeader';

@@ -1,3 +1,6 @@
+import { portableUiFontsCss } from '../styles/portableFonts';
+import { playerCopy } from '../i18n/playerCopy';
+import type { Language } from '../i18n/translations';
 import { buildSequencePlayback } from '../components/sequence/sequencePlayback';
 import { LogicalDiagram } from '../types';
 import {
@@ -17,15 +20,17 @@ export const generateSequenceHtml = (
   logicalData: LogicalDiagram,
   schedules: Record<string, { start: number; end: number }>,
   timelines: Record<string, any>,
-  theme: 'light' | 'dark'
+  theme: 'light' | 'dark',
+  language: Language = 'en'
 ): string => {
+  const ui = playerCopy[language];
   const participants = logicalData.nodes.filter(n => n.type !== 'section');
   const sections = logicalData.nodes.filter(n => n.type === 'section');
-  
+
   const participantOrder = computeParticipantOrder(participants, logicalData.edges);
   const edgeMap = new Map(logicalData.edges.map((e) => [e.id, e]));
   const { fwdSlotMap, retSlotMap, totalSlots } = buildSequencePlayback(logicalData.sequences, logicalData.edges, schedules);
-  
+
   const fragmentBounds = computeFragmentBounds(
     sections, participants, participantOrder, edgeMap,
     logicalData.sequences, fwdSlotMap, retSlotMap
@@ -47,17 +52,18 @@ export const generateSequenceHtml = (
   });
 
   const isDark = theme === 'dark';
-  
+
   const maxParticipantCol = Math.max(...Array.from(participantOrder.values()), 0);
   const totalWidth = (maxParticipantCol * PARTICIPANT_SPACING) + PARTICIPANT_WIDTH + 100;
   const totalHeight = LIFELINE_START_Y + ((totalSlots + 2) * MESSAGE_ROW_HEIGHT);
 
   return `<!DOCTYPE html>
-<html lang="en" class="${isDark ? 'dark' : 'light'}">
+<html lang="${language}" class="${isDark ? 'dark' : 'light'}">
 <head>
   <meta charset="UTF-8">
-  <title>Sequence Diagram Simulation</title>
+  <title>${ui.sequenceTitle}</title>
   <style>
+${portableUiFontsCss}
     :root, html.dark {
       --bg-body: #020617;
       --bg-surface: #0f172a;
@@ -66,7 +72,7 @@ export const generateSequenceHtml = (
       --color-text: #f8fafc;
       --color-text-muted: #64748b;
       --color-border: #1e293b;
-      
+
       --header-bg: #1e293b;
       --header-border: #334155;
       --lifeline-color: #334155;
@@ -83,7 +89,7 @@ export const generateSequenceHtml = (
       --color-text: #0f172a;
       --color-text-muted: #64748b;
       --color-border: #e2e8f0;
-      
+
       --header-bg: #ffffff;
       --header-border: #cbd5e1;
       --lifeline-color: #cbd5e1;
@@ -94,11 +100,11 @@ export const generateSequenceHtml = (
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    
+
     body {
       background-color: var(--bg-body);
       color: var(--color-text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       overflow: hidden;
       height: 100vh;
       width: 100vw;
@@ -346,7 +352,7 @@ export const generateSequenceHtml = (
     .message-line.active ~ .message-arrow { fill: var(--active-color); }
     .message-arrow-open { transition: stroke 0.3s ease; }
     .message-line.active ~ .message-arrow-open { stroke: var(--active-color); }
-    
+
     .particle {
       fill: var(--active-color);
       filter: drop-shadow(0 0 4px var(--active-color));
@@ -390,21 +396,21 @@ export const generateSequenceHtml = (
   </style>
 </head>
 <body>
-  
+
   <div class="top-controls">
-    <button id="theme-toggle" class="control-btn" title="Toggle Theme">
+    <button id="theme-toggle" class="control-btn" title="${ui.theme}" aria-label="${ui.theme}">
       ${isDark ? '☀️' : '🌙'}
     </button>
   </div>
 
   <div class="zoom-controls">
-    <button id="zoom-in" title="Zoom In">+</button>
-    <button id="zoom-out" title="Zoom Out">−</button>
-    <button id="zoom-fit" title="Fit View">⛶</button>
+    <button id="zoom-in" title="${ui.zoomIn}" aria-label="${ui.zoomIn}">+</button>
+    <button id="zoom-out" title="${ui.zoomOut}" aria-label="${ui.zoomOut}">−</button>
+    <button id="zoom-fit" title="${ui.fit}" aria-label="${ui.fit}">⛶</button>
   </div>
 
   <div id="flow-logs">
-    <h3>Interaction Flow</h3>
+    <h3>${ui.flow}</h3>
     <div id="flow-logs-content"></div>
   </div>
 
@@ -423,14 +429,18 @@ export const generateSequenceHtml = (
       </svg>
     </div>
   </div>
-  
+
   <div id="controls">
-    <button id="play-btn">▶</button>
-    <input type="range" id="timeline" min="0" max="1000" value="0">
+    <button id="play-btn" aria-label="${ui.play}">▶</button>
+    <input type="range" aria-label="${ui.position}" id="timeline" min="0" max="1000" value="0">
     <span id="time-display">0.0s</span>
   </div>
 
   <script>
+    const ui = ${JSON.stringify(ui).replace(/</g, '\\u003c')};
+    const locale = ${JSON.stringify(language === 'tr' ? 'tr-TR' : 'en-US')};
+    const seconds = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
+    const formatSeconds = value => seconds.format(value / 1000) + ' s';
     const logicalData = ${logicalJson};
     const schedules = ${schedulesJson};
     const timelines = ${timelinesJson};
@@ -448,16 +458,16 @@ export const generateSequenceHtml = (
       if (!edge) return;
       const s = schedules[seq.id];
       if (!s) return;
-      
+
       const logItem = document.createElement('div');
       logItem.className = 'log-item';
       logItem.id = 'log-item-' + seq.id;
-      
-      const timeStr = (s.start / 1000).toFixed(1) + 's';
-      
+
+      const timeStr = formatSeconds(s.start);
+
       logItem.innerHTML = \`<div class="log-time">\${timeStr}</div>
       <div class="log-detail">
-        <strong>\${seq.stepNumber}. \${seq.protocol || 'Message'}</strong><br/>
+        <strong>\${seq.stepNumber}. \${seq.protocol || ui.message}</strong><br/>
         <span style="font-size:11px; opacity:0.8">\${edge.sourceId} → \${edge.targetId}</span>
       </div>\`;
       flowLogsContent.appendChild(logItem);
@@ -469,7 +479,7 @@ export const generateSequenceHtml = (
       const y = C.HEADER_HEIGHT + fb.minSlot * C.MESSAGE_ROW_HEIGHT - C.FRAGMENT_PADDING_Y;
       const w = (fb.maxCol - fb.minCol) * C.PARTICIPANT_SPACING + C.PARTICIPANT_WIDTH + C.FRAGMENT_PADDING_X * 2;
       const h = (fb.maxSlot - fb.minSlot + 1) * C.MESSAGE_ROW_HEIGHT + C.FRAGMENT_PADDING_Y * 2;
-      
+
       const el = document.createElement('div');
       el.className = 'fragment';
       el.style.left = x + 'px';
@@ -479,7 +489,7 @@ export const generateSequenceHtml = (
 
       const title = document.createElement('div');
       title.className = 'fragment-title';
-      title.textContent = fb.sectionNode.name || 'Section';
+      title.textContent = fb.sectionNode.name || ui.section;
       el.appendChild(title);
 
       htmlLayer.appendChild(el);
@@ -535,7 +545,7 @@ export const generateSequenceHtml = (
       const header = document.createElement('div');
       header.className = 'participant-header';
       header.innerHTML = \`<div style="font-weight:600">\${p.name}</div><div style="font-size:12px;opacity:0.7">\${p.type}</div>\`;
-      
+
       const lifeline = document.createElement('div');
       lifeline.className = 'lifeline';
 
@@ -552,7 +562,7 @@ export const generateSequenceHtml = (
         box.style.top = topY + 'px';
         box.style.height = boxHeight + 'px';
         pEl.appendChild(box);
-        
+
         activityEls.push({
           el: box,
           startTime: act.startTime,
@@ -566,7 +576,7 @@ export const generateSequenceHtml = (
 
     // 5. Draw Messages
     const messageEls = [];
-    
+
     logicalData.sequences.forEach(seq => {
       const edge = logicalData.edges.find(e => e.id === seq.edgeId);
       if (!edge) return;
@@ -577,7 +587,7 @@ export const generateSequenceHtml = (
       const startX = sourceCol * C.PARTICIPANT_SPACING + C.PARTICIPANT_WIDTH / 2;
       const endX = targetCol * C.PARTICIPANT_SPACING + C.PARTICIPANT_WIDTH / 2;
       const isRightToLeft = startX > endX;
-      
+
       const fwdSlot = layout.fwdSlotObj[seq.id];
       const retSlot = layout.retSlotObj[seq.id];
       const sched = schedules[seq.id];
@@ -627,7 +637,7 @@ export const generateSequenceHtml = (
         retLabel.setAttribute('x', (adjStartX + adjEndX) / 2);
         retLabel.setAttribute('y', retY - 8);
         retLabel.setAttribute('class', 'message-label');
-        retLabel.textContent = seq.description || 'return';
+        retLabel.textContent = seq.description || ui.returnMessage;
         svgLayer.appendChild(retLabel);
       }
 
@@ -653,7 +663,7 @@ export const generateSequenceHtml = (
 
     let maxTime = Math.max(...Object.values(schedules).map(s => s.end));
     if (!isFinite(maxTime) || maxTime < 1000) maxTime = 1000;
-    
+
     const slider = document.getElementById('timeline');
     const playBtn = document.getElementById('play-btn');
     const timeDisplay = document.getElementById('time-display');
@@ -662,7 +672,7 @@ export const generateSequenceHtml = (
 
     function renderFrame(time) {
       slider.value = time;
-      timeDisplay.textContent = (time / 1000).toFixed(1) + 's';
+      timeDisplay.textContent = formatSeconds(time);
 
       let stepToScroll = null;
 
@@ -701,7 +711,7 @@ export const generateSequenceHtml = (
 
       messageEls.forEach(msg => {
         const isActive = time >= msg.startTime && time <= msg.endTime;
-        
+
         if (isActive) {
           msg.fwdLine.classList.add('active');
           if (msg.retLine) msg.retLine.classList.add('active');
@@ -752,7 +762,7 @@ export const generateSequenceHtml = (
         if (currentTime > maxTime) {
           currentTime = 0;
           isPlaying = false;
-          playBtn.textContent = '▶';
+          playBtn.textContent = '▶'; playBtn.setAttribute('aria-label', ui.play);
         }
         renderFrame(currentTime);
       }
@@ -761,7 +771,7 @@ export const generateSequenceHtml = (
 
     playBtn.addEventListener('click', () => {
       isPlaying = !isPlaying;
-      playBtn.textContent = isPlaying ? '⏸' : '▶';
+      playBtn.textContent = isPlaying ? '⏸' : '▶'; playBtn.setAttribute('aria-label', isPlaying ? ui.pause : ui.play);
       if (isPlaying && currentTime >= maxTime) currentTime = 0;
       if (isPlaying) lastTimestamp = performance.now();
     });
@@ -787,20 +797,20 @@ export const generateSequenceHtml = (
 
     function fitView() {
       const pad = 40;
-      const availableW = container.clientWidth - pad * 2 - 320; 
+      const availableW = container.clientWidth - pad * 2 - 320;
       const availableH = container.clientHeight - pad * 2;
       const diagramW = ${totalWidth};
       const diagramH = ${totalHeight};
-      
+
       const scaleX = availableW / diagramW;
       const scaleY = availableH / diagramH;
       zoomScale = Math.min(scaleX, scaleY, 1);
-      
+
       panX = (container.clientWidth - 320 - diagramW * zoomScale) / 2;
       panY = pad;
       applyTransform();
     }
-    
+
     setTimeout(fitView, 10);
 
     container.addEventListener('mousedown', (e) => {
@@ -824,11 +834,11 @@ export const generateSequenceHtml = (
       const zoomSensitivity = 0.001;
       const delta = -e.deltaY * zoomSensitivity;
       const newScale = Math.min(Math.max(0.1, zoomScale + delta), 3);
-      
+
       const rect = container.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      
+
       panX = mouseX - (mouseX - panX) * (newScale / zoomScale);
       panY = mouseY - (mouseY - panY) * (newScale / zoomScale);
       zoomScale = newScale;

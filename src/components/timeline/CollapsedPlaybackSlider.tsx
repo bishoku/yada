@@ -29,8 +29,8 @@ export const CollapsedPlaybackSlider: React.FC<CollapsedPlaybackSliderProps> = m
         onChange={(e) => { useAppStore.getState().pausePlayback(); setCurrentTime(Number(e.target.value)); }}
         className="flex-1 h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600 dark:accent-indigo-500"
       />
-      <span className="text-[10px] font-mono text-slate-550 dark:text-slate-400">
-        {formatMilliseconds(maxTime, language)}
+      <span className="text-xs font-mono text-slate-550 dark:text-slate-400">
+        <span className="sm:hidden">{formatMilliseconds(currentTime, language)} / </span>{formatMilliseconds(maxTime, language)}
       </span>
     </div>
   );

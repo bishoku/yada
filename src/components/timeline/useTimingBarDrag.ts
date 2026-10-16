@@ -8,9 +8,10 @@ import { timingFromDrag, type TimingValues } from './timingModel';
 type Gesture = { document: LogicalDiagram; id: string; pointerId: number; startX: number; scale: number; initial: TimingValues; resize: boolean; preview: TimingValues };
 
 /** Preview locally; save once on release. Escape/pointer cancellation writes nothing. */
-export function useTimingBarDrag(pxPerMs: number) {
+export function useTimingBarDrag(pxPerMs: number, enabled = true) {
   const active = useRef<Gesture | null>(null);
   const [preview, setPreview] = useState<{ id: string; initial: TimingValues; values: TimingValues } | null>(null);
+  useEffect(() => { if (!enabled) {active.current=null;setPreview(null);} },[enabled]);
   useEffect(() => {
     const move = (event: PointerEvent) => {
       const gesture = active.current;

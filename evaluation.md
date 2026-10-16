@@ -647,3 +647,40 @@ Media checks used actual export entry points and encoders with a development-onl
 - **Independent media playback:** open saved GIF/MP4/WebM output in target browsers/players and verify representative longer and large diagrams. WebCodecs fallback and native file delivery remain unverified.
 
 Dense freeform playback remains a documented performance limitation rather than a demonstrated solved bottleneck. These local checks do not establish frame-rate guarantees across embedded hosts or native webviews. Existing users' diagram schemas and timing semantics remain unchanged by the reviewed fixes.
+
+## Production loading and dense freeform optimization (16 October 2026)
+
+This pass reduces loading and topology preparation costs; it does **not** establish a dense-freeform playback frame-rate improvement. Raw measurements are retained in `performance/2026-10-16/`.
+
+### Loading measurements
+
+The build report follows static JavaScript imports from the application entry and then the lazy default welcome route. It sums individual raw/gzip file sizes. CSS, fonts, background service-worker requests, network latency and parse/execute time are not included. These values are not LCP, transferred-byte traces or cold-start timing measurements.
+
+| JavaScript dependency closure | Before, bytes | After, bytes | Reduction |
+| --- | ---: | ---: | ---: |
+| Initial application | 3,321,427 | 560,782 | 83.1% |
+| Initial application, summed gzip | 976,359 | 168,257 | 82.8% |
+| Default welcome route included | 3,393,826 | 631,265 | 81.4% |
+| Welcome route included, summed gzip | 996,344 | 188,532 | 81.1% |
+
+Technology SVG variants now use individual lazy imports, and a closed icon picker mounts no catalog. Media exports and host preview capture load their implementation on demand. HTML exports, the host viewer, automatic layout and import parsers have actual lazy boundaries. Explicit manual chunk ownership prevents shared build helpers from pulling the entire graph-layout/editor dependency chain into startup. Automatic layout checks the active workspace/diagram after loading, so a delayed import cannot modify a different document; load failures use translated feedback.
+
+The web PWA precache changed from 154 entries / 10,991.33 KiB to 183 entries / 9,604.74 KiB. Optional technology variants are cached on use, with a 400-entry/30-day limit. **Offline tradeoff:** a variant never cached on that installation needs a connection on first use. Loading has a fixed-size placeholder and a local error boundary; image/DOM-video capture preloads the document's selected icon variants before capture. An actual offline/reconnect and old-PWA upgrade acceptance run is still required.
+
+### Large-diagram CPU and playback measurements
+
+Edges share weakly cached indexes for logical edge lookup, sequence membership and deterministic parallel-edge ordering. The indexes are keyed by immutable edge/sequence revisions and preserve the previous direction-independent ordering, minimum-step rule and ID tie-break. A five-run Node CPU benchmark with 1,000 edges/steps returned equal checksums: legacy median 232.413 ms, first new index construction plus queries 1.110 ms, subsequent new queries 0.037–0.096 ms. This is a pure computation benchmark, **not** browser document-opening time or FPS.
+
+Single cubic particle paths are sampled numerically with adaptive subdivision instead of repeated SVG length/point queries. Compound and orthogonal paths retain the SVG fallback. Tests cover distance-based seeking, endpoints, reverse tangents, loops, degenerate paths and a long-curve dense numerical reference (under 0.5 canvas units in that test). Drawing paths, selected glow settings, labels, themes and saved document data remain unchanged. The Confluence viewer now uses the shared throttled frame clock rather than writing global time and recomputing its duration on every frame; its existing looping policy and editor loop preference are preserved independently.
+
+Playback used the real production profiler, 1,000 messages, 20 participants, a section, concurrent steps and round trips, at 1440 × 900 / DPR 1, Chrome 155 on macOS, reported hardware concurrency 18. Each side contains five 30-second samples after a one-second warmup. No builds ran during those paired samples. Device model/power mode were not recorded and the host's other workload was not controlled, so these are local diagnostic results, not release certification.
+
+| Median of five production samples | Before | After |
+| --- | ---: | ---: |
+| FPS | 18.2 | 17.8 |
+| p95 frame interval | 133.3 ms | 141.7 ms |
+| Frames over 33 ms per sample | 274 | 268 |
+
+There is no demonstrated playback improvement; p95 is worse in these samples. The 60 FPS / ≤20 ms p95 target remains open. Heap snapshots fluctuate and do not establish either a memory improvement or a leak. Experiments changing default glows, canvas background blur and particle layering were not retained because they did not demonstrate a consistent frame-time benefit. Further optimization needs a browser rendering trace that separates SVG paint/compositing from JavaScript, followed by measured visibility/detail handling or a renderer change with export/style parity.
+
+Validation: 34 files / 239 tests pass, including translation coverage, existing save/timing/export compatibility checks, parallel-edge index parity and numerical geometry tests. Web, Forge and Data Center production builds pass; optional heavy-feature chunk warnings remain. In the clean production UI, Turkish loading/default names, keyboard component insertion, expanding the lazy technology catalog and applying PostgreSQL were verified; the app remained saved and captured no console errors. Browser download automation stalled during SVG file-delivery verification, so that check is **unverified**, not a passed export test. Real host, mobile device, offline cache/update and independently opened export-file acceptance remain required.

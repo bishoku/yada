@@ -1,3 +1,5 @@
+import { getEdgeTopology } from './hooks/edgeTopology';
+import { useTranslation } from '../../i18n/useTranslation';
 import React, { useRef, memo, useMemo, useState, useEffect } from 'react';
 import {
   EdgeProps,
@@ -193,6 +195,7 @@ function getDashArray(lineStyle?: EdgeLineStyle, isAsync?: boolean): string | un
 }
 
 export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
+  const t = useTranslation();
   const {
     id,
     sourceX,
@@ -207,29 +210,14 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const logicalData = useAppStore((s) => s.logicalData);
   const layoutEdges = useAppStore((s) => s.visualData.layoutEdges);
   const isPlaying = useAppStore((s) => s.isPlaying);
-  const le = logicalData.edges.find((e) => e.id === id);
+  const topology = getEdgeTopology(logicalData.edges, logicalData.sequences);
+  const le = topology.edgesById.get(id);
   const ve = layoutEdges[id];
   const isReversed = le ? le.sourceId !== props.source : false;
   const isSelfLoop = le ? le.sourceId === le.targetId : false;
   const [isEditingInline, setIsEditingInline] = useState(false);
 
-  const siblingEdges = useMemo(() => {
-    if (!le) return [];
-    const related = logicalData.edges.filter(
-      (e) => (e.sourceId === le.sourceId && e.targetId === le.targetId) || (e.sourceId === le.targetId && e.targetId === le.sourceId)
-    );
-    return [...related].sort((a, b) => {
-      const aSeqs = logicalData.sequences.filter(s => s.edgeId === a.id);
-      const bSeqs = logicalData.sequences.filter(s => s.edgeId === b.id);
-      const aMinStep = aSeqs.length > 0 ? Math.min(...aSeqs.map(s => s.stepNumber)) : 999;
-      const bMinStep = bSeqs.length > 0 ? Math.min(...bSeqs.map(s => s.stepNumber)) : 999;
-      if (aMinStep !== bMinStep) return aMinStep - bMinStep;
-      return a.id.localeCompare(b.id);
-    });
-  }, [logicalData.edges, logicalData.sequences, le]);
-
-  const siblingIndex = siblingEdges.findIndex((e) => e.id === id);
-  const siblingCount = siblingEdges.length;
+  const { index: siblingIndex, count: siblingCount } = topology.siblingsByEdge.get(id) ?? { index: -1, count: 0 };
 
   let offset = 0;
   if (siblingCount > 1 && siblingIndex >= 0) {
@@ -502,7 +490,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
           style={{ cursor: 'pointer' }}
         />
       )}
-      
+
       {/* Underlying smooth path for particle trajectory measurement */}
       <path
         ref={pathRef}
@@ -529,7 +517,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
           strokeLinejoin: 'round',
         }}
       />
-      
+
       {/* Playback particles using refs */}
       {isAnimating && particleRefs.map((ref, idx) => (
         <g
@@ -585,7 +573,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
       {/* Ghost Handles for adding new waypoints */}
       {!isPlaying && (() => {
         const ghosts = [];
-        
+
         if (activeWaypoints.length === 0) {
           if (pathRef.current) {
             try {
@@ -650,7 +638,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
                 onClose={() => setIsEditingInline(false)}
               />
             ) : (
-              <div 
+              <div
                 onDoubleClick={(e) => {
                   e.stopPropagation();
                   if (!isPlaying) setIsEditingInline(true);
@@ -661,7 +649,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
                     : "px-2 py-0.5 rounded-full bg-slate-900/90 dark:bg-white text-white dark:text-slate-950 text-[9px] font-extrabold shadow-md border border-slate-700/50 dark:border-slate-200 transition-all select-none cursor-pointer hover:scale-105 active:scale-95"
                 }
                 style={isEdgeActive ? { backgroundColor: activeColor, borderColor: activeColor } : undefined}
-                title="Çift tıkla: Protokol ve açıklamayı hızlı düzenle"
+                title={t.commonUi.quickEditConnection}
               >
                 {stepLabel}
               </div>

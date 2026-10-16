@@ -1,3 +1,8 @@
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Field';
+import { useId } from 'react';
+import { ModalSurface } from '../ui/ModalSurface';
+import { message } from '../../i18n/messages';
 import { getPlatformCapabilities } from '../../services/platformCapabilities';
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
@@ -5,6 +10,7 @@ import { translations } from '../../i18n/translations';
 import { X, FilePlus } from 'lucide-react';
 
 export const CreateDiagramModal: React.FC = () => {
+  const fieldPrefix = useId();
   const isCreateDiagramModalOpen = useAppStore((s) => s.isCreateDiagramModalOpen);
   const setCreateDiagramModalOpen = useAppStore((s) => s.setCreateDiagramModalOpen);
   const createDiagram = useAppStore((s) => s.createDiagram);
@@ -19,7 +25,7 @@ export const CreateDiagramModal: React.FC = () => {
   // Auto-fill default name on open
   useEffect(() => {
     if (isCreateDiagramModalOpen) {
-      const prefix = language === 'tr' ? 'Yeni Diyagram' : 'New Diagram';
+      const prefix = message(language, "CreateDiagramModal.newDiagram");
       let defaultName = prefix;
       if (diagrams.some((d) => d.name === prefix)) {
         let count = 1;
@@ -32,15 +38,7 @@ export const CreateDiagramModal: React.FC = () => {
     }
   }, [isCreateDiagramModalOpen, diagrams, language]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isCreateDiagramModalOpen) {
-        setCreateDiagramModalOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isCreateDiagramModalOpen, setCreateDiagramModalOpen]);
+
 
 
   if (!isCreateDiagramModalOpen || !getPlatformCapabilities().canCreateDiagram) return null;
@@ -59,19 +57,19 @@ export const CreateDiagramModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+    <ModalSurface label={message(language, "CreateDiagramModal.createNewDiagram")} onClose={() => setCreateDiagramModalOpen(false)} width="28rem">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl transition-all animate-in zoom-in-95 duration-200">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
             <FilePlus className="w-5 h-5 text-indigo-500" />
-            {language === 'tr' ? 'Yeni Diyagram Oluştur' : 'Create New Diagram'}
+            {message(language, "CreateDiagramModal.createNewDiagram")}
           </h3>
           <button
             onClick={() => setCreateDiagramModalOpen(false)}
             className="p-1.5 text-slate-400 hover:text-slate-650 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-          >
+           aria-label={message(language, "common.close")}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -79,17 +77,17 @@ export const CreateDiagramModal: React.FC = () => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-              {language === 'tr' ? 'Diyagram Adı' : 'Diagram Name'}
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2" htmlFor={`${fieldPrefix}-modal-field-1`}>
+              {message(language, "CreateDiagramModal.diagramName")}
             </label>
-            <input
-              autoFocus
+            <Input
+              autoFocus data-dialog-autofocus=""
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-800 dark:text-slate-200 text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/40 transition-all duration-200"
-              placeholder={language === 'tr' ? 'Örn: Yeni Mimari Plan' : 'e.g. New Architecture Plan'}
-            />
+              className="w-full"
+              placeholder={message(language, "CreateDiagramModal.eGNewArchitecturePlan")}
+             id={`${fieldPrefix}-modal-field-1`}/>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
@@ -97,19 +95,19 @@ export const CreateDiagramModal: React.FC = () => {
               type="button"
               onClick={() => setCreateDiagramModalOpen(false)}
               className="px-4 py-2 bg-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-350 font-semibold rounded-xl text-xs cursor-pointer transition-colors"
-            >
+             data-dialog-autofocus="">
               {t.cancel}
             </button>
-            <button
+            <Button
               type="submit"
               disabled={!name.trim()}
               className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800/45 text-white font-bold rounded-xl text-xs transition-all duration-200 cursor-pointer shadow-md shadow-indigo-600/10 dark:shadow-none"
             >
-              {language === 'tr' ? 'Oluştur' : 'Create'}
-            </button>
+              {message(language, "CreateDiagramModal.create")}
+            </Button>
           </div>
         </form>
       </div>
-    </div>
+    </ModalSurface>
   );
 };

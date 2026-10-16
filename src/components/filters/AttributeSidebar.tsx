@@ -1,3 +1,4 @@
+import { useUiCopy } from '../../i18n/useUiCopy';
 import React, { useState } from 'react';
 import { Search, Check } from 'lucide-react';
 import { AttributeMetadata } from '../../adapters/types';
@@ -13,6 +14,7 @@ export const AttributeSidebar: React.FC<AttributeSidebarProps> = ({
   selectedAttributes,
   onToggleAttribute
 }) => {
+  const uiCopy = useUiCopy();
   const [searchQuery, setSearchQuery] = useState('');
 
   const filtered = attributes.filter(a => a.key.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -22,9 +24,9 @@ export const AttributeSidebar: React.FC<AttributeSidebarProps> = ({
       <div className="p-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Search attributes..." 
+          <input
+            type="text"
+            placeholder={uiCopy.searchAttributes}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full bg-slate-100 dark:bg-slate-950 border border-transparent focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-900 rounded-lg pl-9 pr-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 transition-colors focus:outline-none placeholder-slate-400"
@@ -33,7 +35,7 @@ export const AttributeSidebar: React.FC<AttributeSidebarProps> = ({
       </div>
       <div className="flex-1 overflow-y-auto p-2">
         {filtered.length === 0 ? (
-          <div className="text-center text-sm text-slate-500 py-4">No attributes found</div>
+          <div className="text-center text-sm text-slate-500 py-4">{uiCopy.noAttributesFound}</div>
         ) : (
           <div className="space-y-0.5">
             {filtered.map(attr => {

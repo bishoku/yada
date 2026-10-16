@@ -1,3 +1,6 @@
+import { useId } from 'react';
+import { ModalSurface } from '../ui/ModalSurface';
+import { message } from '../../i18n/messages';
 import { getPlatformCapabilities } from '../../services/platformCapabilities';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -14,6 +17,7 @@ const PEER_COLORS = [
 ];
 
 export const CollabJoinModal: React.FC = () => {
+  const fieldPrefix = useId();
   const isOpen = useAppStore((s) => s.isJoinCollabModalOpen);
   const pendingJoinRoomId = useAppStore((s) => s.pendingJoinRoomId);
   const setJoinCollabModalOpen = useAppStore((s) => s.setJoinCollabModalOpen);
@@ -42,7 +46,7 @@ export const CollabJoinModal: React.FC = () => {
     if (googleUser?.name) {
       setName(googleUser.name);
     } else if (!name) {
-      setName(isTr ? 'Misafir Mimar' : 'Guest Architect');
+      setName(message(language, "CollabJoinModal.guestArchitect"));
     }
   }, [googleUser, isTr]);
 
@@ -61,11 +65,11 @@ export const CollabJoinModal: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to join room:', err);
       if (err?.message?.includes('ROOM_FULL') || err?.status === 403) {
-        setError(isTr ? 'Bu oturum dolu (maksimum 4 kişi).' : 'This session is full (maximum 4 participants).');
+        setError(message(language, "CollabJoinModal.thisSessionIsFullMaximum4Participants"));
       } else if (err?.message?.includes('ROOM_EXPIRED') || err?.status === 410) {
-        setError(isTr ? 'Bu oturumun süresi dolmuş veya kapatılmış.' : 'This session has expired or ended.');
+        setError(message(language, "CollabJoinModal.thisSessionHasExpiredOrEnded"));
       } else {
-        setError(isTr ? 'Odaya bağlanılamadı. Lütfen tekrar deneyin.' : 'Failed to connect to room. Please try again.');
+        setError(message(language, "CollabJoinModal.failedToConnectToRoomPleaseTry"));
       }
     } finally {
       setIsJoining(false);
@@ -79,7 +83,7 @@ export const CollabJoinModal: React.FC = () => {
   };
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+    <ModalSurface label={message(language, "CollabJoinModal.youAreInvitedToCollaborate")} onClose={handleCancel} width="28rem">
       <div
         className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
@@ -90,12 +94,10 @@ export const CollabJoinModal: React.FC = () => {
             <Users className="w-6 h-6" />
           </div>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-            {isTr ? 'Ortak Çalışmaya Davet Edildiniz!' : 'You Are Invited to Collaborate!'}
+            {message(language, "CollabJoinModal.youAreInvitedToCollaborate")}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            {isTr
-              ? 'Diyagramı gerçek zamanlı olarak ekip arkadaşlarınızla birlikte düzenleyin.'
-              : 'Edit and draw diagrams in real-time together with your team.'}
+            {message(language, "CollabJoinModal.editAndDrawDiagramsInRealTime")}
           </p>
         </div>
 
@@ -110,23 +112,23 @@ export const CollabJoinModal: React.FC = () => {
 
           {/* Name Field */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {isTr ? 'Adınız / Takma Adınız' : 'Your Name / Nickname'}
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300" htmlFor={`${fieldPrefix}-modal-field-1`}>
+              {message(language, "CollabJoinModal.yourNameNickname")}
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={isTr ? 'Örn: Barış' : 'e.g. Alex'}
+              placeholder={message(language, "CollabJoinModal.eGAlex")}
               required
               className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-            />
+             id={`${fieldPrefix}-modal-field-1`}/>
           </div>
 
           {/* Color Picker */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {isTr ? 'İmleç ve Vurgu Renginiz' : 'Cursor & Highlight Color'}
+              {message(language, "CollabJoinModal.cursorHighlightColor")}
             </label>
             <div className="flex items-center gap-3">
               {PEER_COLORS.map((c) => (
@@ -150,7 +152,7 @@ export const CollabJoinModal: React.FC = () => {
               onClick={handleCancel}
               className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-medium transition-colors"
             >
-              {isTr ? 'Vazgeç' : 'Cancel'}
+              {message(language, "CollabJoinModal.cancel")}
             </button>
             <button
               type="submit"
@@ -160,11 +162,11 @@ export const CollabJoinModal: React.FC = () => {
               {isJoining ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>{isTr ? 'Bağlanılıyor...' : 'Connecting...'}</span>
+                  <span>{message(language, "CollabJoinModal.connecting")}</span>
                 </>
               ) : (
                 <>
-                  <span>{isTr ? 'Oturuma Katıl' : 'Join Session'}</span>
+                  <span>{message(language, "CollabJoinModal.joinSession")}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
@@ -172,7 +174,7 @@ export const CollabJoinModal: React.FC = () => {
           </div>
         </form>
       </div>
-    </div>,
+    </ModalSurface>,
     document.body
   );
 };

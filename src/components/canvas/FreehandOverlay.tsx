@@ -1,13 +1,14 @@
+import { useUiCopy } from '../../i18n/useUiCopy';
 import React, { useCallback, useRef, useState, useMemo, useEffect, memo } from 'react';
 import { useReactFlow, useViewport } from '@xyflow/react';
 import { getStroke } from 'perfect-freehand';
 import { useAppStore } from '../../store/useAppStore';
 import { FreehandPoint, FreehandStroke } from '../../types';
-import { 
-  getRoughLinePath, 
-  getRoughArrowPaths, 
-  getRoughRectanglePaths, 
-  getRoughEllipsePaths, 
+import {
+  getRoughLinePath,
+  getRoughArrowPaths,
+  getRoughRectanglePaths,
+  getRoughEllipsePaths,
   getRoughDiamondPaths,
   getNumericSeed,
 } from './utils/roughGenerators';
@@ -278,6 +279,7 @@ const SingleStrokeElement = memo<{
 });
 
 export const FreehandOverlay: React.FC = () => {
+  const uiCopy = useUiCopy();
   const { screenToFlowPosition } = useReactFlow();
   const { x: vpX, y: vpY, zoom: vpZoom } = useViewport();
 
@@ -612,14 +614,14 @@ export const FreehandOverlay: React.FC = () => {
   return (
     <div
       className={`absolute inset-0 w-full h-full ${
-        isDrawingActive 
-          ? (activeDrawingTool === 'text' 
-              ? 'cursor-text' 
-              : activeDrawingTool === 'select' 
-                ? (dragState ? 'cursor-grabbing' : 'cursor-default') 
+        isDrawingActive
+          ? (activeDrawingTool === 'text'
+              ? 'cursor-text'
+              : activeDrawingTool === 'select'
+                ? (dragState ? 'cursor-grabbing' : 'cursor-default')
                 : activeDrawingTool === 'eraser'
                   ? 'cursor-pointer'
-                  : 'cursor-crosshair') 
+                  : 'cursor-crosshair')
           : 'pointer-events-none'
       }`}
       style={{
@@ -723,7 +725,7 @@ export const FreehandOverlay: React.FC = () => {
                 setActiveTextEdit(null);
               }
             }}
-            placeholder="Yazın..."
+            placeholder={uiCopy.typeHere}
             className="w-full bg-transparent border-0 outline-none resize-none font-[family-name:var(--font-sketchy)] font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500"
             style={{
               color: drawingColor,
@@ -735,8 +737,8 @@ export const FreehandOverlay: React.FC = () => {
           />
           <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200 dark:border-slate-800 text-xs">
             <span className="text-[10px] text-slate-400">
-              <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono">↵</kbd> Kaydet &nbsp;
-              <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono">Esc</kbd> İptal
+              <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono">↵</kbd> {uiCopy.save}
+              <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono">Esc</kbd> {uiCopy.cancel}
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -744,14 +746,14 @@ export const FreehandOverlay: React.FC = () => {
                 onClick={() => setActiveTextEdit(null)}
                 className="px-2 py-0.5 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-[11px]"
               >
-                İptal
+                {uiCopy.cancel}
               </button>
               <button
                 type="button"
                 onClick={commitTextEdit}
                 className="px-2.5 py-0.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm transition-colors text-[11px]"
               >
-                Tamam
+                {uiCopy.done}
               </button>
             </div>
           </div>

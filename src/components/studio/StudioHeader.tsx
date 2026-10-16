@@ -1,3 +1,6 @@
+import { Input, Select } from '../ui/Field';
+import { message } from '../../i18n/messages';
+import { useUiCopy } from '../../i18n/useUiCopy';
 import React from 'react';
 import { Save, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
@@ -30,11 +33,12 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   onHeightChange,
   onSave,
 }) => {
+  const uiCopy = useUiCopy();
   const language = useAppStore((state) => state.language);
   const t = translations[language];
 
   return (
-    <header className="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-4 z-20 shrink-0">
+    <header className="h-11 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-4 z-20 shrink-0">
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
@@ -42,19 +46,19 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
         >
           <X className="w-4 h-4" />
         </button>
-        
+
         <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
-        
+
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             {t.componentStudioTitle}
           </span>
-          <input
+          <Input
             type="text"
             placeholder={t.componentNamePlaceholder}
             value={name}
             onChange={(e) => onNameChange(e.target.value)}
-            className="px-3 py-1 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 font-bold"
+            className=""
           />
         </div>
       </div>
@@ -62,24 +66,24 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1.5 text-xs text-slate-550 dark:text-slate-400">
           <span>{t.categoryLabel}</span>
-          <select
+          <Select
             value={category}
             onChange={(e) => onCategoryChange(e.target.value)}
-            className="bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded-xl text-xs focus:outline-none text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
+            className=""
           >
             <option value="Client">{t.clientCat}</option>
             <option value="Server">{t.serverCat}</option>
             <option value="Database">{t.databaseCat}</option>
-            <option value="Gateway">API Gateway</option>
+            <option value="Gateway">{message(language, 'StudioHeader.apiGateway')}</option>
             <option value="Cache">{t.cacheCat}</option>
             <option value="Queue">{t.queueCat}</option>
             <option value="Custom">{t.otherCat}</option>
-          </select>
+          </Select>
         </div>
 
         <div className="flex items-center gap-1.5 text-xs text-slate-550 dark:text-slate-400">
           <span>{t.canvasPresets}</span>
-          <select
+          <Select
             value={
               [32, 48, 64, 96, 128, 256].some((s) => width === s && height === s)
                 ? `${width}`
@@ -92,7 +96,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                 onHeightChange(size);
               }
             }}
-            className="bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded-xl text-xs focus:outline-none text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
+            className=""
           >
             <option value="32">32 × 32</option>
             <option value="48">48 × 48</option>
@@ -101,23 +105,23 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             <option value="128">128 × 128</option>
             <option value="256">256 × 256</option>
             <option value="custom">{t.customSize}</option>
-          </select>
+          </Select>
         </div>
 
         <div className="flex items-center gap-1 text-xs text-slate-550 dark:text-slate-400">
-          <span>W:</span>
-          <input
+          <span>{uiCopy.w}</span>
+          <Input
             type="number"
             value={width}
             onChange={(e) => onWidthChange(Math.max(50, Number(e.target.value)))}
-            className="w-14 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded-lg text-center focus:outline-none font-bold"
+            className="w-14 text-center"
           />
-          <span className="ml-1">H:</span>
-          <input
+          <span className="ml-1">{uiCopy.h}</span>
+          <Input
             type="number"
             value={height}
             onChange={(e) => onHeightChange(Math.max(50, Number(e.target.value)))}
-            className="w-14 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded-lg text-center focus:outline-none font-bold"
+            className="w-14 text-center"
           />
         </div>
 

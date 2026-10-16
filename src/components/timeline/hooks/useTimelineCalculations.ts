@@ -10,7 +10,7 @@ export interface ScheduleItem {
 
 interface UseTimelineCalculationsProps {
   logicalData: LogicalDiagram;
-  visualData: VisualDiagram;
+  timelines: VisualDiagram['timelines'];
   schedules: Record<string, ScheduleItem>;
   rightPanelWidth: number;
   zoom?: number;
@@ -31,7 +31,7 @@ export interface TimelineCalculations {
  */
 export const useTimelineCalculations = ({
   logicalData,
-  visualData,
+  timelines,
   schedules,
   rightPanelWidth,
   zoom = 1,
@@ -65,7 +65,7 @@ export const useTimelineCalculations = ({
   }, [logicalData.sequences]);
 
   // Memoized max simulation time
-  const maxTime = useMemo(() => playbackEnd(logicalData.sequences, visualData.timelines, schedules), [schedules, logicalData.sequences, visualData.timelines]);
+  const maxTime = useMemo(() => playbackEnd(logicalData.sequences, timelines, schedules), [schedules, logicalData.sequences, timelines]);
 
   // Dynamic scale (pixels per millisecond) with 24px right padding
   const { pxPerMs, contentWidth } = useMemo(() => timelineScale(rightPanelWidth, maxTime, zoom), [rightPanelWidth, maxTime, zoom]);

@@ -1,3 +1,5 @@
+import { CanvasStart } from './CanvasStart';
+import { flowAria } from '../../i18n/flowAria';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
@@ -108,11 +110,11 @@ const FlowWrapper: React.FC = () => {
   const isBgDark = bgColor ? isColorDark(bgColor) : theme === 'dark';
   const dotColor = isBgDark ? '#334155' : '#cbd5e1';
 
-  const { screenToFlowPosition, setCenter, fitView, fitBounds } = useReactFlow();
+  const { screenToFlowPosition, setCenter, fitView, fitBounds, getViewport, setViewport } = useReactFlow();
   const { x: viewportX, y: viewportY, zoom } = useViewport();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  
+
 
 
   // ── Local React Flow state ─────────────────────────────────────────────────
@@ -178,7 +180,7 @@ const FlowWrapper: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [rfNodes.length === 0, activeDiagramId, currentWorkspacePath, autoLayoutVersion, fitView, fitBounds]);
-  
+
   // Focus on node from external triggers (e.g., SidebarRight)
   useEffect(() => {
     if (focusedNodeId) {
@@ -268,7 +270,7 @@ const FlowWrapper: React.FC = () => {
     const logicalData = useAppStore.getState().logicalData;
     const ln = logicalData.nodes.find(n => n.id === node.id);
     const vn = visualDataRef.current.layoutNodes[node.id];
-    
+
     if (ln) {
       if (ln.type === 'sticky_note') {
         clearActiveProperties();
@@ -276,7 +278,7 @@ const FlowWrapper: React.FC = () => {
         window.dispatchEvent(ev);
         return;
       }
-      
+
       setActiveNodeProperties({
         id: node.id,
         name: ln.name,
@@ -304,7 +306,7 @@ const FlowWrapper: React.FC = () => {
     const le = logicalData.edges.find(e => e.id === edge.id);
     const ve = visualData.layoutEdges[edge.id];
     const seq = logicalData.sequences.find(s => s.edgeId === edge.id);
-    
+
     if (seq) {
       setSelectedSequenceId(seq.id);
     } else {
@@ -340,6 +342,15 @@ const FlowWrapper: React.FC = () => {
       openRightSidebar();
     }
   }, [closeMenu, visualDataRef, setSelectedSequenceId, setActiveEdgeProperties, setActiveNodeProperties, openRightSidebar, isPlaying]);
+
+  useEffect(() => {
+    const remember = (event: Event) => {
+      const viewport = getViewport();
+      (event as CustomEvent<Array<() => Promise<unknown>>>).detail.push(() => setViewport(viewport, { duration: 0 }));
+    };
+    window.addEventListener('export:rememberview', remember);
+    return () => window.removeEventListener('export:rememberview', remember);
+  }, [getViewport, setViewport]);
 
   // ── Listen for Export Trigger ───────────────
   useEffect(() => {
@@ -406,7 +417,7 @@ const FlowWrapper: React.FC = () => {
 
     const centerX = (sourceCenterX + targetCenterX) / 2;
     const centerY = (sourceCenterY + targetCenterY) / 2;
-    
+
     setCenter(centerX, centerY, { zoom: 1.3, duration: 800 });
 
     setRfNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
@@ -510,7 +521,7 @@ const FlowWrapper: React.FC = () => {
       const logicalNodes = useAppStore.getState().logicalData.nodes;
       const sourceNode = logicalNodes.find(n => n.id === source);
       const targetNode = logicalNodes.find(n => n.id === target);
-      
+
       if (!sourceNode || !targetNode) return;
       if (sourceNode.type === 'section' || targetNode.type === 'section') {
         return; // Prevent connecting to/from sections
@@ -518,12 +529,12 @@ const FlowWrapper: React.FC = () => {
       if (sourceNode.type === 'sticky_note' || targetNode.type === 'sticky_note') {
         return; // Prevent connecting to/from sticky notes
       }
-      
+
       const logicalData = useAppStore.getState().logicalData;
-      const nextStepNum = logicalData.sequences.length > 0 
-        ? Math.max(...logicalData.sequences.map(s => s.stepNumber)) + 1 
+      const nextStepNum = logicalData.sequences.length > 0
+        ? Math.max(...logicalData.sequences.map(s => s.stepNumber)) + 1
         : 1;
-        
+
       let logicalFrom = source;
       let logicalTo = target;
       let logicalFromPort = (sourceHandle ?? 'right:50').split('-')[0];
@@ -547,9 +558,9 @@ const FlowWrapper: React.FC = () => {
         sourceHandle: sourceHandle ?? undefined,
         targetHandle: targetHandle ?? undefined,
       };
-      
+
       setRfEdges((eds) => addEdge(newRfEdge, eds));
-      
+
       // Create logical edge (topology only)
       const logicalEdge = {
         id: edgeId,
@@ -749,7 +760,7 @@ const FlowWrapper: React.FC = () => {
     (event: React.MouseEvent, edge: Edge) => {
       event.preventDefault();
       event.stopPropagation();
-      
+
       const srcNode = rfNodes.find(n => n.id === edge.source);
       const dstNode = rfNodes.find(n => n.id === edge.target);
       const srcLabel = (srcNode?.data as any)?.name ?? edge.source;
@@ -867,7 +878,7 @@ const FlowWrapper: React.FC = () => {
     if (path !== null) {
       // Build final waypoints: include standoffs if they are useful
       const finalWaypoints = [sourceStandoff, ...path, targetStandoff];
-      
+
       // We can also run a simple collinear filter here for the whole array
       const simplified = [];
       for (let i = 0; i < finalWaypoints.length; i++) {
@@ -904,9 +915,9 @@ const FlowWrapper: React.FC = () => {
   // Callback from Node properties to update local React Flow view state immediately
   const handleApplyNodeProperties = useCallback((id: string, name: string, type: string, themeColor: string, handles?: any[], displayMode?: 'default' | 'icon-only', rotation?: number, customStyles?: any, properties?: Record<string, unknown>, skipHistory?: boolean) => {
     if (!skipHistory) pushToHistory();
-    
+
     let handlesToSave: any[] | undefined = undefined;
-    
+
     if (handles) {
       // 1. Bake final IDs into the handles config
       const bakedHandles = handles.map(h => ({
@@ -914,11 +925,11 @@ const FlowWrapper: React.FC = () => {
         side: h.side,
         offset: h.offset
       }));
-      
+
       const defaultHandles = getDefaultHandles();
       const isDefault = bakedHandles.length === defaultHandles.length &&
         bakedHandles.every((h, i) => h.id === defaultHandles[i]?.id && h.offset === defaultHandles[i]?.offset && h.side === defaultHandles[i]?.side);
-      
+
       handlesToSave = isDefault ? undefined : bakedHandles;
 
       // 2. Create map from originalId/old ID to new ID
@@ -1006,7 +1017,7 @@ const FlowWrapper: React.FC = () => {
         return changed ? { ...re, sourceHandle, targetHandle } : re;
       }));
     }
-    
+
     updateNodeDetails(id, name, type, themeColor, handlesToSave, displayMode, rotation, customStyles, properties);
     setRfNodes((nds) =>
       nds.map((n) =>
@@ -1056,7 +1067,7 @@ const FlowWrapper: React.FC = () => {
     >
 
 
-      <ReactFlow
+      <ReactFlow ariaLabelConfig={flowAria[language]}
         nodes={rfNodes}
         edges={rfEdges}
         nodesDraggable={!isPlaying && !isReadOnly && !activeDrawingTool}
@@ -1106,6 +1117,10 @@ const FlowWrapper: React.FC = () => {
         <FreehandOverlay />
       </ReactFlow>
 
+      <CanvasStart onExample={() => requestAnimationFrame(() => requestAnimationFrame(() => {
+        void fitView({ padding: 0.25, duration: 250 });
+        wrapperRef.current?.querySelector<HTMLElement>('.react-flow__node[data-id="starter-client"]')?.focus();
+      }))} />
       {/* Floating Drawing Toolbar */}
       <DrawingToolbar />
 
@@ -1125,7 +1140,7 @@ const FlowWrapper: React.FC = () => {
 
       {/* Alignment Guides Overlay */}
       {alignmentLines.length > 0 && (
-        <svg 
+        <svg
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}
           className="animate-in fade-in duration-150"
         >
@@ -1138,7 +1153,7 @@ const FlowWrapper: React.FC = () => {
 
             return (
               <g key={idx}>
-                <line 
+                <line
                   x1={x1} y1={y1} x2={x2} y2={y2}
                   stroke="#6366f1" // indigo-500
                   strokeWidth={1.5}
@@ -1147,15 +1162,15 @@ const FlowWrapper: React.FC = () => {
                 />
                 {line.label && line.labelX !== undefined && line.labelY !== undefined && (
                   <g transform={`translate(${line.labelX * zoom + viewportX}, ${line.labelY * zoom + viewportY})`}>
-                    <rect 
-                      x={-24} y={-10} width={48} height={20} rx={4} 
-                      fill="#6366f1" 
+                    <rect
+                      x={-24} y={-10} width={48} height={20} rx={4}
+                      fill="#6366f1"
                     />
-                    <text 
-                      x={0} y={4} 
-                      fill="white" 
-                      fontSize={10} 
-                      fontWeight="bold" 
+                    <text
+                      x={0} y={4}
+                      fill="white"
+                      fontSize={10}
+                      fontWeight="bold"
                       textAnchor="middle"
                       fontFamily="sans-serif"
                     >

@@ -1,3 +1,4 @@
+import { message } from '../../i18n/messages';
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { translations } from '../../i18n/translations';
@@ -62,16 +63,14 @@ export const SidebarDiagrams: React.FC = () => {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    const confirmMsg = language === 'tr' 
-      ? `"${name}" diyagramını silmek istediğinize emin misiniz?` 
-      : `Are you sure you want to delete "${name}" diagram?`;
-      
+    const confirmMsg = message(language, "SidebarDiagrams.areYouSureYouWantToDelete", { value1: name });
+
     const confirmed = await openConfirm({
-      title: language === 'tr' ? 'Diyagramı Sil' : 'Delete Diagram',
+      title: message(language, "SidebarDiagrams.deleteDiagram"),
       message: confirmMsg,
       type: 'danger',
-      confirmText: language === 'tr' ? 'Sil' : 'Delete',
-      cancelText: language === 'tr' ? 'İptal' : 'Cancel'
+      confirmText: message(language, "SidebarDiagrams.delete"),
+      cancelText: message(language, "SidebarDiagrams.cancel")
     });
     if (confirmed) {
       await deleteDiagram(id);
@@ -113,7 +112,7 @@ export const SidebarDiagrams: React.FC = () => {
 
     if (isNew && newWorkspaceName) {
       const newWs = await createWorkspace(newWorkspaceName, '');
-      
+
       // Save diagram into the new workspace as default
       await StorageService.save_diagram(
         newWs.path,
@@ -155,9 +154,9 @@ export const SidebarDiagrams: React.FC = () => {
 
       setNotification({
         message: pickerMode === 'copy'
-          ? (language === 'tr' ? `"${finalDiagName}" kopyalandı.` : `"${finalDiagName}" copied.`)
-          : (language === 'tr' ? `"${finalDiagName}" taşındı.` : `"${finalDiagName}" moved.`),
-        actionText: t.goToWorkspace || 'Go to Workspace',
+          ? (message(language, "SidebarDiagrams.copied", { value1: finalDiagName }))
+          : (message(language, "SidebarDiagrams.moved", { value1: finalDiagName })),
+        actionText: t.goToWorkspace,
         targetWorkspacePath,
         targetDiagramId: targetDiagId
       });
@@ -178,13 +177,13 @@ export const SidebarDiagrams: React.FC = () => {
     <div className="space-y-2 mb-4">
       <div className="flex items-center justify-between pl-1">
         <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-          {language === 'tr' ? 'Diyagramlar' : 'Diagrams'}
+          {message(language, "SidebarDiagrams.diagrams")}
         </span>
         {!isCollabActive && (
           <button
             onClick={handleCreate}
             className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-400 hover:text-indigo-600 cursor-pointer"
-            title={language === 'tr' ? 'Yeni Diyagram' : 'New Diagram'}
+            title={message(language, "SidebarDiagrams.newDiagram")}
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
@@ -194,10 +193,10 @@ export const SidebarDiagrams: React.FC = () => {
       {isCollabActive && (
         <div className="px-2 py-1.5 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 rounded-lg text-[10px] text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1.5">
           <Lock className="w-3 h-3 shrink-0" />
-          <span>{language === 'tr' ? 'Oturum boyunca kilitli' : 'Locked during session'}</span>
+          <span>{message(language, "SidebarDiagrams.lockedDuringSession")}</span>
         </div>
       )}
-      
+
       <div className="space-y-1">
         {diagrams.map((diag) => {
           const isActive = diag.id === activeDiagramId;
@@ -210,8 +209,8 @@ export const SidebarDiagrams: React.FC = () => {
               className={`flex items-center justify-between px-2 py-1.5 rounded-lg border border-transparent transition-colors group relative ${
                 isCollabActive ? (isActive ? 'cursor-default' : 'opacity-40 cursor-not-allowed') : 'cursor-pointer'
               } ${
-                isActive 
-                  ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border-indigo-100 dark:border-indigo-800' 
+                isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border-indigo-100 dark:border-indigo-800'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
@@ -248,11 +247,11 @@ export const SidebarDiagrams: React.FC = () => {
                       <button
                         onClick={() => handleStartEdit(diag.id, diag.name)}
                         className="p-1 text-slate-400 hover:text-indigo-600 rounded"
-                        title={t.rename || 'Rename'}
+                        title={t.rename}
                       >
                         <Edit2 className="w-3 h-3" />
                       </button>
-                    
+
                     <div className="relative inline-block">
                       <button
                         onClick={(e) => {
@@ -260,7 +259,7 @@ export const SidebarDiagrams: React.FC = () => {
                           setActiveMenuId(activeMenuId === diag.id ? null : diag.id);
                         }}
                         className="p-1 text-slate-400 hover:text-indigo-600 rounded"
-                        title={language === 'tr' ? 'Taşı / Kopyala' : 'Move / Copy'}
+                        title={message(language, "SidebarDiagrams.moveCopy")}
                       >
                         <ArrowRightLeft className="w-3 h-3" />
                       </button>
@@ -275,7 +274,7 @@ export const SidebarDiagrams: React.FC = () => {
                               }}
                               className="w-full px-3 py-1.5 text-left text-[11px] font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                             >
-                              {t.copyDiagram || 'Copy'}
+                              {t.copyDiagram}
                             </button>
                             <button
                               onClick={() => {
@@ -284,7 +283,7 @@ export const SidebarDiagrams: React.FC = () => {
                               }}
                               className="w-full px-3 py-1.5 text-left text-[11px] font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                             >
-                              {t.moveDiagram || 'Move'}
+                              {t.moveDiagram}
                             </button>
                           </div>
                         </>
@@ -295,7 +294,7 @@ export const SidebarDiagrams: React.FC = () => {
                       <button
                         onClick={() => handleDelete(diag.id, diag.name)}
                         className="p-1 text-slate-400 hover:text-rose-600 rounded"
-                        title={t.delete || 'Delete'}
+                        title={t.delete}
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -323,7 +322,7 @@ export const SidebarDiagrams: React.FC = () => {
               onClick={() => setNotification(null)}
               className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-400 rounded-lg font-bold text-[10px] cursor-pointer transition-colors"
             >
-              {t.close || 'Close'}
+              {t.close}
             </button>
           </div>
         </div>

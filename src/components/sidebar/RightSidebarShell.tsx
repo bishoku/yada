@@ -115,6 +115,7 @@ export const RightSidebarShell: React.FC = () => {
 
         {/* SimulationPanel — always mounted, fades/slides out when properties visible */}
         <div
+          inert={showProperties} aria-hidden={showProperties}
           className={`absolute inset-0 flex flex-col transition-all duration-300 ease-in-out ${
             showProperties
               ? 'opacity-0 pointer-events-none -translate-x-4'
@@ -126,6 +127,7 @@ export const RightSidebarShell: React.FC = () => {
 
         {/* PropertiesView — slides in from right when a node/edge is selected */}
         <div
+          inert={!showProperties} aria-hidden={!showProperties}
           className={`absolute inset-0 flex flex-col transition-all duration-300 ease-in-out ${
             showProperties
               ? 'opacity-100 pointer-events-auto translate-x-0'

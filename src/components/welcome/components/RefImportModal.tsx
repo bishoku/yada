@@ -1,7 +1,10 @@
+import { Input } from '../../ui/Field';
+import { useId } from 'react';
+import { ModalSurface } from '../../ui/ModalSurface';
+import { message } from '../../../i18n/messages';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link2, Loader2, X, AlertCircle, Lock, ArrowRight } from 'lucide-react';
-import { fetchShare, extractShareData } from '../../../utils/shareUtils';
 import { useAppStore } from '../../../store/useAppStore';
 import { translations } from '../../../i18n/translations';
 
@@ -10,6 +13,7 @@ interface RefImportModalProps {
 }
 
 export const RefImportModal: React.FC<RefImportModalProps> = ({ onClose }) => {
+  const fieldPrefix = useId();
   const language = useAppStore((s) => s.language);
   const t = translations[language];
   const loadImportPreview = useAppStore((s) => s.loadImportPreview);
@@ -34,7 +38,7 @@ export const RefImportModal: React.FC<RefImportModalProps> = ({ onClose }) => {
     setEncryptedData(null);
 
     try {
-      const rawData = await fetchShare(trimmed);
+      const rawData = await (await import('../../../utils/shareUtils')).fetchShare(trimmed);
 
       // PIN-encrypted data
       if (rawData.startsWith('ENC:')) {
@@ -67,7 +71,7 @@ export const RefImportModal: React.FC<RefImportModalProps> = ({ onClose }) => {
     setError(null);
 
     try {
-      const payload = await extractShareData(encryptedData, pin);
+      const payload = await (await import('../../../utils/shareUtils')).extractShareData(encryptedData, pin);
       applyPreview(payload);
     } catch (err: any) {
       const isDecryptionError = err.message && (
@@ -78,7 +82,7 @@ export const RefImportModal: React.FC<RefImportModalProps> = ({ onClose }) => {
       );
       setError(
         isDecryptionError
-          ? (language === 'tr' ? 'Yanlış PIN kodu. Lütfen tekrar deneyin.' : 'Incorrect PIN code. Please try again.')
+          ? (message(language, "RefImportModal.incorrectPINCodePleaseTryAgain"))
           : (err.message || t.shareGenericError)
       );
       setIsLoading(false);
@@ -94,21 +98,14 @@ export const RefImportModal: React.FC<RefImportModalProps> = ({ onClose }) => {
       setViewMode('import-preview');
       onClose();
     } else {
-      setError(language === 'tr' ? 'Diyagram verisi geçersiz veya bozuk.' : 'Diagram data is invalid or corrupt.');
+      setError(message(language, "RefImportModal.diagramDataIsInvalidOrCorrupt"));
       setIsLoading(false);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') onClose();
-  };
 
   return createPortal(
-    <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
-      onClick={onClose}
-      onKeyDown={handleKeyDown}
-    >
+    <ModalSurface label={message(language, "RefImportModal.importByReference")} onClose={onClose} width="28rem">
       <div
         className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
@@ -121,17 +118,17 @@ export const RefImportModal: React.FC<RefImportModalProps> = ({ onClose }) => {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {language === 'tr' ? 'Referans ile İçe Aktar' : 'Import by Reference'}
+                {message(language, "RefImportModal.importByReference")}
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {language === 'tr' ? 'Paylaşılan diyagram referans kodunu girin' : 'Enter the shared diagram reference code'}
+                {message(language, "RefImportModal.enterTheSharedDiagramReferenceCode")}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          >
+           aria-label={message(language, "common.close")}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -146,19 +143,17 @@ export const RefImportModal: React.FC<RefImportModalProps> = ({ onClose }) => {
                   <Lock className="w-6 h-6 text-amber-500" />
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {language === 'tr'
-                    ? 'Bu diyagram PIN ile korunuyor. Görüntülemek için PIN kodunu girin.'
-                    : 'This diagram is PIN-protected. Enter the PIN to view it.'}
+                  {message(language, "RefImportModal.thisDiagramIsPINProtectedEnterThe")}
                 </p>
               </div>
 
-              <input
+              <Input
                 type="password"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
-                placeholder={language === 'tr' ? 'PIN Kodunu Girin' : 'Enter PIN Code'}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white text-center text-xl tracking-[0.5em] focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                autoFocus
+                placeholder={message(language, "RefImportModal.enterPINCode")}
+                className="w-full text-center"
+                autoFocus data-dialog-autofocus=""
               />
 
               {error && (
@@ -178,7 +173,7 @@ export const RefImportModal: React.FC<RefImportModalProps> = ({ onClose }) => {
                 ) : (
                   <>
                     <ArrowRight className="w-4 h-4" />
-                    {language === 'tr' ? 'Kilidi Aç ve Önizle' : 'Unlock & Preview'}
+                    {message(language, "RefImportModal.unlockPreview")}
                   </>
                 )}
               </button>
@@ -187,10 +182,10 @@ export const RefImportModal: React.FC<RefImportModalProps> = ({ onClose }) => {
             /* Ref ID Entry */
             <>
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  {language === 'tr' ? 'Referans Kodu' : 'Reference Code'}
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block" htmlFor={`${fieldPrefix}-modal-field-1`}>
+                  {message(language, "RefImportModal.referenceCode")}
                 </label>
-                <input
+                <Input
                   type="text"
                   value={refId}
                   onChange={(e) => {
@@ -200,11 +195,11 @@ export const RefImportModal: React.FC<RefImportModalProps> = ({ onClose }) => {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleFetch();
                   }}
-                  placeholder={language === 'tr' ? 'Örn: x7Kp2mNq' : 'e.g. x7Kp2mNq'}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-center text-lg tracking-widest focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  autoFocus
+                  placeholder={message(language, "RefImportModal.eGX7Kp2mNq")}
+                  className="w-full font-mono text-center"
+                  autoFocus data-dialog-autofocus=""
                   maxLength={12}
-                />
+                 id={`${fieldPrefix}-modal-field-1`}/>
               </div>
 
               {error && (
@@ -226,26 +221,24 @@ export const RefImportModal: React.FC<RefImportModalProps> = ({ onClose }) => {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    {language === 'tr' ? 'Yükleniyor...' : 'Loading...'}
+                    {message(language, "RefImportModal.loading")}
                   </>
                 ) : (
                   <>
                     <Link2 className="w-5 h-5" />
-                    {language === 'tr' ? 'Önizle' : 'Preview'}
+                    {message(language, "RefImportModal.preview")}
                   </>
                 )}
               </button>
 
               <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                {language === 'tr'
-                  ? 'Paylaşım linkindeki # işaretinden sonraki ref= değerini girin'
-                  : 'Enter the ref= value after the # in the share link'}
+                {message(language, "RefImportModal.enterTheRefValueAfterTheIn")}
               </p>
             </>
           )}
         </div>
       </div>
-    </div>,
+    </ModalSurface>,
     document.body
   );
 };

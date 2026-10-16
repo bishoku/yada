@@ -1,3 +1,4 @@
+import { message } from '../../../i18n/messages';
 import React, { useState, useRef, useEffect } from 'react';
 import { Grid, Palette, PencilRuler, Pen } from 'lucide-react';
 import { useAppStore } from '../../../store/useAppStore';
@@ -33,65 +34,41 @@ export const CanvasBgSelector: React.FC = () => {
 
       {/* Freehand Drawing Mode Toggle */}
       <button
-        onClick={() => setActiveDrawingTool(activeDrawingTool ? null : 'pen')}
+        aria-pressed={!!activeDrawingTool} onClick={() => setActiveDrawingTool(activeDrawingTool ? null : 'pen')}
         className={`p-1.5 rounded cursor-pointer transition-colors ${
           activeDrawingTool
             ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/15 ring-1 ring-indigo-400/30'
             : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
         }`}
-        title={
-          language === 'tr'
-            ? activeDrawingTool
-              ? 'Çizim Modunu Kapat'
-              : 'Serbest Çizim & Not Modunu Aç'
-            : activeDrawingTool
-            ? 'Close Drawing Mode'
-            : 'Open Freehand Drawing & Annotation Mode'
-        }
+        title={message(language, activeDrawingTool ? 'CanvasBgSelector.closeDrawing' : 'CanvasBgSelector.openDrawing')}
       >
         <Pen className="w-4 h-4" />
-      </button>
+      <span className="text-sm font-medium">{message(language, activeDrawingTool ? 'CanvasBgSelector.closeDrawing' : 'CanvasBgSelector.openDrawing')}</span></button>
 
       {/* Hand-Drawn (Sketchy Mode) Toggle */}
       <button
-        onClick={() => setCanvasRenderStyle(renderStyle === 'sketchy' ? 'clean' : 'sketchy')}
+        aria-pressed={renderStyle === 'sketchy'} onClick={() => setCanvasRenderStyle(renderStyle === 'sketchy' ? 'clean' : 'sketchy')}
         className={`p-1.5 rounded cursor-pointer transition-colors ${
           renderStyle === 'sketchy'
             ? 'text-amber-600 dark:text-amber-400 bg-amber-500/15 ring-1 ring-amber-400/30'
             : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
         }`}
-        title={
-          language === 'tr'
-            ? renderStyle === 'sketchy'
-              ? 'El Çizimi Teması Aktif (Klasik Moda Geç)'
-              : 'El Çizimi Temasına Geç (Rough.js / Sketchy)'
-            : renderStyle === 'sketchy'
-            ? 'Hand-Drawn Theme Active (Switch to Clean)'
-            : 'Switch to Hand-Drawn Theme (Rough.js / Sketchy)'
-        }
+        title={message(language, renderStyle === 'sketchy' ? 'CanvasBgSelector.clean' : 'CanvasBgSelector.sketchy')}
       >
         <PencilRuler className="w-4 h-4" />
-      </button>
+      <span className="text-sm font-medium">{message(language, renderStyle === 'sketchy' ? 'CanvasBgSelector.clean' : 'CanvasBgSelector.sketchy')}</span></button>
 
       <button
-        onClick={() => setGridVisible(!gridVisible)}
+        aria-pressed={gridVisible} onClick={() => setGridVisible(!gridVisible)}
         className={`p-1.5 rounded cursor-pointer transition-colors ${
           gridVisible
             ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10'
             : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
         }`}
-        title={
-          language === 'tr'
-            ? gridVisible
-              ? 'Gridi Gizle (Izgarasız)'
-              : 'Gridi Göster (Noktalı)'
-            : gridVisible
-            ? 'Hide Grid (Gridless)'
-            : 'Show Grid (Dotted)'
-        }
+        title={message(language, gridVisible ? 'CanvasBgSelector.hideGrid' : 'CanvasBgSelector.showGrid')}
       >
         <Grid className="w-4 h-4" />
-      </button>
+      <span className="text-sm font-medium">{message(language, gridVisible ? 'CanvasBgSelector.hideGrid' : 'CanvasBgSelector.showGrid')}</span></button>
 
       <div className="relative" ref={popoverRef}>
         <button
@@ -101,7 +78,7 @@ export const CanvasBgSelector: React.FC = () => {
               ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10'
               : 'text-slate-400 hover:bg-slate-100 dark:text-slate-550 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Arka plan rengi seç' : 'Choose background color'}
+          title={message(language, "CanvasBgSelector.chooseBackgroundColor")}
         >
           <Palette className="w-4 h-4" />
           {canvasBgColor && (
@@ -110,12 +87,12 @@ export const CanvasBgSelector: React.FC = () => {
               style={{ backgroundColor: canvasBgColor }}
             />
           )}
-        </button>
+        <span className="text-sm font-medium">{message(language, "CanvasBgSelector.chooseBackgroundColor")}</span></button>
 
         {showBgMenu && (
           <div className="absolute left-0 mt-1.5 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 p-3 flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-1 duration-150">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              {language === 'tr' ? 'Tuval Arka Planı' : 'Canvas Background'}
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              {message(language, "CanvasBgSelector.canvasBackground")}
             </span>
 
             <div className="grid grid-cols-5 gap-1.5">
@@ -129,9 +106,9 @@ export const CanvasBgSelector: React.FC = () => {
                     ? 'border-indigo-500 ring-2 ring-indigo-500/20'
                     : 'border-slate-200 dark:border-slate-700 bg-transparent'
                 }`}
-                title={language === 'tr' ? 'Varsayılan Tema' : 'Default Theme'}
+                title={message(language, "CanvasBgSelector.defaultTheme")}
               >
-                <span className="text-[9px] font-semibold text-slate-400">×</span>
+                <span className="text-xs font-semibold text-slate-400">×</span>
               </button>
 
               {[
@@ -164,8 +141,8 @@ export const CanvasBgSelector: React.FC = () => {
             <div className="h-px bg-slate-100 dark:bg-slate-800" />
 
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                {language === 'tr' ? 'Özel Renk:' : 'Custom Color:'}
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                {message(language, "CanvasBgSelector.customColor")}
               </span>
               <div className="flex items-center gap-1.5">
                 <input
@@ -174,7 +151,7 @@ export const CanvasBgSelector: React.FC = () => {
                   onChange={(e) => setCanvasBgColor(e.target.value)}
                   className="w-6 h-6 rounded cursor-pointer p-0 border-0"
                 />
-                <span className="text-[9px] font-mono text-slate-450">{canvasBgColor || '#ffffff'}</span>
+                <span className="text-xs font-mono text-slate-450">{canvasBgColor || '#ffffff'}</span>
               </div>
             </div>
           </div>

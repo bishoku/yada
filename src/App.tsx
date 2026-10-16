@@ -1,23 +1,26 @@
+import { useSketchFonts } from './styles/useSketchFonts';
+import { message } from './i18n/messages';
+import { useTranslation } from './i18n/useTranslation';
 import { useBrowserNavigation } from './services/navigation/useBrowserNavigation';
 import { saveCurrentDiagram } from './services/saveCoordinator';
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { useAppStore, startAutoSave, stopAutoSave, setDiagramDataInStore } from './store/useAppStore';
 import { StorageService } from './services/storage';
-import { 
-  isForge, 
-  safeGetForgeContext, 
-  safeSetForgeHeight, 
-  openForgeEditorModal, 
-  closeForgeModal 
+import {
+  isForge,
+  safeGetForgeContext,
+  safeSetForgeHeight,
+  openForgeEditorModal,
+  closeForgeModal
 } from './services/forgeBridge';
-import { 
-  isConfluenceDC, 
-  getConfluenceDcContext, 
-  closeConfluenceDcModal 
+import {
+  isConfluenceDC,
+  getConfluenceDcContext,
+  closeConfluenceDcModal
 } from './services/confluenceDcBridge';
 
 // ── Always loaded (lightweight, needed on every render path) ──────────────
-import { ConfluenceViewerLayout } from './components/layout/ConfluenceViewerLayout';
+const ConfluenceViewerLayout = lazy(() => import('./components/layout/ConfluenceViewerLayout').then(m => ({ default: m.ConfluenceViewerLayout })));
 import { GlobalConfirmAlertModal } from './components/layout/GlobalConfirmAlertModal';
 
 // ── Lazy loaded (heavy components, only loaded when needed) ───────────────
@@ -30,23 +33,48 @@ const ShareLoader = lazy(() => import('./components/share/ShareLoader').then(m =
 const CollabJoinModal = lazy(() => import('./components/collab/CollabJoinModal').then(m => ({ default: m.CollabJoinModal })));
 
 // ── Loading fallback for lazy components ──────────────────────────────────
-const LazyFallback = () => (
+const LazyFallback = () => {
+  const t = useTranslation();
+  return (
   <div className="flex items-center justify-center w-full h-full min-h-[200px] bg-slate-50 dark:bg-slate-950">
     <div className="flex flex-col items-center gap-3">
       <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-      <span className="text-xs font-medium text-slate-400 dark:text-slate-500 tracking-wide">Loading...</span>
+      <span className="text-xs font-medium text-slate-400 dark:text-slate-500 tracking-wide" role="status">{t.commonUi.loading}</span>
     </div>
   </div>
-);
+  );
+};
 
-function App() {
+function App({ initialWelcome, preferencesLoaded = false }: {initialWelcome?: typeof import('./components/welcome/WelcomeScreen').WelcomeScreen; preferencesLoaded?: boolean} = {}) {
+  const Welcome = initialWelcome ?? WelcomeScreen;
+  useSketchFonts();
   useBrowserNavigation();
+  useEffect(() => {
+    if (!(window as any).__TAURI_INTERNALS__) return;
+    let disposed = false;
+    let unregister: (() => void) | undefined;
+    Promise.all([
+      import('@tauri-apps/api/window'),
+      import('./services/nativeCloseGuard'),
+      import('./services/saveCoordinator'),
+    ]).then(async ([{ getCurrentWindow }, { registerNativeCloseGuard }, { ensureSavedForNavigation }]) => {
+      if (disposed) return;
+      const cleanup = await registerNativeCloseGuard(getCurrentWindow(), useAppStore.getState, ensureSavedForNavigation, error => {
+        useAppStore.setState({ saveError: error instanceof Error ? error.message : String(error) });
+      });
+      if (disposed) cleanup(); else unregister = cleanup;
+    }).catch(error => console.error('Native close guard could not be registered:', error));
+    return () => { disposed = true; unregister?.(); };
+  }, []);
+
   const currentWorkspace = useAppStore((state) => state.currentWorkspace);
   const loadAppPreferences = useAppStore((state) => state.loadAppPreferences);
   const currentView = useAppStore((state) => state.currentView);
   const isReadOnly = useAppStore((state) => state.isReadOnly);
   const viewMode = useAppStore((state) => state.viewMode);
   const language = useAppStore((state) => state.language);
+
+  useEffect(() => { document.documentElement.lang = language; }, [language]);
 
   const [isEditingInConfluence, setIsEditingInConfluence] = useState(false);
   const [isForgeModal, setIsForgeModal] = useState(false);
@@ -59,7 +87,7 @@ function App() {
     try {
       const diagJson = await StorageService.load_diagram(stablePath, 'default');
       const diag = JSON.parse(diagJson);
-      
+
       let loadedLogical = { schemaVersion: 2, nodes: [], edges: [], sequences: [] };
       let loadedVisual = { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} };
 
@@ -81,8 +109,8 @@ function App() {
   };
 
   useEffect(() => {
-    loadAppPreferences();
-    initFullscreenListener();
+    if (!preferencesLoaded) void loadAppPreferences();
+    const cleanupFullscreen = initFullscreenListener();
 
     if (isForgeMode) {
       const initForgeWorkspace = async () => {
@@ -92,13 +120,13 @@ function App() {
           const isModal = extType === 'modal' || extType === 'fullPage' || !!(ctx as any)?.extension?.modal?.macroLocalId;
           setIsForgeModal(isModal);
 
-          const localId = (ctx as any)?.extension?.modal?.macroLocalId || 
+          const localId = (ctx as any)?.extension?.modal?.macroLocalId ||
                           (ctx as any)?.localId ||
-                          (ctx as any)?.extension?.localId || 
-                          (ctx as any)?.extension?.pageId || 
+                          (ctx as any)?.extension?.localId ||
+                          (ctx as any)?.extension?.pageId ||
                           (ctx as any)?.pageId ||
                           'confluence_default_macro';
-          
+
           const stablePath = `virtual://confluence/${localId}`;
 
           const ws: import('./types').WorkspaceMeta = {
@@ -110,7 +138,7 @@ function App() {
             lastAccessed: new Date().toISOString(),
           };
 
-          useAppStore.setState({ 
+          useAppStore.setState({
             currentWorkspace: ws,
             activeDiagramId: 'default',
             openDiagramIds: ['default'],
@@ -143,7 +171,7 @@ function App() {
             lastAccessed: new Date().toISOString(),
           };
 
-          useAppStore.setState({ 
+          useAppStore.setState({
             currentWorkspace: ws,
             activeDiagramId: 'default',
             openDiagramIds: ['default'],
@@ -161,11 +189,11 @@ function App() {
       };
       initDcWorkspace();
     }
-    
+
     const searchParams = new URLSearchParams(window.location.search);
-    const isModalEditor = 
-      searchParams.get('mode') === 'modal' || 
-      searchParams.get('integration') === 'iframe' || 
+    const isModalEditor =
+      searchParams.get('mode') === 'modal' ||
+      searchParams.get('integration') === 'iframe' ||
       searchParams.get('embed_editor') === 'true';
 
     if (isModalEditor && !isForgeMode && !isDcMode) {
@@ -181,7 +209,7 @@ function App() {
             lastAccessed: new Date().toISOString(),
           };
 
-          useAppStore.setState({ 
+          useAppStore.setState({
             currentWorkspace: ws,
             activeDiagramId: 'default',
             openDiagramIds: ['default'],
@@ -217,26 +245,9 @@ function App() {
     startAutoSave();
 
     return () => {
+      cleanupFullscreen();
       stopAutoSave();
     };
-  }, []);
-
-  useEffect(() => {
-    // Service Worker update check — skip in Forge mode (Confluence iframe)
-    if (isForgeMode) return;
-    if ('serviceWorker' in navigator) {
-      const interval = setInterval(() => {
-        navigator.serviceWorker.ready
-          .then((registration) => {
-            registration.update();
-          })
-          .catch((err) => {
-            console.error('Service Worker update check failed:', err);
-          });
-      }, 30 * 60 * 1000);
-
-      return () => clearInterval(interval);
-    }
   }, []);
 
   useEffect(() => {
@@ -284,12 +295,12 @@ function App() {
   };
 
   // ── Confluence View Mode (inline macro on page) ─────────────────────────
-  // This is the FAST path — no lazy components needed, no Suspense boundaries
+  // Viewer dependencies load only for the host viewer route.
   if ((isForgeMode && !isForgeModal && !isEditingInConfluence) || (isDcMode && !getConfluenceDcContext().isEditMode && !isEditingInConfluence)) {
     return (
       <>
         <GlobalConfirmAlertModal />
-        <ConfluenceViewerLayout onEdit={handleEditClick} />
+        <Suspense fallback={<LazyFallback />}><ConfluenceViewerLayout onEdit={handleEditClick} /></Suspense>
       </>
     );
   }
@@ -304,7 +315,7 @@ function App() {
         <div className="h-11 bg-indigo-600 text-white px-4 flex items-center justify-between z-30 shrink-0 shadow-md">
           <span className="text-xs font-bold tracking-wide flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            {language === 'tr' ? '✏️ Confluence Diyagram Düzenleyici (Tam Ekran)' : '✏️ Editing Confluence Diagram (Full Screen)'}
+            {message(language, "App.editingConfluenceDiagramFullScreen")}
           </span>
           <button
             onClick={handleConfluenceSaveAndClose}
@@ -314,10 +325,10 @@ function App() {
             {isSavingConfluence ? (
               <>
                 <span className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                <span>{language === 'tr' ? 'Kaydediliyor...' : 'Saving...'}</span>
+                <span>{message(language, "App.saving")}</span>
               </>
             ) : (
-              <span>{language === 'tr' ? '✓ Tamamla & Kaydet' : '✓ Done & Save'}</span>
+              <span>{message(language, "App.doneSave")}</span>
             )}
           </button>
         </div>
@@ -341,10 +352,10 @@ function App() {
   if (!currentWorkspace && viewMode !== 'import-preview' && !isForgeMode && !isDcMode && !isShareOrEmbedUrl) {
     return (
       <Suspense fallback={<LazyFallback />}>
-        <ShareLoader />
-        <CollabJoinModal />
+        {isShareOrEmbedUrl && <ShareLoader />}
+        {window.location.href.includes('collab=') && <CollabJoinModal />}
         <GlobalConfirmAlertModal />
-        <WelcomeScreen />
+        <Welcome />
       </Suspense>
     );
   }
@@ -352,8 +363,8 @@ function App() {
   // ── Desktop/Web Main Application ────────────────────────────────────────
   return (
     <Suspense fallback={<LazyFallback />}>
-      <ShareLoader />
-      <CollabJoinModal />
+      {isShareOrEmbedUrl && <ShareLoader />}
+      {window.location.href.includes('collab=') && <CollabJoinModal />}
       <GlobalConfirmAlertModal />
       {viewMode === 'import-preview' ? (
         <ImportPreviewLayout />
@@ -367,7 +378,7 @@ function App() {
             <div className="h-10 bg-indigo-600 text-white px-4 flex items-center justify-between z-30 shrink-0 shadow-md font-sans">
               <span className="text-xs font-bold tracking-wide flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                {language === 'tr' ? 'Confluence Diyagramı Düzenleniyor' : 'Editing Confluence Diagram'}
+                {message(language, "App.editingConfluenceDiagram")}
               </span>
               <button
                 onClick={async () => {
@@ -379,10 +390,10 @@ function App() {
                 {isSavingConfluence ? (
                   <>
                     <span className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                    <span>{language === 'tr' ? 'Kaydediliyor...' : 'Saving...'}</span>
+                    <span>{message(language, "App.saving")}</span>
                   </>
                 ) : (
-                  <span>{language === 'tr' ? '✓ Düzenlemeyi Kaydet & Kapat' : '✓ Done & Save'}</span>
+                  <span>{message(language, "App.doneSave2")}</span>
                 )}
               </button>
             </div>

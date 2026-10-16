@@ -5,6 +5,7 @@ import { Trash2 } from 'lucide-react';
 import type { StickyNote } from '../../../types';
 
 interface AnnotationStepRowProps {
+  editing: boolean;
   id: string;
   note: StickyNote;
   onDelete: (id: string) => void;
@@ -14,7 +15,7 @@ interface AnnotationStepRowProps {
  * Memoized row representing an annotation / sticky note in the left step list.
  */
 export const AnnotationStepRow: React.FC<AnnotationStepRowProps> = memo(({
-  id,
+  editing, id,
   note,
   onDelete,
 }) => {
@@ -32,7 +33,7 @@ export const AnnotationStepRow: React.FC<AnnotationStepRowProps> = memo(({
           {note.header || t.terms.stickyNote}
         </span>
       </div>
-      <button
+      {editing && <button
         onClick={(e) => {
           e.stopPropagation();
           onDelete(id);
@@ -41,7 +42,7 @@ export const AnnotationStepRow: React.FC<AnnotationStepRowProps> = memo(({
         disabled={disabled} title={t.timelineUi.deleteNote} aria-label={t.timelineUi.deleteNote}
       >
         <Trash2 className="w-3.5 h-3.5" />
-      </button>
+      </button>}
     </div>
   );
 });

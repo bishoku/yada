@@ -58,3 +58,8 @@ catalina.out
 hs_err_pid*
 replay_pid*
 
+
+# Opt-in production performance harness
+dist-profile/
+
+dist-startup-profile/

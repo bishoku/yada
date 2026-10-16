@@ -1,13 +1,12 @@
+import { copyDomains } from '../../../i18n/copyDomains';
+import { message } from '../../../i18n/messages';
 import React, { useEffect, useRef } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { HandleConfig, PortSide } from '../../../types';
 import { MAX_HANDLES_PER_SIDE, MAX_HANDLES_PER_NODE } from '../../../utils/portUtils';
 import { useAppStore } from '../../../store/useAppStore';
 
-const SIDE_LABELS: Record<string, Record<PortSide, string>> = {
-  tr: { top: 'Üst', right: 'Sağ', bottom: 'Alt', left: 'Sol' },
-  en: { top: 'Top', right: 'Right', bottom: 'Bottom', left: 'Left' },
-};
+const SIDE_LABELS: Record<string, Record<PortSide, string>> = copyDomains.sides;
 
 interface ConnectionPointsEditorProps {
   nodeId: string;
@@ -112,10 +111,10 @@ export const ConnectionPointsEditor: React.FC<ConnectionPointsEditorProps> = ({
     <div className="flex flex-col gap-1.5">
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
-        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-          {language === 'tr' ? 'Bağlantı Noktaları' : 'Connection Points'}
+        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+          {message(language, "ConnectionPointsEditor.connectionPoints")}
         </span>
-        <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500">
+        <span className="text-xs font-mono text-slate-400 dark:text-slate-500">
           {handles.length}/{MAX_HANDLES_PER_NODE}
         </span>
       </div>
@@ -128,7 +127,7 @@ export const ConnectionPointsEditor: React.FC<ConnectionPointsEditorProps> = ({
         }`}
       >
         <div className="absolute inset-5 border border-dashed border-slate-300 dark:border-slate-700 rounded bg-white/60 dark:bg-slate-800/60 flex items-center justify-center">
-          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold truncate px-1">
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold truncate px-1">
             {nodeName || 'Node'}
           </span>
         </div>
@@ -143,7 +142,7 @@ export const ConnectionPointsEditor: React.FC<ConnectionPointsEditorProps> = ({
                 isConnected ? 'bg-emerald-500' : 'bg-indigo-500'
               }`}
               style={getDotStyle(h)}
-              title={`${h.side}:${h.offset}%`}
+              title={`${labels[h.side]}: ${h.offset}%`}
             />
           );
         })}
@@ -158,21 +157,21 @@ export const ConnectionPointsEditor: React.FC<ConnectionPointsEditorProps> = ({
             <div key={side}>
               {/* Side header */}
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   {labels[side]}
                   <span className="font-normal opacity-60 ml-0.5">({sideHandles.length}/{MAX_HANDLES_PER_SIDE})</span>
                 </span>
                 <button
                   onClick={() => canAdd && addHandle(side)}
                   disabled={!canAdd}
-                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold transition-colors ${
+                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-bold transition-colors ${
                     canAdd
                       ? 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer'
                       : 'text-slate-300 dark:text-slate-700 cursor-not-allowed'
                   }`}
                 >
                   <Plus className="w-2.5 h-2.5" />
-                  {language === 'tr' ? 'Ekle' : 'Add'}
+                  {message(language, "ConnectionPointsEditor.add")}
                 </button>
               </div>
 
@@ -183,21 +182,21 @@ export const ConnectionPointsEditor: React.FC<ConnectionPointsEditorProps> = ({
                   <div key={h.originalId || h.id} className="flex items-center gap-1.5 mb-0.5 pl-1">
                     <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isConnected ? 'bg-emerald-500' : 'bg-indigo-400'}`} />
                     <input
-                      type="range" min={5} max={95} value={h.offset}
+                      aria-label={`${labels[h.side]} ${message(language, 'ConnectionPointsEditor.position')} ${h.id}`} type="range" min={5} max={95} value={h.offset}
                       onChange={(e) => onChange(handles.map((nh) => nh.id === h.id ? { ...nh, offset: Number(e.target.value) } : nh))}
                       className="flex-1 h-1 accent-indigo-500 cursor-pointer"
                     />
-                    <span className="text-[9px] font-mono text-slate-400 w-7 text-right shrink-0">{h.offset}%</span>
+                    <span className="text-xs font-mono text-slate-400 w-7 text-right shrink-0">{h.offset}%</span>
                     <button
-                      onClick={async () => {
+                      aria-label={message(language, 'ConnectionPointsEditor.removePoint')} onClick={async () => {
                         if (connectedHandleIds.has(h.id)) {
-                          const msg = language === 'tr' ? "Bağlı edge'ler var, emin misiniz?" : 'Connected edges exist. Continue?';
+                          const msg = message(language, "ConnectionPointsEditor.connectedEdgesExistContinue");
                           const confirmed = await openConfirm({
-                            title: language === 'tr' ? 'Bağlantıyı Kopar' : 'Disconnect Edge',
+                            title: message(language, "ConnectionPointsEditor.disconnectEdge"),
                             message: msg,
                             type: 'warning',
-                            confirmText: language === 'tr' ? 'Evet, Sil' : 'Yes, Delete',
-                            cancelText: language === 'tr' ? 'Vazgeç' : 'Cancel'
+                            confirmText: message(language, "ConnectionPointsEditor.yesDelete"),
+                            cancelText: message(language, "ConnectionPointsEditor.cancel")
                           });
                           if (!confirmed) return;
                         }
@@ -205,7 +204,7 @@ export const ConnectionPointsEditor: React.FC<ConnectionPointsEditorProps> = ({
                       }}
                       className="p-0.5 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-300 hover:text-rose-500 cursor-pointer transition-colors shrink-0"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3 h-3" aria-hidden="true" />
                     </button>
                   </div>
                 );

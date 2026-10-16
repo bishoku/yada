@@ -1,3 +1,4 @@
+import { message } from '../../i18n/messages';
 import React, { memo, useMemo, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, NodeResizer, useConnection } from '@xyflow/react';
@@ -26,14 +27,14 @@ interface FreeFormNodeProps {
 
 export const FreeFormNode = memo(({ id, data, selected }: FreeFormNodeProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  
+
   const visualNode = useAppStore((s: any) => s.visualData.layoutNodes[id]);
   const freeformContent = visualNode?.freeformContent ?? null;
   const updateFreeformContent = useAppStore((s: any) => s.updateFreeformContent);
   const isReadOnly = useAppStore((s: any) => s.isReadOnly);
   const isPlaying = useAppStore((s: any) => s.isPlaying);
   const language = useAppStore((s: any) => s.language);
-  
+
   const canvasRenderStyle = useAppStore((s: any) => s.visualData?.canvas?.renderStyle || 'clean');
   const isSketchy = canvasRenderStyle === 'sketchy';
 
@@ -80,7 +81,7 @@ export const FreeFormNode = memo(({ id, data, selected }: FreeFormNodeProps) => 
   const seed = useMemo(() => getNumericSeed(id), [id]);
   const width = visualNode?.width || 320;
   const height = visualNode?.height || 220;
-  
+
   const roughPaths = useMemo(() => {
     if (!isSketchy) return null;
     return getRoughRoundedRectPaths(0, 0, width, height, 12, {
@@ -100,11 +101,11 @@ export const FreeFormNode = memo(({ id, data, selected }: FreeFormNodeProps) => 
 
   return (
     <>
-      <NodeResizer 
-        color="#8b5cf6" 
-        isVisible={selected && !isReadOnly && !isPlaying} 
-        minWidth={150} 
-        minHeight={100} 
+      <NodeResizer
+        color="#8b5cf6"
+        isVisible={selected && !isReadOnly && !isPlaying}
+        minWidth={150}
+        minHeight={100}
       />
 
       {/* Connection handles — at fragment root level (outside card div), matching BaseNode */}
@@ -140,7 +141,7 @@ export const FreeFormNode = memo(({ id, data, selected }: FreeFormNodeProps) => 
       })}
 
       {/* Node card */}
-      <div 
+      <div
         className={`group relative w-full h-full flex flex-col rounded-xl border-2 transition-shadow bg-white dark:bg-slate-900 overflow-hidden
           ${isSketchy ? 'border-transparent bg-transparent dark:bg-transparent' : 'border-violet-400/50'}
           ${selected ? 'ring-2 ring-violet-500/30 shadow-md' : 'shadow-sm hover:shadow-md'}
@@ -165,12 +166,12 @@ export const FreeFormNode = memo(({ id, data, selected }: FreeFormNodeProps) => 
             </span>
           </div>
           {canEdit && (
-            <button 
+            <button
               onClick={handleEditClick}
               className={`p-1 rounded-md text-slate-400 hover:text-violet-600 hover:bg-violet-100 dark:hover:bg-violet-800/50 transition-colors
                 ${selected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
               `}
-              title={language === 'tr' ? 'Çizimi Düzenle' : 'Edit Drawing'}
+              title={message(language, "FreeFormNode.editDrawing")}
             >
               <Edit3 className="w-3 h-3" />
             </button>
@@ -180,7 +181,7 @@ export const FreeFormNode = memo(({ id, data, selected }: FreeFormNodeProps) => 
         {/* Content Area */}
         <div className="flex-1 overflow-hidden relative">
           {hasContent && svgPreview ? (
-            <div 
+            <div
               className="w-full h-full flex items-center justify-center p-2"
               dangerouslySetInnerHTML={{ __html: svgPreview }}
             />
@@ -188,7 +189,7 @@ export const FreeFormNode = memo(({ id, data, selected }: FreeFormNodeProps) => 
             <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-violet-50/30 dark:bg-violet-900/5 text-violet-400/60 dark:text-violet-400/40 cursor-pointer">
               <PenTool className="w-8 h-8 opacity-50" />
               <span className="text-xs font-medium opacity-80">
-                {language === 'tr' ? 'Çizim için çift tıklayın' : 'Double-click to draw'}
+                {message(language, "FreeFormNode.doubleClickToDraw")}
               </span>
             </div>
           )}

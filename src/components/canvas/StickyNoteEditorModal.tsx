@@ -1,15 +1,22 @@
+import { message } from '../../i18n/messages';
+import { useId } from 'react';
+import { ModalSurface } from '../ui/ModalSurface';
+import { useUiCopy } from '../../i18n/useUiCopy';
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { X, Save, FileText } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 export const StickyNoteEditorModal: React.FC = () => {
+  const fieldPrefix = useId();
+  const language = useAppStore(s => s.language);
+  const uiCopy = useUiCopy();
   const [isOpen, setIsOpen] = useState(false);
   const [noteId, setNoteId] = useState<string | null>(null);
-  
+
   const annotations = useAppStore((s) => s.visualData.annotations);
   const updateStickyNote = useAppStore((s) => s.updateStickyNote);
-  
+
   const [header, setHeader] = useState('');
   const [body, setBody] = useState('');
   const [bgColor, setBgColor] = useState('');
@@ -41,15 +48,7 @@ export const StickyNoteEditorModal: React.FC = () => {
     return () => window.removeEventListener('canvas:editStickyNote', handleOpen);
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+
 
 
   const handleSave = () => {
@@ -84,53 +83,53 @@ export const StickyNoteEditorModal: React.FC = () => {
   ];
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 font-sans">
+    <ModalSurface label={uiCopy.stickyNoteProperties} onClose={() => setIsOpen(false)} width="36rem">
       <div className="w-[420px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col gap-4 animate-in zoom-in-95 duration-200">
-        
+
         <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
           <span className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
             <FileText className="w-4 h-4 text-indigo-500" />
-            Sticky Note Özellikleri
+            {uiCopy.stickyNoteProperties}
           </span>
-          <button 
+          <button
             onClick={() => setIsOpen(false)}
             className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 animate-none cursor-pointer"
-          >
+           aria-label={message(language, "common.close")}>
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-1">
-          
+
           <div className="flex flex-col gap-1.5 font-sans">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              Başlık (Opsiyonel)
+            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider" htmlFor={`${fieldPrefix}-modal-field-1`}>
+              {uiCopy.titleOptional}
             </label>
             <input
               type="text"
               value={header}
               onChange={(e) => setHeader(e.target.value)}
               className="px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl focus:outline-none focus:border-indigo-600 w-full font-bold text-slate-700 dark:text-slate-200"
-              placeholder="Not başlığı..."
-            />
+              placeholder={uiCopy.noteTitle}
+             id={`${fieldPrefix}-modal-field-1`}/>
           </div>
 
           <div className="flex flex-col gap-1.5 font-sans">
-            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              İçerik (Markdown Destekli)
+            <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider" htmlFor={`${fieldPrefix}-modal-field-2`}>
+              {uiCopy.contentMarkdownSupported}
             </label>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={4}
               className="px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl focus:outline-none focus:border-indigo-600 w-full font-mono text-slate-700 dark:text-slate-300 resize-none"
-              placeholder="**Kalın**, *eğik* veya - liste kullanabilirsiniz."
-            />
+              placeholder={uiCopy.useBoldItalicOrLists}
+             id={`${fieldPrefix}-modal-field-2`}/>
           </div>
 
           <div className="flex flex-col gap-1.5 font-sans mt-1">
             <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              Renk Teması
+              {uiCopy.colorTheme}
             </label>
             <div className="flex gap-2 flex-wrap items-center">
               {presetColors.map((c, i) => (
@@ -145,7 +144,7 @@ export const StickyNoteEditorModal: React.FC = () => {
                 />
               ))}
               <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
-              <div className="flex items-center gap-1.5" title="Özel Arka Plan Rengi">
+              <div className="flex items-center gap-1.5" title={uiCopy.customBackgroundColor}>
                 <input
                   type="color"
                   value={bgColor.startsWith('#') ? bgColor.slice(0, 7) : '#fef08a'}
@@ -153,7 +152,7 @@ export const StickyNoteEditorModal: React.FC = () => {
                   className="w-7 h-7 rounded cursor-pointer border-0 p-0"
                 />
               </div>
-              <div className="flex items-center gap-1.5" title="Özel Metin Rengi">
+              <div className="flex items-center gap-1.5" title={uiCopy.customTextColor}>
                 <input
                   type="color"
                   value={textColor.startsWith('#') ? textColor.slice(0, 7) : '#422006'}
@@ -167,7 +166,7 @@ export const StickyNoteEditorModal: React.FC = () => {
           <div className="flex flex-col gap-1.5 font-sans mt-1">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Şeffaflık (Opacity)
+                {uiCopy.opacity}
               </label>
               <span className="text-[10px] text-slate-500 font-mono">{Math.round(opacity * 100)}%</span>
             </div>
@@ -184,9 +183,9 @@ export const StickyNoteEditorModal: React.FC = () => {
 
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800 mt-1 flex flex-col gap-3 font-sans">
             <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              Zaman Çizelgesi Görünürlüğü
+              {uiCopy.timelineVisibility}
             </label>
-            
+
             <label className="flex items-center gap-2 cursor-pointer w-max">
               <input
                 type="checkbox"
@@ -194,14 +193,14 @@ export const StickyNoteEditorModal: React.FC = () => {
                 onChange={(e) => setAlwaysVisible(e.target.checked)}
                 className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
               />
-              <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Her Zaman Görünür</span>
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{uiCopy.alwaysVisible}</span>
             </label>
 
             {!alwaysVisible && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5 font-sans">
-                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">
-                    Başlangıç Zamanı (ms)
+                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase" htmlFor={`${fieldPrefix}-modal-field-3`}>
+                    {uiCopy.startTimeMs}
                   </label>
                   <input
                     type="number"
@@ -210,11 +209,11 @@ export const StickyNoteEditorModal: React.FC = () => {
                     className="px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl focus:outline-none focus:border-indigo-600 w-full font-bold text-slate-700 dark:text-slate-200"
                     min={0}
                     step={100}
-                  />
+                   id={`${fieldPrefix}-modal-field-3`}/>
                 </div>
                 <div className="flex flex-col gap-1.5 font-sans">
-                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">
-                    Bitiş Zamanı (ms)
+                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase" htmlFor={`${fieldPrefix}-modal-field-4`}>
+                    {uiCopy.endTimeMs}
                   </label>
                   <input
                     type="number"
@@ -223,7 +222,7 @@ export const StickyNoteEditorModal: React.FC = () => {
                     className="px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl focus:outline-none focus:border-indigo-600 w-full font-bold text-slate-700 dark:text-slate-200"
                     min={0}
                     step={100}
-                  />
+                   id={`${fieldPrefix}-modal-field-4`}/>
                 </div>
               </div>
             )}
@@ -234,20 +233,20 @@ export const StickyNoteEditorModal: React.FC = () => {
           <button
             onClick={() => setIsOpen(false)}
             className="px-4 py-2 rounded-2xl text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            İptal
+           data-dialog-autofocus="">
+            {uiCopy.cancel}
           </button>
           <button
             onClick={handleSave}
             className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors cursor-pointer shadow-sm"
           >
             <Save className="w-3.5 h-3.5" />
-            <span>Kaydet</span>
+            <span>{uiCopy.save}</span>
           </button>
         </div>
 
       </div>
-    </div>,
+    </ModalSurface>,
     document.body
   );
 };

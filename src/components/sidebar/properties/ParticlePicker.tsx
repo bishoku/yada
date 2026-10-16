@@ -1,3 +1,5 @@
+import { particleLabels } from '../../../i18n/domainLabels';
+import { useAppStore } from '../../../store/useAppStore';
 /**
  * ParticlePicker.tsx
  *
@@ -18,7 +20,9 @@ interface ParticlePickerProps {
  * ParticlePicker
  * Properties panel component: 5×2 icon grid picker
  */
-export const ParticlePicker: React.FC<ParticlePickerProps> = ({ value, onChange }) => {
+export const ParticlePicker: React.FC<ParticlePickerProps> = ({ value, onChange, language }) => {
+  const storedLanguage = useAppStore(s => s.language);
+  const labels = particleLabels[(language ?? storedLanguage) === 'tr' ? 'tr' : 'en'];
   return (
     <div className="grid grid-cols-5 gap-1">
       {PARTICLE_DEFS.map((def: ParticleDef) => {
@@ -26,7 +30,7 @@ export const ParticlePicker: React.FC<ParticlePickerProps> = ({ value, onChange 
         return (
           <button
             key={def.id}
-            title={def.label}
+            title={labels[def.id]}
             onClick={() => onChange(def.id)}
             className={[
               'flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-xl cursor-pointer transition-all duration-150 border',
@@ -45,7 +49,7 @@ export const ParticlePicker: React.FC<ParticlePickerProps> = ({ value, onChange 
               className="text-[8px] font-bold leading-none"
               style={{ color: isSelected ? def.color : undefined }}
             >
-              {def.label}
+              {labels[def.id]}
             </span>
           </button>
         );

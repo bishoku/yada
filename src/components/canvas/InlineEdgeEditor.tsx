@@ -1,3 +1,5 @@
+import { useUiCopy } from '../../i18n/useUiCopy';
+import { message } from '../../i18n/messages';
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { Check, X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
@@ -21,6 +23,7 @@ export const InlineEdgeEditor: React.FC<InlineEdgeEditorProps> = memo(({
   sequenceId,
   onClose,
 }) => {
+  const uiCopy = useUiCopy();
   const language = useAppStore((s) => s.language);
   const pushToHistory = useAppStore((s) => s.pushToHistory);
   const updateEdgeDetails = useAppStore((s) => s.updateEdgeDetails);
@@ -33,7 +36,7 @@ export const InlineEdgeEditor: React.FC<InlineEdgeEditorProps> = memo(({
   const [stepNumber, setStepNumber] = useState<number | ''>(initialStepNumber ?? 1);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const isTr = language === 'tr';
+
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -96,7 +99,7 @@ export const InlineEdgeEditor: React.FC<InlineEdgeEditorProps> = memo(({
       {/* Header */}
       <div className="flex items-center justify-between pb-1 border-b border-slate-200/60 dark:border-slate-800/60">
         <span className="font-bold text-slate-700 dark:text-slate-200 text-[11px]">
-          {isTr ? 'Bağlantı Düzenle' : 'Edit Edge'}
+          {message(language, "InlineEdgeEditor.editEdge")}
         </span>
         <button
           onClick={onClose}
@@ -110,11 +113,11 @@ export const InlineEdgeEditor: React.FC<InlineEdgeEditorProps> = memo(({
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            {isTr ? 'Protokol' : 'Protocol'}
+            {message(language, "InlineEdgeEditor.protocol")}
           </label>
           {initialStepNumber !== undefined && (
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-slate-400">{isTr ? 'Adım' : 'Step'}:</span>
+              <span className="text-[10px] text-slate-400">{message(language, "InlineEdgeEditor.step")}:</span>
               <input
                 type="number"
                 min={1}
@@ -130,7 +133,7 @@ export const InlineEdgeEditor: React.FC<InlineEdgeEditorProps> = memo(({
           type="text"
           value={protocol}
           onChange={(e) => setProtocol(e.target.value)}
-          placeholder="e.g. REST, gRPC, Kafka"
+          placeholder={uiCopy.eGRESTGRPCKafka}
           className="w-full px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1.5 focus:ring-indigo-500"
         />
 
@@ -156,13 +159,13 @@ export const InlineEdgeEditor: React.FC<InlineEdgeEditorProps> = memo(({
       {/* Description Input */}
       <div className="flex flex-col gap-1">
         <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-          {isTr ? 'Açıklama' : 'Description'}
+          {message(language, "InlineEdgeEditor.description")}
         </label>
         <input
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder={isTr ? 'e.g. Kullanıcı verisi çekilir' : 'e.g. Fetch user data'}
+          placeholder={message(language, "InlineEdgeEditor.eGFetchUserData")}
           className="w-full px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1.5 focus:ring-indigo-500"
         />
       </div>
@@ -174,7 +177,7 @@ export const InlineEdgeEditor: React.FC<InlineEdgeEditorProps> = memo(({
           onClick={onClose}
           className="px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-medium transition-colors cursor-pointer"
         >
-          {isTr ? 'İptal' : 'Cancel'}
+          {message(language, "InlineEdgeEditor.cancel")}
         </button>
         <button
           type="button"
@@ -182,7 +185,7 @@ export const InlineEdgeEditor: React.FC<InlineEdgeEditorProps> = memo(({
           className="flex items-center gap-1 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold shadow-sm transition-colors cursor-pointer"
         >
           <Check className="w-3.5 h-3.5" />
-          <span>{isTr ? 'Kaydet' : 'Save'}</span>
+          <span>{message(language, "InlineEdgeEditor.save")}</span>
         </button>
       </div>
     </div>

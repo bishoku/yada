@@ -1,3 +1,4 @@
+import { message } from '../../i18n/messages';
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
@@ -67,11 +68,11 @@ export const ActiveAttributesPopover: React.FC = () => {
 
   const dynamicTitle = useMemo(() => {
     if (!activeAttributes) {
-      return language === 'tr' ? 'Aktif Öznitelikler' : 'Active Attributes';
+      return message(language, "ActiveAttributesPopover.activeAttributes");
     }
     const nodeNames = activeAttributes.nodes.map(n => n.name);
-    const edgeSteps = activeAttributes.edges.map(e => `${language === 'tr' ? 'Adım' : 'Step'} ${e.stepNumber}`);
-    
+    const edgeSteps = activeAttributes.edges.map(e => `${message(language, "ActiveAttributesPopover.step")} ${e.stepNumber}`);
+
     if (nodeNames.length > 0 && edgeSteps.length > 0) {
       return `${nodeNames.join(', ')} - ${edgeSteps.join(', ')}`;
     }
@@ -81,7 +82,7 @@ export const ActiveAttributesPopover: React.FC = () => {
     if (edgeSteps.length > 0) {
       return edgeSteps.join(', ');
     }
-    return language === 'tr' ? 'Aktif Öznitelikler' : 'Active Attributes';
+    return message(language, "ActiveAttributesPopover.activeAttributes");
   }, [activeAttributes, language]);
 
   return (
@@ -90,7 +91,7 @@ export const ActiveAttributesPopover: React.FC = () => {
         <button
           onClick={() => setPopoverExpanded(true)}
           className="p-1.5 rounded-lg bg-white/70 dark:bg-slate-900/70 hover:bg-white/95 dark:hover:bg-slate-900/95 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
-          title={language === 'tr' ? 'Öznitelikleri Göster' : 'Show Attributes'}
+          title={message(language, "ActiveAttributesPopover.showAttributes")}
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -143,7 +144,7 @@ export const ActiveAttributesPopover: React.FC = () => {
               </>
             ) : (
               <div className="flex items-center justify-center py-6 text-slate-450 dark:text-slate-500 italic text-[9px]">
-                {language === 'tr' ? 'Aktif öznitelik yok' : 'No active attributes'}
+                {message(language, "ActiveAttributesPopover.noActiveAttributes")}
               </div>
             )}
           </div>
@@ -152,7 +153,7 @@ export const ActiveAttributesPopover: React.FC = () => {
           <button
             onClick={() => setPopoverExpanded(false)}
             className="absolute bottom-1.5 left-1.5 p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
-            title={language === 'tr' ? 'Gizle' : 'Collapse'}
+            title={message(language, "ActiveAttributesPopover.collapse")}
           >
             <ChevronRight className="w-3 h-3" />
           </button>

@@ -1,3 +1,4 @@
+import { resetHistorySnapshotCache } from './historySnapshot';
 import { saveCurrentDiagram } from '../services/saveCoordinator';
 import { simulationClock } from './simulationClock';
 import { create } from 'zustand';
@@ -152,6 +153,11 @@ export const useAppStore = create<AppState>()((set, get, store) => {
     setLastSyncedAt: (timestamp) => wrappedSet({ lastSyncedAt: timestamp }),
     setHasUnsyncedChanges: (hasUnsynced) => wrappedSet({ hasUnsyncedChanges: hasUnsynced }),
   };
+});
+
+// Document replacement/closing must release the cache's high-water allocation too.
+useAppStore.subscribe((state, previous) => {
+  if (!state.pastStates.length && !state.futureStates.length && (previous.pastStates.length || previous.futureStates.length)) resetHistorySnapshotCache();
 });
 
 export const setDiagramDataInStore = (logicalData: any, visualData: any, autoPlay: boolean = false) => {

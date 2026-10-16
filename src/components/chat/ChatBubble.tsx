@@ -1,3 +1,4 @@
+import { useUiCopy } from '../../i18n/useUiCopy';
 import React, { useState } from 'react';
 import { ChatMessage } from '../../types';
 import { Bot, User, Copy, Check } from 'lucide-react';
@@ -8,6 +9,7 @@ interface ChatBubbleProps {
 }
 
 export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
+  const uiCopy = useUiCopy();
   const isUser = message.sender === 'user';
   const [copied, setCopied] = useState(false);
 
@@ -39,24 +41,24 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
         }`}
       >
         <SimpleMarkdown text={message.text} />
-        
+
         <div className="flex items-center justify-between mt-1 text-[9px] font-medium opacity-80 gap-2 select-none border-t border-slate-200/40 dark:border-slate-800/40 pt-1">
           {!isUser && (
             <button
               type="button"
               onClick={handleCopy}
               className="flex items-center gap-1 text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-              title="Kopyala"
+              title={uiCopy.copy}
             >
               {copied ? (
                 <>
                   <Check className="w-3 h-3 text-emerald-500" />
-                  <span className="text-[9px] text-emerald-500 font-semibold">Kopyalandı</span>
+                  <span className="text-[9px] text-emerald-500 font-semibold">{uiCopy.copied}</span>
                 </>
               ) : (
                 <>
                   <Copy className="w-3 h-3" />
-                  <span className="text-[9px]">Kopyala</span>
+                  <span className="text-[9px]">{uiCopy.copy}</span>
                 </>
               )}
             </button>

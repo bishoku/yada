@@ -20,6 +20,7 @@ export const useCanvasShortcuts = (
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       // Ignore shortcuts if typing in input, textarea, select, or contentEditable
       const activeEl = document.activeElement;
       const isInputFocused =
@@ -36,9 +37,12 @@ export const useCanvasShortcuts = (
         closePopover();
       }
 
-      if (isInputFocused) {
+      if (isInputFocused || activeEl?.closest('dialog, [role="menu"]')) {
         return;
       }
+
+      // Timeline controls keep document undo/redo, but must not delete or paste canvas selections.
+      if (activeEl?.closest('[data-timeline-panel]') && !((e.ctrlKey || e.metaKey) && ['z','y'].includes(e.key.toLowerCase()))) return;
 
       // Delete hotkey: Backspace or Delete
       const isDeleteKey = e.key === 'Backspace' || e.key === 'Delete';
@@ -106,7 +110,7 @@ export const useCanvasShortcuts = (
       // Undo hotkey
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
-        undo();
+        if (e.shiftKey) redo(); else undo();
       }
       // Redo hotkey
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {

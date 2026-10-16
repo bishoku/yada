@@ -1,6 +1,10 @@
+import type { CompactPanel } from './PanelDrawer';
+import { ModalSurface } from '../ui/ModalSurface';
+import { useUiCopy } from '../../i18n/useUiCopy';
+import { message } from '../../i18n/messages';
 import { MermaidExportModal } from './topbar/MermaidExportModal';
 import { getPlatformCapabilities } from '../../services/platformCapabilities';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppStore } from '../../store/useAppStore';
 import {
@@ -8,14 +12,10 @@ import {
   PanelLeft, PanelRight, PanelBottom,
   Undo, Redo, FileDown, Copy, ChevronDown, Save, Loader2,
   ListOrdered, LayoutDashboard, Grid, Code2,
-  Cloud, CloudUpload, CheckCircle2, AlertCircle, Maximize, Minimize, Lock
+  Cloud, CloudUpload, CheckCircle2, AlertCircle, Maximize, Minimize, Lock, MoreHorizontal
 } from 'lucide-react';
 import { translations } from '../../i18n/translations';
-import { generateStandaloneHtml } from '../../utils/exportTemplate';
-import { generateSequenceHtml } from '../../utils/exportSequenceTemplate';
-import { exportToPng, exportToSvg, exportToGif, exportToVideo } from '../../utils/exportMedia';
 import { generateDiagramAiSummary } from '../../utils/aiSummary';
-import { save } from '@tauri-apps/plugin-dialog';
 import { StorageService, isTauri } from '../../services/storage';
 import { GoogleDriveService } from '../../services/googleDriveAPI';
 
@@ -29,7 +29,17 @@ import { EmbedSnippetModal } from './topbar/EmbedSnippetModal';
 import { StartCollabModal } from '../collab/StartCollabModal';
 import { Share2, Users } from 'lucide-react';
 
-export const TopBar: React.FC = () => {
+export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel | null; onPanelToggle?: (panel: CompactPanel) => void }> = ({ compact = false, compactPanel = null, onPanelToggle }) => {
+  const uiCopy = useUiCopy();
+  const toolsRef = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const closeOutside = (event: PointerEvent) => {
+      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) toolsRef.current.open = false;
+    };
+    document.addEventListener('pointerdown', closeOutside);
+    return () => document.removeEventListener('pointerdown', closeOutside);
+  }, []);
+
   const currentWorkspace = useAppStore((s) => s.currentWorkspace);
   const activeDiagramId = useAppStore((s) => s.activeDiagramId);
   const isDirty = useAppStore((s) => s.isDirty);
@@ -38,10 +48,10 @@ export const TopBar: React.FC = () => {
   const setWorkspace = useAppStore((s) => s.setWorkspace);
   const language = useAppStore((s) => s.language);
   const theme = useAppStore((s) => s.theme);
-  const leftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
-  const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
-  const toggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
-  const toggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
+  const storedLeftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
+  const storedRightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
+  const storedToggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
+  const storedToggleRightSidebar = useAppStore((s) => s.toggleRightSidebar);
   const logicalData = useAppStore((s) => s.logicalData);
   const visualData = useAppStore((s) => s.visualData);
   const currentView = useAppStore((s) => s.currentView);
@@ -51,8 +61,16 @@ export const TopBar: React.FC = () => {
   const futureStates = useAppStore((s) => s.futureStates);
   const undo = useAppStore((s) => s.undo);
   const redo = useAppStore((s) => s.redo);
-  const timelineOpen = useAppStore((s) => s.timelineOpen);
-  const toggleTimeline = useAppStore((s) => s.toggleTimeline);
+  const storedTimelineOpen = useAppStore((s) => s.timelineOpen);
+  const storedToggleTimeline = useAppStore((s) => s.toggleTimeline);
+  const leftSidebarOpen = compact ? compactPanel === 'library' : storedLeftSidebarOpen;
+  const rightSidebarOpen = compact ? compactPanel === 'properties' : storedRightSidebarOpen;
+  const timelineOpen = compact ? compactPanel === 'timeline' : storedTimelineOpen;
+  const toggleLeftSidebar = () => compact ? onPanelToggle?.('library') : storedToggleLeftSidebar();
+  const toggleRightSidebar = () => compact ? onPanelToggle?.('properties') : storedToggleRightSidebar();
+  const toggleTimeline = () => compact ? onPanelToggle?.('timeline') : storedToggleTimeline();
+
+
   const viewMode = useAppStore((s) => s.viewMode);
   const openAlert = useAppStore((s) => s.openAlert);
   const toggleViewMode = useAppStore((s) => s.toggleViewMode);
@@ -94,17 +112,28 @@ export const TopBar: React.FC = () => {
     setWorkspace(null);
   };
 
+  const layoutPending = useRef(false);
+  const handleAutoLayout = async (direction: 'TB' | 'LR') => {
+    if (layoutPending.current) return;
+    layoutPending.current = true;
+    setShowLayoutMenu(false);
+    try { await applyAutoLayout(direction); }
+    catch { openAlert({ title: message(language, 'TopBar.error'), message: message(language, 'TopBar.layoutLoadError') }); }
+    finally { layoutPending.current = false; }
+  };
+
   const handleExportHtml = async () => {
     try {
       const defaultName = `${currentWorkspace?.name || 'diagram'}_simulation.html`;
-      
+
       const htmlContent = viewMode === 'sequence'
-        ? generateSequenceHtml(logicalData, useAppStore.getState().schedules, visualData.timelines, theme === 'light' ? 'light' : 'dark')
-        : generateStandaloneHtml(logicalData, visualData, libraryComponents);
+        ? (await import('../../utils/exportSequenceTemplate')).generateSequenceHtml(logicalData, useAppStore.getState().schedules, visualData.timelines, theme === 'light' ? 'light' : 'dark', language)
+        : (await import('../../utils/exportTemplate')).generateStandaloneHtml(logicalData, visualData, libraryComponents, language);
 
       if (isTauri()) {
+        const { save } = await import('@tauri-apps/plugin-dialog');
         const selectedPath = await save({
-          title: language === 'tr' ? 'HTML Simülasyonunu Kaydet' : 'Save Standalone HTML Simulation',
+          title: message(language, "TopBar.saveStandaloneHTMLSimulation"),
           defaultPath: defaultName,
           filters: [{ name: 'HTML', extensions: ['html'] }],
         });
@@ -122,14 +151,14 @@ export const TopBar: React.FC = () => {
         URL.revokeObjectURL(url);
       }
       openAlert({
-        title: language === 'tr' ? 'Başarılı' : 'Success',
-        message: language === 'tr' ? 'HTML Simülasyonu başarıyla dışa aktarıldı!' : 'HTML Simulation exported successfully!'
+        title: message(language, "TopBar.success"),
+        message: message(language, "TopBar.hTMLSimulationExportedSuccessfully")
       });
     } catch (err) {
       console.error('Error exporting HTML:', err);
       openAlert({
-        title: language === 'tr' ? 'Hata' : 'Error',
-        message: language === 'tr' ? `Dışa aktarma hatası: ${err}` : `Export error: ${err}`
+        title: message(language, "TopBar.error"),
+        message: message(language, "TopBar.exportError", { value1: err })
       });
     }
   };
@@ -137,14 +166,12 @@ export const TopBar: React.FC = () => {
   const handleExportPng = async () => {
     try {
       const defaultName = `${currentWorkspace?.name || 'diagram'}.png`;
-      window.dispatchEvent(new CustomEvent('export:fitview'));
-      await new Promise(r => setTimeout(r, 150)); // Wait for React Flow to fit the view
-      await exportToPng('.react-flow', defaultName, language);
+      await (await import('../../utils/exportMedia')).exportToPng('.react-flow', defaultName, language);
     } catch (err) {
       console.error('Error exporting PNG:', err);
       openAlert({
-        title: language === 'tr' ? 'Hata' : 'Error',
-        message: language === 'tr' ? `PNG dışa aktarma hatası: ${err}` : `PNG Export error: ${err}`
+        title: message(language, "TopBar.error"),
+        message: message(language, "TopBar.pNGExportError", { value1: err })
       });
     }
   };
@@ -152,14 +179,12 @@ export const TopBar: React.FC = () => {
   const handleExportSvg = async () => {
     try {
       const defaultName = `${currentWorkspace?.name || 'diagram'}.svg`;
-      window.dispatchEvent(new CustomEvent('export:fitview'));
-      await new Promise(r => setTimeout(r, 150));
-      await exportToSvg('.react-flow', defaultName, language);
+      await (await import('../../utils/exportMedia')).exportToSvg('.react-flow', defaultName, language);
     } catch (err) {
       console.error('Error exporting SVG:', err);
       openAlert({
-        title: language === 'tr' ? 'Hata' : 'Error',
-        message: language === 'tr' ? `SVG dışa aktarma hatası: ${err}` : `SVG Export error: ${err}`
+        title: message(language, "TopBar.error"),
+        message: message(language, "TopBar.sVGExportError", { value1: err })
       });
     }
   };
@@ -177,7 +202,7 @@ export const TopBar: React.FC = () => {
       const schedValues = Object.values(schedules);
       const maxDuration = schedValues.length > 0 ? Math.max(...schedValues.map(s => s.end)) + 500 : 2000;
 
-      await exportToGif(
+      await (await import('../../utils/exportMedia')).exportToGif(
         '.react-flow', maxDuration, defaultName, language,
         fps, quality, scale,
         (progress) => setExportProgress(progress)
@@ -185,8 +210,8 @@ export const TopBar: React.FC = () => {
     } catch (err) {
       console.error('Error exporting GIF:', err);
       openAlert({
-        title: language === 'tr' ? 'Hata' : 'Error',
-        message: language === 'tr' ? `GIF dışa aktarma hatası: ${err}` : `GIF Export error: ${err}`
+        title: message(language, "TopBar.error"),
+        message: message(language, "TopBar.gIFExportError", { value1: err })
       });
     } finally {
       setExportProgress(null);
@@ -215,7 +240,7 @@ export const TopBar: React.FC = () => {
           (progress) => setExportProgress(progress)
         );
       } else {
-        await exportToVideo(
+        await (await import('../../utils/exportMedia')).exportToVideo(
           '.react-flow', maxDuration, defaultName, language,
           fps, quality,
           (progress) => setExportProgress(progress),
@@ -225,8 +250,8 @@ export const TopBar: React.FC = () => {
     } catch (err) {
       console.error('Error exporting Video:', err);
       openAlert({
-        title: language === 'tr' ? 'Hata' : 'Error',
-        message: language === 'tr' ? `Video dışa aktarma hatası: ${err}` : `Video Export error: ${err}`
+        title: message(language, "TopBar.error"),
+        message: message(language, "TopBar.videoExportError", { value1: err })
       });
     } finally {
       setExportProgress(null);
@@ -239,8 +264,8 @@ export const TopBar: React.FC = () => {
     setShowAiModal(true);
   };
 
-  const isEmbedMode = 
-    window.location.href.includes('embed=true') || 
+  const isEmbedMode =
+    window.location.href.includes('embed=true') ||
     window.location.href.includes('embed=1') ||
     window.location.href.includes('mode=modal') ||
     window.location.href.includes('mode=embed') ||
@@ -248,22 +273,20 @@ export const TopBar: React.FC = () => {
     window.location.href.includes('embed_editor=true');
 
   return (
-    <header className="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center px-3 z-25 select-none shrink-0 transition-colors duration-300 font-sans gap-2">
+    <header className="yada-topbar h-11 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center px-3 z-25 select-none shrink-0 transition-colors duration-300 font-sans gap-2">
 
       {/* ── Left Section ── */}
       <div className="flex items-center gap-2 shrink-0">
         {/* Logo */}
-        <div
+        <button type="button"
           onClick={
             !isEmbedMode
               ? () => {
                   if (isCollabActive) {
                     openAlert({
-                      title: language === 'tr' ? 'Ortak Çalışma Aktif' : 'Collaboration Active',
+                      title: message(language, "TopBar.collaborationActive"),
                       message:
-                        language === 'tr'
-                          ? 'Canlı ortak çalışma oturumundasınız. Çıkmak için önce oturumu sonlandırın veya "Ayrıl" butonunu kullanın.'
-                          : 'You are currently in a live collaboration session. Please leave the session before returning to the welcome screen.',
+                        message(language, "TopBar.youAreCurrentlyInALiveCollaboration"),
                     });
                     return;
                   }
@@ -272,25 +295,25 @@ export const TopBar: React.FC = () => {
               : undefined
           }
           className={`flex items-center gap-1.5 ${!isEmbedMode ? 'cursor-pointer group' : ''} shrink-0`}
-          title={isEmbedMode ? 'YADA Diagram Editor' : (language === 'tr' ? 'Giriş ekranına dön' : 'Go back to welcome screen')}
+          title={isEmbedMode ? message(language, 'TopBar.editor') : (message(language, "TopBar.goBackToWelcomeScreen"))}
         >
-          <img src="pwa-icon.png" className="h-6 w-6 transition-transform group-hover:scale-105" />
+          <img src="pwa-icon.png" alt="YADA" className="h-6 w-6 transition-transform group-hover:scale-105" />
           <span className="font-bold text-sm tracking-wide bg-gradient-to-r from-indigo-600 to-indigo-400 dark:from-indigo-400 dark:to-indigo-200 bg-clip-text text-transparent hidden lg:inline">
             {t.welcomeTitle}
           </span>
-        </div>
+        </button>
 
         {!isEmbedMode && <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />}
 
         {/* Workspace pill */}
         {!isEmbedMode && (
-          <div
+          <button type="button" aria-label={message(language, 'layout.workspaceSettings')}
             className={`hidden sm:flex items-center gap-1.5 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 transition-colors group ${
               isCollabActive ? 'cursor-default' : 'hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer'
             }`}
             title={
               isCollabActive
-                ? (language === 'tr' ? 'Ortak çalışma süresince çalışma alanı kilitlidir' : 'Workspace is locked during collaboration')
+                ? (message(language, "TopBar.workspaceIsLockedDuringCollaboration"))
                 : currentWorkspace?.path
             }
             onClick={() => {
@@ -309,7 +332,7 @@ export const TopBar: React.FC = () => {
             {!isCollabActive && (
               <Settings className="w-3 h-3 text-slate-400 group-hover:rotate-45 transition-transform duration-300 shrink-0" />
             )}
-          </div>
+          </button>
         )}
 
         {/* Save status – tiny dot only on small, full pill on md+ */}
@@ -320,12 +343,12 @@ export const TopBar: React.FC = () => {
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold hidden md:inline">
-                {language === 'tr' ? 'Kaydedilmedi' : 'Unsaved'}
+                {message(language, "TopBar.unsaved")}
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); manualSave(); }}
                 className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-500 transition-colors cursor-pointer"
-                title={language === 'tr' ? 'Şimdi kaydet' : 'Save now'}
+                title={message(language, "TopBar.saveNow")}
               >
                 <Save className="w-3 h-3" />
               </button>
@@ -334,7 +357,7 @@ export const TopBar: React.FC = () => {
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold hidden md:inline">
-                {language === 'tr' ? 'Kaydedildi' : 'Saved'}
+                {message(language, "TopBar.saved")}
               </span>
             </div>
           )}
@@ -346,19 +369,19 @@ export const TopBar: React.FC = () => {
         {activeDiagramId && (
           <div className="flex items-center bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 p-0.5 rounded-lg select-none">
             <button
-              onClick={() => viewMode !== 'freeform' && toggleViewMode()}
+              aria-pressed={viewMode === 'freeform'} onClick={() => viewMode !== 'freeform' && toggleViewMode()}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 viewMode === 'freeform'
                   ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
                   : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
-              title={language === 'tr' ? 'Serbest Stil Görünümü' : 'Free Style View'}
+              title={message(language, "TopBar.freeStyleView")}
             >
               <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden md:inline whitespace-nowrap">{language === 'tr' ? 'Serbest Stil' : 'Free Style'}</span>
+              <span className="hidden md:inline whitespace-nowrap">{message(language, "TopBar.freeStyle")}</span>
             </button>
             <button
-              onClick={() => viewMode !== 'sequence' && toggleViewMode()}
+              aria-pressed={viewMode === 'sequence'} onClick={() => viewMode !== 'sequence' && toggleViewMode()}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 viewMode === 'sequence'
                   ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
@@ -379,17 +402,17 @@ export const TopBar: React.FC = () => {
         {activeDiagramId && (
           <div className="flex items-center bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-lg p-0.5">
             <button
-              onClick={toggleLeftSidebar}
+              onClick={toggleLeftSidebar} aria-expanded={leftSidebarOpen}
               className={`p-1.5 rounded-md cursor-pointer transition-colors ${leftSidebarOpen
                 ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 shadow-sm'
                 : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
-              title={language === 'tr' ? 'Sol panel' : 'Left panel'}
+              title={message(language, "TopBar.leftPanel")}
             >
               <PanelLeft className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={toggleTimeline}
+              onClick={toggleTimeline} aria-expanded={timelineOpen}
               className={`p-1.5 rounded-md cursor-pointer transition-colors ${timelineOpen
                 ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 shadow-sm'
                 : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
@@ -399,12 +422,12 @@ export const TopBar: React.FC = () => {
               <PanelBottom className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={toggleRightSidebar}
+              onClick={toggleRightSidebar} aria-expanded={rightSidebarOpen}
               className={`p-1.5 rounded-md cursor-pointer transition-colors ${rightSidebarOpen
                 ? 'text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-900 shadow-sm'
                 : 'text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
-              title={language === 'tr' ? 'Sağ panel' : 'Right panel'}
+              title={message(language, "TopBar.rightPanel")}
             >
               <PanelRight className="w-3.5 h-3.5" />
             </button>
@@ -412,16 +435,21 @@ export const TopBar: React.FC = () => {
             <button
               onClick={toggleFullscreen}
               className="p-1.5 rounded-md cursor-pointer transition-colors text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200"
-              title={language === 'tr' ? 'Tam Ekran' : 'Fullscreen'}
+              title={message(language, "TopBar.fullscreen")}
             >
               {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
             </button>
           </div>
         )}
 
-        {/* Freeform-only controls */}
-        {activeDiagramId && currentView === 'diagram' && !isReadOnly && (
-          <>
+        <details ref={toolsRef} className="relative yada-tools" onKeyDown={event => {
+          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); }
+        }}>
+          <summary className="yada-icon-button list-none cursor-pointer text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label={message(language, 'layout.moreTools')} title={message(language, 'layout.moreTools')}>
+            <MoreHorizontal size={20} />
+          </summary>
+          <div className="yada-tools-content absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 shadow-xl flex flex-col gap-3">
+            {activeDiagramId && currentView === 'diagram' && !isReadOnly && <>
             <CanvasBgSelector />
 
             {/* Undo / Redo */}
@@ -430,18 +458,18 @@ export const TopBar: React.FC = () => {
                 onClick={undo}
                 disabled={pastStates.length === 0}
                 className="p-1.5 rounded-md text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                title={language === 'tr' ? 'Geri Al (Ctrl+Z)' : 'Undo (Ctrl+Z)'}
+                title={message(language, "TopBar.undoCtrlZ")}
               >
                 <Undo className="w-3.5 h-3.5" />
-              </button>
+              <span className="text-sm font-medium">{message(language, "TopBar.undoCtrlZ")}</span></button>
               <button
                 onClick={redo}
                 disabled={futureStates.length === 0}
                 className="p-1.5 rounded-md text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                title={language === 'tr' ? 'İleri Al (Ctrl+Y)' : 'Redo (Ctrl+Y)'}
+                title={message(language, "TopBar.redoCtrlY")}
               >
                 <Redo className="w-3.5 h-3.5" />
-              </button>
+              <span className="text-sm font-medium">{message(language, "TopBar.redoCtrlY")}</span></button>
             </div>
 
             {/* Layout dropdown */}
@@ -449,24 +477,24 @@ export const TopBar: React.FC = () => {
               <button
                 onClick={() => setShowLayoutMenu(!showLayoutMenu)}
                 className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer transition-colors"
-                title={language === 'tr' ? 'Otomatik Düzenle' : 'Auto-Layout'}
+                title={message(language, "TopBar.autoLayout")}
               >
                 <Grid className="w-3.5 h-3.5" />
-              </button>
+              <span className="text-sm font-medium">{message(language, "TopBar.autoLayout")}</span></button>
 
               {showLayoutMenu && (
                 <div className="absolute right-0 mt-1.5 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1 overflow-hidden">
                   <button
-                    onClick={() => { applyAutoLayout('TB'); setShowLayoutMenu(false); }}
+                    onClick={() => { void handleAutoLayout('TB'); }}
                     className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
                   >
-                    {language === 'tr' ? 'Yukarıdan Aşağıya' : 'Top to Bottom'}
+                    {message(language, "TopBar.topToBottom")}
                   </button>
                   <button
-                    onClick={() => { applyAutoLayout('LR'); setShowLayoutMenu(false); }}
+                    onClick={() => { void handleAutoLayout('LR'); }}
                     className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
                   >
-                    {language === 'tr' ? 'Soldan Sağa' : 'Left to Right'}
+                    {message(language, "TopBar.leftToRight")}
                   </button>
                 </div>
               )}
@@ -476,23 +504,33 @@ export const TopBar: React.FC = () => {
             <button
               onClick={handleCopyForAi}
               className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-lg cursor-pointer transition-colors"
-              title={language === 'tr' ? 'AI İçin Kopyala' : 'Copy for AI'}
+              title={message(language, "TopBar.copyForAI")}
             >
               <Copy className="w-3.5 h-3.5" />
-            </button>
+            <span className="text-sm font-medium">{message(language, "TopBar.copyForAI")}</span></button>
 
-            <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
+            <div className="hidden lg:block h-4 w-px bg-slate-200 dark:bg-slate-800" />
 
+            </>}
+            {!isEmbedMode && <button onClick={() => setShowSettings(true)} className="yada-menu-action"><Settings size={16} />{message(language, 'layout.workspaceSettings')}</button>}
+            {canCollaborate && !isReadOnly && !isEmbedMode && <button onClick={() => setStartCollabModalOpen(true)} className="yada-menu-action"><Users size={16} />{message(language, 'TopBar.liveCollaborationP2P')}</button>}
+            {!isEmbedMode && <button onClick={handleBackToWelcome} className="yada-menu-action"><LogOut size={16} />{t.close}</button>}
+          </div>
+        </details>
+
+        {/* Freeform-only controls */}
+        {activeDiagramId && currentView === 'diagram' && !isReadOnly && (
+          <>
             {/* Export & Share */}
             {!isEmbedMode && (
               <div className="relative">
                 <button
-                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  onClick={() => { if (toolsRef.current) toolsRef.current.open = false; setShowExportMenu(!showExportMenu); }}
                   className="flex items-center gap-1 px-2 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs cursor-pointer font-semibold transition-all"
-                  title={language === 'tr' ? 'Dışa Aktar / Paylaş' : 'Export / Share'}
+                  title={message(language, "TopBar.exportShare")}
                 >
                   <FileDown className="w-3.5 h-3.5" />
-                  <span className="hidden lg:inline">{language === 'tr' ? 'Dışa Aktar' : 'Export'}</span>
+                  <span className="hidden lg:inline">{message(language, "TopBar.export")}</span>
                   <ChevronDown className="w-3 h-3 opacity-80" />
                 </button>
 
@@ -505,29 +543,29 @@ export const TopBar: React.FC = () => {
                       onClick={() => { handleExportPng(); setShowExportMenu(false); }}
                       className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center justify-between"
                     >
-                      <span>{language === 'tr' ? 'Görüntü (PNG)' : 'Image (PNG)'}</span>
-                      <span className="text-[9px] text-slate-400 font-normal">{language === 'tr' ? 'Metadata İçerir' : 'Embedded Data'}</span>
+                      <span>{message(language, "TopBar.imagePNG")}</span>
+                      <span className="text-[9px] text-slate-400 font-normal">{message(language, "TopBar.embeddedData")}</span>
                     </button>
                     <button
                       onClick={() => { handleExportSvg(); setShowExportMenu(false); }}
                       className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center justify-between"
                     >
-                      <span>{language === 'tr' ? 'Vektör (SVG)' : 'Vector (SVG)'}</span>
-                      <span className="text-[9px] text-slate-400 font-normal">{language === 'tr' ? 'Metadata İçerir' : 'Embedded Data'}</span>
+                      <span>{message(language, "TopBar.vectorSVG")}</span>
+                      <span className="text-[9px] text-slate-400 font-normal">{message(language, "TopBar.embeddedData")}</span>
                     </button>
                     <button
                       onClick={() => { setShowExportConfig(true); setShowExportMenu(false); }}
                       className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center justify-between"
                     >
-                      {language === 'tr' ? 'Animasyon (GIF / Video)' : 'Animation (GIF / Video)'}
-                      <span className="text-[9px] bg-violet-500/10 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded-md font-bold">{language === 'tr' ? 'Yeni' : 'New'}</span>
+                      {message(language, "TopBar.animationGIFVideo")}
+                      <span className="text-[9px] bg-violet-500/10 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded-md font-bold">{message(language, "TopBar.new")}</span>
                     </button>
                     <div className="h-px bg-slate-200 dark:bg-slate-800 my-1" />
                     <button
                       onClick={() => { handleExportHtml(); setShowExportMenu(false); }}
                       className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
                     >
-                      {language === 'tr' ? 'Etkileşimli Oynatıcı (HTML)' : 'Interactive Player (HTML)'}
+                      {message(language, "TopBar.interactivePlayerHTML")}
                     </button>
 
                     {!isReadOnly && (
@@ -539,16 +577,16 @@ export const TopBar: React.FC = () => {
                         >
                           <span className="flex items-center gap-2">
                             <Code2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                            {language === 'tr' ? 'Iframe Embed Kodu' : 'Iframe Embed Code'}
+                            {message(language, "TopBar.iframeEmbedCode")}
                           </span>
-                          <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-md font-bold">{language === 'tr' ? 'Yeni' : 'New'}</span>
+                          <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-md font-bold">{message(language, "TopBar.new")}</span>
                         </button>
                         <button
                           onClick={() => { setShowShareModal(true); setShowExportMenu(false); }}
                           className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer flex items-center gap-2"
                         >
                           <Share2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-                          {language === 'tr' ? 'Diyagramı Paylaş (URL)' : 'Share Diagram (URL)'}
+                          {message(language, "TopBar.shareDiagramURL")}
                         </button>
                         {canCollaborate && <button
                           onClick={() => { setStartCollabModalOpen(true); setShowExportMenu(false); }}
@@ -556,9 +594,9 @@ export const TopBar: React.FC = () => {
                         >
                           <span className="flex items-center gap-2">
                             <Users className="w-3.5 h-3.5 text-blue-500" />
-                            {language === 'tr' ? 'Canlı Ortak Çalış (P2P)' : 'Live Collaboration (P2P)'}
+                            {message(language, "TopBar.liveCollaborationP2P")}
                           </span>
-                          <span className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-md font-bold">Max 4</span>
+                          <span className="text-[9px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-md font-bold">{uiCopy.upTo4People}</span>
                         </button>}
                       </>
                     )}
@@ -572,23 +610,23 @@ export const TopBar: React.FC = () => {
         {canCollaborate && !isReadOnly && !isEmbedMode && (
           <button
             onClick={() => setStartCollabModalOpen(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all shadow-sm active:scale-95 ${
+            className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all shadow-sm active:scale-95 ${
               isCollabActive
                 ? 'bg-emerald-50 text-emerald-600 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
                 : 'bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 border-blue-200/80 dark:border-blue-800/60'
             }`}
-            title={language === 'tr' ? 'Canlı Ortak Çalışma Başlat (Figma Tarzı P2P)' : 'Start Live Collaboration (Figma-style P2P)'}
+            title={message(language, "TopBar.startLiveCollaborationFigmaStyleP2P")}
           >
             <Users className="w-3.5 h-3.5" />
             <span className="hidden md:inline">
               {isCollabActive
-                ? (language === 'tr' ? 'Canlı Açık' : 'Live Active')
-                : (language === 'tr' ? 'Birlikte Çalış' : 'Live Collab')}
+                ? (message(language, "TopBar.liveActive"))
+                : (message(language, "TopBar.liveCollab"))}
             </span>
           </button>
         )}
 
-        <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
+        <div className="hidden lg:block h-4 w-px bg-slate-200 dark:bg-slate-800" />
 
         {/* Google Drive */}
         {import.meta.env.VITE_ENABLE_GOOGLE_SYNC === 'true' && (
@@ -596,7 +634,7 @@ export const TopBar: React.FC = () => {
             <button
               onClick={() => GoogleDriveService.signIn()}
               className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer transition-colors"
-              title={language === 'tr' ? 'Google ile giriş yap' : 'Login with Google'}
+              title={message(language, "TopBar.loginWithGoogle")}
             >
               <Cloud className="w-3.5 h-3.5" />
             </button>
@@ -614,10 +652,10 @@ export const TopBar: React.FC = () => {
                   : 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50 cursor-default opacity-80'
               }`}
               title={
-                syncState === 'syncing' ? 'Syncing...' :
-                syncState === 'error' ? 'Click to retry' :
-                hasUnsyncedChanges ? 'Push to Drive' :
-                'Synced to Drive'
+                syncState === 'syncing' ? message(language, 'TopBar.syncing') :
+                syncState === 'error' ? message(language, 'TopBar.retry') :
+                hasUnsyncedChanges ? message(language, 'TopBar.push') :
+                message(language, 'TopBar.synced')
               }
             >
               {syncState === 'syncing' ? (
@@ -630,10 +668,10 @@ export const TopBar: React.FC = () => {
                 <CheckCircle2 className="w-3 h-3" />
               )}
               <span className="hidden xl:inline">
-                {syncState === 'syncing' ? 'Syncing...' :
-                 syncState === 'error' ? 'Retry' :
-                 hasUnsyncedChanges ? 'Push' :
-                 'Synced'}
+                {syncState === 'syncing' ? message(language, 'TopBar.syncing') :
+                 syncState === 'error' ? message(language, 'TopBar.retry') :
+                 hasUnsyncedChanges ? message(language, 'TopBar.push') :
+                 message(language, 'TopBar.synced')}
               </span>
             </button>
           )
@@ -642,7 +680,7 @@ export const TopBar: React.FC = () => {
         {/* Close */}
         <button
           onClick={handleBackToWelcome}
-          className="p-1.5 text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg cursor-pointer transition-colors"
+          className="hidden lg:inline-flex p-1.5 text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg cursor-pointer transition-colors"
           title={t.close}
         >
           <LogOut className="w-3.5 h-3.5" />
@@ -657,22 +695,18 @@ export const TopBar: React.FC = () => {
 
       {/* Export Progress Modal */}
       {exportProgress !== null && createPortal(
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-[99999]">
+        <ModalSurface label={t.commonUi.loading} onClose={() => {}} width="24rem" dismissible={false}>
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4">
             <Loader2 className={`w-12 h-12 animate-spin mb-6 ${exportMode === 'video' ? 'text-violet-500' : 'text-indigo-500'}`} />
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2 text-center">
               {exportMode === 'video'
-                ? (language === 'tr' ? 'Video Oluşturuluyor...' : 'Generating Video...')
-                : (language === 'tr' ? 'GIF Oluşturuluyor...' : 'Generating GIF...')}
+                ? (message(language, "TopBar.generatingVideo"))
+                : (message(language, "TopBar.generatingGIF"))}
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center">
               {exportMode === 'video'
-                ? (language === 'tr'
-                  ? 'Lütfen bekleyin, kareler yakalanıp video olarak kodlanıyor. Bu işlem animasyon süresine bağlıdır.'
-                  : 'Please wait, frames are captured and encoded into video. Duration depends on animation length.')
-                : (language === 'tr'
-                  ? 'Lütfen bekleyin, kareler oluşturulup birleştiriliyor. Bu işlem birkaç saniye sürebilir.'
-                  : 'Please wait, frames are being rendered and encoded. This may take a few seconds.')}
+                ? (message(language, "TopBar.pleaseWaitFramesAreCapturedAndEncoded"))
+                : (message(language, "TopBar.pleaseWaitFramesAreBeingRenderedAnd"))}
             </p>
 
             <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 mb-2 overflow-hidden border border-slate-200 dark:border-slate-700">
@@ -685,7 +719,7 @@ export const TopBar: React.FC = () => {
               {exportProgress}%
             </div>
           </div>
-        </div>,
+        </ModalSurface>,
         document.body
       )}
 

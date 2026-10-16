@@ -1,3 +1,4 @@
+import { tempoMetadata } from './metadata';
 import { DiagramAdapter, ImportFilter } from './types';
 import { LogicalDiagram, LogicalNode, LogicalEdge, SequenceStep, VisualDiagram, TimelineTiming } from '../types';
 import { generateLayout } from './layoutGenerator';
@@ -6,11 +7,7 @@ import { generateLayout } from './layoutGenerator';
  * Parses Grafana Tempo OpenTelemetry (OTLP) JSON format.
  */
 export const tempoAdapter: DiagramAdapter = {
-  id: 'tempo-otlp',
-  name: 'Grafana Tempo (OTLP)',
-  description: 'Import OpenTelemetry JSON trace exports from Grafana Tempo.',
-  supportedFormats: ['.json'],
-  importMethod: 'text-modal',
+  ...tempoMetadata,
 
   parse: async (rawInput: string, filters?: ImportFilter): Promise<{ logicalData: LogicalDiagram; visualData: VisualDiagram }> => {
     let data;

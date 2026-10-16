@@ -1,3 +1,4 @@
+import { editingCopy } from '../../../i18n/editingCopy';
 import { useAppStore } from '../../../store/useAppStore';
 import { translations } from '../../../i18n/translations';
 import { formatMilliseconds } from '../../../i18n/terminology';
@@ -35,6 +36,7 @@ export const SequenceTrackRow: React.FC<SequenceTrackRowProps> = memo(({
 }) => {
   const language = useAppStore(s => s.language);
   const t = translations[language];
+  const copy = editingCopy[language];
   if (!schedule) return <div className="h-16" />;
 
   const duration = preview?.values.duration ?? timing?.duration ?? 1000;
@@ -48,8 +50,8 @@ export const SequenceTrackRow: React.FC<SequenceTrackRowProps> = memo(({
       <div
         role="button"
         tabIndex={0}
-        aria-label={`${t.terms.step} ${seq.stepNumber}: ${t.timelineUi.editStep}`}
-        title={t.timelineUi.timingHint}
+        aria-label={`${t.terms.step} ${seq.stepNumber}: ${editable ? t.timelineUi.editStep : copy.selectStep}`}
+        title={editable ? t.timelineUi.timingHint : copy.inspectHint}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(seq.id); onOpenTooltip(seq.id); } }}
         onPointerDown={(e) => {
           onSelect(seq.id);
@@ -57,7 +59,7 @@ export const SequenceTrackRow: React.FC<SequenceTrackRowProps> = memo(({
           else e.stopPropagation();
         }}
         onDoubleClick={() => onOpenTooltip(seq.id)}
-        className={`h-6 rounded-lg absolute cursor-grab active:cursor-grabbing transition-shadow flex items-center justify-between px-2 text-[10px] font-bold text-white group border ${
+        className={`${editable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} h-7 rounded-lg absolute transition-shadow flex items-center justify-between px-2 text-xs font-bold text-white group border ${
           isSelected
             ? 'ring-2 ring-indigo-500/40 shadow-lg shadow-indigo-655/10'
             : 'shadow-sm'

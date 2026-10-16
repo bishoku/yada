@@ -1,17 +1,15 @@
+import { sampleCubicPath, pointAtProgress, type PathSample } from './pathSampling';
+import { getEdgeTopology, EMPTY_EDGE_SEQUENCES } from './edgeTopology';
 import { useEffect, useState, useMemo, useRef, RefObject } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 import { simulationClock } from '../../../store/simulationClock';
 import { maximumTimelineEnd } from './sectionPlayback';
 
-interface PathSample {
-  x: number;
-  y: number;
-  angle: number;
-}
-
 const SAMPLE_COUNT = 128;
 
 function samplePath(pathEl: SVGPathElement): PathSample[] {
+  const cubic = sampleCubicPath(pathEl.getAttribute('d') ?? '');
+  if (cubic) return cubic;
   try {
     const totalLength = pathEl.getTotalLength();
     if (totalLength <= 0) return [];
@@ -23,32 +21,12 @@ function samplePath(pathEl: SVGPathElement): PathSample[] {
       const pt = pathEl.getPointAtLength(len);
       const nextPt = pathEl.getPointAtLength(Math.min(totalLength, len + 1));
       const angle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x) * (180 / Math.PI);
-      samples.push({ x: pt.x, y: pt.y, angle });
+      samples.push({ x: pt.x, y: pt.y, angle, progress: i / (SAMPLE_COUNT - 1) });
     }
     return samples;
   } catch {
     return [];
   }
-}
-
-function getPointAndAngleFromSamples(
-  samples: PathSample[],
-  progress: number
-): { x: number; y: number; angle: number } {
-  const p = Math.max(0, Math.min(1, progress));
-  const exactIndex = p * (samples.length - 1);
-  const i0 = Math.floor(exactIndex);
-  const i1 = Math.min(samples.length - 1, i0 + 1);
-  const frac = exactIndex - i0;
-
-  const s0 = samples[i0];
-  const s1 = samples[i1];
-
-  return {
-    x: s0.x + (s1.x - s0.x) * frac,
-    y: s0.y + (s1.y - s0.y) * frac,
-    angle: s0.angle,
-  };
 }
 
 export const useEdgeAnimation = (
@@ -63,7 +41,7 @@ export const useEdgeAnimation = (
   const [activeStepNumber, setActiveStepNumber] = useState<number | null>(null);
   const pathSamples = useRef<{ d: string; samples: PathSample[] }>({ d: '', samples: [] });
 
-  const seqsForEdge = useMemo(() => logicalData.sequences.filter((s) => s.edgeId === edgeId), [logicalData.sequences, edgeId]);
+  const seqsForEdge = getEdgeTopology(logicalData.edges, logicalData.sequences).sequencesByEdge.get(edgeId) ?? EMPTY_EDGE_SEQUENCES;
   const isSelected = useMemo(() => seqsForEdge.some((s) => s.id === selectedSequenceId), [seqsForEdge, selectedSequenceId]);
   const isAsync = useMemo(() => seqsForEdge.some((s) => s.isAsync), [seqsForEdge]);
 
@@ -175,7 +153,7 @@ export const useEdgeAnimation = (
 
                 const safeElapsed = particleElapsed < 0 ? particleElapsed + cycleDuration : particleElapsed;
                 const progress = Math.max(0, Math.min(1, safeElapsed / cycleDuration));
-                const { x, y, angle } = getPointAndAngleFromSamples(cachedSamples, progress);
+                const { x, y, angle } = pointAtProgress(cachedSamples, progress);
 
                 ref.current.style.display = 'block';
                 ref.current.setAttribute('transform', `translate(${x}, ${y}) rotate(${angle})`);
@@ -200,7 +178,7 @@ export const useEdgeAnimation = (
               actualProgress = 1.0 - Math.min(Math.max(returnElapsed / transitHalf, 0), 1);
             }
 
-            const { x, y, angle } = getPointAndAngleFromSamples(cachedSamples, actualProgress);
+            const { x, y, angle } = pointAtProgress(cachedSamples, actualProgress);
 
             for (let i = 0; i < particleRefs.length; i++) {
               const ref = particleRefs[i];
@@ -225,7 +203,7 @@ export const useEdgeAnimation = (
               actualProgress = 1;
             }
 
-            const { x, y, angle } = getPointAndAngleFromSamples(cachedSamples, actualProgress);
+            const { x, y, angle } = pointAtProgress(cachedSamples, actualProgress);
 
             for (let i = 0; i < particleRefs.length; i++) {
               const ref = particleRefs[i];

@@ -1,3 +1,6 @@
+import { portableUiFontsCss } from '../styles/portableFonts';
+import { playerCopy } from '../i18n/playerCopy';
+import type { Language } from '../i18n/translations';
 import { LogicalDiagram, VisualDiagram, CustomComponentTemplate } from '../types';
 
 /**
@@ -7,22 +10,22 @@ import { LogicalDiagram, VisualDiagram, CustomComponentTemplate } from '../types
 export const generateStandaloneHtml = (
   logicalData: LogicalDiagram,
   visualData: VisualDiagram,
-  libraryComponents: CustomComponentTemplate[]
+  libraryComponents: CustomComponentTemplate[],
+  language: Language = 'en'
 ): string => {
+  const ui = playerCopy[language];
   const logicalJson = JSON.stringify(logicalData);
   const visualJson = JSON.stringify(visualData);
   const libraryJson = JSON.stringify(libraryComponents);
 
   return `<!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="${language}" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Architectural Diagram & Simulation Runner</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <title>${ui.title}</title>
   <style>
+${portableUiFontsCss}
     * {
       box-sizing: border-box;
       margin: 0;
@@ -554,11 +557,11 @@ export const generateStandaloneHtml = (
   <header>
     <div class="logo">
       <div class="logo-dot"></div>
-      <div class="logo-text">Architecture Simulation</div>
+      <div class="logo-text">${ui.title}</div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
-      <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 600;" id="diag-name">Diagram View</div>
-      <button id="theme-toggle" title="Toggle Light/Dark">
+      <div style="font-size: 11px; color: var(--color-text-muted); font-weight: 600;" id="diag-name">${ui.diagram}</div>
+      <button id="theme-toggle" title="${ui.theme}" aria-label="${ui.theme}">
         <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
@@ -576,36 +579,36 @@ export const generateStandaloneHtml = (
 
     <!-- Zoom controls panel -->
     <div class="zoom-controls">
-      <button id="btn-zoom-in" title="Zoom In">+</button>
-      <button id="btn-zoom-out" title="Zoom Out">-</button>
-      <button id="btn-zoom-fit" title="Fit Diagram">[ ]</button>
+      <button id="btn-zoom-in" title="${ui.zoomIn}" aria-label="${ui.zoomIn}">+</button>
+      <button id="btn-zoom-out" title="${ui.zoomOut}" aria-label="${ui.zoomOut}">-</button>
+      <button id="btn-zoom-fit" title="${ui.fit}" aria-label="${ui.fit}">[ ]</button>
     </div>
 
     <!-- Active steps display panel -->
     <div id="steps-panel">
-      <div class="steps-title">Interaction Steps</div>
+      <div class="steps-title">${ui.steps}</div>
       <div id="steps-list"></div>
     </div>
   </div>
 
   <div id="control-bar">
     <div class="control-group">
-      <button class="btn" id="btn-stop" title="Stop">
+      <button class="btn" id="btn-stop" title="${ui.stop}" aria-label="${ui.stop}">
         <svg fill="currentColor" viewBox="0 0 24 24" width="14" height="14"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
       </button>
-      <button class="btn primary" id="btn-play" title="Play">
+      <button class="btn primary" id="btn-play" title="${ui.play}" aria-label="${ui.play}">
         <svg id="play-icon" fill="currentColor" viewBox="0 0 24 24" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
       </button>
     </div>
 
     <div class="timeline-container">
       <span class="time-label" id="current-time-readout">0.00s</span>
-      <input type="range" class="slider" id="time-slider" min="0" max="1000" value="0">
+      <input type="range" class="slider" aria-label="${ui.position}" id="time-slider" min="0" max="1000" value="0">
       <span class="time-label" id="total-time-readout">0.00s</span>
     </div>
 
     <div class="control-group">
-      <select class="speed-select" id="speed-multiplier">
+      <select class="speed-select" aria-label="${ui.speed}" id="speed-multiplier">
         <option value="0.5">0.5x</option>
         <option value="1.0" selected>1.0x</option>
         <option value="1.5">1.5x</option>
@@ -615,6 +618,10 @@ export const generateStandaloneHtml = (
   </div>
 
   <script>
+    const ui = ${JSON.stringify(ui).replace(/</g, '\\u003c')};
+    const locale = ${JSON.stringify(language === 'tr' ? 'tr-TR' : 'en-US')};
+    const seconds = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 });
+    const formatSeconds = value => seconds.format(value / 1000) + ' s';
     // Embedded initial data injected during compilation
     const initialData = {
       logicalData: ${logicalJson},
@@ -687,7 +694,7 @@ export const generateStandaloneHtml = (
     function calculateSchedules(logicalData, timelines) {
       const sortedSeqs = [...logicalData.sequences].sort((a, b) => a.stepNumber - b.stepNumber);
       const schedules = [];
-      
+
       const edgeMap = {};
       logicalData.edges.forEach(e => { edgeMap[e.id] = e; });
 
@@ -846,22 +853,22 @@ export const generateStandaloneHtml = (
 
     // Initialize DOM Layout
     const schedules = calculateSchedules(initialData.logicalData, initialData.visualData.timelines || {});
-    maxDuration = schedules.length > 0 
+    maxDuration = schedules.length > 0
       ? Math.max(...schedules.map(s => {
           const ipEnd = s.internalProcess ? s.internalProcess.end : 0;
           return Math.max(s.end, ipEnd);
-        })) + 500 
+        })) + 500
       : 2000;
-    
+
     // Set Slider Limits
     document.getElementById('time-slider').max = maxDuration;
-    document.getElementById('total-time-readout').textContent = (maxDuration / 1000).toFixed(2) + 's';
+    document.getElementById('total-time-readout').textContent = formatSeconds(maxDuration);
 
     // Renders the Canvas Nodes
     function renderNodes() {
       const nodesLayer = document.getElementById('nodes-layer');
       nodesLayer.innerHTML = '';
-      
+
       const themeColorMap = {
         indigo: '#6366f1', emerald: '#10b981', rose: '#f43f5e',
         amber: '#f59e0b', violet: '#8b5cf6', cyan: '#06b6d4'
@@ -870,7 +877,7 @@ export const generateStandaloneHtml = (
       // Render sections first (they go behind regular nodes)
       initialData.logicalData.nodes.filter(n => n.type === 'section').forEach(node => {
         const visual = initialData.visualData.layoutNodes[node.id] || { x: 100, y: 100, width: 400, height: 300 };
-        
+
         const section = document.createElement('div');
         section.id = 'node-card-' + node.id;
         section.className = 'section-card';
@@ -903,12 +910,12 @@ export const generateStandaloneHtml = (
       // Render regular nodes (using absolute positions for child nodes)
       initialData.logicalData.nodes.filter(n => n.type !== 'section').forEach(node => {
         const isStickyNote = node.type === 'sticky_note';
-        
+
         if (isStickyNote) {
           const annotation = initialData.visualData.annotations?.[node.id];
           const visual = initialData.visualData.layoutNodes[node.id];
           if (!annotation || !visual) return;
-          
+
           const card = document.createElement('div');
           card.id = 'node-card-' + node.id;
           card.className = 'sticky-note';
@@ -931,23 +938,23 @@ export const generateStandaloneHtml = (
           card.style.opacity = '1';
           card.style.transition = 'opacity 0.2s';
           if (annotation.style.shadow) card.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.1)';
-          
+
           let innerHTML = '';
           if (annotation.header) {
             innerHTML += \`<div style="padding: 8px 12px; font-weight: 600; border-bottom: 1px solid \${annotation.style.borderColor}; background-color: rgba(0,0,0,0.05);">\${annotation.header}</div>\`;
           }
-          
+
           // Basic markdown parsing
           const parsedBody = annotation.body
             .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')
             .replace(/\\*(.*?)\\*/g, '<em>$1</em>')
             .split('\\n').map(line => line.startsWith('- ') ? '<li>' + line.substring(2) + '</li>' : '<div>' + line + '</div>').join('');
-            
+
           innerHTML += \`<div style="flex: 1; padding: 12px; overflow-y: auto;">\${parsedBody}</div>\`;
-          
+
           // Folded corner
           innerHTML += \`<div style="position: absolute; bottom: 0; right: 0; width: 16px; height: 16px; background: linear-gradient(to top left, transparent 50%, rgba(0,0,0,0.1) 50%); border-top-left-radius: 4px;"></div>\`;
-          
+
           card.innerHTML = innerHTML;
           nodesLayer.appendChild(card);
           return;
@@ -960,7 +967,7 @@ export const generateStandaloneHtml = (
         const rotation = visual.rotation || 0;
         const theme = visual.theme || 'indigo';
         const themeColor = themeColorMap[theme] || '#6366f1';
-        
+
         const card = document.createElement('div');
         card.id = 'node-card-' + node.id;
         // Orientation: rotation===90 means vertical layout (flex-col + writing-mode)
@@ -1065,7 +1072,7 @@ export const generateStandaloneHtml = (
           // Temporary path element to calculate midpoint length
           const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           tempPath.setAttribute('d', pathData);
-          
+
           let midPt = { x: 0, y: 0 };
           try {
             const totalLen = tempPath.getTotalLength ? tempPath.getTotalLength() : 0;
@@ -1263,13 +1270,13 @@ export const generateStandaloneHtml = (
         const item = document.createElement('div');
         item.id = 'step-item-' + s.id;
         item.className = 'step-item';
-        
+
         const descHtml = edge.description ? \`<div class="step-description">↳ \${edge.description}</div>\` : '';
         item.innerHTML = \`<div class="step-header">
-            <span class="step-order">Step \${s.stepNumber}</span>
-            <span style="font-size: 9px; font-weight:600; color:#64748b;">\${(s.start/1000).toFixed(1)}s - \${(s.end/1000).toFixed(1)}s</span>
+            <span class="step-order">\${ui.step} \${s.stepNumber}</span>
+            <span style="font-size: 9px; font-weight:600; color:#64748b;">\${formatSeconds(s.start)} - \${formatSeconds(s.end)}</span>
           </div>
-          <div class="step-label">\${seq.protocol || 'JSON'} Call</div>
+          <div class="step-label">\${seq.protocol || 'JSON'} \${ui.call}</div>
           <div class="step-flow">\${srcName} → \${dstName}</div>
           \${descHtml}\`;
 
@@ -1280,7 +1287,7 @@ export const generateStandaloneHtml = (
           const btn = document.getElementById('btn-play');
           const icon = document.getElementById('play-icon');
           if (btn && icon) {
-            btn.title = 'Play';
+            btn.title = ui.play; btn.setAttribute('aria-label', ui.play);
             icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
           }
           updateSimulation(currentTime);
@@ -1294,7 +1301,7 @@ export const generateStandaloneHtml = (
     function updateSimulation(time) {
       // 1. Update sliders
       document.getElementById('time-slider').value = time;
-      document.getElementById('current-time-readout').textContent = (time / 1000).toFixed(2) + 's';
+      document.getElementById('current-time-readout').textContent = formatSeconds(time);
 
       // 2. Clear previous active classes
       const svg = document.getElementById('svg-edges');
@@ -1359,7 +1366,7 @@ export const generateStandaloneHtml = (
               rect.setAttribute('stroke', '#818cf8');
             }
           }
-          
+
           // Draw particle running along the path (supports round trip return calls)
           const elapsed = time - s.start;
           let actualProgress = 0;
@@ -1368,7 +1375,7 @@ export const generateStandaloneHtml = (
           if (s.isRoundTrip) {
             const transitHalf = s.duration / 2;
             const returnStartElapsed = (s.end - s.start) - transitHalf;
-            
+
             if (elapsed < transitHalf) {
               actualProgress = Math.min(Math.max(elapsed / transitHalf, 0), 1);
               showParticle = true;
@@ -1396,7 +1403,7 @@ export const generateStandaloneHtml = (
           if (showParticle && pathEl) {
             const pathLen = pathEl.getTotalLength();
             let pointProgress = seq.direction === 'reverse' ? (1 - actualProgress) : actualProgress;
-            
+
             // Check if getPointAtLength is supported
             if (pathEl.getPointAtLength) {
               const pt = pathEl.getPointAtLength(pointProgress * pathLen);
@@ -1535,12 +1542,12 @@ export const generateStandaloneHtml = (
       const icon = document.getElementById('play-icon');
 
       if (isPlaying) {
-        btn.title = 'Pause';
+        btn.title = ui.pause; btn.setAttribute('aria-label', ui.pause);
         icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
         lastTick = null;
         requestAnimationFrame(tick);
       } else {
-        btn.title = 'Play';
+        btn.title = ui.play; btn.setAttribute('aria-label', ui.play);
         icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
       }
     });
@@ -1549,12 +1556,12 @@ export const generateStandaloneHtml = (
       isPlaying = false;
       currentTime = 0;
       lastTick = null;
-      
+
       const btn = document.getElementById('btn-play');
       const icon = document.getElementById('play-icon');
-      btn.title = 'Play';
+      btn.title = ui.play; btn.setAttribute('aria-label', ui.play);
       icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
-      
+
       updateSimulation(0);
     });
 
@@ -1681,7 +1688,7 @@ export const generateStandaloneHtml = (
 
     // Startup Init
     window.addEventListener('resize', adjustViewZoom);
-    document.getElementById('diag-name').textContent = initialData.logicalData.name || 'Standalone System Diagram';
+    document.getElementById('diag-name').textContent = initialData.logicalData.name || ui.standalone;
 
     // Theme toggle
     const moonSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';

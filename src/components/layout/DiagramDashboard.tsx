@@ -1,8 +1,13 @@
+import { Toast } from '../ui/Toast';
+import { Button } from '../ui/Button';
+import { copyDomains } from '../../i18n/copyDomains';
+import { message } from '../../i18n/messages';
+import { formatDateTime } from '../../i18n/formatters';
 import { getPlatformCapabilities } from '../../services/platformCapabilities';
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { 
-  Plus, Edit2, Trash2, Calendar, FileJson, 
+import {
+  Plus, Edit2, Trash2, Calendar, FileJson,
   ArrowUpRight, Check, X, LayoutGrid, ArrowRightLeft
 } from 'lucide-react';
 import { WorkspacePickerModal } from './WorkspacePickerModal';
@@ -43,30 +48,7 @@ export const DiagramDashboard: React.FC = () => {
   } | null>(null);
 
   // Local translations for dashboard elements
-  const localT = {
-    tr: {
-      dashboardTitle: "Diyagram Kontrol Paneli",
-      dashboardSubtitle: "Bu çalışma alanı altındaki diyagramları yönetin ve düzenleyin.",
-      newDiagram: "Yeni Diyagram Oluştur",
-      newDiagramSub: "Boş bir tuvalle yeni tasarıma başlayın",
-      lastUpdated: "Son güncelleme",
-      open: "Aç",
-      rename: "Yeniden Adlandır",
-      delete: "Sil",
-      confirmDelete: (name: string) => `"${name}" diyagramını silmek istediğinize emin misiniz?`
-    },
-    en: {
-      dashboardTitle: "Diagram Dashboard",
-      dashboardSubtitle: "Manage and edit diagrams under this workspace.",
-      newDiagram: "Create New Diagram",
-      newDiagramSub: "Start a new design with a clean canvas",
-      lastUpdated: "Last updated",
-      open: "Open",
-      rename: "Rename",
-      delete: "Delete",
-      confirmDelete: (name: string) => `Are you sure you want to delete "${name}" diagram?`
-    }
-  }[language];
+  const localT = copyDomains.dashboard[language];
 
   if (!currentWorkspace || !getPlatformCapabilities().canCreateDiagram) return null;
 
@@ -88,11 +70,11 @@ export const DiagramDashboard: React.FC = () => {
 
   const handleDelete = async (id: string, name: string) => {
     const confirmed = await openConfirm({
-      title: language === 'tr' ? 'Diyagramı Sil' : 'Delete Diagram',
+      title: message(language, "DiagramDashboard.deleteDiagram"),
       message: localT.confirmDelete(name),
       type: 'danger',
-      confirmText: language === 'tr' ? 'Sil' : 'Delete',
-      cancelText: language === 'tr' ? 'İptal' : 'Cancel'
+      confirmText: message(language, "DiagramDashboard.delete"),
+      cancelText: message(language, "DiagramDashboard.cancel")
     });
     if (confirmed) {
       await deleteDiagram(id);
@@ -134,7 +116,7 @@ export const DiagramDashboard: React.FC = () => {
 
     if (isNew && newWorkspaceName) {
       const newWs = await createWorkspace(newWorkspaceName, '');
-      
+
       // Save diagram into the new workspace as default
       await StorageService.save_diagram(
         newWs.path,
@@ -176,9 +158,9 @@ export const DiagramDashboard: React.FC = () => {
 
       setNotification({
         message: pickerMode === 'copy'
-          ? (language === 'tr' ? `"${finalDiagName}" kopyalandı.` : `"${finalDiagName}" copied.`)
-          : (language === 'tr' ? `"${finalDiagName}" taşındı.` : `"${finalDiagName}" moved.`),
-        actionText: language === 'tr' ? "Workspace'e Git" : "Go to Workspace",
+          ? (message(language, "DiagramDashboard.copied", { value1: finalDiagName }))
+          : (message(language, "DiagramDashboard.moved", { value1: finalDiagName })),
+        actionText: message(language, "DiagramDashboard.goToWorkspace"),
         targetWorkspacePath,
         targetDiagramId: targetDiagId
       });
@@ -196,26 +178,12 @@ export const DiagramDashboard: React.FC = () => {
     }
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '';
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return dateStr;
-    }
-  };
+  const formatDate = (value?: string) => formatDateTime(value, language);
 
   return (
-    <div className="flex-1 w-full h-full overflow-y-auto bg-slate-50/50 dark:bg-slate-950/50 p-6 md:p-10 flex flex-col items-center">
+    <div className="yada-dashboard flex-1 w-full h-full overflow-y-auto bg-slate-50/50 dark:bg-slate-950/50 p-6 md:p-10 flex flex-col items-center">
       <div className="w-full max-w-5xl space-y-8">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
           <div className="space-y-1">
@@ -229,29 +197,11 @@ export const DiagramDashboard: React.FC = () => {
           </div>
         </div>
 
-        {notification && (
-          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-850 rounded-2xl text-sm flex items-center justify-between animate-in slide-in-from-top-2 duration-200">
-            <span className="text-slate-700 dark:text-slate-300 font-semibold">{notification.message}</span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleGoToWorkspace(notification.targetWorkspacePath, notification.targetDiagramId)}
-                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-550 text-white rounded-xl font-bold text-xs cursor-pointer shadow-sm transition-colors"
-              >
-                {notification.actionText}
-              </button>
-              <button
-                onClick={() => setNotification(null)}
-                className="px-3.5 py-1.5 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-650 dark:text-slate-400 border border-slate-250 dark:border-slate-800 rounded-xl font-bold text-xs cursor-pointer transition-colors"
-              >
-                {language === 'tr' ? 'Kapat' : 'Close'}
-              </button>
-            </div>
-          </div>
-        )}
+        {notification && <Toast onDismiss={() => setNotification(null)} action={<Button onClick={() => handleGoToWorkspace(notification.targetWorkspacePath,notification.targetDiagramId)}>{notification.actionText}</Button>}>{notification.message}</Toast>}
 
         {/* Diagrams Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          
+
           {/* Create New Diagram Card */}
           <div
             onClick={handleCreate}
@@ -278,7 +228,7 @@ export const DiagramDashboard: React.FC = () => {
                 onClick={() => !isEditing && switchDiagram(diag.id)}
                 className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-855 rounded-2xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-300 hover:shadow-md hover:scale-[1.01] hover:border-indigo-500/30 dark:hover:border-indigo-500/20 group min-h-[180px] relative overflow-hidden"
               >
-                
+
                 {/* Visual Accent */}
                 <div className="absolute top-0 left-0 w-full h-[4px] bg-gradient-to-r from-indigo-500/10 via-indigo-500/30 to-indigo-500/10 dark:from-indigo-500/5 dark:via-indigo-500/20 dark:to-indigo-500/5" />
 
@@ -287,9 +237,9 @@ export const DiagramDashboard: React.FC = () => {
                     <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850">
                       <FileJson className="w-5 h-5 text-indigo-500/80" />
                     </div>
-                    
+
                     {/* Action buttons on card hover */}
-                    <div 
+                    <div
                       className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity relative"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -309,7 +259,7 @@ export const DiagramDashboard: React.FC = () => {
                             setActiveMenuId(activeMenuId === diag.id ? null : diag.id);
                           }}
                           className="p-1.5 text-slate-400 hover:text-indigo-650 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                          title={language === 'tr' ? 'Taşı / Kopyala' : 'Move / Copy'}
+                          title={message(language, "DiagramDashboard.moveCopy")}
                         >
                           <ArrowRightLeft className="w-3.5 h-3.5" />
                         </button>
@@ -324,7 +274,7 @@ export const DiagramDashboard: React.FC = () => {
                                 }}
                                 className="w-full px-3 py-1.5 text-left text-[11px] font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                               >
-                                {language === 'tr' ? 'Kopyala' : 'Copy'}
+                                {message(language, "DiagramDashboard.copy")}
                               </button>
                               <button
                                 onClick={() => {
@@ -333,7 +283,7 @@ export const DiagramDashboard: React.FC = () => {
                                 }}
                                 className="w-full px-3 py-1.5 text-left text-[11px] font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                               >
-                                {language === 'tr' ? 'Taşı' : 'Move'}
+                                {message(language, "DiagramDashboard.move")}
                               </button>
                             </div>
                           </>
@@ -353,8 +303,8 @@ export const DiagramDashboard: React.FC = () => {
                   </div>
 
                   {isEditing ? (
-                    <div 
-                      className="flex items-center gap-1.5 pt-1" 
+                    <div
+                      className="flex items-center gap-1.5 pt-1"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <input
@@ -368,14 +318,14 @@ export const DiagramDashboard: React.FC = () => {
                         }}
                         className="flex-1 bg-slate-550 dark:bg-slate-950 border border-indigo-400 rounded-lg px-2 py-1 text-xs text-slate-850 dark:text-slate-200 focus:outline-none"
                       />
-                      <button 
-                        onClick={handleSaveEdit} 
+                      <button
+                        onClick={handleSaveEdit}
                         className="p-1 bg-green-50 dark:bg-green-950/20 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
                       >
                         <Check className="w-3.5 h-3.5" />
                       </button>
-                      <button 
-                        onClick={() => setEditingId(null)} 
+                      <button
+                        onClick={() => setEditingId(null)}
                         className="p-1 bg-slate-50 dark:bg-slate-950 text-slate-450 rounded-lg hover:bg-slate-100 transition-colors"
                       >
                         <X className="w-3.5 h-3.5" />

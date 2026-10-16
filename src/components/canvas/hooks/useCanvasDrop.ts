@@ -1,3 +1,4 @@
+import { message } from '../../../i18n/messages';
 import { useEffect, RefObject } from 'react';
 import { Node } from '@xyflow/react';
 import { useAppStore, setDiagramDataInStore } from '../../../store/useAppStore';
@@ -24,7 +25,7 @@ export const useCanvasDrop = (
     if (!el) return;
 
     // ── Handle Component Drag from Left Sidebar ──────────────────────────────
-    const handleMouseUp = (e: MouseEvent) => {
+    const handleMouseUp = (e: Pick<MouseEvent, 'clientX' | 'clientY'>) => {
       const current = useAppStore.getState().pendingDrop;
       if (!current) return;
 
@@ -63,7 +64,7 @@ export const useCanvasDrop = (
         customStyles: { borderOnly: false },
         ...(isSection ? { zIndex: -1 } : {})
       };
-      
+
       // Calculate unique name with index
       const state = useAppStore.getState();
       const logicalNames = state.logicalData.nodes.map((n) => n.name);
@@ -83,11 +84,11 @@ export const useCanvasDrop = (
         const currentTime = useAppStore.getState().currentTime;
         const startTime = currentTime;
         const endTime = startTime + 5000; // Default 5 seconds duration
-        
+
         const annotation = {
           id: nodeId,
           header: uniqueName,
-          body: 'Double click to edit note...',
+          body: message(language, 'useCanvasDrop.noteHint'),
           style: {
             backgroundColor: '#fef08a', // yellow-200
             borderColor: '#eab308', // yellow-500
@@ -108,7 +109,7 @@ export const useCanvasDrop = (
         const logicalNode = { id: nodeId, type, name: uniqueName };
         addNode(logicalNode, visualNode);
       }
-      
+
       cancelDrag();
     };
 
@@ -141,17 +142,13 @@ export const useCanvasDrop = (
             setDiagramDataInStore(repaired.logicalData, repaired.visualData, false);
             useAppStore.setState({ isDirty: true });
             openAlert({
-              title: language === 'tr' ? 'Başarılı' : 'Success',
-              message: language === 'tr'
-                ? `PNG görselindeki gömülü YADA diyagramı (${file.name}) başarıyla açıldı!`
-                : `Embedded YADA diagram from PNG (${file.name}) loaded successfully!`,
+              title: message(language, "useCanvasDrop.success"),
+              message: message(language, "useCanvasDrop.embeddedYADADiagramFromPNGLoadedSuccessfully", { value1: file.name }),
             });
           } else {
             openAlert({
-              title: language === 'tr' ? 'Bilgi' : 'Notice',
-              message: language === 'tr'
-                ? 'Bu PNG dosyasında gömülü YADA diyagram metadata\'sı bulunamadı.'
-                : 'No embedded YADA diagram metadata found in this PNG file.',
+              title: message(language, "useCanvasDrop.notice"),
+              message: message(language, "useCanvasDrop.noEmbeddedYADADiagramMetadataFoundIn"),
             });
           }
         } catch (err) {
@@ -171,17 +168,13 @@ export const useCanvasDrop = (
             setDiagramDataInStore(repaired.logicalData, repaired.visualData, false);
             useAppStore.setState({ isDirty: true });
             openAlert({
-              title: language === 'tr' ? 'Başarılı' : 'Success',
-              message: language === 'tr'
-                ? `SVG vektöründeki gömülü YADA diyagramı (${file.name}) başarıyla açıldı!`
-                : `Embedded YADA diagram from SVG (${file.name}) loaded successfully!`,
+              title: message(language, "useCanvasDrop.success"),
+              message: message(language, "useCanvasDrop.embeddedYADADiagramFromSVGLoadedSuccessfully", { value1: file.name }),
             });
           } else {
             openAlert({
-              title: language === 'tr' ? 'Bilgi' : 'Notice',
-              message: language === 'tr'
-                ? 'Bu SVG dosyasında gömülü YADA diyagram metadata\'sı bulunamadı.'
-                : 'No embedded YADA diagram metadata found in this SVG file.',
+              title: message(language, "useCanvasDrop.notice"),
+              message: message(language, "useCanvasDrop.noEmbeddedYADADiagramMetadataFoundIn2"),
             });
           }
         } catch (err) {
@@ -190,11 +183,21 @@ export const useCanvasDrop = (
       }
     };
 
+    const handleAddComponent = (event: Event) => {
+      const state = useAppStore.getState();
+      const { type, name } = (event as CustomEvent<{ type: string; name: string }>).detail;
+      if (state.isReadOnly || !state.activeDiagramId || !type || !name) return;
+      const rect = el.getBoundingClientRect();
+      state.startDrag(type, name);
+      handleMouseUp({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 });
+    };
+    window.addEventListener('canvas:addComponent', handleAddComponent);
     window.addEventListener('mouseup', handleMouseUp, { capture: true });
     el.addEventListener('dragover', handleDragOver);
     el.addEventListener('drop', handleDrop);
 
     return () => {
+      window.removeEventListener('canvas:addComponent', handleAddComponent);
       window.removeEventListener('mouseup', handleMouseUp, { capture: true });
       el.removeEventListener('dragover', handleDragOver);
       el.removeEventListener('drop', handleDrop);

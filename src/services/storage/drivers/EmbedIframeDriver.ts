@@ -1,5 +1,4 @@
 import { IStorageDriver, StorageMode } from '../types';
-import { generatePngDataUrl } from '../../../utils/exportMedia';
 import { generateDiagramAiSummary } from '../../../utils/aiSummary';
 
 export class EmbedIframeDriver implements IStorageDriver {
@@ -81,7 +80,7 @@ export class EmbedIframeDriver implements IStorageDriver {
 
     let previewDataUri = '';
     try {
-      previewDataUri = await generatePngDataUrl('.react-flow');
+      previewDataUri = await (await import('../../../utils/exportMedia')).generatePngDataUrl('.react-flow');
     } catch (e) {
       console.warn('Failed to capture PNG for embed preview', e);
     }

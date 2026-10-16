@@ -1,3 +1,8 @@
+import { Field } from '../../ui/Field';
+import { Button } from '../../ui/Button';
+import { useExperienceCopy } from '../../../i18n/useExperienceCopy';
+import { Input, Textarea } from '../../ui/Field';
+import { message } from '../../../i18n/messages';
 import React from 'react';
 import { FolderPlus, AlertCircle, Globe } from 'lucide-react';
 import { translations } from '../../../i18n/translations';
@@ -30,75 +35,28 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
   className = '',
 }) => {
   const t = translations[language];
+  const copy = useExperienceCopy();
 
   return (
-    <div className={`w-full md:w-1/2 p-4 sm:p-5 md:p-6 lg:p-7 bg-slate-100/10 dark:bg-slate-950/20 flex-col justify-between h-full min-h-0 overflow-y-auto ${className}`}>
+    <div className={`w-full ${className}`}>
       <div>
-        <h2 className="text-base sm:text-lg font-bold text-slate-700 dark:text-slate-200 mb-3 sm:mb-5 flex items-center gap-2">
-          <FolderPlus className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 dark:text-indigo-400 shrink-0" />
-          <span>{t.createWorkspace}</span>
-        </h2>
-
-        <form onSubmit={onSubmit} className="space-y-3.5 sm:space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-              {t.workspaceName} *
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={loading}
-              placeholder={t.workspaceNamePlaceholder}
-              className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-200 text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/40 transition-all duration-200"
-              maxLength={50}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-              {t.description}
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={loading}
-              placeholder={t.descriptionPlaceholder}
-              rows={3}
-              className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-250 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-200 text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500/80 focus:ring-1 focus:ring-indigo-500/40 transition-all duration-200 resize-none md:rows-4"
-              maxLength={200}
-            />
-          </div>
-
-          {error && (
-            <div className="p-2.5 sm:p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl flex items-start gap-2 text-xs text-red-600 dark:text-red-400">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full mt-2 sm:mt-3 py-2.5 sm:py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800/45 text-slate-100 font-bold rounded-xl text-xs sm:text-sm transition-all duration-200 shadow-lg shadow-indigo-650/10 dark:shadow-indigo-650/20 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <div className="w-4 h-4 border-2 border-indigo-200 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <FolderPlus className="w-4 h-4" />
-                <span>{t.createButton}</span>
-              </>
-            )}
-          </button>
+        <form onSubmit={onSubmit} className="space-y-5">
+          <Field label={t.workspaceName} hint={copy.workspaceNameHint}>
+            <Input type="text" value={name} onChange={event => setName(event.target.value)} disabled={loading} placeholder={t.workspaceNamePlaceholder} maxLength={50} required autoFocus data-dialog-autofocus="" />
+          </Field>
+          <Field label={t.description} hint={copy.descriptionHint}>
+            <Textarea value={description} onChange={event => setDescription(event.target.value)} disabled={loading} placeholder={t.descriptionPlaceholder} rows={3} maxLength={200} />
+          </Field>
+          {error && <div className="yada-field-error flex items-start gap-2" role="alert"><AlertCircle size={18} aria-hidden="true" /><span>{error}</span></div>}
+          <Button type="submit" busy={loading} disabled={!name.trim()} className="w-full"><FolderPlus size={18} aria-hidden="true" />{t.createButton}</Button>
         </form>
 
         {import.meta.env.VITE_ENABLE_GOOGLE_SYNC === 'true' && (
           <div className="mt-4 sm:mt-6 pt-4 sm:pt-5 border-t border-slate-200 dark:border-slate-800">
             <h3 className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 mb-2.5 text-center">
-              {language === 'tr' ? 'Bulut Senkronizasyonu' : 'Cloud Synchronization'}
+              {message(language, "CreateWorkspaceForm.cloudSynchronization")}
             </h3>
-            
+
             {!googleUser ? (
               <button
                 type="button"
@@ -124,18 +82,16 @@ export const CreateWorkspaceForm: React.FC<CreateWorkspaceFormProps> = ({
                     fill="#EA4335"
                   />
                 </svg>
-                <span>{language === 'tr' ? 'Google ile Giriş Yap' : 'Login with Google'}</span>
+                <span>{message(language, "CreateWorkspaceForm.loginWithGoogle")}</span>
               </button>
             ) : (
               <div className="flex flex-col items-center gap-1.5">
                 <div className="flex items-center gap-1.5 text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 font-medium">
                   <Globe className="w-4 h-4" />
-                  <span>{language === 'tr' ? 'Oturum Açıldı' : 'Signed In'}</span>
+                  <span>{message(language, "CreateWorkspaceForm.signedIn")}</span>
                 </div>
-                <p className="text-[11px] text-slate-500 text-center max-w-[240px]">
-                  {language === 'tr' 
-                    ? 'Geçmiş projeleriniz başarıyla buluttan indirildi ve listelendi.' 
-                    : 'Your past projects were successfully fetched and listed.'}
+                <p className="text-xs text-slate-500 text-center max-w-[240px]">
+                  {message(language, "CreateWorkspaceForm.yourPastProjectsWereSuccessfullyFetchedAnd")}
                 </p>
               </div>
             )}

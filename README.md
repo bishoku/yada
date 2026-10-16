@@ -1,7 +1,7 @@
 https://github.com/user-attachments/assets/000e39c0-94d1-4335-8005-461be3a49aea
 
 <div align="center">
- 
+
   # YADA (Yet Another Diagram App) 🚀
 
   **An open-source, interactive architecture diagramming and simulation tool.**
@@ -228,7 +228,48 @@ Navigation waits for unsaved diagram changes to save. Failed writes display retr
 With the development server running, open `/scripts/playback-profile.html` to measure the real freeform or sequence canvas using disposable 25/250/1,000-message fixtures. Select a view and size, then choose **Measure playback**. Results include frame intervals, React rendering time and browser heap usage when available. The page does not persist fixtures and is excluded from the production application entry point. Short development samples are diagnostic; see `evaluation.md` for measured results and limitations.
 
 
+For production playback measurements, run `npm run build:profile` and `npm run preview:profile`, then open `http://127.0.0.1:1422/scripts/playback-profile.html`. This separate build is excluded from the shipped application and its PWA cache. The profiler defaults to five 30-second samples, each after a one-second warmup, with looping enabled only during measurement. Keep the tab visible; background samples are rejected. Results include browser, viewport, hardware concurrency, pixel ratio and sample time. Record the device model, power mode and browser version alongside the output when comparing changes. A 2-second/1-run option is for smoke checks only.
+
+Standard production React builds do not expose Profiler callbacks, so React commit/render metrics are `null` in production results. Frame intervals remain available; optional heap readings are browser-specific and are not leak proofs. The harness uses 20 participants with parallel edges and round trips, not every real-world diagram shape. Do not compare its initial download size with the application entry point.
+
 Large sequence diagrams render messages near the viewport while retaining the complete participant layout for **Fit View**. PNG/SVG and DOM video capture temporarily render all messages, then restore viewport rendering. This is a display optimization; existing files, timing and seeking semantics are unchanged. The profiling page includes paused-seek and PNG/SVG capture checks.
 
 
 Editor and shared/embed simulation playback share one clock-driven loop. Canvas media rendering caches document geometry across frames; these caches are derived and do not change saved files. The development profiler also provides **Shared freeform**, **Seek visible message**, and **Check Canvas 2D renderer** checks. Dense live freeform rendering still has known performance limits described in `evaluation.md`.
+
+### Localization and compact editor layout
+
+TR/EN UI text lives in typed catalogs under `src/i18n/`, including accessible canvas labels and exported HTML player controls. Catalog checks validate non-empty entries and matching interpolation parameters; the UI text coverage test flags uncatalogued JSX copy except explicit technical terms. User-authored diagram names, notes and protocol values retain their original content when switching language.
+
+Below 1,024 px, the component library, properties and timeline open as individual drawers. Components can be added by touch or keyboard as well as desktop drag-and-drop. Closing properties before applying reverts its temporary preview. Advanced toolbar actions live in the labeled tools menu. Modal surfaces manage focus, Escape and focus restoration; the desktop timeline divider also supports arrow keys, Home and End.
+
+### Loading and large freeform diagrams
+
+Technology icon variants load when used; the collapsed icon picker does not mount its catalog. PWA installations cache these optional variants on demand (up to 400 entries for 30 days) instead of downloading the full icon collection with the shell. An icon variant not previously cached needs a connection on first use. DOM image/video capture waits for the selected document icons before cloning the canvas.
+
+Import parsers, automatic layout, host viewers and media/HTML export implementations load at their feature boundaries. Freeform edges share document-revision topology indexes and sample single cubic particle paths numerically; compound/orthogonal paths retain SVG sampling. The host viewer uses the shared frame clock, preserving its automatic looping without changing the editor's loop preference.
+
+Run `node scripts/bundle-report.mjs dist` after a production build to report the static JavaScript import closure and the default welcome route. Sizes are summed raw/gzip file bytes, not measured network transfers or Core Web Vitals. See `evaluation.md` for paired production playback results and remaining limits.
+
+### Shared controls, local fonts and getting started
+
+Reusable controls live in `src/components/ui/`: Button, IconButton, Field/Input/Textarea/Select, Menu, Tooltip, Tabs, Toast, EmptyState and Dialog. Supply translated labels from the catalogs, preserve native field attributes, and use Field for associated labels, hints and validation errors. Menus support arrow keys, Home/End, locale-aware typeahead and Escape; tabs use a single keyboard tab stop. Shared styles define focus, disabled/busy states, mobile touch sizes and reduced motion.
+
+Outfit and Plus Jakarta Sans are served locally from `public/fonts/`, including Latin Extended subsets for Turkish. Caveat and Kalam load when drawing content or tools need them. UI fonts are included in the PWA shell; drawing fonts are cached on use, so their first offline use requires a previous online load. Font licenses and provenance are alongside the assets. Standalone HTML players embed their UI fonts and do not request Google Fonts. Media capture waits for requested fonts before cloning the document.
+
+The welcome screen offers a blank diagram, an editable request-flow example, import and named workspaces. A genuinely empty editable canvas explains adding components, connecting them and playing the flow. The example inserts three localized components and two round-trip steps as one undoable edit; it preserves canvas preferences and never replaces authored content, read-only documents, previews or collaborative sessions. Changing language leaves existing diagram content intact. Creating a workspace starts an independent undo history.
+
+### Updates, offline use and output recovery
+
+The standalone production web app installs a service worker; Forge and Data Center builds do not generate one, and desktop/embedded sessions do not register it. Updates wait for **Save and update**. Saving is checked before activation and again before reloading, so failed writes or edits made while saving keep the document open. Other tabs receive a prompt and keep their form drafts. Updates are blocked during component editing, import previews and live collaboration; finish those sessions first. This follows the plugin's [prompt update lifecycle](https://vite-pwa-org.netlify.app/guide/prompt-for-update), with explicit save checks instead of automatic reload.
+
+The cached shell and saved local diagrams can reopen without a connection after offline installation completes. TR/EN notices explain connection loss, recovery and setup/update failure. Optional icons and drawing fonts must have been loaded previously to be available offline; missing icon loads retry after an online event. **Save and reload** on reconnection provides a guarded recovery if a browser still retains a failed module load. Cloud storage, external references, sharing and live collaboration require their respective services. The browser's online/offline signal is a connection hint, not a guarantee that a cloud service is reachable.
+
+Serve `sw.js` without a long-lived HTTP cache and retain the preceding release's hashed assets during rolling deployments: open tabs can still request their older lazy modules. Verify upgrades from the deployed production version on a staging origin before release; a local waiting-worker check does not cover every previously installed version. Resource URLs such as SVG, images, video and project archives are excluded from SPA navigation fallback.
+
+PNG/SVG capture restores the actual viewport, UI display styles, capture mode and playback position after completion or failure. Capture failures propagate to the existing localized error dialog. Broken project JSON is rejected before workspace/component writes. Archive regression tests include both supported envelope shapes and a fixture downloaded through the production export menu; tests retain names, round trips and timing. Complex-document output and live host acceptance remain tracked in `YADA-UI-UX-PLAN.md`.
+
+
+### Editing and startup measurements
+
+`npm run measure:editing` runs the isolated store CPU/retained-history benchmark with forced GC. `npm run build:startup-profile` and `npm run preview:startup-profile` enable the visible local startup probe; the probe is absent from normal production builds, and service-worker installation is disabled in the startup profile. Methodology, paired reports, limits and compact-control acceptance are in [the 2026-10-16 report](performance/2026-10-16/editing-and-startup.md). These local measurements do not establish real-user Core Web Vitals or large-simulation performance.

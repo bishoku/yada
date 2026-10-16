@@ -1,17 +1,18 @@
+import { message } from '../../i18n/messages';
 import React from 'react';
-import { 
+import {
   MousePointer2,
   Square,
   Diamond,
   Circle,
-  ArrowUpRight, 
+  ArrowUpRight,
   Minus,
-  Pen, 
-  Highlighter, 
+  Pen,
+  Highlighter,
   Type,
-  Eraser, 
-  Trash2, 
-  X, 
+  Eraser,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -55,7 +56,7 @@ export const DrawingToolbar: React.FC = () => {
             ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
             : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
         }`}
-        title={language === 'tr' ? 'Seç ve Taşı (V)' : 'Select & Move (V)'}
+        title={message(language, "DrawingToolbar.selectMoveV")}
       >
         <MousePointer2 className="w-4 h-4" />
       </button>
@@ -71,7 +72,7 @@ export const DrawingToolbar: React.FC = () => {
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Dikdörtgen (R)' : 'Rectangle (R)'}
+          title={message(language, "DrawingToolbar.rectangleR")}
         >
           <Square className="w-4 h-4" />
         </button>
@@ -83,7 +84,7 @@ export const DrawingToolbar: React.FC = () => {
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Baklava / Karar (D)' : 'Diamond (D)'}
+          title={message(language, "DrawingToolbar.diamondD")}
         >
           <Diamond className="w-4 h-4" />
         </button>
@@ -95,7 +96,7 @@ export const DrawingToolbar: React.FC = () => {
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Elips / Daire (O)' : 'Ellipse / Circle (O)'}
+          title={message(language, "DrawingToolbar.ellipseCircleO")}
         >
           <Circle className="w-4 h-4" />
         </button>
@@ -107,7 +108,7 @@ export const DrawingToolbar: React.FC = () => {
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'El Çizimi Ok (A)' : 'Arrow (A)'}
+          title={message(language, "DrawingToolbar.arrowA")}
         >
           <ArrowUpRight className="w-4 h-4" />
         </button>
@@ -119,7 +120,7 @@ export const DrawingToolbar: React.FC = () => {
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Düz Çizgi (L)' : 'Line (L)'}
+          title={message(language, "DrawingToolbar.lineL")}
         >
           <Minus className="w-4 h-4" />
         </button>
@@ -131,7 +132,7 @@ export const DrawingToolbar: React.FC = () => {
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Serbest Kalem (P)' : 'Draw / Pen (P)'}
+          title={message(language, "DrawingToolbar.drawPenP")}
         >
           <Pen className="w-4 h-4" />
         </button>
@@ -143,7 +144,7 @@ export const DrawingToolbar: React.FC = () => {
               ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Fosforlu Kalem (H)' : 'Highlighter (H)'}
+          title={message(language, "DrawingToolbar.highlighterH")}
         >
           <Highlighter className="w-4 h-4" />
         </button>
@@ -155,7 +156,7 @@ export const DrawingToolbar: React.FC = () => {
               ? 'bg-violet-600 text-white shadow-md shadow-violet-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Yazı / Metin (T)' : 'Text (T)'}
+          title={message(language, "DrawingToolbar.textT")}
         >
           <Type className="w-4 h-4" />
         </button>
@@ -167,7 +168,7 @@ export const DrawingToolbar: React.FC = () => {
               ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25 scale-105'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
           }`}
-          title={language === 'tr' ? 'Silgi (E)' : 'Eraser (E)'}
+          title={message(language, "DrawingToolbar.eraserE")}
         >
           <Eraser className="w-4 h-4" />
         </button>
@@ -221,7 +222,7 @@ export const DrawingToolbar: React.FC = () => {
           <button
             onClick={clearFreehandStrokes}
             className="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
-            title={language === 'tr' ? 'Tüm Çizimleri Temizle' : 'Clear All Drawings'}
+            title={message(language, "DrawingToolbar.clearAllDrawings")}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -234,7 +235,7 @@ export const DrawingToolbar: React.FC = () => {
       <button
         onClick={() => setActiveDrawingTool(null)}
         className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        title={language === 'tr' ? 'Çizim Modundan Çık' : 'Exit Drawing Mode'}
+        title={message(language, "DrawingToolbar.exitDrawingMode")}
       >
         <X className="w-4 h-4" />
       </button>

@@ -1,3 +1,5 @@
+import { Input } from '../../ui/Field';
+import { message } from '../../../i18n/messages';
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 
@@ -12,7 +14,7 @@ export const KeyValueEditor: React.FC<KeyValueEditorProps> = ({
   onChange,
   language,
 }) => {
-  const tr = (t: string, e: string) => (language === 'tr' ? t : e);
+
 
   // Maintain local array representation for easy editing
   const [items, setItems] = useState<Array<{ id: string; key: string; value: string }>>([]);
@@ -73,40 +75,40 @@ export const KeyValueEditor: React.FC<KeyValueEditorProps> = ({
   return (
     <div className="flex flex-col gap-1.5 mt-2 border-t border-slate-100 dark:border-slate-800/70 pt-2">
       <div className="flex items-center justify-between">
-        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none">
-          {tr('Öznitelikler (Attributes)', 'Attributes')}
+        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none">
+          {message(language, "KeyValueEditor.attributes")}
         </span>
         <button
           type="button"
           onClick={addItem}
-          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold text-indigo-650 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer transition-colors"
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold text-indigo-650 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 cursor-pointer transition-colors"
         >
           <Plus className="w-2.5 h-2.5" />
-          <span>{tr('Ekle', 'Add')}</span>
+          <span>{message(language, "KeyValueEditor.add")}</span>
         </button>
       </div>
 
       {items.length === 0 ? (
-        <span className="text-[10px] text-slate-400 dark:text-slate-500 italic pl-1 py-1">
-          {tr('Öznitelik yok.', 'No attributes.')}
+        <span className="text-xs text-slate-400 dark:text-slate-500 italic pl-1 py-1">
+          {message(language, "KeyValueEditor.noAttributes")}
         </span>
       ) : (
         <div className="flex flex-col gap-1.5 max-h-[150px] overflow-y-auto pr-1">
           {items.map((item) => (
             <div key={item.id} className="flex items-center gap-1">
-              <input
+              <Input
                 type="text"
-                placeholder={tr('Anahtar', 'Key')}
+                placeholder={message(language, "KeyValueEditor.key")}
                 value={item.key}
                 onChange={(e) => changeItem(item.id, 'key', e.target.value)}
-                className="w-1/2 px-2 py-1 text-[11px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200"
+                className="w-1/2"
               />
-              <input
+              <Input
                 type="text"
-                placeholder={tr('Değer', 'Value')}
+                placeholder={message(language, "KeyValueEditor.value")}
                 value={item.value}
                 onChange={(e) => changeItem(item.id, 'value', e.target.value)}
-                className="w-1/2 px-2 py-1 text-[11px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200"
+                className="w-1/2"
               />
               <button
                 type="button"
@@ -118,8 +120,8 @@ export const KeyValueEditor: React.FC<KeyValueEditorProps> = ({
             </div>
           ))}
           {hasDuplicates && (
-            <span className="text-[9px] text-rose-500 font-semibold mt-0.5 leading-none">
-              {tr('Aynı anahtar isminden birden fazla var', 'Duplicate keys are not allowed')}
+            <span className="text-xs text-rose-500 font-semibold mt-0.5 leading-none">
+              {message(language, "KeyValueEditor.duplicateKeysAreNotAllowed")}
             </span>
           )}
         </div>

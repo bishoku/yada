@@ -1,3 +1,8 @@
+import { Input, Select, Textarea } from '../../ui/Field';
+import { useId } from 'react';
+import { colorLabels } from '../../../i18n/domainLabels';
+import { useUiCopy } from '../../../i18n/useUiCopy';
+import { message } from '../../../i18n/messages';
 import { translations } from '../../../i18n/translations';
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { ActiveEdgeProperties } from '../../../types';
@@ -64,10 +69,10 @@ const DEFAULT_COLOR = '';
 
 
 /** Compact label */
-const Label: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none">
+const Label: React.FC<{ children: React.ReactNode; htmlFor?: string }> = ({ children, htmlFor }) => (
+  <label htmlFor={htmlFor} className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none">
     {children}
-  </span>
+  </label>
 );
 
 /** Compact text/number input with auto-select on focus */
@@ -80,7 +85,7 @@ const CompactInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (pro
   };
 
   return (
-    <input
+    <Input
       {...props}
       onFocus={handleFocus}
       className={`w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 ${props.className ?? ''}`}
@@ -91,7 +96,7 @@ const CompactInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (pro
 /** Thin divider with optional inline label */
 const Divider: React.FC<{ label?: string }> = ({ label }) => (
   <div className="flex items-center gap-2 pt-2 mt-0.5 border-t border-slate-100 dark:border-slate-800/70">
-    {label && <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider whitespace-nowrap">{label}</span>}
+    {label && <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider whitespace-nowrap">{label}</span>}
     {label && <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800/70" />}
   </div>
 );
@@ -111,6 +116,8 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
   onSubmit,
   onPreview,
 }, ref) => {
+  const propertyPrefix = useId();
+  const uiCopy = useUiCopy();
   const [protocol, setProtocol] = useState(activeEdge.protocol);
   const [isAsync, setIsAsync] = useState(activeEdge.isAsync);
   const [stepNumber, setStepNumber] = useState(activeEdge.stepNumber);
@@ -308,7 +315,6 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
        description, particleType, showArrow, color, stepNumber, formRoundTrip, formAnimationMode, formRepeatCount, properties,
        connectionType, strokeWidth, lineStyle, arrowStart, arrowEnd, gradientColor, labelPosition, glowIntensity, orig, onSubmit, onPreview]);
 
-  const tr = (t: string, e: string) => lang === 'tr' ? t : e;
   const copy = translations[lang === 'tr' ? 'tr' : 'en'];
 
   return (
@@ -317,32 +323,32 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       {/* Protocol + Step — side by side */}
       <div className="grid grid-cols-[1fr_80px] gap-2">
         <div className="flex flex-col gap-1">
-          <Label>{tr('Protokol', 'Protocol')}</Label>
+          <Label htmlFor={`${propertyPrefix}-property-1`}>{message(lang, "EdgePropertiesForm.protocol")}</Label>
           <CompactInput
             type="text"
             placeholder="HTTP, gRPC, WS..."
             value={protocol}
             onChange={(e) => { setProtocol(e.target.value); preview({ p: e.target.value }); }}
-          />
+           id={`${propertyPrefix}-property-1`}/>
         </div>
         <div className="flex flex-col gap-1">
-          <Label>{copy.terms.step}</Label>
-          <select
+          <Label htmlFor={`${propertyPrefix}-property-2`}>{copy.terms.step}</Label>
+          <Select
             value={stepNumber}
             onChange={(e) => { setStepNumber(Number(e.target.value)); preview({ s: Number(e.target.value) }); }}
-            className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 cursor-pointer font-bold"
-          >
+            className="w-full"
+           id={`${propertyPrefix}-property-2`}>
             {Array.from({ length: maxSteps }, (_, i) => i + 1).map((n) => (
               <option key={n} value={n}>#{n}</option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
 
       {/* Edge Color — 4x2 Preset Grid + Custom Color Row */}
       <div className="flex flex-col gap-2 pt-1">
         <div className="flex items-center justify-between">
-          <Label>{tr('Bağlantı Rengi', 'Edge Color')}</Label>
+          <Label>{message(lang, "EdgePropertiesForm.edgeColor")}</Label>
         </div>
 
         {/* 4x2 Presets Grid */}
@@ -355,17 +361,17 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
               className={`h-5 rounded-full ${ec.cls} hover:scale-105 active:scale-95 transition-transform cursor-pointer flex items-center justify-center ${
                 color === ec.value ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-105 shadow-sm' : ''
               }`}
-              title={ec.key}
+              title={colorLabels[lang === 'tr' ? 'tr' : 'en'][ec.key] || ec.key}
             />
           ))}
         </div>
 
         {/* Custom Color Picker Row */}
         <div className="flex items-center justify-between pt-0.5">
-          <Label>{tr('Özel Renk Paleti', 'Custom Color')}</Label>
+          <Label>{message(lang, "EdgePropertiesForm.customColor")}</Label>
           <div className="flex items-center gap-2">
             {color.startsWith('#') && (
-              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">
+              <span className="text-xs font-mono text-slate-500 dark:text-slate-400 font-semibold">
                 {color}
               </span>
             )}
@@ -373,7 +379,7 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
               className={`w-5 h-5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 ${
                 color.startsWith('#') ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-slate-900 scale-110 shadow-sm' : 'hover:scale-105 transition-transform'
               }`}
-              title={tr('Özel Renk Seçici', 'Custom Color Picker')}
+              title={message(lang, "EdgePropertiesForm.customColorPicker")}
             >
               <input
                 type="color"
@@ -387,11 +393,11 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       </div>
 
       {/* ── Premium Edge Styling Section ────────────────────────────────────────── */}
-      <Divider label={tr('Çizgi & Yönlendirme Stili', 'Edge & Routing Style')} />
+      <Divider label={message(lang, "EdgePropertiesForm.edgeRoutingStyle")} />
 
       {/* 1. Connection Type Selector (Bezier, Smooth, Step, Straight) */}
       <div className="flex flex-col gap-1">
-        <Label>{tr('Çizgi Tipi', 'Connection Type')}</Label>
+        <Label>{message(lang, "EdgePropertiesForm.connectionType")}</Label>
         <div className="grid grid-cols-4 gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
           {(
             [
@@ -428,29 +434,29 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       <div className="grid grid-cols-2 gap-2">
         {/* Line Style */}
         <div className="flex flex-col gap-1">
-          <Label>{tr('Çizgi Desen', 'Pattern')}</Label>
-          <select
+          <Label htmlFor={`${propertyPrefix}-property-3`}>{message(lang, "EdgePropertiesForm.pattern")}</Label>
+          <Select
             value={lineStyle}
             onChange={(e) => {
               const ls = e.target.value as import('../../../types').EdgeLineStyle;
               setLineStyle(ls);
               preview({ ls });
             }}
-            className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 cursor-pointer font-medium"
-          >
-            <option value="solid">Düz (Solid)</option>
-            <option value="dashed">Çizgili (Dashed)</option>
-            <option value="dotted">Noktalı (Dotted)</option>
-            <option value="longDash">Uzun Çizgili</option>
-            <option value="dashDot">Çizgi-Nokta</option>
-          </select>
+            className="w-full"
+           id={`${propertyPrefix}-property-3`}>
+            <option value="solid">{uiCopy.solid}</option>
+            <option value="dashed">{uiCopy.dashed}</option>
+            <option value="dotted">{uiCopy.dotted}</option>
+            <option value="longDash">{uiCopy.longDash}</option>
+            <option value="dashDot">{uiCopy.dashDot}</option>
+          </Select>
         </div>
 
         {/* Stroke Width Slider */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between">
-            <Label>{tr('Kalınlık', 'Thickness')}</Label>
-            <span className="text-[9px] font-mono text-indigo-500 font-bold">{strokeWidth}px</span>
+            <Label>{message(lang, "EdgePropertiesForm.thickness")}</Label>
+            <span className="text-xs font-mono text-indigo-500 font-bold">{strokeWidth}px</span>
           </div>
           <input
             type="range"
@@ -471,27 +477,27 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       {/* 3. Arrowhead Pickers (Start & End) */}
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-1">
-          <Label>{tr('Başlangıç Oku', 'Start Arrow')}</Label>
-          <select
+          <Label htmlFor={`${propertyPrefix}-property-4`}>{message(lang, "EdgePropertiesForm.startArrow")}</Label>
+          <Select
             value={arrowStart}
             onChange={(e) => {
               const ast = e.target.value as import('../../../types').EdgeArrowType;
               setArrowStart(ast);
               preview({ ast });
             }}
-            className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 cursor-pointer font-medium"
-          >
-            <option value="none">Yok (None)</option>
-            <option value="triangle">Üçgen (Triangle)</option>
-            <option value="open">Açık Ok (Open)</option>
-            <option value="diamond">Baklava (Diamond)</option>
-            <option value="circle">Daire (Circle)</option>
-          </select>
+            className="w-full"
+           id={`${propertyPrefix}-property-4`}>
+            <option value="none">{uiCopy.none}</option>
+            <option value="triangle">{uiCopy.triangle}</option>
+            <option value="open">{uiCopy.openArrow}</option>
+            <option value="diamond">{uiCopy.diamond}</option>
+            <option value="circle">{uiCopy.circle}</option>
+          </Select>
         </div>
 
         <div className="flex flex-col gap-1">
-          <Label>{tr('Bitiş Oku', 'End Arrow')}</Label>
-          <select
+          <Label htmlFor={`${propertyPrefix}-property-5`}>{message(lang, "EdgePropertiesForm.endArrow")}</Label>
+          <Select
             value={arrowEnd}
             onChange={(e) => {
               const aed = e.target.value as import('../../../types').EdgeArrowType;
@@ -499,14 +505,14 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
               setShowArrow(aed !== 'none');
               preview({ aed, arr: aed !== 'none' });
             }}
-            className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 cursor-pointer font-medium"
-          >
-            <option value="none">Yok (None)</option>
-            <option value="triangle">Üçgen (Triangle)</option>
-            <option value="open">Açık Ok (Open)</option>
-            <option value="diamond">Baklava (Diamond)</option>
-            <option value="circle">Daire (Circle)</option>
-          </select>
+            className="w-full"
+           id={`${propertyPrefix}-property-5`}>
+            <option value="none">{uiCopy.none}</option>
+            <option value="triangle">{uiCopy.triangle}</option>
+            <option value="open">{uiCopy.openArrow}</option>
+            <option value="diamond">{uiCopy.diamond}</option>
+            <option value="circle">{uiCopy.circle}</option>
+          </Select>
         </div>
       </div>
 
@@ -515,14 +521,14 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
         {/* Gradient Color */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between">
-            <Label>{tr('Gradient Bitiş', 'Gradient End')}</Label>
+            <Label>{message(lang, "EdgePropertiesForm.gradientEnd")}</Label>
             {gradientColor && (
               <button
                 type="button"
                 onClick={() => { setGradientColor(''); preview({ gc: '' }); }}
                 className="text-[8px] text-rose-500 hover:underline cursor-pointer"
               >
-                Temizle
+                {uiCopy.clear}
               </button>
             )}
           </div>
@@ -538,37 +544,37 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
                 className="w-[150%] h-[150%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 p-0 bg-transparent"
               />
             </div>
-            <span className="text-[10px] font-mono text-slate-500 truncate">
-              {gradientColor || tr('Geçiş Yok', 'None')}
+            <span className="text-xs font-mono text-slate-500 truncate">
+              {gradientColor || message(lang, "EdgePropertiesForm.none")}
             </span>
           </div>
         </div>
 
         {/* Glow Intensity */}
         <div className="flex flex-col gap-1">
-          <Label>{tr('Glow Efekti', 'Glow Effect')}</Label>
-          <select
+          <Label htmlFor={`${propertyPrefix}-property-6`}>{message(lang, "EdgePropertiesForm.glowEffect")}</Label>
+          <Select
             value={glowIntensity}
             onChange={(e) => {
               const gi = e.target.value as import('../../../types').EdgeGlowIntensity;
               setGlowIntensity(gi);
               preview({ gi });
             }}
-            className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 cursor-pointer font-medium"
-          >
-            <option value="none">Yok (Off)</option>
-            <option value="subtle">Hafif (Subtle)</option>
-            <option value="strong">Yüksek (Strong)</option>
-            <option value="neon">Neon Halo</option>
-          </select>
+            className="w-full"
+           id={`${propertyPrefix}-property-6`}>
+            <option value="none">{uiCopy.off}</option>
+            <option value="subtle">{uiCopy.subtle}</option>
+            <option value="strong">{uiCopy.strong}</option>
+            <option value="neon">{uiCopy.neonHalo}</option>
+          </Select>
         </div>
       </div>
 
       {/* 5. Label Position Slider */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <Label>{tr('Etiket Konumu', 'Label Position')}</Label>
-          <span className="text-[9px] font-mono text-indigo-500 font-bold">%{labelPosition}</span>
+          <Label>{message(lang, "EdgePropertiesForm.labelPosition")}</Label>
+          <span className="text-xs font-mono text-indigo-500 font-bold">%{labelPosition}</span>
         </div>
         <div className="flex items-center gap-2">
           <input
@@ -606,7 +612,7 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       {/* Duration + Delay — side by side */}
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-1">
-          <Label>{copy.timelineUi.duration}</Label>
+          <Label htmlFor={`${propertyPrefix}-property-7`}>{copy.timelineUi.duration}</Label>
           <CompactInput
             type="number"
             value={duration}
@@ -619,10 +625,10 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
               setDuration(val);
               preview({ d: val });
             }}
-          />
+           id={`${propertyPrefix}-property-7`}/>
         </div>
         <div className="flex flex-col gap-1">
-          <Label>{copy.timelineUi.delay}</Label>
+          <Label htmlFor={`${propertyPrefix}-property-8`}>{copy.timelineUi.delay}</Label>
           <CompactInput
             type="number"
             value={delay}
@@ -635,12 +641,12 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
               setDelay(val);
               preview({ dl: val });
             }}
-          />
+           id={`${propertyPrefix}-property-8`}/>
         </div>
       </div>
 
       {/* Animation Mode — radio group */}
-      <Divider label={tr('Simülasyon Modu', 'Animation Mode')} />
+      <Divider label={message(lang, "EdgePropertiesForm.animationMode")} />
 
       <div className="flex flex-col gap-1.5">
         {/* Normal */}
@@ -651,8 +657,8 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
             onChange={() => { setFormAnimationMode('normal'); setFormRoundTrip(false); preview({ rt: false, am: 'normal' }); }}
             className="accent-indigo-600 w-3.5 h-3.5 cursor-pointer"
           />
-          <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">
-            {tr('Normal', 'Normal')}
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            {message(lang, 'EdgePropertiesForm.normal')}
           </span>
         </label>
 
@@ -664,7 +670,7 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
             onChange={() => { setFormAnimationMode('roundTrip'); setFormRoundTrip(true); preview({ rt: true, am: 'roundTrip' }); }}
             className="accent-indigo-600 w-3.5 h-3.5 cursor-pointer"
           />
-          <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {copy.terms.roundTrip}
           </span>
         </label>
@@ -677,15 +683,15 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
             onChange={() => { setFormAnimationMode('repeat'); setFormRoundTrip(false); preview({ rt: false, am: 'repeat', rpc: formRepeatCount }); }}
             className="accent-indigo-600 w-3.5 h-3.5 cursor-pointer"
           />
-          <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300">
-            {tr('Sürekli Tekrar', 'Repeat')}
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            {message(lang, "EdgePropertiesForm.repeat")}
           </span>
         </label>
 
         {/* Particle Count — only visible when repeat is selected */}
         {formAnimationMode === 'repeat' && (
           <div className="ml-5 flex items-center gap-2 mt-0.5">
-            <Label>{tr('Parçacık Sayısı', 'Particle Count')}</Label>
+            <Label htmlFor={`${propertyPrefix}-property-9`}>{message(lang, "EdgePropertiesForm.particleCount")}</Label>
             <CompactInput
               type="number"
               style={{ width: 56 }}
@@ -699,13 +705,13 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
                 setFormRepeatCount(val);
                 preview({ rpc: val });
               }}
-            />
+             id={`${propertyPrefix}-property-9`}/>
           </div>
         )}
       </div>
 
       {/* Particle type — picker with preview */}
-      <Divider label={tr('Parçacık', 'Particle')} />
+      <Divider label={message(lang, "EdgePropertiesForm.particle")} />
       <ParticlePicker
         value={particleType}
         language={lang}
@@ -738,13 +744,13 @@ export const EdgePropertiesForm = forwardRef<EdgePropertiesFormRef, EdgeProperti
       </div>
 
       {/* Description */}
-      <Divider label={tr('Açıklama', 'Notes')} />
-      <textarea
+      <Divider label={message(lang, "EdgePropertiesForm.notes")} />
+      <Textarea
         rows={2}
-        placeholder={tr('Bu adım hakkında not...', 'Step notes...')}
+        placeholder={message(lang, "EdgePropertiesForm.stepNotes")}
         value={description}
         onChange={(e) => { setDescription(e.target.value); preview({ desc: e.target.value }); }}
-        className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 resize-none"
+        className="w-full resize-none"
       />
 
       {/* Key-Value Attributes Editor */}

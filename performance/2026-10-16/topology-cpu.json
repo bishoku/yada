@@ -1,0 +1,37 @@
+{
+  "edges": 1000,
+  "steps": 1000,
+  "note": "Node.js pure topology CPU benchmark, not browser FPS or document opening latency",
+  "samples": [
+    {
+      "legacyMs": 356.736,
+      "cachedMs": 1.11,
+      "checksum": 24500,
+      "equivalent": true
+    },
+    {
+      "legacyMs": 232.413,
+      "cachedMs": 0.077,
+      "checksum": 24500,
+      "equivalent": true
+    },
+    {
+      "legacyMs": 233.207,
+      "cachedMs": 0.096,
+      "checksum": 24500,
+      "equivalent": true
+    },
+    {
+      "legacyMs": 228.616,
+      "cachedMs": 0.05,
+      "checksum": 24500,
+      "equivalent": true
+    },
+    {
+      "legacyMs": 230.834,
+      "cachedMs": 0.037,
+      "checksum": 24500,
+      "equivalent": true
+    }
+  ]
+}

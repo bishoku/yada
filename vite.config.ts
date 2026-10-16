@@ -16,7 +16,9 @@ export default defineConfig(async ({ command }) => {
       react(), 
       tailwindcss(),
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
+        injectRegister: false,
+        disable: !!process.env.VITE_TARGET || process.env.VITE_PROFILE_STARTUP === 'true', // Hosts own their lifecycle; never install a worker in their iframe.
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-icon.png'],
         manifest: {
           name: 'YADA',
@@ -45,8 +47,23 @@ export default defineConfig(async ({ command }) => {
           ]
         },
         workbox: {
+          skipWaiting: false,
+          clientsClaim: true,
+          cleanupOutdatedCaches: true,
           maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
-          navigateFallbackDenylist: [/\.json$/]
+          // Optional icons are cached on use; installing the shell must not fetch every SVG.
+          globPatterns: ['**/*.{js,css,html,woff2}'],
+          globIgnores: ['**/devicon-*.js', '**/fonts/caveat-*', '**/fonts/kalam-*', '**/fonts/sketch.css'],
+          runtimeCaching: [{
+            urlPattern: /\/fonts\/(?:sketch\.css|(?:caveat|kalam)-[^/]+\.woff2)$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'yada-drawing-fonts-v1', expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 365 } },
+          }, {
+            urlPattern: /\/assets\/devicon-[^/]+\.js$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'yada-devicons', expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+          }],
+          navigateFallbackDenylist: [/\.(?:json|svg|png|jpe?g|gif|webp|ico|mp4|webm|dproj|zip|woff2?|css|js)(?:\?.*)?$/i]
         }
       })
     ],
@@ -56,6 +73,7 @@ export default defineConfig(async ({ command }) => {
     build: {
       rollupOptions: {
         output: {
+          onlyExplicitManualChunks: true,
           manualChunks(id: string) {
             // React core — cached across all pages
             if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
@@ -75,15 +93,11 @@ export default defineConfig(async ({ command }) => {
             }
             // Technology icon set — only for editor sidebar
             if (id.includes('devicons-react')) {
-              return 'icons-devicons';
+              return `devicon-${id.split('/').pop()?.replace(/\.[^.]+$/, '')}`;
             }
             // Lucide icons — used across many components
             if (id.includes('lucide-react')) {
               return 'icons-lucide';
-            }
-            // Graph layout — only for auto-layout in editor
-            if (id.includes('dagre')) {
-              return 'graph-layout';
             }
             // Tauri desktop plugins — never used in Confluence
             if (id.includes('@tauri-apps/') || id.includes('tauri-plugin-oauth')) {

@@ -1,3 +1,5 @@
+import { useUiCopy } from '../../i18n/useUiCopy';
+import { message } from '../../i18n/messages';
 import React from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { X, Plus, Lock } from 'lucide-react';
@@ -6,6 +8,7 @@ import { translations } from '../../i18n/translations';
 import { getPlatformCapabilities } from '../../services/platformCapabilities';
 
 export const DiagramTabBar: React.FC = () => {
+  const uiCopy = useUiCopy();
   const diagrams = useAppStore((s) => s.diagrams);
   const activeDiagramId = useAppStore((s) => s.activeDiagramId);
   const openDiagramIds = useAppStore((s) => s.openDiagramIds);
@@ -50,10 +53,10 @@ export const DiagramTabBar: React.FC = () => {
             {isCollabActive && (
               <span
                 className="mr-1.5 flex items-center gap-1 text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold px-1.5 py-0.5 rounded"
-                title={language === 'tr' ? 'Ortak çalışma sırasında kilitli' : 'Locked during collaboration'}
+                title={message(language, "DiagramTabBar.lockedDuringCollaboration")}
               >
                 <Lock className="w-2.5 h-2.5" />
-                Live
+                {uiCopy.live}
               </span>
             )}
             <span className="truncate flex-1" title={diag.name}>
@@ -70,7 +73,7 @@ export const DiagramTabBar: React.FC = () => {
                     ? 'hover:bg-indigo-100 dark:hover:bg-indigo-900/50'
                     : 'hover:bg-slate-300 dark:hover:bg-slate-700'
                 }`}
-                title={t.close || 'Close'}
+                title={t.close}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -84,7 +87,7 @@ export const DiagramTabBar: React.FC = () => {
         <button
           onClick={handleCreateNew}
           className="p-1.5 ml-1 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shrink-0"
-          title={language === 'tr' ? 'Yeni Diyagram' : 'New Diagram'}
+          title={message(language, "DiagramTabBar.newDiagram")}
         >
           <Plus className="w-4 h-4" />
         </button>

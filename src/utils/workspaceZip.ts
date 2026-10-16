@@ -1,3 +1,4 @@
+import { message } from '../i18n/messages';
 import JSZip from 'jszip';
 import { StorageService, isTauri } from '../services/storage';
 import { WorkspaceMeta } from '../types';
@@ -142,7 +143,7 @@ export function repairDiagram(
   // If an annotation exists but (a) or (b) are missing, synthesise them.
 
   const annotations: Record<string, any> = visualData.annotations ?? {};
-  
+
   // Remove any legacy pseudo-logical sticky_note entries from nodes
   const repairedNodes = nodes.filter((n: any) => n.type !== 'sticky_note' && n.properties?._visualOnly !== true);
   if (repairedNodes.length !== nodes.length) {
@@ -198,16 +199,16 @@ export const exportWorkspace = async (
     // 1. Load diagram data
     const diagJson = await StorageService.load_diagram(workspace.path);
     const diag = JSON.parse(diagJson);
-    
+
     const logicalData = diag.logicalData || diag.logical || { nodes: [], edges: [] };
     const nodes = logicalData.nodes || [];
-    
+
     // 2. Identify custom components used in the diagram
     const customCompIds = nodes
       .filter((n: any) => n.type && n.type.startsWith('custom-comp-'))
       .map((n: any) => n.type);
     const uniqueCompIds = Array.from(new Set(customCompIds)) as string[];
-    
+
     // 3. Load custom component contents
     const componentsDir = await StorageService.get_global_components_dir();
     const componentsData: Record<string, string> = {};
@@ -220,32 +221,32 @@ export const exportWorkspace = async (
         console.error(`Failed to read custom component ${compId}:`, err);
       }
     }
-    
+
     // 4. Create ZIP archive
     const zip = new JSZip();
     zip.file('workspace.json', JSON.stringify(workspace, null, 2));
     zip.file('diagram.json', diagJson);
-    
+
     if (Object.keys(componentsData).length > 0) {
       const compFolder = zip.folder('components');
       for (const [compId, content] of Object.entries(componentsData)) {
         compFolder?.file(`${compId}.json`, content);
       }
     }
-    
+
     const zipBlob = await zip.generateAsync({ type: 'blob' });
     const defaultName = `${workspace.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.dproj`;
-    
+
     // 5. Save the file
     if (isTauri()) {
       const savePath = await save({
-        title: language === 'tr' ? 'Projeyi Kaydet' : 'Save Project',
+        title: message(language, "workspaceZip.saveProject"),
         defaultPath: defaultName,
         filters: [{ name: 'YADA Project', extensions: ['dproj'] }]
       });
-      
+
       if (!savePath) return;
-      
+
       const buffer = await zipBlob.arrayBuffer();
       const bytes = new Uint8Array(buffer);
       await writeFile(savePath, bytes);
@@ -277,23 +278,27 @@ export const importWorkspace = async (
     const zip = await JSZip.loadAsync(zipData);
     const workspaceFile = zip.file('workspace.json');
     const diagramFile = zip.file('diagram.json');
-    
+
     if (!workspaceFile || !diagramFile) {
       throw new Error(
-        language === 'tr' 
-          ? 'Geçersiz proje dosyası: workspace.json veya diagram.json eksik.' 
-          : 'Invalid project file: missing workspace.json or diagram.json.'
+        message(language, "workspaceZip.invalidProjectFileMissingWorkspaceJsonOr")
       );
     }
-    
+
     const originalMeta = JSON.parse(await workspaceFile.async('string'));
     const diagramJson = await diagramFile.async('string');
-    
+    // Validate the document before creating a workspace or writing components.
+    const parsedDiagram = JSON.parse(diagramJson);
+    const importedLogical = parsedDiagram.logical || parsedDiagram.logicalData;
+    if (!originalMeta || typeof originalMeta.name !== 'string' || !importedLogical || !Array.isArray(importedLogical.nodes) || !Array.isArray(importedLogical.edges)) {
+      throw new Error(message(language, 'workspaceZip.invalidProjectFileMissingWorkspaceJsonOr'));
+    }
+
     // 1. Check custom component conflicts
     const componentsFolder = zip.folder('components');
     const conflicts: ImportConflict[] = [];
     const componentsDir = await StorageService.get_global_components_dir();
-    
+
     // Safe array of component files inside ZIP
     const filesToProcess: { fileName: string; fileObj: JSZip.JSZipObject }[] = [];
     if (componentsFolder) {
@@ -303,17 +308,17 @@ export const importWorkspace = async (
         }
       });
     }
-    
+
     for (const item of filesToProcess) {
       const compId = item.fileName.replace('.json', '');
       const content = await item.fileObj.async('string');
-      
+
       let exists = false;
       try {
         await StorageService.read_text_file(`${componentsDir}/${compId}.json`);
         exists = true;
       } catch (_) {}
-      
+
       if (exists) {
         const parsed = JSON.parse(content);
         conflicts.push({
@@ -323,59 +328,58 @@ export const importWorkspace = async (
         });
       }
     }
-    
+
     // 2. Obtain resolution from UI if conflicts exist
     const resolutions = conflicts.length > 0 ? await resolveConflictsFn(conflicts) : {};
     const idMapping: Record<string, string> = {};
-    
+
     // 3. Save custom components based on resolutions
     // First, save non-conflicted ones
     for (const item of filesToProcess) {
       const compId = item.fileName.replace('.json', '');
       const content = await item.fileObj.async('string');
-      
+
       const conflict = conflicts.find(c => c.compId === compId);
       if (!conflict) {
         // No conflict, save directly
         await StorageService.save_text_file(`${componentsDir}/${compId}.json`, content);
       }
     }
-    
+
     // Handle conflicted ones
     for (const conflict of conflicts) {
       const resolution = resolutions[conflict.compId] || 'skip';
-      
+
       if (resolution === 'overwrite') {
         await StorageService.save_text_file(`${componentsDir}/${conflict.compId}.json`, conflict.fileContent);
       } else if (resolution === 'copy') {
         const newCompId = `custom-comp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
         const parsed = JSON.parse(conflict.fileContent);
         parsed.componentId = newCompId;
-        parsed.name = `${parsed.name} (${language === 'tr' ? 'Kopyalanan' : 'Imported'})`;
-        
+        parsed.name = `${parsed.name} (${message(language, "workspaceZip.imported")})`;
+
         await StorageService.save_text_file(`${componentsDir}/${newCompId}.json`, JSON.stringify(parsed, null, 2));
         idMapping[conflict.compId] = newCompId;
       }
       // If 'skip', do nothing (uses existing component in library)
     }
-    
+
     // 4. Create the new workspace
     // We modify name slightly to show imported status or keep it
-    const newName = `${originalMeta.name} (${language === 'tr' ? 'İçeri Aktarılan' : 'Imported'})`;
+    const newName = `${originalMeta.name} (${message(language, "workspaceZip.imported2")})`;
     const newWs = await createWorkspaceFn(newName, originalMeta.description || '');
-    
+
     // 5. Update diagram component IDs if mapping happened, and save it
-    const parsedDiagram = JSON.parse(diagramJson);
     const logicalData = parsedDiagram.logical || parsedDiagram.logicalData || { nodes: [], edges: [] };
     const visualData = parsedDiagram.visual || parsedDiagram.visualData || {};
-    
+
     const nodes = logicalData.nodes || [];
     nodes.forEach((node: any) => {
       if (node.type && idMapping[node.type]) {
         node.type = idMapping[node.type];
       }
     });
-    
+
     const cleanLogical = {
       ...logicalData,
       nodes,
@@ -391,7 +395,7 @@ export const importWorkspace = async (
 
     await saveDiagramFn(newWs.path, 'default', JSON.stringify(repairedLogical), JSON.stringify(repairedVisual));
 
-    
+
     return newWs;
   } catch (err) {
     console.error('Failed to import workspace:', err);

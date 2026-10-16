@@ -1,0 +1,267 @@
+{
+  "closeCycles": [
+    12069672,
+    12074536,
+    12074552,
+    12074504,
+    12074504,
+    12074840
+  ],
+  "label": "baseline",
+  "node": "v26.3.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "method": "1 warmup + 5 runs, 40 committed moves + 30 undo/redo; forced GC before retained heap readings; retained counts are reachable object counts, not byte estimates",
+  "results": [
+    {
+      "nodes": 25,
+      "runs": [
+        {
+          "loadMs": 0.3045410000000004,
+          "editMs": {
+            "median": 0.3356250000000216,
+            "p95": 0.379792000000009
+          },
+          "undoMs": {
+            "median": 0.33370800000000145,
+            "p95": 0.38495799999998326
+          },
+          "redoMs": {
+            "median": 0.3574169999999981,
+            "p95": 0.40116700000004357
+          },
+          "retained": {
+            "objects": 159774,
+            "stringValueUtf16Bytes": 65906
+          },
+          "heapBefore": 19479840,
+          "heapWithHistory": 19212728,
+          "heapAfter": 45512792,
+          "gcAvailable": true,
+          "serializedDocumentBytes": 90482
+        },
+        {
+          "loadMs": 0.24141600000001517,
+          "editMs": {
+            "median": 0.33587499999998727,
+            "p95": 0.72199999999998
+          },
+          "undoMs": {
+            "median": 0.3277079999999728,
+            "p95": 0.372333000000026
+          },
+          "redoMs": {
+            "median": 0.3261669999999981,
+            "p95": 0.3548749999999927
+          },
+          "retained": {
+            "objects": 159774,
+            "stringValueUtf16Bytes": 65906
+          },
+          "heapBefore": 11819088,
+          "heapWithHistory": 19220600,
+          "heapAfter": 45518256,
+          "gcAvailable": true,
+          "serializedDocumentBytes": 90482
+        },
+        {
+          "loadMs": 0.23012500000004366,
+          "editMs": {
+            "median": 0.333582999999976,
+            "p95": 0.3550000000000182
+          },
+          "undoMs": {
+            "median": 0.32954200000000355,
+            "p95": 0.36295800000004874
+          },
+          "redoMs": {
+            "median": 0.32483300000001236,
+            "p95": 0.3292500000000018
+          },
+          "retained": {
+            "objects": 159774,
+            "stringValueUtf16Bytes": 65906
+          },
+          "heapBefore": 11822544,
+          "heapWithHistory": 19227040,
+          "heapAfter": 45520720,
+          "gcAvailable": true,
+          "serializedDocumentBytes": 90482
+        },
+        {
+          "loadMs": 0.22016600000000608,
+          "editMs": {
+            "median": 0.3296250000000214,
+            "p95": 0.35366600000003245
+          },
+          "undoMs": {
+            "median": 0.32691699999998036,
+            "p95": 0.37212500000003956
+          },
+          "redoMs": {
+            "median": 0.33108299999997826,
+            "p95": 0.3359169999999949
+          },
+          "retained": {
+            "objects": 159774,
+            "stringValueUtf16Bytes": 65906
+          },
+          "heapBefore": 11832608,
+          "heapWithHistory": 19235584,
+          "heapAfter": 45529160,
+          "gcAvailable": true,
+          "serializedDocumentBytes": 90482
+        },
+        {
+          "loadMs": 0.2180410000000279,
+          "editMs": {
+            "median": 0.3310000000000173,
+            "p95": 0.367999999999995
+          },
+          "undoMs": {
+            "median": 0.32991600000002563,
+            "p95": 0.37012499999997317
+          },
+          "redoMs": {
+            "median": 0.3271670000000313,
+            "p95": 0.3455409999999688
+          },
+          "retained": {
+            "objects": 159774,
+            "stringValueUtf16Bytes": 65906
+          },
+          "heapBefore": 11836280,
+          "heapWithHistory": 19240136,
+          "heapAfter": 45541488,
+          "gcAvailable": true,
+          "serializedDocumentBytes": 90482
+        }
+      ]
+    },
+    {
+      "nodes": 250,
+      "runs": [
+        {
+          "loadMs": 0.5525840000000244,
+          "editMs": {
+            "median": 0.5090420000000222,
+            "p95": 0.5403329999999187
+          },
+          "undoMs": {
+            "median": 0.7980830000000196,
+            "p95": 0.8852079999999205
+          },
+          "redoMs": {
+            "median": 0.7391670000000659,
+            "p95": 0.825917000000004
+          },
+          "retained": {
+            "objects": 194649,
+            "stringValueUtf16Bytes": 707296
+          },
+          "heapBefore": 22802504,
+          "heapWithHistory": 22336336,
+          "heapAfter": 52849280,
+          "gcAvailable": true,
+          "serializedDocumentBytes": 150984
+        },
+        {
+          "loadMs": 0.48395799999991596,
+          "editMs": {
+            "median": 0.5053749999999582,
+            "p95": 0.5467919999999822
+          },
+          "undoMs": {
+            "median": 0.8138330000000451,
+            "p95": 0.8659579999999778
+          },
+          "redoMs": {
+            "median": 0.7670420000000604,
+            "p95": 0.8592909999999847
+          },
+          "retained": {
+            "objects": 194649,
+            "stringValueUtf16Bytes": 707296
+          },
+          "heapBefore": 12166208,
+          "heapWithHistory": 22346392,
+          "heapAfter": 52872056,
+          "gcAvailable": true,
+          "serializedDocumentBytes": 150984
+        },
+        {
+          "loadMs": 0.5013330000000451,
+          "editMs": {
+            "median": 0.5056250000000091,
+            "p95": 0.5379590000000007
+          },
+          "undoMs": {
+            "median": 0.7835410000000138,
+            "p95": 0.8540000000000418
+          },
+          "redoMs": {
+            "median": 0.7684169999999995,
+            "p95": 0.8238340000000335
+          },
+          "retained": {
+            "objects": 194649,
+            "stringValueUtf16Bytes": 707296
+          },
+          "heapBefore": 12190936,
+          "heapWithHistory": 22363912,
+          "heapAfter": 52873176,
+          "gcAvailable": true,
+          "serializedDocumentBytes": 150984
+        },
+        {
+          "loadMs": 0.5189579999999978,
+          "editMs": {
+            "median": 0.5068750000000364,
+            "p95": 0.5522080000000642
+          },
+          "undoMs": {
+            "median": 0.778458999999998,
+            "p95": 0.894457999999986
+          },
+          "redoMs": {
+            "median": 0.7728749999999991,
+            "p95": 0.8589999999999236
+          },
+          "retained": {
+            "objects": 194649,
+            "stringValueUtf16Bytes": 707296
+          },
+          "heapBefore": 12193320,
+          "heapWithHistory": 22368256,
+          "heapAfter": 52873936,
+          "gcAvailable": true,
+          "serializedDocumentBytes": 150984
+        },
+        {
+          "loadMs": 0.4999169999999822,
+          "editMs": {
+            "median": 0.50649999999996,
+            "p95": 0.5607079999999769
+          },
+          "undoMs": {
+            "median": 0.7881250000000364,
+            "p95": 0.8930419999999231
+          },
+          "redoMs": {
+            "median": 0.7737919999999576,
+            "p95": 0.8571249999999964
+          },
+          "retained": {
+            "objects": 194649,
+            "stringValueUtf16Bytes": 707296
+          },
+          "heapBefore": 12197480,
+          "heapWithHistory": 22370312,
+          "heapAfter": 52878512,
+          "gcAvailable": true,
+          "serializedDocumentBytes": 150984
+        }
+      ]
+    }
+  ]
+}

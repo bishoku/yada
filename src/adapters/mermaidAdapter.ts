@@ -1,3 +1,4 @@
+import { mermaidMetadata } from './metadata';
 import type { DiagramAdapter, DiagramImportResult, ImportDiagnostic } from './types';
 import type { LogicalDiagram, LogicalNode, StickyNote } from '../types';
 import type { MermaidArrow, MermaidEvent, MermaidFragmentKind } from '../types/mermaid';
@@ -175,8 +176,6 @@ export function parseMermaidSequence(rawInput: string): DiagramImportResult {
 }
 
 export const mermaidAdapter: DiagramAdapter = {
-  id: 'mermaid-sequence', name: 'Mermaid Sequence Diagram',
-  description: 'Import Mermaid sequence messages, participants, notes, activations and nested blocks',
-  importMethod: 'text-modal', supportedFormats: ['.mmd', '.mermaid', '.txt'],
+  ...mermaidMetadata,
   parse: async raw => parseMermaidSequence(raw),
 };

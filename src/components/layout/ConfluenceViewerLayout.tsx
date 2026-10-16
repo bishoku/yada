@@ -1,4 +1,7 @@
-import React, { useEffect, useRef, lazy, Suspense, useState } from 'react';
+import { usePlaybackLoop } from '../timeline/hooks/usePlaybackLoop';
+import { useUiCopy } from '../../i18n/useUiCopy';
+import { message } from '../../i18n/messages';
+import React, { useEffect, useMemo, lazy, Suspense, useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { DiagramCanvas } from '../canvas/DiagramCanvas';
 import { Edit3 } from 'lucide-react';
@@ -10,60 +13,26 @@ interface ConfluenceViewerLayoutProps {
 }
 
 export const ConfluenceViewerLayout: React.FC<ConfluenceViewerLayoutProps> = ({ onEdit }) => {
+  const uiCopy = useUiCopy();
   const viewMode = useAppStore((s) => s.viewMode);
   const language = useAppStore((s) => s.language);
 
   const isPlaying = useAppStore((s) => s.isPlaying);
   const logicalData = useAppStore((s) => s.logicalData);
+  const schedules = useAppStore((s) => s.schedules);
+  const maxTime = useMemo(() => Object.keys(schedules).length ? Object.values(schedules).reduce((end, item) => Math.max(end, item.end + 500), 0) : 2000, [schedules]);
+  usePlaybackLoop(isPlaying, maxTime, true);
 
-  const isTr = language === 'tr';
   const [isHovering, setIsHovering] = useState(false);
 
   // Auto-start simulation whenever logicalData changes or has sequences
   useEffect(() => {
     if (logicalData.sequences && logicalData.sequences.length > 0) {
-      useAppStore.setState({ isPlaying: true, currentTime: 0 });
+      useAppStore.getState().setCurrentTime(0);
+      useAppStore.setState({ isPlaying: true });
     }
   }, [logicalData]);
 
-  // Background playback loop to drive node status & particle animations automatically
-  const requestRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!isPlaying) return;
-
-    let previousTime: number | null = null;
-    const tick = (timestamp: number) => {
-      if (previousTime !== null) {
-        const delta = timestamp - previousTime;
-        const state = useAppStore.getState();
-
-        const schedValues = Object.values(state.schedules);
-        const calcMax = schedValues.length > 0
-          ? Math.max(...schedValues.map((s) => s.end + 500))
-          : 2000;
-
-        const nextTime = state.currentTime + delta * state.playbackRate;
-
-        if (nextTime >= calcMax) {
-          state.setCurrentTime(0);
-          previousTime = timestamp;
-        } else {
-          state.setCurrentTime(nextTime);
-        }
-      }
-      previousTime = timestamp;
-      requestRef.current = requestAnimationFrame(tick);
-    };
-
-    requestRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      if (requestRef.current !== null) {
-        cancelAnimationFrame(requestRef.current);
-      }
-    };
-  }, [isPlaying]);
 
   return (
     <div
@@ -86,7 +55,7 @@ export const ConfluenceViewerLayout: React.FC<ConfluenceViewerLayoutProps> = ({ 
             className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600/90 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-lg backdrop-blur-sm active:scale-95 transition-all cursor-pointer"
           >
             <Edit3 className="w-3.5 h-3.5" />
-            <span>{isTr ? 'Düzenle' : 'Edit'}</span>
+            <span>{message(language, "ConfluenceViewerLayout.edit")}</span>
           </button>
         </div>
       )}
@@ -98,7 +67,7 @@ export const ConfluenceViewerLayout: React.FC<ConfluenceViewerLayoutProps> = ({ 
         ) : (
           <Suspense fallback={
             <div className="flex items-center justify-center w-full h-full text-slate-400">
-              <div className="animate-pulse text-xs font-medium">Sequence Diagram Yükleniyor...</div>
+              <div className="animate-pulse text-xs font-medium">{uiCopy.loadingSequenceDiagram}</div>
             </div>
           }>
             <SequenceDiagramCanvas />

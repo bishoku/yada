@@ -1,3 +1,4 @@
+import { snapshotDocument } from '../historySnapshot';
 import { StateCreator } from 'zustand';
 import { AppState, LogicalDiagram, VisualDiagram } from '../../types';
 
@@ -23,10 +24,7 @@ export const createHistorySlice: StateCreator<AppState, [], [], HistorySlice> = 
 
   pushToHistory: () => {
     const state = get();
-    const snapshot = {
-      logicalData: JSON.parse(JSON.stringify(state.logicalData)),
-      visualData: JSON.parse(JSON.stringify(state.visualData)),
-    };
+    const snapshot = snapshotDocument(state.logicalData, state.visualData);
     const pastStates = [...state.pastStates, snapshot];
     if (pastStates.length > 30) {
       pastStates.shift();
@@ -39,10 +37,7 @@ export const createHistorySlice: StateCreator<AppState, [], [], HistorySlice> = 
 
   pushStateToHistory: (logicalData, visualData) => {
     const state = get();
-    const snapshot = {
-      logicalData: JSON.parse(JSON.stringify(logicalData)),
-      visualData: JSON.parse(JSON.stringify(visualData)),
-    };
+    const snapshot = snapshotDocument(logicalData, visualData);
     const pastStates = [...state.pastStates, snapshot];
     if (pastStates.length > 30) pastStates.shift();
     set({ pastStates, futureStates: [] });
@@ -54,10 +49,7 @@ export const createHistorySlice: StateCreator<AppState, [], [], HistorySlice> = 
 
     const pastStates = [...state.pastStates];
     const previous = pastStates.pop()!;
-    const currentSnapshot = {
-      logicalData: JSON.parse(JSON.stringify(state.logicalData)),
-      visualData: JSON.parse(JSON.stringify(state.visualData)),
-    };
+    const currentSnapshot = snapshotDocument(state.logicalData, state.visualData);
 
     set({
       pastStates,
@@ -75,10 +67,7 @@ export const createHistorySlice: StateCreator<AppState, [], [], HistorySlice> = 
 
     const futureStates = [...state.futureStates];
     const next = futureStates.shift()!;
-    const currentSnapshot = {
-      logicalData: JSON.parse(JSON.stringify(state.logicalData)),
-      visualData: JSON.parse(JSON.stringify(state.visualData)),
-    };
+    const currentSnapshot = snapshotDocument(state.logicalData, state.visualData);
 
     set({
       pastStates: [...state.pastStates, currentSnapshot],

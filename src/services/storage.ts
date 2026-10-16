@@ -1,11 +1,8 @@
+import { deferredDriver } from './storage/deferredDriver';
 import { IStorageDriver, StorageMode } from './storage/types';
-import { TauriDriver } from './storage/drivers/TauriDriver';
 import { LocalStorageDriver } from './storage/drivers/LocalStorageDriver';
 import { FileSystemAccessDriver } from './storage/drivers/FileSystemAccessDriver';
-import { ForgeDriver } from './storage/drivers/ForgeDriver';
-import { ConfluenceDcDriver } from './storage/drivers/ConfluenceDcDriver';
 import { IDBHandleService } from './storage/idbHandle';
-import { EmbedIframeDriver } from './storage/drivers/EmbedIframeDriver';
 
 import { isForge } from './forgeBridge';
 import { isConfluenceDC } from './confluenceDcBridge';
@@ -31,16 +28,16 @@ class StorageManager implements IStorageDriver {
     );
 
     if (isForge()) {
-      this.activeDriver = new ForgeDriver();
+      this.activeDriver = deferredDriver('forge', () => import('./storage/drivers/ForgeDriver').then(module => new module.ForgeDriver()));
       this.mode = 'forge';
     } else if (isConfluenceDC()) {
-      this.activeDriver = new ConfluenceDcDriver();
+      this.activeDriver = deferredDriver('confluence-dc', () => import('./storage/drivers/ConfluenceDcDriver').then(module => new module.ConfluenceDcDriver()));
       this.mode = 'confluence-dc';
     } else if (isEmbedDriver) {
-      this.activeDriver = new EmbedIframeDriver();
+      this.activeDriver = deferredDriver('embed', () => import('./storage/drivers/EmbedIframeDriver').then(module => new module.EmbedIframeDriver()));
       this.mode = 'embed';
     } else if (isTauri()) {
-      this.activeDriver = new TauriDriver();
+      this.activeDriver = deferredDriver('tauri', () => import('./storage/drivers/TauriDriver').then(module => new module.TauriDriver()));
       const savedMode = (typeof localStorage !== 'undefined' ? (localStorage.getItem(STORAGE_MODE_KEY) as StorageMode) : null) || 'tauri';
       this.mode = savedMode;
       // Sync with Rust backend asynchronously

@@ -1,3 +1,5 @@
+import { ModalSurface } from '../ui/ModalSurface';
+import { message } from '../../i18n/messages';
 import React, { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
 import { FreeFormContent } from '../../types';
 import { Save, X, Loader2 } from 'lucide-react';
@@ -26,6 +28,8 @@ export const FreeFormEditorModal: React.FC<FreeFormEditorModalProps> = ({
   onClose,
 }) => {
   const excalidrawAPIRef = useRef<any>(null);
+  const closePending = useRef(false);
+  const openConfirm = useAppStore(s => s.openConfirm);
   const [hasChanges, setHasChanges] = useState(false);
   const language = useAppStore((s: any) => s.language);
   const appTheme = useAppStore((s: any) => s.theme);
@@ -44,27 +48,25 @@ export const FreeFormEditorModal: React.FC<FreeFormEditorModalProps> = ({
   }, []);
 
   // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        handleClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [hasChanges]);
 
-  const handleClose = useCallback(() => {
-    if (hasChanges) {
-      const confirmMsg = language === 'tr'
-        ? 'Kaydedilmemiş değişiklikler var. Çıkmak istediğinize emin misiniz?'
-        : 'You have unsaved changes. Are you sure you want to exit?';
-      if (!window.confirm(confirmMsg)) return;
-    }
-    onClose();
-  }, [hasChanges, onClose, language]);
+
+  const handleClose = useCallback(async () => {
+    if (closePending.current) return;
+    closePending.current = true;
+    try {
+      if (hasChanges) {
+        const confirmed = await openConfirm({
+          title: message(language, 'FreeFormEditorModal.unsavedChanges'),
+          message: message(language, 'FreeFormEditorModal.youHaveUnsavedChangesAreYouSure'),
+          confirmText: message(language, 'common.discardChanges'),
+          cancelText: message(language, 'common.cancel'),
+          type: 'warning',
+        });
+        if (!confirmed) return;
+      }
+      onClose();
+    } finally { closePending.current = false; }
+  }, [hasChanges, onClose, language, openConfirm]);
 
   const handleSave = useCallback(async () => {
     const api = excalidrawAPIRef.current;
@@ -128,13 +130,10 @@ export const FreeFormEditorModal: React.FC<FreeFormEditorModalProps> = ({
   } : undefined;
 
   return (
-    <div 
-      className="fixed inset-0 z-[1000] flex flex-col"
-      style={{ isolation: 'isolate' }}
-    >
+    <ModalSurface label={nodeName} onClose={handleClose} width="36rem" fullscreen>
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
-      
+
       {/* Modal */}
       <div className="relative flex flex-col w-full h-full">
         {/* Header */}
@@ -145,7 +144,7 @@ export const FreeFormEditorModal: React.FC<FreeFormEditorModalProps> = ({
             </span>
             {hasChanges && (
               <span className="text-xs text-amber-500 dark:text-amber-400 font-medium">
-                {language === 'tr' ? '(değişiklikler kaydedilmedi)' : '(unsaved changes)'}
+                {message(language, "FreeFormEditorModal.unsavedChanges")}
               </span>
             )}
           </div>
@@ -155,14 +154,14 @@ export const FreeFormEditorModal: React.FC<FreeFormEditorModalProps> = ({
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
             >
               <Save className="w-3.5 h-3.5" />
-              {language === 'tr' ? 'Kaydet' : 'Save'}
+              {message(language, "FreeFormEditorModal.save")}
             </button>
             <button
               onClick={handleClose}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
-            >
+             aria-label={message(language, "common.close")}>
               <X className="w-3.5 h-3.5" />
-              {language === 'tr' ? 'Kapat' : 'Close'}
+              {message(language, "FreeFormEditorModal.close")}
             </button>
           </div>
         </div>
@@ -175,7 +174,7 @@ export const FreeFormEditorModal: React.FC<FreeFormEditorModalProps> = ({
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
                   <span className="text-sm text-slate-500">
-                    {language === 'tr' ? 'Editör yükleniyor...' : 'Loading editor...'}
+                    {message(language, "FreeFormEditorModal.loadingEditor")}
                   </span>
                 </div>
               </div>
@@ -198,7 +197,7 @@ export const FreeFormEditorModal: React.FC<FreeFormEditorModalProps> = ({
           </Suspense>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   );
 };
 

@@ -7,6 +7,7 @@ import { TimelineEmptyState } from './TimelineEmptyState';
 import type { SequenceStep, LogicalNode, LogicalEdge } from '../../../types';
 
 interface TimelineStepListProps {
+  editing: boolean;
   sortedSequences: SequenceStep[];
   nodeMap: Map<string, LogicalNode>;
   edgeMap: Map<string, LogicalEdge>;
@@ -17,12 +18,13 @@ interface TimelineStepListProps {
  * Left sidebar column rendering the list of flow steps and sticky note annotations.
  */
 export const TimelineStepList: React.FC<TimelineStepListProps> = memo(({
-  sortedSequences,
+  editing, sortedSequences,
   nodeMap,
   edgeMap,
   onOpenTooltip,
 }) => {
-  const visualData = useAppStore((s) => s.visualData);
+  const timelines = useAppStore(s => s.visualData.timelines);
+  const annotations = useAppStore(s => s.visualData.annotations);
   const isPlaying = useAppStore((s) => s.isPlaying);
   const selectedSequenceId = useAppStore((s) => s.selectedSequenceId);
   const maxSteps = useAppStore((s) => s.maxSteps);
@@ -37,11 +39,11 @@ export const TimelineStepList: React.FC<TimelineStepListProps> = memo(({
 
   return (
     <div
-      className="w-[260px] lg:w-[340px] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-850 flex flex-col shrink-0"
+      className={`${editing ? "w-[260px]" : "w-[180px] sm:w-[260px]"} lg:w-[300px] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-850 flex flex-col shrink-0`}
       onMouseDown={(e) => e.stopPropagation()} // Prevent setting playhead when clicking left panel
     >
       {/* Header Spacer Row */}
-      <div className="h-6 shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center px-3 text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest sticky top-0 z-30">
+      <div className="h-6 shrink-0 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center px-3 text-xs font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest sticky top-0 z-30">
         {t.flowSteps}
       </div>
 
@@ -54,7 +56,7 @@ export const TimelineStepList: React.FC<TimelineStepListProps> = memo(({
           const srcName = edge ? (nodeMap.get(edge.sourceId)?.name ?? edge.sourceId) : '?';
           const dstName = edge ? (nodeMap.get(edge.targetId)?.name ?? edge.targetId) : '?';
           const isSelected = selectedSequenceId === seq.id;
-          const timing = visualData.timelines[seq.id];
+          const timing = timelines[seq.id];
 
           return (
             <SequenceStepRow
@@ -66,6 +68,7 @@ export const TimelineStepList: React.FC<TimelineStepListProps> = memo(({
               timing={timing}
               isSelected={isSelected}
               isPlaying={isPlaying}
+              editing={editing}
               maxSteps={maxSteps}
               onSelect={setSelectedSequenceId}
               onOrderChange={(id, order) => { useAppStore.getState().pushToHistory(); setSequenceStepOrder(id, order); }}
@@ -78,11 +81,12 @@ export const TimelineStepList: React.FC<TimelineStepListProps> = memo(({
       )}
 
       {/* Annotations List */}
-      {Object.entries(visualData.annotations || {}).map(([id, note]) => (
+      {Object.entries(annotations || {}).map(([id, note]) => (
         <AnnotationStepRow
           key={`left-ann-${id}`}
           id={id}
           note={note}
+          editing={editing}
           onDelete={deleteStickyNote}
         />
       ))}

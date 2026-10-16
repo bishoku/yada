@@ -1,0 +1,86 @@
+{
+  "initial": {
+    "files": 9,
+    "bytes": 3321427,
+    "gzipBytes": 976359
+  },
+  "welcome": {
+    "files": 14,
+    "bytes": 3393826,
+    "gzipBytes": 996344
+  },
+  "initialFiles": [
+    {
+      "file": "assets/icons-devicons-r5WElEsn.js",
+      "bytes": 1523304,
+      "gzipBytes": 465618
+    },
+    {
+      "file": "assets/graph-layout-C_u3qE3c.js",
+      "bytes": 738641,
+      "gzipBytes": 189318
+    },
+    {
+      "file": "assets/index-pynBWpG7.js",
+      "bytes": 449215,
+      "gzipBytes": 130863
+    },
+    {
+      "file": "assets/react-vendor-CYlrRNAQ.js",
+      "bytes": 193387,
+      "gzipBytes": 60605
+    },
+    {
+      "file": "assets/flow-engine-BzHwrhic.js",
+      "bytes": 182589,
+      "gzipBytes": 59799
+    },
+    {
+      "file": "assets/archive-BRZKYTYb.js",
+      "bytes": 101414,
+      "gzipBytes": 30911
+    },
+    {
+      "file": "assets/export-tools-COUF7ePz.js",
+      "bytes": 79773,
+      "gzipBytes": 23350
+    },
+    {
+      "file": "assets/icons-lucide-BMYR-Gak.js",
+      "bytes": 33205,
+      "gzipBytes": 10470
+    },
+    {
+      "file": "assets/tauri-plugins-CBZMGwYG.js",
+      "bytes": 19899,
+      "gzipBytes": 5425
+    }
+  ],
+  "welcomeAdditionalFiles": [
+    {
+      "file": "assets/WelcomeScreen-B3331h4_.js",
+      "bytes": 52667,
+      "gzipBytes": 12152
+    },
+    {
+      "file": "assets/formatters-CSaJVUaY.js",
+      "bytes": 869,
+      "gzipBytes": 455
+    },
+    {
+      "file": "assets/shareUtils-CxdxyK9H.js",
+      "bytes": 2861,
+      "gzipBytes": 1231
+    },
+    {
+      "file": "assets/index-ByZ0YluK.js",
+      "bytes": 15649,
+      "gzipBytes": 5870
+    },
+    {
+      "file": "assets/mermaidText-d987qbCv.js",
+      "bytes": 353,
+      "gzipBytes": 277
+    }
+  ]
+}

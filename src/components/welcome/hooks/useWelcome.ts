@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { experienceCopy } from '../../../i18n/experienceCopy';
+import { insertStarterDiagram } from '../../../features/onboarding/insertStarterDiagram';
+import { message } from '../../../i18n/messages';
+import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
-import { open } from '@tauri-apps/plugin-dialog';
-import { readFile } from '@tauri-apps/plugin-fs';
 import { isTauri, StorageService } from '../../../services/storage';
-import { exportWorkspace, importWorkspace, ImportConflict, ConflictResolution, repairDiagram } from '../../../utils/workspaceZip';
-import { extractPngMetadata, extractSvgMetadata } from '../../../utils/imageMetadata';
+import type { ImportConflict, ConflictResolution } from '../../../utils/workspaceZip';
 import { translations } from '../../../i18n/translations';
 import { DiagramAdapter } from '../../../adapters/types';
 import { WorkspaceMeta } from '../../../types';
@@ -22,6 +22,7 @@ export const useWelcome = () => {
   const googleUser = useAppStore((s) => s.googleUser);
 
   const t = translations[language];
+  const creationPending = useRef(false);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -73,7 +74,7 @@ export const useWelcome = () => {
   const handleExport = async (ws: WorkspaceMeta) => {
     try {
       setLoading(true);
-      await exportWorkspace(ws, language);
+      await (await import('../../../utils/workspaceZip')).exportWorkspace(ws, language);
     } catch (err: any) {
       setError(t.exportFailedMsg + err);
     } finally {
@@ -86,7 +87,7 @@ export const useWelcome = () => {
     const visData = extracted.visualData || extracted.visual;
     if (!logData) throw new Error('No diagram data found in file.');
 
-    const repaired = repairDiagram(logData, visData);
+    const repaired = (await import('../../../utils/workspaceZip')).repairDiagram(logData, visData);
     const wsName = baseName.replace(/\.[^/.]+$/, '');
     const ws = await createWorkspace(wsName, 'Imported from embedded diagram image');
 
@@ -103,6 +104,8 @@ export const useWelcome = () => {
   const handleImport = async () => {
     try {
       if (isTauri()) {
+        const { open } = await import('@tauri-apps/plugin-dialog');
+        const { readFile } = await import('@tauri-apps/plugin-fs');
         const selected = await open({
           multiple: false,
           filters: [
@@ -112,25 +115,25 @@ export const useWelcome = () => {
         });
         if (!selected || typeof selected !== 'string') return;
         setLoading(true);
-        
+
         const lower = selected.toLowerCase();
         if (lower.endsWith('.png')) {
           const rawBytes = await readFile(selected);
-          const extracted = extractPngMetadata(rawBytes.buffer) as any;
+          const extracted = (await import('../../../utils/imageMetadata')).extractPngMetadata(rawBytes.buffer) as any;
           if (extracted) {
             await importFromExtractedData(extracted, selected.split('/').pop() || 'Diagram');
             return;
           }
-          throw new Error(language === 'tr' ? 'PNG dosyasında gömülü YADA verisi bulunamadı.' : 'No embedded YADA data in PNG file.');
+          throw new Error(message(language, "useWelcome.noEmbeddedYADADataInPNGFile"));
         } else if (lower.endsWith('.svg')) {
           const rawBytes = await readFile(selected);
           const text = new TextDecoder().decode(rawBytes);
-          const extracted = extractSvgMetadata(text) as any;
+          const extracted = (await import('../../../utils/imageMetadata')).extractSvgMetadata(text) as any;
           if (extracted) {
             await importFromExtractedData(extracted, selected.split('/').pop() || 'Diagram');
             return;
           }
-          throw new Error(language === 'tr' ? 'SVG dosyasında gömülü YADA verisi bulunamadı.' : 'No embedded YADA data in SVG file.');
+          throw new Error(message(language, "useWelcome.noEmbeddedYADADataInSVGFile"));
         } else {
           const zipData = await readFile(selected);
           await runImport(zipData);
@@ -150,11 +153,11 @@ export const useWelcome = () => {
             reader.onload = async (event: any) => {
               try {
                 const buf = event.target.result as ArrayBuffer;
-                const extracted = extractPngMetadata(buf) as any;
+                const extracted = (await import('../../../utils/imageMetadata')).extractPngMetadata(buf) as any;
                 if (extracted) {
                   await importFromExtractedData(extracted, file.name);
                 } else {
-                  throw new Error(language === 'tr' ? 'PNG dosyasında gömülü YADA verisi bulunamadı.' : 'No embedded YADA data in PNG file.');
+                  throw new Error(message(language, "useWelcome.noEmbeddedYADADataInPNGFile"));
                 }
               } catch (err: any) {
                 setError(err.message || err.toString());
@@ -167,11 +170,11 @@ export const useWelcome = () => {
             reader.onload = async (event: any) => {
               try {
                 const text = event.target.result as string;
-                const extracted = extractSvgMetadata(text) as any;
+                const extracted = (await import('../../../utils/imageMetadata')).extractSvgMetadata(text) as any;
                 if (extracted) {
                   await importFromExtractedData(extracted, file.name);
                 } else {
-                  throw new Error(language === 'tr' ? 'SVG dosyasında gömülü YADA verisi bulunamadı.' : 'No embedded YADA data in SVG file.');
+                  throw new Error(message(language, "useWelcome.noEmbeddedYADADataInSVGFile"));
                 }
               } catch (err: any) {
                 setError(err.message || err.toString());
@@ -215,7 +218,7 @@ export const useWelcome = () => {
         });
       };
 
-      const ws = await importWorkspace(
+      const ws = await (await import('../../../utils/workspaceZip')).importWorkspace(
         zipData,
         createWorkspace,
         saveDiagramFn,
@@ -285,22 +288,32 @@ export const useWelcome = () => {
     fetchRecentWorkspaces();
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      setError(t.workspaceNamePlaceholder);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
+  const create = async (workspaceName: string, workspaceDescription: string, example = false) => {
+    if (creationPending.current) return;
+    creationPending.current = true;
+    setLoading(true); setError(null);
+    const copy = experienceCopy[language];
     try {
-      await createWorkspace(name.trim(), description.trim());
-    } catch (err: any) {
-      setError(`${t.workspaceCreateError} ${err?.toString() || 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
+      await createWorkspace(workspaceName, workspaceDescription);
+      if (example && !insertStarterDiagram()) useAppStore.getState().openAlert({ title: message(language, "TopBar.error"), message: copy.exampleFailed });
+    } catch (err) {
+      console.error('Workspace creation failed:', err);
+      setError(copy.createFailed);
+      if (useAppStore.getState().currentWorkspace) useAppStore.getState().openAlert({ title: message(language, "TopBar.error"), message: copy.createFailed });
+    } finally { creationPending.current = false; setLoading(false); }
+  };
+
+  const handleCreate = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!name.trim()) { setError(t.workspaceNamePlaceholder); return; }
+    await create(name.trim(),description.trim());
+  };
+  const handleQuickStart = async (example = false) => {
+    const copy = experienceCopy[language];
+    const base = example ? copy.exampleWorkspaceName : copy.newWorkspaceName;
+    let next = base as string, count = 2;
+    while (recentWorkspaces.some(workspace => workspace.name === next)) next = `${base} ${count++}`;
+    await create(next,'',example);
   };
 
   const handleLoadRecent = async (wsPath: string) => {
@@ -361,6 +374,7 @@ export const useWelcome = () => {
     confirmDelete,
     handleRenameWorkspace,
     handleCreate,
+    handleQuickStart,
     handleLoadRecent,
     onGoogleSignIn,
     needsPermission,

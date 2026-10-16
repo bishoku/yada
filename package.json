@@ -11,7 +11,13 @@
     "build:dc": "tsc && VITE_TARGET=confluence-dc VITE_BASE=./ vite build --outDir confluence-dc/src/main/resources/static",
     "preview": "vite preview",
     "tauri": "tauri",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:profile": "tsc && vite build --config vite.profile.config.ts",
+    "preview:profile": "vite preview --config vite.profile.config.ts",
+    "analyze:bundle": "node scripts/bundle-report.mjs",
+    "measure:editing": "vitest run --config vite.edit-profile.config.ts",
+    "build:startup-profile": "tsc && VITE_PROFILE_STARTUP=true vite build --outDir dist-startup-profile",
+    "preview:startup-profile": "vite preview --outDir dist-startup-profile --host 127.0.0.1 --port 1434 --strictPort"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.1",
@@ -49,6 +55,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "es-module-lexer": "^2.3.1",
     "mermaid": "11.17.2",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",

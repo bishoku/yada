@@ -1,0 +1,935 @@
+[
+  {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "timeOrigin": 1792178729072.9,
+    "ttfbMs": 6.5,
+    "headingReadyMs": 363,
+    "firstContentfulPaintMs": 76,
+    "lcpMs": 384,
+    "cls": 0.000026803016662597657,
+    "longTasks": 0,
+    "resources": [
+      {
+        "name": "/fonts/ui.css",
+        "transferBytes": 752,
+        "durationMs": 8.699999988079071
+      },
+      {
+        "name": "/assets/_commonjsHelpers-CE1G-McA.js",
+        "transferBytes": 1055,
+        "durationMs": 9.099999994039536
+      },
+      {
+        "name": "/assets/index-PE8KZyAE.js",
+        "transferBytes": 1793,
+        "durationMs": 13.299999982118607
+      },
+      {
+        "name": "/assets/index-lSxKqN3J.js",
+        "transferBytes": 60940,
+        "durationMs": 17.299999982118607
+      },
+      {
+        "name": "/assets/react-vendor-Cb2OAULU.js",
+        "transferBytes": 59432,
+        "durationMs": 19.799999982118607
+      },
+      {
+        "name": "/assets/_commonjs-dynamic-modules-TDtrdbi3.js",
+        "transferBytes": 539,
+        "durationMs": 13.5
+      },
+      {
+        "name": "/assets/tauri-plugins-Jl26y77d.js",
+        "transferBytes": 6037,
+        "durationMs": 15.400000005960464
+      },
+      {
+        "name": "/assets/index-Dbzi4nEg.css",
+        "transferBytes": 28126,
+        "durationMs": 17.099999994039536
+      },
+      {
+        "name": "/assets/icons-lucide-BqzrZYlr.js",
+        "transferBytes": 10828,
+        "durationMs": 17.400000005960464
+      },
+      {
+        "name": "/assets/archive-DoBcMfSu.js",
+        "transferBytes": 31214,
+        "durationMs": 18.900000005960464
+      },
+      {
+        "name": "/assets/startupProfile-DVSlWqJk.js",
+        "transferBytes": 1255,
+        "durationMs": 1.5999999940395355
+      },
+      {
+        "name": "/assets/ShareLoader-B-beyHFG.js",
+        "transferBytes": 2202,
+        "durationMs": 2.600000023841858
+      },
+      {
+        "name": "/assets/ModalSurface-D9jSAcvF.js",
+        "transferBytes": 1018,
+        "durationMs": 2.800000011920929
+      },
+      {
+        "name": "/assets/shareUtils-BcEEpva6.js",
+        "transferBytes": 1529,
+        "durationMs": 3.2000000178813934
+      },
+      {
+        "name": "/fonts/plus-jakarta-sans-latin-wght-normal.woff2",
+        "transferBytes": 27648,
+        "durationMs": 6.5999999940395355
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 29878,
+        "durationMs": 3.5
+      },
+      {
+        "name": "/assets/CollabJoinModal-DMXwpgV9.js",
+        "transferBytes": 2207,
+        "durationMs": 3.5
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 300,
+        "durationMs": 3.5
+      },
+      {
+        "name": "/assets/formatters-F2Qea7dW.js",
+        "transferBytes": 1301,
+        "durationMs": 3.300000011920929
+      },
+      {
+        "name": "/assets/workspaceZip-9wlnHse3.js",
+        "transferBytes": 5278,
+        "durationMs": 3.9000000059604645
+      },
+      {
+        "name": "/assets/Toast-5Q-2_c1f.js",
+        "transferBytes": 1123,
+        "durationMs": 4
+      },
+      {
+        "name": "/assets/WelcomeScreen-DYWVO_Wh.js",
+        "transferBytes": 11872,
+        "durationMs": 5.100000023841858
+      },
+      {
+        "name": "/assets/Field-CyXLwltv.js",
+        "transferBytes": 803,
+        "durationMs": 4.0999999940395355
+      },
+      {
+        "name": "/assets/useUiCopy-Bz7JLtad.js",
+        "transferBytes": 2886,
+        "durationMs": 5
+      },
+      {
+        "name": "/assets/index-Bv46HiVP.js",
+        "transferBytes": 1095,
+        "durationMs": 5.399999976158142
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 300,
+        "durationMs": 0.7999999821186066
+      }
+    ],
+    "transferBytes": 292459,
+    "settled": true
+  },
+  {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "timeOrigin": 1792178730502.2,
+    "ttfbMs": 4.0999999940395355,
+    "headingReadyMs": 342.59999999403954,
+    "firstContentfulPaintMs": 56,
+    "lcpMs": 372,
+    "cls": 0,
+    "longTasks": 0,
+    "resources": [
+      {
+        "name": "/fonts/ui.css",
+        "transferBytes": 300,
+        "durationMs": 8.200000017881393
+      },
+      {
+        "name": "/assets/tauri-plugins-Jl26y77d.js",
+        "transferBytes": 300,
+        "durationMs": 7.100000023841858
+      },
+      {
+        "name": "/assets/_commonjs-dynamic-modules-TDtrdbi3.js",
+        "transferBytes": 300,
+        "durationMs": 7.5
+      },
+      {
+        "name": "/assets/_commonjsHelpers-CE1G-McA.js",
+        "transferBytes": 300,
+        "durationMs": 8.800000011920929
+      },
+      {
+        "name": "/assets/index-lSxKqN3J.js",
+        "transferBytes": 300,
+        "durationMs": 6.700000017881393
+      },
+      {
+        "name": "/assets/index-PE8KZyAE.js",
+        "transferBytes": 300,
+        "durationMs": 9.700000017881393
+      },
+      {
+        "name": "/assets/icons-lucide-BqzrZYlr.js",
+        "transferBytes": 300,
+        "durationMs": 11.400000005960464
+      },
+      {
+        "name": "/assets/react-vendor-Cb2OAULU.js",
+        "transferBytes": 300,
+        "durationMs": 11.100000023841858
+      },
+      {
+        "name": "/assets/archive-DoBcMfSu.js",
+        "transferBytes": 300,
+        "durationMs": 12.300000011920929
+      },
+      {
+        "name": "/assets/index-Dbzi4nEg.css",
+        "transferBytes": 300,
+        "durationMs": 12.799999982118607
+      },
+      {
+        "name": "/assets/startupProfile-DVSlWqJk.js",
+        "transferBytes": 300,
+        "durationMs": 1.4000000059604645
+      },
+      {
+        "name": "/assets/ModalSurface-D9jSAcvF.js",
+        "transferBytes": 300,
+        "durationMs": 4
+      },
+      {
+        "name": "/assets/ShareLoader-B-beyHFG.js",
+        "transferBytes": 300,
+        "durationMs": 4
+      },
+      {
+        "name": "/assets/shareUtils-BcEEpva6.js",
+        "transferBytes": 300,
+        "durationMs": 4.9000000059604645
+      },
+      {
+        "name": "/fonts/plus-jakarta-sans-latin-wght-normal.woff2",
+        "transferBytes": 300,
+        "durationMs": 4.800000011920929
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 300,
+        "durationMs": 2.5
+      },
+      {
+        "name": "/assets/CollabJoinModal-DMXwpgV9.js",
+        "transferBytes": 300,
+        "durationMs": 1.5999999940395355
+      },
+      {
+        "name": "/assets/WelcomeScreen-DYWVO_Wh.js",
+        "transferBytes": 300,
+        "durationMs": 2.0999999940395355
+      },
+      {
+        "name": "/assets/workspaceZip-9wlnHse3.js",
+        "transferBytes": 300,
+        "durationMs": 1.0999999940395355
+      },
+      {
+        "name": "/assets/formatters-F2Qea7dW.js",
+        "transferBytes": 300,
+        "durationMs": 1.5
+      },
+      {
+        "name": "/assets/Field-CyXLwltv.js",
+        "transferBytes": 300,
+        "durationMs": 2.5
+      },
+      {
+        "name": "/assets/Toast-5Q-2_c1f.js",
+        "transferBytes": 300,
+        "durationMs": 3.300000011920929
+      },
+      {
+        "name": "/assets/useUiCopy-Bz7JLtad.js",
+        "transferBytes": 300,
+        "durationMs": 3.800000011920929
+      },
+      {
+        "name": "/assets/index-Bv46HiVP.js",
+        "transferBytes": 300,
+        "durationMs": 4.300000011920929
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 300,
+        "durationMs": 0.699999988079071
+      },
+      {
+        "name": "/fonts/outfit-latin-wght-normal.woff2",
+        "transferBytes": 300,
+        "durationMs": 2.9000000059604645
+      },
+      {
+        "name": "/fonts/outfit-latin-ext-wght-normal.woff2",
+        "transferBytes": 300,
+        "durationMs": 2.0999999940395355
+      }
+    ],
+    "transferBytes": 8400,
+    "settled": true
+  },
+  {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "timeOrigin": 1792178731906.9,
+    "ttfbMs": 4,
+    "headingReadyMs": 345.80000001192093,
+    "firstContentfulPaintMs": 60,
+    "lcpMs": 368,
+    "cls": 0,
+    "longTasks": 0,
+    "resources": [
+      {
+        "name": "/fonts/ui.css",
+        "transferBytes": 300,
+        "durationMs": 6.299999982118607
+      },
+      {
+        "name": "/assets/_commonjsHelpers-CE1G-McA.js",
+        "transferBytes": 300,
+        "durationMs": 6.800000011920929
+      },
+      {
+        "name": "/assets/tauri-plugins-Jl26y77d.js",
+        "transferBytes": 300,
+        "durationMs": 7.300000011920929
+      },
+      {
+        "name": "/assets/index-lSxKqN3J.js",
+        "transferBytes": 300,
+        "durationMs": 8.900000005960464
+      },
+      {
+        "name": "/assets/index-PE8KZyAE.js",
+        "transferBytes": 300,
+        "durationMs": 9.400000005960464
+      },
+      {
+        "name": "/assets/react-vendor-Cb2OAULU.js",
+        "transferBytes": 300,
+        "durationMs": 11.800000011920929
+      },
+      {
+        "name": "/assets/index-Dbzi4nEg.css",
+        "transferBytes": 300,
+        "durationMs": 8
+      },
+      {
+        "name": "/assets/_commonjs-dynamic-modules-TDtrdbi3.js",
+        "transferBytes": 300,
+        "durationMs": 9.800000011920929
+      },
+      {
+        "name": "/assets/archive-DoBcMfSu.js",
+        "transferBytes": 300,
+        "durationMs": 10.300000011920929
+      },
+      {
+        "name": "/assets/icons-lucide-BqzrZYlr.js",
+        "transferBytes": 300,
+        "durationMs": 11
+      },
+      {
+        "name": "/fonts/outfit-latin-ext-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/fonts/outfit-latin-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/fonts/plus-jakarta-sans-latin-ext-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/fonts/plus-jakarta-sans-latin-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/assets/startupProfile-DVSlWqJk.js",
+        "transferBytes": 300,
+        "durationMs": 1.199999988079071
+      },
+      {
+        "name": "/assets/ShareLoader-B-beyHFG.js",
+        "transferBytes": 300,
+        "durationMs": 3.5
+      },
+      {
+        "name": "/assets/ModalSurface-D9jSAcvF.js",
+        "transferBytes": 300,
+        "durationMs": 4.300000011920929
+      },
+      {
+        "name": "/assets/shareUtils-BcEEpva6.js",
+        "transferBytes": 300,
+        "durationMs": 6.300000011920929
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 300,
+        "durationMs": 3.0999999940395355
+      },
+      {
+        "name": "/assets/CollabJoinModal-DMXwpgV9.js",
+        "transferBytes": 300,
+        "durationMs": 1.300000011920929
+      },
+      {
+        "name": "/assets/WelcomeScreen-DYWVO_Wh.js",
+        "transferBytes": 300,
+        "durationMs": 1.5
+      },
+      {
+        "name": "/assets/workspaceZip-9wlnHse3.js",
+        "transferBytes": 300,
+        "durationMs": 2
+      },
+      {
+        "name": "/assets/formatters-F2Qea7dW.js",
+        "transferBytes": 300,
+        "durationMs": 2.699999988079071
+      },
+      {
+        "name": "/assets/Toast-5Q-2_c1f.js",
+        "transferBytes": 300,
+        "durationMs": 3.0999999940395355
+      },
+      {
+        "name": "/assets/Field-CyXLwltv.js",
+        "transferBytes": 300,
+        "durationMs": 3.5999999940395355
+      },
+      {
+        "name": "/assets/useUiCopy-Bz7JLtad.js",
+        "transferBytes": 300,
+        "durationMs": 4
+      },
+      {
+        "name": "/assets/index-Bv46HiVP.js",
+        "transferBytes": 300,
+        "durationMs": 4.4000000059604645
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 300,
+        "durationMs": 0.699999988079071
+      }
+    ],
+    "transferBytes": 7500,
+    "settled": true
+  },
+  {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "timeOrigin": 1792178733314.4,
+    "ttfbMs": 4,
+    "headingReadyMs": 347.5,
+    "firstContentfulPaintMs": 60,
+    "lcpMs": 368,
+    "cls": 0,
+    "longTasks": 0,
+    "resources": [
+      {
+        "name": "/fonts/ui.css",
+        "transferBytes": 300,
+        "durationMs": 6
+      },
+      {
+        "name": "/assets/_commonjsHelpers-CE1G-McA.js",
+        "transferBytes": 300,
+        "durationMs": 8
+      },
+      {
+        "name": "/assets/index-lSxKqN3J.js",
+        "transferBytes": 300,
+        "durationMs": 7.700000017881393
+      },
+      {
+        "name": "/assets/index-Dbzi4nEg.css",
+        "transferBytes": 300,
+        "durationMs": 6.600000023841858
+      },
+      {
+        "name": "/assets/index-PE8KZyAE.js",
+        "transferBytes": 300,
+        "durationMs": 8.600000023841858
+      },
+      {
+        "name": "/assets/_commonjs-dynamic-modules-TDtrdbi3.js",
+        "transferBytes": 300,
+        "durationMs": 10.600000023841858
+      },
+      {
+        "name": "/assets/react-vendor-Cb2OAULU.js",
+        "transferBytes": 300,
+        "durationMs": 9.800000011920929
+      },
+      {
+        "name": "/assets/icons-lucide-BqzrZYlr.js",
+        "transferBytes": 300,
+        "durationMs": 12.200000017881393
+      },
+      {
+        "name": "/assets/archive-DoBcMfSu.js",
+        "transferBytes": 300,
+        "durationMs": 11.5
+      },
+      {
+        "name": "/assets/tauri-plugins-Jl26y77d.js",
+        "transferBytes": 300,
+        "durationMs": 12.800000011920929
+      },
+      {
+        "name": "/fonts/outfit-latin-ext-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/fonts/outfit-latin-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/fonts/plus-jakarta-sans-latin-ext-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/fonts/plus-jakarta-sans-latin-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/assets/startupProfile-DVSlWqJk.js",
+        "transferBytes": 300,
+        "durationMs": 1.2000000178813934
+      },
+      {
+        "name": "/assets/ModalSurface-D9jSAcvF.js",
+        "transferBytes": 300,
+        "durationMs": 5.299999982118607
+      },
+      {
+        "name": "/assets/ShareLoader-B-beyHFG.js",
+        "transferBytes": 300,
+        "durationMs": 5.199999988079071
+      },
+      {
+        "name": "/assets/shareUtils-BcEEpva6.js",
+        "transferBytes": 300,
+        "durationMs": 5.199999988079071
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 300,
+        "durationMs": 2.699999988079071
+      },
+      {
+        "name": "/assets/CollabJoinModal-DMXwpgV9.js",
+        "transferBytes": 300,
+        "durationMs": 1.0999999940395355
+      },
+      {
+        "name": "/assets/workspaceZip-9wlnHse3.js",
+        "transferBytes": 300,
+        "durationMs": 1.9000000059604645
+      },
+      {
+        "name": "/assets/WelcomeScreen-DYWVO_Wh.js",
+        "transferBytes": 300,
+        "durationMs": 1.5999999940395355
+      },
+      {
+        "name": "/assets/formatters-F2Qea7dW.js",
+        "transferBytes": 300,
+        "durationMs": 2.300000011920929
+      },
+      {
+        "name": "/assets/Toast-5Q-2_c1f.js",
+        "transferBytes": 300,
+        "durationMs": 2.800000011920929
+      },
+      {
+        "name": "/assets/Field-CyXLwltv.js",
+        "transferBytes": 300,
+        "durationMs": 4.5
+      },
+      {
+        "name": "/assets/useUiCopy-Bz7JLtad.js",
+        "transferBytes": 300,
+        "durationMs": 3.300000011920929
+      },
+      {
+        "name": "/assets/index-Bv46HiVP.js",
+        "transferBytes": 300,
+        "durationMs": 4
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 300,
+        "durationMs": 0.7999999821186066
+      }
+    ],
+    "transferBytes": 7500,
+    "settled": true
+  },
+  {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "timeOrigin": 1792178734724.2,
+    "ttfbMs": 4.0999999940395355,
+    "headingReadyMs": 347.2999999821186,
+    "firstContentfulPaintMs": 56,
+    "lcpMs": 376,
+    "cls": 0.00002227127552032471,
+    "longTasks": 0,
+    "resources": [
+      {
+        "name": "/fonts/ui.css",
+        "transferBytes": 300,
+        "durationMs": 6.300000011920929
+      },
+      {
+        "name": "/assets/index-lSxKqN3J.js",
+        "transferBytes": 300,
+        "durationMs": 7.300000011920929
+      },
+      {
+        "name": "/assets/_commonjsHelpers-CE1G-McA.js",
+        "transferBytes": 300,
+        "durationMs": 7.800000011920929
+      },
+      {
+        "name": "/assets/index-PE8KZyAE.js",
+        "transferBytes": 300,
+        "durationMs": 8.300000011920929
+      },
+      {
+        "name": "/assets/_commonjs-dynamic-modules-TDtrdbi3.js",
+        "transferBytes": 300,
+        "durationMs": 8.799999982118607
+      },
+      {
+        "name": "/assets/tauri-plugins-Jl26y77d.js",
+        "transferBytes": 300,
+        "durationMs": 9.199999988079071
+      },
+      {
+        "name": "/assets/archive-DoBcMfSu.js",
+        "transferBytes": 300,
+        "durationMs": 9.899999976158142
+      },
+      {
+        "name": "/assets/icons-lucide-BqzrZYlr.js",
+        "transferBytes": 300,
+        "durationMs": 10.799999982118607
+      },
+      {
+        "name": "/assets/react-vendor-Cb2OAULU.js",
+        "transferBytes": 300,
+        "durationMs": 11.399999976158142
+      },
+      {
+        "name": "/assets/index-Dbzi4nEg.css",
+        "transferBytes": 300,
+        "durationMs": 6.5999999940395355
+      },
+      {
+        "name": "/fonts/outfit-latin-ext-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/fonts/outfit-latin-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/fonts/plus-jakarta-sans-latin-ext-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/fonts/plus-jakarta-sans-latin-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/assets/startupProfile-DVSlWqJk.js",
+        "transferBytes": 300,
+        "durationMs": 1.300000011920929
+      },
+      {
+        "name": "/assets/ShareLoader-B-beyHFG.js",
+        "transferBytes": 300,
+        "durationMs": 4.199999988079071
+      },
+      {
+        "name": "/assets/ModalSurface-D9jSAcvF.js",
+        "transferBytes": 300,
+        "durationMs": 4.800000011920929
+      },
+      {
+        "name": "/assets/shareUtils-BcEEpva6.js",
+        "transferBytes": 300,
+        "durationMs": 5.699999988079071
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 300,
+        "durationMs": 1.5
+      },
+      {
+        "name": "/assets/CollabJoinModal-DMXwpgV9.js",
+        "transferBytes": 300,
+        "durationMs": 1.800000011920929
+      },
+      {
+        "name": "/assets/WelcomeScreen-DYWVO_Wh.js",
+        "transferBytes": 300,
+        "durationMs": 1.4000000059604645
+      },
+      {
+        "name": "/assets/workspaceZip-9wlnHse3.js",
+        "transferBytes": 300,
+        "durationMs": 1.9000000059604645
+      },
+      {
+        "name": "/assets/formatters-F2Qea7dW.js",
+        "transferBytes": 300,
+        "durationMs": 2.0999999940395355
+      },
+      {
+        "name": "/assets/Toast-5Q-2_c1f.js",
+        "transferBytes": 300,
+        "durationMs": 2.4000000059604645
+      },
+      {
+        "name": "/assets/Field-CyXLwltv.js",
+        "transferBytes": 300,
+        "durationMs": 2.800000011920929
+      },
+      {
+        "name": "/assets/useUiCopy-Bz7JLtad.js",
+        "transferBytes": 300,
+        "durationMs": 3.0999999940395355
+      },
+      {
+        "name": "/assets/index-Bv46HiVP.js",
+        "transferBytes": 300,
+        "durationMs": 3.5
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 300,
+        "durationMs": 0.7999999821186066
+      }
+    ],
+    "transferBytes": 7500,
+    "settled": true
+  },
+  {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "timeOrigin": 1792178736132.6,
+    "ttfbMs": 4.0999999940395355,
+    "headingReadyMs": 347,
+    "firstContentfulPaintMs": 56,
+    "lcpMs": 376,
+    "cls": 0,
+    "longTasks": 0,
+    "resources": [
+      {
+        "name": "/fonts/ui.css",
+        "transferBytes": 300,
+        "durationMs": 6
+      },
+      {
+        "name": "/assets/index-lSxKqN3J.js",
+        "transferBytes": 300,
+        "durationMs": 6.5
+      },
+      {
+        "name": "/assets/_commonjsHelpers-CE1G-McA.js",
+        "transferBytes": 300,
+        "durationMs": 7.5999999940395355
+      },
+      {
+        "name": "/assets/index-PE8KZyAE.js",
+        "transferBytes": 300,
+        "durationMs": 7
+      },
+      {
+        "name": "/assets/react-vendor-Cb2OAULU.js",
+        "transferBytes": 300,
+        "durationMs": 8
+      },
+      {
+        "name": "/assets/_commonjs-dynamic-modules-TDtrdbi3.js",
+        "transferBytes": 300,
+        "durationMs": 8.5
+      },
+      {
+        "name": "/assets/archive-DoBcMfSu.js",
+        "transferBytes": 300,
+        "durationMs": 9
+      },
+      {
+        "name": "/assets/tauri-plugins-Jl26y77d.js",
+        "transferBytes": 300,
+        "durationMs": 9.5
+      },
+      {
+        "name": "/assets/icons-lucide-BqzrZYlr.js",
+        "transferBytes": 300,
+        "durationMs": 10.099999994039536
+      },
+      {
+        "name": "/assets/index-Dbzi4nEg.css",
+        "transferBytes": 300,
+        "durationMs": 10.900000005960464
+      },
+      {
+        "name": "/assets/startupProfile-DVSlWqJk.js",
+        "transferBytes": 300,
+        "durationMs": 1.199999988079071
+      },
+      {
+        "name": "/fonts/outfit-latin-ext-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/fonts/outfit-latin-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/fonts/plus-jakarta-sans-latin-ext-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/fonts/plus-jakarta-sans-latin-wght-normal.woff2",
+        "transferBytes": 0,
+        "durationMs": 0
+      },
+      {
+        "name": "/assets/ShareLoader-B-beyHFG.js",
+        "transferBytes": 300,
+        "durationMs": 3.4000000059604645
+      },
+      {
+        "name": "/assets/ModalSurface-D9jSAcvF.js",
+        "transferBytes": 300,
+        "durationMs": 5.5
+      },
+      {
+        "name": "/assets/shareUtils-BcEEpva6.js",
+        "transferBytes": 300,
+        "durationMs": 5.300000011920929
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 300,
+        "durationMs": 2.600000023841858
+      },
+      {
+        "name": "/assets/CollabJoinModal-DMXwpgV9.js",
+        "transferBytes": 300,
+        "durationMs": 1.2000000178813934
+      },
+      {
+        "name": "/assets/WelcomeScreen-DYWVO_Wh.js",
+        "transferBytes": 300,
+        "durationMs": 1.699999988079071
+      },
+      {
+        "name": "/assets/workspaceZip-9wlnHse3.js",
+        "transferBytes": 300,
+        "durationMs": 2.199999988079071
+      },
+      {
+        "name": "/assets/formatters-F2Qea7dW.js",
+        "transferBytes": 300,
+        "durationMs": 3.0999999940395355
+      },
+      {
+        "name": "/assets/Toast-5Q-2_c1f.js",
+        "transferBytes": 300,
+        "durationMs": 3.4000000059604645
+      },
+      {
+        "name": "/assets/Field-CyXLwltv.js",
+        "transferBytes": 300,
+        "durationMs": 3.800000011920929
+      },
+      {
+        "name": "/assets/useUiCopy-Bz7JLtad.js",
+        "transferBytes": 300,
+        "durationMs": 4.300000011920929
+      },
+      {
+        "name": "/assets/index-Bv46HiVP.js",
+        "transferBytes": 300,
+        "durationMs": 4.700000017881393
+      },
+      {
+        "name": "/pwa-icon.png",
+        "transferBytes": 300,
+        "durationMs": 0.699999988079071
+      }
+    ],
+    "transferBytes": 7500,
+    "settled": true
+  }
+]

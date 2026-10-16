@@ -41,6 +41,8 @@ function Profile() {
   const [count, setCount] = useState(25);
   const [result, setResult] = useState('Ready');
   const [running, setRunning] = useState(false);
+  const [duration, setDuration] = useState(30);
+  const [repetitions, setRepetitions] = useState(5);
   const [verification, setVerification] = useState('');
   const [image, setImage] = useState('');
   async function checkEncoding(kind: 'gif' | 'video' | 'dom-video') {
@@ -111,28 +113,52 @@ function Profile() {
     finally { setRunning(false); }
   }
   async function run() {
-    setRunning(true); setResult('Measuring for 2 seconds…');
-    commits = 0; renderMs = 0;
-    const intervals: number[] = [];
-    let previous = 0;
-    useAppStore.getState().startPlayback();
-    let start = 0;
-    await new Promise<void>(resolve => {
+    setRunning(true);
+    const samples = [];
+    const wasLooping = useAppStore.getState().loopPlayback;
+    const sample = (seconds: number, collect: boolean) => new Promise<number[]>((resolve, reject) => {
+      const intervals: number[] = [];
+      let start = 0, previous = 0;
       function frame(now: number) {
+        if (document.hidden) { reject(new Error('Keep the profiling tab visible; background samples are invalid.')); return; }
         if (!start) start = now;
-        if (previous) intervals.push(now - previous);
+        if (previous && collect) intervals.push(now - previous);
         previous = now;
-        if (now - start < 2000) requestAnimationFrame(frame); else resolve();
+        if (now - start < seconds * 1000) requestAnimationFrame(frame); else resolve(intervals);
       }
       requestAnimationFrame(frame);
     });
-    useAppStore.getState().pausePlayback();
-    const sorted = [...intervals].sort((a, b) => a - b);
-    const total = intervals.reduce((a, b) => a + b, 0);
-    setResult(JSON.stringify({ view, steps: count, frames: intervals.length, fps: +(intervals.length * 1000 / total).toFixed(1), p95FrameMs: +sorted[Math.floor(sorted.length * .95)].toFixed(2), framesOver33ms: intervals.filter(ms => ms > 33).length, reactCommits: commits, reactRenderMs: +renderMs.toFixed(2), heapMB: (performance as any).memory ? +((performance as any).memory.usedJSHeapSize / 1048576).toFixed(1) : null }));
-    setRunning(false);
+    try {
+      useAppStore.setState({ loopPlayback: true });
+      for (let run = 0; run < repetitions; run++) {
+        useAppStore.getState().startPlayback();
+        setResult(`Warmup ${run + 1}/${repetitions}…`);
+        await sample(1, false);
+        commits = 0; renderMs = 0;
+        setResult(`Measuring ${run + 1}/${repetitions} for ${duration} seconds…`);
+        const intervals = await sample(duration, true);
+        useAppStore.getState().pausePlayback();
+        const sorted = [...intervals].sort((a, b) => a - b);
+        const total = intervals.reduce((a, b) => a + b, 0);
+        samples.push({ frames: intervals.length, fps: +(intervals.length * 1000 / total).toFixed(1),
+          p95FrameMs: +(sorted[Math.ceil(sorted.length * .95) - 1] ?? 0).toFixed(2),
+          framesOver33ms: intervals.filter(ms => ms > 33).length,
+          reactCommits: import.meta.env.DEV ? commits : null, reactRenderMs: import.meta.env.DEV ? +renderMs.toFixed(2) : null,
+          heapMB: (performance as any).memory ? +((performance as any).memory.usedJSHeapSize / 1048576).toFixed(1) : null });
+      }
+      setResult(JSON.stringify({ build: import.meta.env.PROD ? 'production' : 'development', view, steps: count,
+        secondsPerSample: duration, warmupSeconds: 1, viewport: [innerWidth, innerHeight],
+        userAgent: navigator.userAgent, hardwareConcurrency: navigator.hardwareConcurrency,
+        devicePixelRatio, sampledAt: new Date().toISOString(), samples }));
+    } catch (error) {
+      setResult(String(error));
+    } finally {
+      useAppStore.getState().pausePlayback();
+      useAppStore.setState({ loopPlayback: wasLooping });
+      setRunning(false);
+    }
   }
-  return <>{view !== 'shared-freeform' && <PlaybackDriver />}<header style={{ padding: 12, background: '#fff', color: '#111', display: 'flex', gap: 15 }}><label>View <select disabled={running} value={view} onChange={event => { setView(event.target.value); useAppStore.getState().setViewMode(event.target.value === 'sequence' ? 'sequence' : 'freeform'); }}><option value="freeform">Freeform</option><option value="sequence">Sequence</option><option value="shared-freeform">Shared freeform</option></select></label><label>Steps <select disabled={running} value={count} onChange={event => { const next = +event.target.value; seed(next); setCount(next); }}><option>25</option><option>250</option><option>1000</option></select></label><button disabled={running} onClick={run}>Measure playback</button><output>{result}</output></header><section style={{ background: '#fff', color: '#111', display: 'flex', gap: 10, padding: 5 }}><button disabled={running} onClick={seekVisible}>Seek visible message</button><button disabled={running} onClick={() => useAppStore.getState().setCurrentTime(1500)}>Seek 1500 ms</button><button disabled={running} onClick={() => useAppStore.getState().setCurrentTime(0)}>Seek start</button><button disabled={running} onClick={() => checkExport('svg')}>Check SVG export</button><button disabled={running} onClick={() => checkExport('png')}>Check PNG export</button><button disabled={running} onClick={checkCanvasRenderer}>Check Canvas 2D renderer</button><button disabled={running} onClick={() => checkEncoding('gif')}>Check GIF encoding</button><button disabled={running} onClick={() => checkEncoding('video')}>Check video encoding</button><button disabled={running} onClick={() => checkEncoding('dom-video')}>Check DOM video encoding</button><span data-testid="export-result">{verification}</span>{image && <a href={image} download={image.startsWith('data:image/png') ? 'profile.png' : 'profile.svg'}>Download checked image</a>}</section><main style={{ height: 'calc(100vh - 90px)' }}><Profiler id="canvas" onRender={(_, __, duration) => { commits++; renderMs += duration; }}>{view !== 'sequence' ? <DiagramCanvas /> : <SequenceDiagramCanvas />}</Profiler></main>{view === 'shared-freeform' && <SharedPlaybackPanel />}</>;
+  return <>{view !== 'shared-freeform' && <PlaybackDriver />}<header style={{ padding: 12, background: '#fff', color: '#111', display: 'flex', gap: 15, flexWrap: 'wrap' }}><label>View <select disabled={running} value={view} onChange={event => { setView(event.target.value); useAppStore.getState().setViewMode(event.target.value === 'sequence' ? 'sequence' : 'freeform'); }}><option value="freeform">Freeform</option><option value="sequence">Sequence</option><option value="shared-freeform">Shared freeform</option></select></label><label>Steps <select disabled={running} value={count} onChange={event => { const next = +event.target.value; seed(next); setCount(next); }}><option>25</option><option>250</option><option>1000</option></select></label><label>Seconds <select disabled={running} value={duration} onChange={event => setDuration(+event.target.value)}><option>2</option><option>30</option></select></label><label>Runs <select disabled={running} value={repetitions} onChange={event => setRepetitions(+event.target.value)}><option>1</option><option>5</option></select></label><button disabled={running} onClick={run}>Measure playback</button><output style={{ maxWidth: '100%', overflowWrap: 'anywhere' }}>{result}</output></header><section style={{ background: '#fff', color: '#111', display: 'flex', gap: 10, padding: 5 }}><button disabled={running} onClick={seekVisible}>Seek visible message</button><button disabled={running} onClick={() => useAppStore.getState().setCurrentTime(1500)}>Seek 1500 ms</button><button disabled={running} onClick={() => useAppStore.getState().setCurrentTime(0)}>Seek start</button><button disabled={running} onClick={() => checkExport('svg')}>Check SVG export</button><button disabled={running} onClick={() => checkExport('png')}>Check PNG export</button><button disabled={running} onClick={checkCanvasRenderer}>Check Canvas 2D renderer</button><button disabled={running} onClick={() => checkEncoding('gif')}>Check GIF encoding</button><button disabled={running} onClick={() => checkEncoding('video')}>Check video encoding</button><button disabled={running} onClick={() => checkEncoding('dom-video')}>Check DOM video encoding</button><span data-testid="export-result">{verification}</span>{image && <a href={image} download={image.startsWith('data:image/png') ? 'profile.png' : 'profile.svg'}>Download checked image</a>}</section><main style={{ height: 'calc(100vh - 90px)' }}><Profiler id="canvas" onRender={(_, __, duration) => { commits++; renderMs += duration; }}>{view !== 'sequence' ? <DiagramCanvas /> : <SequenceDiagramCanvas />}</Profiler></main>{view === 'shared-freeform' && <SharedPlaybackPanel />}</>;
 }
 const root = createRoot(document.getElementById('root')!);
 root.render(<Profile />);

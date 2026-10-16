@@ -1,3 +1,6 @@
+import { useAppStore } from '../../store/useAppStore';
+import { operatorLabels } from '../../i18n/domainLabels';
+import { useUiCopy } from '../../i18n/useUiCopy';
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Filter } from 'lucide-react';
 import { FilterAST, FilterRule, AttributeMetadata, FilterOperator } from '../../adapters/types';
@@ -32,6 +35,8 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
   simulationMultiplier,
   onMultiplierChange
 }) => {
+  const uiCopy = useUiCopy();
+  const language = useAppStore(s => s.language);
   const [rules, setRules] = useState<FilterRule[]>([]);
   const [openPopover, setOpenPopover] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -98,13 +103,13 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
   const renderSlider = () => (
     <div className="ml-auto flex items-center gap-3 pr-2 border-l border-slate-200 dark:border-slate-700 pl-4">
       <div className="flex flex-col">
-        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">Sim Speed</label>
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">{uiCopy.playbackSpeed}</label>
         <div className="flex items-center gap-2">
-          <input 
-            type="range" 
-            min="1" 
-            max="100" 
-            value={simulationMultiplier} 
+          <input
+            type="range"
+            min="1"
+            max="100"
+            value={simulationMultiplier}
             onChange={(e) => onMultiplierChange(Number(e.target.value))}
             className="w-24 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
           />
@@ -117,7 +122,7 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
   if (selectedAttributes.length === 0) {
     return (
       <div className="w-full h-12 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center px-4">
-        <span className="text-sm text-slate-400">Select attributes from the sidebar to start filtering.</span>
+        <span className="text-sm text-slate-400">{uiCopy.selectAttributesFromTheSidebarToStart}</span>
         {renderSlider()}
       </div>
     );
@@ -133,7 +138,7 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
         const isArrayOp = ['in', 'not_in', 'contains', 'not_contains'].includes(rule.operator);
 
         const hasValue = rule.value !== '' && (!Array.isArray(rule.value) || rule.value.length > 0);
-        
+
         let displayValue = 'All';
         if (hasValue) {
           if (Array.isArray(rule.value)) displayValue = rule.value.join(', ');
@@ -142,14 +147,14 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
 
         return (
           <div key={rule.id} className="relative">
-            <div 
+            <div
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm cursor-pointer transition-colors ${hasValue ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-500/10 dark:border-indigo-500/30 dark:text-indigo-300' : 'bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'}`}
               onClick={() => setOpenPopover(openPopover === rule.id ? null : rule.id)}
             >
               <span className="font-semibold">{rule.field}</span>
               <span className="text-slate-400">:</span>
               <span className="truncate max-w-[120px]" title={displayValue}>{displayValue}</span>
-              <button 
+              <button
                 onClick={(e) => { e.stopPropagation(); onRemoveAttribute(rule.field); }}
                 className="ml-1 text-slate-400 hover:text-red-500 p-0.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
               >
@@ -162,26 +167,26 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
               <div className="absolute top-full left-0 mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 p-3 min-w-[280px]">
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-slate-500 uppercase">Operator</label>
+                    <label className="text-xs font-semibold text-slate-500 uppercase">{uiCopy.operator}</label>
                     <select
                       value={rule.operator}
                       onChange={(e) => updateRule(rule.id, { operator: e.target.value as FilterOperator })}
                       className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
-                      {allowedOperators.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                      {allowedOperators.map(op => <option key={op.value} value={op.value}>{operatorLabels[language][op.value]}</option>)}
                     </select>
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-slate-500 uppercase">Value</label>
+                    <label className="text-xs font-semibold text-slate-500 uppercase">{uiCopy.value}</label>
                     {isArrayOp ? (
                       <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900">
                         {attrMeta?.values && attrMeta.values.length > 0 ? attrMeta.values.map((v, i) => {
                           const isChecked = Array.isArray(rule.value) && rule.value.includes(v);
                           return (
                             <label key={i} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-sm border-b border-slate-100 dark:border-slate-800 last:border-0">
-                              <input 
-                                type="checkbox" 
+                              <input
+                                type="checkbox"
                                 checked={isChecked}
                                 onChange={(e) => {
                                   const arr = Array.isArray(rule.value) ? [...rule.value] : [];
@@ -197,14 +202,14 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
                               <span className="truncate">{String(v)}</span>
                             </label>
                           );
-                        }) : <div className="p-3 text-sm text-slate-500 text-center">No values found</div>}
+                        }) : <div className="p-3 text-sm text-slate-500 text-center">{uiCopy.noValuesFound}</div>}
                       </div>
                     ) : attrType === 'number' ? (
                       <input
                         type="number"
                         value={String(rule.value)}
                         onChange={(e) => updateRule(rule.id, { value: e.target.value === '' ? '' : Number(e.target.value) })}
-                        placeholder="e.g. 100"
+                        placeholder={uiCopy.eG100}
                         className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       />
                     ) : attrType === 'boolean' ? (
@@ -213,9 +218,9 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
                         onChange={(e) => updateRule(rule.id, { value: e.target.value === 'true' })}
                         className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       >
-                        <option value="">Select...</option>
-                        <option value="true">True</option>
-                        <option value="false">False</option>
+                        <option value="">{uiCopy.select}</option>
+                        <option value="true">{uiCopy.true}</option>
+                        <option value="false">{uiCopy.false}</option>
                       </select>
                     ) : (
                       <>
@@ -224,7 +229,7 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
                           list={`datalist-${rule.id}`}
                           value={String(rule.value)}
                           onChange={(e) => updateRule(rule.id, { value: e.target.value })}
-                          placeholder="Type or select..."
+                          placeholder={uiCopy.typeOrSelect}
                           className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         />
                         {attrMeta?.values && attrMeta.values.length > 0 && (
@@ -241,13 +246,13 @@ export const ActiveFiltersBar: React.FC<ActiveFiltersBarProps> = ({
           </div>
         );
       })}
-      
+
       {rules.some(r => r.value !== '' && (!Array.isArray(r.value) || r.value.length > 0)) && (
          <button
            onClick={() => setRules(prev => prev.map(r => ({ ...r, value: '' })))}
            className="text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
          >
-           Clear Values
+           {uiCopy.clearValues}
          </button>
       )}
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Settings, FolderOpen, FolderPlus } from 'lucide-react';
+import { useState } from 'react';
+import { Settings, Plus, ArrowRight, Monitor, Server, Database, Play, Upload, Activity, Link2, ExternalLink, Info } from 'lucide-react';
 import { useWelcome } from './hooks/useWelcome';
 import { WorkspaceList } from './components/WorkspaceList';
 import { CreateWorkspaceForm } from './components/CreateWorkspaceForm';
@@ -10,211 +10,76 @@ import { ImportConflictsModal } from './components/ImportConflictsModal';
 import { TextImportModal } from './TextImportModal';
 import { RefImportModal } from './components/RefImportModal';
 import { availableAdapters } from '../../adapters';
+import { useExperienceCopy } from '../../i18n/useExperienceCopy';
+import { interpolate, getStorageDescription } from '../../i18n/formatters';
+import { StorageService } from '../../services/storage';
+import { Button } from '../ui/Button';
+import { IconButton } from '../ui/IconButton';
+import { Menu } from '../ui/Menu';
+import { Dialog } from '../ui/Dialog';
+import { Toast } from '../ui/Toast';
 
-export const WelcomeScreen: React.FC = () => {
+export const WelcomeScreen = () => {
+  const welcome = useWelcome();
   const {
-    recentWorkspaces,
-    language,
-    theme,
-    changeLanguage,
-    changeTheme,
-    googleUser,
-    t,
-    name,
-    setName,
-    description,
-    setDescription,
-    error,
-    setError,
-    loading,
-    showPrefModal,
-    setShowPrefModal,
-    showImportMenu,
-    setShowImportMenu,
-    activeTextModalAdapter,
-    setActiveTextModalAdapter,
-    setImportState,
-    setViewMode,
-    workspaceToDelete,
-    setWorkspaceToDelete,
-    workspaceToRename,
-    setWorkspaceToRename,
-    renameName,
-    setRenameName,
-    importConflicts,
-    handleExport,
-    handleImport,
-    confirmDelete,
-    handleRenameWorkspace,
-    handleCreate,
-    handleLoadRecent,
-    onGoogleSignIn,
-    needsPermission,
-    handleGrantPermission,
-    handleResolveConflicts,
-    handleCancelConflicts,
-  } = useWelcome();
-
-  const [showRefImport, setShowRefImport] = useState(false);
-  const [mobileTab, setMobileTab] = useState<'workspaces' | 'create'>('workspaces');
-
-  return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-2 sm:p-4 md:p-6 lg:p-8 relative overflow-x-hidden overflow-y-auto select-none transition-colors duration-300">
-      {/* Decorative gradients - strictly isolated inside overflow-hidden to prevent horizontal/vertical scroll */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-500/15 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-600/10 dark:bg-violet-600/15 blur-[120px]" />
-      </div>
-
-      {/* Preferences Toggle Button */}
-      <button
-        onClick={() => setShowPrefModal(true)}
-        className="absolute top-3 right-3 sm:top-5 sm:right-5 p-2 sm:p-2.5 bg-white/80 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200/80 dark:border-slate-800/80 rounded-xl cursor-pointer shadow-xs transition-all flex items-center gap-1.5 z-30"
-        title={t.appPrefTitle}
-      >
-        <Settings className="w-4 h-4" />
-        <span className="text-xs font-semibold hidden xs:inline sm:inline">{t.appPrefTitle}</span>
-      </button>
-
-      {/* Main Container Card */}
-      <div className="w-full max-w-5xl bg-white/85 dark:bg-slate-900/75 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-2xl shadow-xl dark:shadow-2xl overflow-hidden flex flex-col z-10 h-full max-h-[calc(100vh-2rem)] md:h-[580px] md:max-h-[85vh] transition-all">
-        {/* Mobile Tab Navigation (< md) */}
-        <div className="flex md:hidden p-1.5 bg-slate-100 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 shrink-0 gap-1.5">
-          <button
-            type="button"
-            onClick={() => setMobileTab('workspaces')}
-            className={`flex-1 py-1.5 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              mobileTab === 'workspaces'
-                ? 'bg-white dark:bg-slate-850 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            <FolderOpen className="w-3.5 h-3.5" />
-            <span>{(t as any).tabWorkspaces || 'Çalışma Alanları'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileTab('create')}
-            className={`flex-1 py-1.5 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              mobileTab === 'create'
-                ? 'bg-white dark:bg-slate-850 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            <FolderPlus className="w-3.5 h-3.5" />
-            <span>{(t as any).tabCreateNew || 'Yeni Oluştur'}</span>
-          </button>
+    recentWorkspaces, language, theme, changeLanguage, changeTheme, googleUser, t,
+    name, setName, description, setDescription, error, setError, loading,
+    showPrefModal, setShowPrefModal, activeTextModalAdapter, setActiveTextModalAdapter,
+    setImportState, setViewMode, workspaceToDelete, setWorkspaceToDelete,
+    workspaceToRename, setWorkspaceToRename, renameName, setRenameName, importConflicts,
+    handleExport, handleImport, confirmDelete, handleRenameWorkspace, handleCreate, handleQuickStart,
+    handleLoadRecent, onGoogleSignIn, needsPermission, handleGrantPermission, handleResolveConflicts, handleCancelConflicts,
+  } = welcome;
+  const copy = useExperienceCopy();
+  const [showRefImport,setShowRefImport] = useState(false);
+  const [showCreate,setShowCreate] = useState(false);
+  const base = import.meta.env.BASE_URL;
+  return <main className="yada-welcome">
+    <div className="yada-welcome-content">
+      <header className="yada-welcome-nav">
+        <div className="flex items-center gap-2.5"><img src={`${base}pwa-icon.png`} width={32} height={32} alt="YADA" /><span className="font-display text-xl font-semibold tracking-tight">YADA</span></div>
+        <IconButton label={t.appPrefTitle} onClick={() => setShowPrefModal(true)}><Settings size={19} aria-hidden="true" /></IconButton>
+      </header>
+      {error && !showCreate && <Toast variant="error" onDismiss={() => setError(null)}>{error}</Toast>}
+      <section className="yada-start-card" aria-labelledby="welcome-title">
+        <div className="yada-start-copy">
+          <p className="yada-eyebrow">{copy.welcomeEyebrow}</p>
+          <h1 id="welcome-title">{copy.welcomeTitle}</h1>
+          <p className="yada-start-description">{copy.welcomeDescription}</p>
+          <div className="yada-start-actions">
+            <Button busy={loading} onClick={() => { void handleQuickStart(); }}><Plus size={18} aria-hidden="true" />{copy.newDiagram}</Button>
+            <Button variant="secondary" disabled={loading} onClick={() => { void handleQuickStart(true); }}><Play size={17} aria-hidden="true" />{copy.example}</Button>
+            <Menu label={copy.import} locale={language === 'tr' ? 'tr-TR' : 'en'} disabled={loading} items={[
+              { id:'project', label:t.commonUi.importWorkspace, icon:<Upload />, onSelect:() => { void handleImport(); } },
+              ...availableAdapters.map(adapter => ({ id:adapter.id, label:interpolate(t.commonUi.importAdapter,{name:adapter.id === 'mermaid-sequence' ? copy.mermaidAdapter : adapter.name}), icon:<Activity />, onSelect:() => setActiveTextModalAdapter(adapter) })),
+              { id:'reference',label:copy.importReference,icon:<Link2 />,onSelect:()=>setShowRefImport(true) },
+            ]} />
+          </div>
+          <Button variant="ghost" disabled={loading} className="yada-named-workspace" onClick={() => { setError(null); setShowCreate(true); }}>{copy.namedWorkspace}<ArrowRight size={15} aria-hidden="true" /></Button>
         </div>
-
-        {/* Main Content: 2-Column on Desktop (md:), Tab-Switched on Mobile */}
-        <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
-          {/* Left Side: Recent Workspaces */}
-          <WorkspaceList
-            className={mobileTab === 'workspaces' ? 'flex' : 'hidden md:flex'}
-            recentWorkspaces={recentWorkspaces}
-            loading={loading}
-            language={language}
-            showImportMenu={showImportMenu}
-            setShowImportMenu={setShowImportMenu}
-            availableAdapters={availableAdapters}
-            needsPermission={needsPermission}
-            onGrantPermission={handleGrantPermission}
-            onLoadRecent={handleLoadRecent}
-            onRenameWorkspace={(ws) => {
-              setWorkspaceToRename(ws);
-              setRenameName(ws.name);
-            }}
-            onExport={handleExport}
-            onDelete={setWorkspaceToDelete}
-            onImportDproj={handleImport}
-            onSelectAdapter={(adapter) => {
-              if (adapter.importMethod === 'text-modal') {
-                setActiveTextModalAdapter(adapter);
-              } else {
-                setActiveTextModalAdapter(adapter);
-              }
-            }}
-            onRefImport={() => setShowRefImport(true)}
-          />
-
-          {/* Right Side: Create Workspace Form */}
-          <CreateWorkspaceForm
-            className={mobileTab === 'create' ? 'flex' : 'hidden md:flex'}
-            name={name}
-            setName={(val) => {
-              setName(val);
-              setError(null);
-            }}
-            description={description}
-            setDescription={setDescription}
-            loading={loading}
-            error={error}
-            language={language}
-            onSubmit={handleCreate}
-            onGoogleSignIn={onGoogleSignIn}
-            googleUser={googleUser}
-          />
+        <div className="yada-flow-preview" aria-hidden="true">
+          <div className="yada-flow-nodes">
+            <div><Monitor size={23} /><span>{copy.client}</span></div><ArrowRight size={18} />
+            <div><Server size={23} /><span>{copy.server}</span></div><ArrowRight size={18} />
+            <div><Database size={23} /><span>{copy.database}</span></div>
+          </div>
+          <p>{copy.exampleCaption}</p>
         </div>
-      </div>
-
-      {/* Global Preferences Modal */}
-      <PreferencesModal
-        isOpen={showPrefModal}
-        onClose={() => setShowPrefModal(false)}
-        language={language}
-        theme={theme}
-        onChangeLanguage={changeLanguage}
-        onChangeTheme={changeTheme}
-      />
-
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        workspace={workspaceToDelete}
-        onClose={() => setWorkspaceToDelete(null)}
-        onConfirm={confirmDelete}
-        language={language}
-      />
-
-      {/* Rename Workspace Modal */}
-      <RenameWorkspaceModal
-        workspace={workspaceToRename}
-        renameName={renameName}
-        setRenameName={setRenameName}
-        loading={loading}
-        onClose={() => {
-          setWorkspaceToRename(null);
-          setRenameName('');
-        }}
-        onSubmit={handleRenameWorkspace}
-        language={language}
-      />
-
-      {/* Import Conflict Resolution Modal */}
-      <ImportConflictsModal
-        importConflicts={importConflicts}
-        onResolve={handleResolveConflicts}
-        onCancel={handleCancelConflicts}
-        language={language}
-      />
-
-      {/* Adapter Text Paste Import Modal */}
-      {activeTextModalAdapter && (
-        <TextImportModal
-          adapterId={activeTextModalAdapter.id}
-          adapterName={activeTextModalAdapter.name}
-          onClose={() => setActiveTextModalAdapter(null)}
-          onSubmit={(adapterId, data) => {
-            setActiveTextModalAdapter(null);
-            setImportState(adapterId, data);
-            setViewMode('import-preview');
-          }}
-        />
-      )}
-
-      {/* Ref Import Modal */}
-      {showRefImport && (
-        <RefImportModal onClose={() => setShowRefImport(false)} />
-      )}
+      </section>
+      <WorkspaceList recentWorkspaces={recentWorkspaces} loading={loading} language={language} needsPermission={needsPermission} onGrantPermission={handleGrantPermission} onLoadRecent={handleLoadRecent} onRenameWorkspace={workspace => { setWorkspaceToRename(workspace); setRenameName(workspace.name); }} onExport={handleExport} onDelete={setWorkspaceToDelete} />
+      <footer className="yada-welcome-footer">
+        <p><Info size={15} aria-hidden="true" />{getStorageDescription(StorageService.getMode(),language)}</p>
+        <a href={`${base}diagram.html`} target="_blank" rel="noopener noreferrer">{copy.moreExamples}<ExternalLink size={14} aria-hidden="true" /></a>
+      </footer>
     </div>
-  );
+    {showCreate && <Dialog title={t.createWorkspace} onClose={() => { if (!loading) setShowCreate(false); }}>
+      <CreateWorkspaceForm name={name} setName={value => { setName(value); setError(null); }} description={description} setDescription={setDescription} loading={loading} error={error} language={language} onSubmit={handleCreate} onGoogleSignIn={onGoogleSignIn} googleUser={googleUser} />
+    </Dialog>}
+    <PreferencesModal isOpen={showPrefModal} onClose={() => setShowPrefModal(false)} language={language} theme={theme} onChangeLanguage={changeLanguage} onChangeTheme={changeTheme} />
+    <DeleteConfirmationModal workspace={workspaceToDelete} onClose={() => setWorkspaceToDelete(null)} onConfirm={confirmDelete} language={language} />
+    <RenameWorkspaceModal workspace={workspaceToRename} renameName={renameName} setRenameName={setRenameName} loading={loading} onClose={() => { setWorkspaceToRename(null); setRenameName(''); }} onSubmit={handleRenameWorkspace} language={language} />
+    <ImportConflictsModal importConflicts={importConflicts} onResolve={handleResolveConflicts} onCancel={handleCancelConflicts} language={language} />
+    {activeTextModalAdapter && <TextImportModal adapterId={activeTextModalAdapter.id} adapterName={activeTextModalAdapter.id === 'mermaid-sequence' ? copy.mermaidAdapter : activeTextModalAdapter.name} onClose={() => setActiveTextModalAdapter(null)} onSubmit={(adapterId,data) => { setActiveTextModalAdapter(null); setImportState(adapterId,data); setViewMode('import-preview'); }} />}
+    {showRefImport && <RefImportModal onClose={() => setShowRefImport(false)} />}
+  </main>;
 };

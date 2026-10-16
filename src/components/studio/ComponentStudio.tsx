@@ -1,3 +1,6 @@
+import { copyDomains } from '../../i18n/copyDomains';
+import { useUiCopy } from '../../i18n/useUiCopy';
+import { message } from '../../i18n/messages';
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { ShapeLayer, ShapeType } from '../../types';
@@ -8,11 +11,12 @@ import { StudioInspector } from './StudioInspector';
 import { translations, Language } from '../../i18n/translations';
 
 export const ComponentStudio: React.FC = () => {
+  const uiCopy = useUiCopy();
   const activeComponent = useAppStore((s: any) => s.activeComponent);
   const selectedLayerId = useAppStore((s: any) => s.selectedLayerId);
   const language = useAppStore((s: any) => s.language) as Language;
   const t = translations[language];
-  
+
   const setView = useAppStore((s: any) => s.setView);
   const setActiveComponent = useAppStore((s: any) => s.setActiveComponent);
   const setSelectedLayerId = useAppStore((s: any) => s.setSelectedLayerId);
@@ -32,13 +36,13 @@ export const ComponentStudio: React.FC = () => {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-955 font-sans">
         <span className="text-sm font-semibold text-slate-550">
-          No component loaded in Studio.
+          {uiCopy.noComponentLoadedInStudio}
         </span>
-        <button 
-          onClick={() => setView('diagram')} 
+        <button
+          onClick={() => setView('diagram')}
           className="mt-4 px-4 py-2 bg-indigo-650 text-white rounded-xl text-xs font-bold"
         >
-          Go Back
+          {uiCopy.goBack}
         </button>
       </div>
     );
@@ -58,23 +62,14 @@ export const ComponentStudio: React.FC = () => {
       image: { opacity: 1, rotation: 0 },
     };
 
-    const shapeNames: Record<ShapeType, { tr: string; en: string }> = {
-      rectangle: { tr: 'Kutu', en: 'Rectangle' },
-      circle: { tr: 'Daire', en: 'Circle' },
-      triangle: { tr: 'Üçgen', en: 'Triangle' },
-      star: { tr: 'Yıldız', en: 'Star' },
-      polygon: { tr: 'Çokgen', en: 'Polygon' },
-      line: { tr: 'Çizgi', en: 'Line' },
-      text: { tr: 'Metin', en: 'Text' },
-      image: { tr: 'Görsel', en: 'Image' },
-    };
+    const shapeNames: Record<ShapeType, { tr: string; en: string }> = copyDomains.shapes;
 
     const shapeName = language === 'tr' ? shapeNames[type].tr : shapeNames[type].en;
 
     const newLayer: ShapeLayer = {
       id: `layer-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       type,
-      name: `${language === 'tr' ? 'Katman' : 'Layer'} ${layerCount + 1} (${shapeName})`,
+      name: `${message(language, "ComponentStudio.layer")} ${layerCount + 1} (${shapeName})`,
       zIndex: layerCount,
       x: 30 + (layerCount * 10) % 50,
       y: 30 + (layerCount * 10) % 50,
@@ -83,7 +78,7 @@ export const ComponentStudio: React.FC = () => {
       locked: false,
       visible: true,
       style: defaultStyles[type] || { opacity: 1 },
-      content: type === 'text' ? (language === 'tr' ? 'Metin' : 'Text') : '',
+      content: type === 'text' ? (message(language, "ComponentStudio.text")) : '',
     };
 
     addLayer(newLayer);
@@ -300,15 +295,15 @@ export const ComponentStudio: React.FC = () => {
           activeComponent: { ...s.activeComponent, category: val }
         }))}
         onWidthChange={(val) => useAppStore.setState((s: any) => ({
-          activeComponent: { 
-            ...s.activeComponent, 
-            dimensions: { ...s.activeComponent.dimensions, width: val } 
+          activeComponent: {
+            ...s.activeComponent,
+            dimensions: { ...s.activeComponent.dimensions, width: val }
           }
         }))}
         onHeightChange={(val) => useAppStore.setState((s: any) => ({
-          activeComponent: { 
-            ...s.activeComponent, 
-            dimensions: { ...s.activeComponent.dimensions, height: val } 
+          activeComponent: {
+            ...s.activeComponent,
+            dimensions: { ...s.activeComponent.dimensions, height: val }
           }
         }))}
         onSave={handleSave}
@@ -316,7 +311,7 @@ export const ComponentStudio: React.FC = () => {
 
       <div className="flex-1 flex overflow-hidden min-h-0">
         <StudioSidebar onAddShape={handleAddShape} />
-        
+
         <StudioCanvas
           width={activeComponent.dimensions.width}
           height={activeComponent.dimensions.height}

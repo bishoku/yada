@@ -8,6 +8,8 @@
   "permissions": [
     "core:default",
     "core:window:default",
+    "core:window:allow-close",
+    "core:window:allow-destroy",
     "opener:default",
     "dialog:default",
     "allow-create-workspace",

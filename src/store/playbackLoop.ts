@@ -3,7 +3,7 @@ import { simulationClock } from './simulationClock';
 import { activeSequencesAt } from './playbackModel';
 interface FrameDriver { request(callback: FrameRequestCallback): number; cancel(id: number): void }
 /** Shared by editor and embedded playback: clock every frame, store at most every 150ms. */
-export function startSimulationLoop(maxTime: number, driver: FrameDriver = { request: callback => requestAnimationFrame(callback), cancel: id => cancelAnimationFrame(id) }) {
+export function startSimulationLoop(maxTime: number, driver: FrameDriver = { request: callback => requestAnimationFrame(callback), cancel: id => cancelAnimationFrame(id) }, options: { loop?: boolean } = {}) {
   let disposed = false;
   let frame: number | null = null;
   let previous: number | null = null;
@@ -14,7 +14,7 @@ export function startSimulationLoop(maxTime: number, driver: FrameDriver = { req
       const state = useAppStore.getState();
       const next = simulationClock.getTime() + (timestamp - previous) * state.playbackRate;
       if (next >= maxTime) {
-        if (!state.loopPlayback) { state.stopPlayback(); return; }
+        if (!(options.loop ?? state.loopPlayback)) { state.stopPlayback(); return; }
         state.setCurrentTime(0); // Reset active IDs as well as the clock/playhead.
         lastStoreSync = timestamp;
       } else {

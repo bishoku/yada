@@ -1,3 +1,4 @@
+import { workspaceCopy } from '../../i18n/workspaceCopy';
 import { ensureSavedForNavigation, saveCurrentDiagram } from '../../services/saveCoordinator';
 import { simulationClock } from '../simulationClock';
 import { getPlatformCapabilities, assertCanCreateDiagram } from '../../services/platformCapabilities';
@@ -7,7 +8,6 @@ import { Language, Theme } from '../../i18n/translations';
 import { StorageService, isTauri } from '../../services/storage';
 import { migratePortFormat } from '../../utils/portMigration';
 import { migrateToSchemaV2 } from '../../utils/schemaMigration';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import { encryptCredential, decryptCredential } from '../../services/ai/cryptoVault';
 
 let latestDiagramLoad = 0;
@@ -15,7 +15,7 @@ let latestDiagramLoad = 0;
 const applyTheme = (theme: Theme) => {
   // Remove custom theme classes first
   document.documentElement.classList.remove('theme-nord', 'theme-dracula', 'theme-synthwave', 'theme-retro');
-  
+
   if (theme === 'light') {
     document.documentElement.classList.remove('dark');
   } else {
@@ -52,7 +52,7 @@ export interface WorkspaceSlice {
 
   toggleFullscreen: () => Promise<void>;
   exitFullscreen: () => Promise<void>;
-  initFullscreenListener: () => void;
+  initFullscreenListener: () => () => void;
 
   setWorkspace: (ws: WorkspaceMeta | null) => Promise<boolean>;
   setDiagrams: (diagrams: import('../../types').DiagramMeta[]) => void;
@@ -194,16 +194,16 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       name,
       updatedAt: new Date().toISOString()
     };
-    
+
     // Save new diagram
     const logicalJson = JSON.stringify({ schemaVersion: 2, nodes: [], edges: [], sequences: [] });
     const visualJson = JSON.stringify({ canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} });
     await StorageService.save_diagram(state.currentWorkspace.path, newId, logicalJson, visualJson);
-    
+
     // Update index
     const updatedDiagrams = [...state.diagrams, newDiagram];
     await StorageService.save_text_file(`${state.currentWorkspace.path}/diagrams/index.json`, JSON.stringify({ diagrams: updatedDiagrams }));
-    
+
     set({ diagrams: updatedDiagrams });
     return newDiagram;
   },
@@ -214,10 +214,10 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     }
     const state = get();
     if (!state.currentWorkspace) throw new Error("No active workspace");
-    
+
     const updatedDiagrams = state.diagrams.map(d => d.id === id ? { ...d, name, updatedAt: new Date().toISOString() } : d);
     await StorageService.save_text_file(`${state.currentWorkspace.path}/diagrams/index.json`, JSON.stringify({ diagrams: updatedDiagrams }));
-    
+
     set({ diagrams: updatedDiagrams });
   },
 
@@ -227,16 +227,16 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     }
     const state = get();
     if (!state.currentWorkspace) throw new Error("No active workspace");
-    
+
     const updatedDiagrams = state.diagrams.filter(d => d.id !== id);
     await StorageService.save_text_file(`${state.currentWorkspace.path}/diagrams/index.json`, JSON.stringify({ diagrams: updatedDiagrams }));
-    
+
     set({ diagrams: updatedDiagrams });
-    
+
     // If the active diagram is deleted, close it
     if (state.activeDiagramId === id) {
       const remainingIds = state.openDiagramIds.filter(did => did !== id);
-      set({ 
+      set({
         activeDiagramId: remainingIds.length > 0 ? remainingIds[0] : null,
         openDiagramIds: remainingIds
       });
@@ -261,7 +261,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       return;
     }
     if (!state.currentWorkspace || state.activeDiagramId === id) return;
-    
+
     if (!await ensureSavedForNavigation()) return;
 
     const baseline = get();
@@ -276,10 +276,10 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         return;
       }
       const diag = JSON.parse(diagJson);
-      
+
       let logicalData: import('../../types').LogicalDiagram = { schemaVersion: 2, nodes: [], edges: [], sequences: [] };
       let visualData: import('../../types').VisualDiagram = { canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} };
-      
+
       if (diag.logicalData && Array.isArray(diag.logicalData.nodes) && Array.isArray(diag.logicalData.edges)) {
         logicalData = {
           ...diag.logicalData,
@@ -314,15 +314,15 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
           annotations: diag.visual.annotations || {}
         };
       }
-      
+
       const migratedPort = migratePortFormat(logicalData, visualData);
       const migrated = migrateToSchemaV2(migratedPort.logicalData, migratedPort.visualData);
-      
+
       const openIds = new Set(state.openDiagramIds);
       openIds.add(id);
-      
+
       simulationClock.reset();
-      set({ 
+      set({
         activeDiagramId: id,
         openDiagramIds: Array.from(openIds),
         logicalData: migrated.logicalData,
@@ -356,7 +356,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         if (get().activeDiagramId === id) return;
         set({ openDiagramIds: remainingIds }); // switchDiagram will set activeDiagramId
       } else {
-        set({ 
+        set({
           activeDiagramId: null,
           openDiagramIds: [],
           logicalData: { schemaVersion: 2, nodes: [], edges: [], sequences: [] },
@@ -379,19 +379,19 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     try {
       const resJson = await StorageService.create_workspace(name, description);
       const ws: WorkspaceMeta = JSON.parse(resJson);
-      
+
       const logicalJson = JSON.stringify({ schemaVersion: 2, nodes: [], edges: [], sequences: [] });
       const visualJson = JSON.stringify({ canvas: { zoom: 1, pan: { x: 0, y: 0 } }, layoutNodes: {}, layoutEdges: {}, timelines: {} });
-      
+
       // Create default diagram and diagrams directory
       await StorageService.save_diagram(ws.path, 'default', logicalJson, visualJson);
-      
-      const defaultDiagram = { id: 'default', name: 'Default Diagram', updatedAt: new Date().toISOString() };
+
+      const defaultDiagram = { id: 'default', name: workspaceCopy[get().language].newDiagram, updatedAt: new Date().toISOString() };
       try {
         await StorageService.save_text_file(`${ws.path}/diagrams/index.json`, JSON.stringify({ diagrams: [defaultDiagram] }));
       } catch (e) {}
-      
-      set({ 
+
+      set({
         currentWorkspace: ws,
         diagrams: [defaultDiagram],
         activeDiagramId: 'default',
@@ -403,6 +403,8 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         isPlaying: false,
         currentTime: 0,
         activeSequenceIds: [],
+        pastStates: [],
+        futureStates: [],
         selectedSequenceId: null,
         rightSidebarOpen: false,
         timelineOpen: true
@@ -424,7 +426,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     try {
       const resJson = await StorageService.load_workspace(path);
       const ws: WorkspaceMeta = JSON.parse(resJson);
-      
+
       let diagrams: import('../../types').DiagramMeta[] = [];
       try {
         const indexStr = await StorageService.read_text_file(`${path}/diagrams/index.json`);
@@ -436,8 +438,8 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
            await StorageService.save_text_file(`${path}/diagrams/index.json`, JSON.stringify({ diagrams }));
         } catch (_) {}
       }
-      
-      set({ 
+
+      set({
         currentWorkspace: ws,
         diagrams,
         activeDiagramId: null,
@@ -529,7 +531,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     try {
       const resJson = await StorageService.load_preferences();
       const prefObj = JSON.parse(resJson);
-      
+
       let finalLang: Language = 'en';
       if (prefObj.language === 'system') {
         const sysLang = navigator.language || 'en';
@@ -537,7 +539,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       } else if (prefObj.language === 'tr' || prefObj.language === 'en') {
         finalLang = prefObj.language;
       }
-      
+
       let finalTheme: Theme = ['dark', 'light', 'nord', 'dracula', 'synthwave', 'retro'].includes(prefObj.theme)
         ? prefObj.theme
         : 'nord';
@@ -546,13 +548,13 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       const paramTheme = urlParams.get('theme');
       const paramLang = urlParams.get('lang');
 
-      const isEmbedOrModal = 
-        urlParams.get('mode') === 'modal' || 
-        urlParams.get('integration') === 'iframe' || 
-        urlParams.get('embed_editor') === 'true' || 
-        urlParams.get('embed') === 'true' || 
-        urlParams.get('embed') === '1' || 
-        window.location.href.includes('mode=modal') || 
+      const isEmbedOrModal =
+        urlParams.get('mode') === 'modal' ||
+        urlParams.get('integration') === 'iframe' ||
+        urlParams.get('embed_editor') === 'true' ||
+        urlParams.get('embed') === 'true' ||
+        urlParams.get('embed') === '1' ||
+        window.location.href.includes('mode=modal') ||
         window.location.href.includes('embed=true');
 
       if (paramTheme && ['dark', 'light', 'nord', 'dracula', 'synthwave', 'retro'].includes(paramTheme)) {
@@ -599,7 +601,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       });
 
       applyTheme(finalTheme);
-      
+
       await get().loadLibrary();
     } catch (err) {
       console.error('Error loading app preferences:', err);
@@ -607,7 +609,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       const finalLang: Language = sysLang.toLowerCase().startsWith('tr') ? 'tr' : 'en';
       set({ language: finalLang, theme: 'nord', maxSteps: 30 });
       applyTheme('nord');
-      
+
       try {
         await get().loadLibrary();
       } catch (_) {}
@@ -619,23 +621,24 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   openRightSidebar: () => set({ rightSidebarOpen: true }),
 
   initFullscreenListener: () => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
     if (isTauri()) {
-      try {
+      import('@tauri-apps/api/window').then(async ({ getCurrentWindow }) => {
+        if (disposed) return;
         const appWindow = getCurrentWindow();
-        appWindow.isFullscreen().then((isFs) => set({ isFullscreen: isFs })).catch(() => {});
-        appWindow.onResized(async () => {
-          try {
-            const isFs = await appWindow.isFullscreen();
-            set({ isFullscreen: isFs });
-          } catch (_) {}
-        }).catch(() => {});
-      } catch (_) {}
+        const sync = async () => {try {const value=await appWindow.isFullscreen();if(!disposed)set({isFullscreen:value});}catch{}};
+        await sync();
+        if (disposed) return;
+        const cleanup=await appWindow.onResized(sync);
+        if (disposed) cleanup(); else unlisten=cleanup;
+      }).catch(()=>{});
     } else {
-      const handleFsChange = () => {
-        set({ isFullscreen: !!document.fullscreenElement });
-      };
-      document.addEventListener('fullscreenchange', handleFsChange);
+      const handleFsChange=()=>set({isFullscreen:!!document.fullscreenElement});
+      document.addEventListener('fullscreenchange',handleFsChange);
+      unlisten=()=>document.removeEventListener('fullscreenchange',handleFsChange);
     }
+    return ()=>{disposed=true;unlisten?.();};
   },
 
   toggleFullscreen: async () => {
@@ -644,7 +647,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
 
     if (isTauri()) {
       try {
-        const appWindow = getCurrentWindow();
+        const appWindow = (await import('@tauri-apps/api/window')).getCurrentWindow();
         await appWindow.setFullscreen(nextFs);
       } catch (err) {
         console.warn('Error toggling Tauri window fullscreen:', err);
@@ -671,7 +674,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
 
     if (isTauri()) {
       try {
-        const appWindow = getCurrentWindow();
+        const appWindow = (await import('@tauri-apps/api/window')).getCurrentWindow();
         await appWindow.setFullscreen(false);
       } catch (err) {
         console.warn('Error exiting Tauri window fullscreen:', err);
@@ -687,8 +690,8 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
     }
   },
   viewMode: 'freeform' as const,
-  toggleViewMode: () => set((state) => ({ 
-    viewMode: state.viewMode === 'freeform' ? 'sequence' as const : 'freeform' as const 
+  toggleViewMode: () => set((state) => ({
+    viewMode: state.viewMode === 'freeform' ? 'sequence' as const : 'freeform' as const
   })),
   setViewMode: (mode) => set({ viewMode: mode }),
   importRawData: null,
@@ -834,11 +837,11 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       await StorageService.delete_workspace(path);
       await get().fetchRecentWorkspaces();
       if (get().currentWorkspace?.path === path) {
-        set({ 
-          currentWorkspace: null, 
-          diagrams: [], 
-          activeDiagramId: null, 
-          openDiagramIds: [] 
+        set({
+          currentWorkspace: null,
+          diagrams: [],
+          activeDiagramId: null,
+          openDiagramIds: []
         });
       }
     } catch (err) {

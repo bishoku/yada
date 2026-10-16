@@ -1,3 +1,6 @@
+import { useId } from 'react';
+import { ModalSurface } from '../../ui/ModalSurface';
+import { message } from '../../../i18n/messages';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FileDown, Check, Film, Image, ChevronRight } from 'lucide-react';
@@ -38,6 +41,7 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
   onExportGif,
   onExportVideo,
 }) => {
+  const fieldPrefix = useId();
   const language = useAppStore((s) => s.language);
 
   const [tab, setTab] = useState<Tab>('gif');
@@ -53,28 +57,19 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
   const [videoScale,   setVideoScale]   = useState(1);
   const [videoEngine,  setVideoEngine]  = useState<'canvas' | 'screen'>('canvas');
 
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+
 
   if (!isOpen) return null;
 
 
-  const tr = (en: string, turk: string) => (language === 'tr' ? turk : en);
 
   // Rough GIF size hint based on settings
   const sizeHint = (() => {
     const factor = gifScale * gifScale * (gifQuality / 100) * (gifFps / 30);
-    if (factor < 0.15) return tr('Very small (~<1 MB)', 'Çok küçük (~<1 MB)');
-    if (factor < 0.35) return tr('Small (~1–3 MB)', 'Küçük (~1–3 MB)');
-    if (factor < 0.65) return tr('Medium (~3–8 MB)', 'Orta (~3–8 MB)');
-    return tr('Large (8+ MB)', 'Büyük (8+ MB)');
+    if (factor < 0.15) return message(language, "GifExportModal.verySmall1MB");
+    if (factor < 0.35) return message(language, "GifExportModal.small13MB");
+    if (factor < 0.65) return message(language, "GifExportModal.medium38MB");
+    return message(language, "GifExportModal.large8MB");
   })();
 
   const handleExport = () => {
@@ -87,17 +82,17 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 bg-slate-950/70 dark:bg-slate-950/85 backdrop-blur-sm flex items-center justify-center z-[9999]">
+    <ModalSurface label={message(language, "GifExportModal.exportAnimation")} onClose={onClose} width="24rem">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl transition-all animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
 
         {/* ── Header ── */}
         <div className="px-5 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800">
           <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
             <FileDown className="w-4 h-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
-            {tr('Export Animation', 'Animasyon Dışa Aktarma')}
+            {message(language, "GifExportModal.exportAnimation")}
           </h3>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-            {tr('Configure and export your simulation', 'Simülasyonunuzu yapılandırın ve dışa aktarın')}
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+            {message(language, "GifExportModal.configureAndExportYourSimulation")}
           </p>
         </div>
 
@@ -123,7 +118,7 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
             }`}
           >
             <Film className="w-3.5 h-3.5" />
-            {tr('Video (MP4)', 'Video (MP4)')}
+            Video (MP4)
           </button>
         </div>
 
@@ -133,8 +128,8 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
 
             {/* FPS */}
             <div>
-              <label className="flex justify-between text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                <span>{tr('FPS (Frames Per Second)', 'FPS (Saniye Başına Kare)')}</span>
+              <label className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2" htmlFor={`${fieldPrefix}-modal-field-1`}>
+                <span>{message(language, "GifExportModal.fPSFramesPerSecond")}</span>
                 <span className="text-indigo-500 font-bold">{gifFps}</span>
               </label>
               <input
@@ -142,17 +137,17 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
                 value={gifFps}
                 onChange={(e) => setGifFps(Number(e.target.value))}
                 className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full appearance-none cursor-pointer accent-indigo-500"
-              />
-              <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
-                <span>5 {tr('(Smaller file)', '(Küçük dosya)')}</span>
-                <span>30 {tr('(Smoother)', '(Daha akıcı)')}</span>
+               id={`${fieldPrefix}-modal-field-1`}/>
+              <div className="flex justify-between text-xs text-slate-400 mt-0.5">
+                <span>5 {message(language, "GifExportModal.smallerFile")}</span>
+                <span>30 {message(language, "GifExportModal.smoother")}</span>
               </div>
             </div>
 
             {/* Quality */}
             <div>
-              <label className="flex justify-between text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                <span>{tr('Color Quality', 'Renk Kalitesi')}</span>
+              <label className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2" htmlFor={`${fieldPrefix}-modal-field-2`}>
+                <span>{message(language, "GifExportModal.colorQuality")}</span>
                 <span className="text-indigo-500 font-bold">{gifQuality}%</span>
               </label>
               <input
@@ -160,17 +155,17 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
                 value={gifQuality}
                 onChange={(e) => setGifQuality(Number(e.target.value))}
                 className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full appearance-none cursor-pointer accent-indigo-500"
-              />
-              <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
-                <span>{tr('Low (16 colors)', 'Düşük (16 renk)')}</span>
-                <span>{tr('High (256 colors)', 'Yüksek (256 renk)')}</span>
+               id={`${fieldPrefix}-modal-field-2`}/>
+              <div className="flex justify-between text-xs text-slate-400 mt-0.5">
+                <span>{message(language, "GifExportModal.low16Colors")}</span>
+                <span>{message(language, "GifExportModal.high256Colors")}</span>
               </div>
             </div>
 
             {/* Resolution */}
             <div>
-              <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
-                {tr('Resolution Scale', 'Çözünürlük Ölçeği')}
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
+                {message(language, "GifExportModal.resolutionScale")}
               </label>
               <div className="grid grid-cols-4 gap-1">
                 {RESOLUTIONS.map((r) => (
@@ -187,15 +182,15 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
                   </button>
                 ))}
               </div>
-              <p className="text-[9px] text-slate-400 mt-1">
-                {tr('Halving resolution (~4× smaller file)', 'Çözünürlüğü yarıya indirmek (~4× küçük dosya)')}
+              <p className="text-xs text-slate-400 mt-1">
+                {message(language, "GifExportModal.halvingResolution4SmallerFile")}
               </p>
             </div>
 
             {/* Size hint */}
-            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
               <ChevronRight className="w-3 h-3 shrink-0" />
-              <span>{tr('Estimated output', 'Tahmini çıktı')}: <span className="text-slate-600 dark:text-slate-300 font-semibold">{sizeHint}</span></span>
+              <span>{message(language, "GifExportModal.estimatedOutput")}: <span className="text-slate-600 dark:text-slate-300 font-semibold">{sizeHint}</span></span>
             </div>
           </div>
         )}
@@ -206,8 +201,8 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
 
             {/* FPS */}
             <div>
-              <label className="flex justify-between text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                <span>{tr('FPS (Frames Per Second)', 'FPS (Saniye Başına Kare)')}</span>
+              <label className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2" htmlFor={`${fieldPrefix}-modal-field-3`}>
+                <span>{message(language, "GifExportModal.fPSFramesPerSecond")}</span>
                 <span className="text-violet-500 font-bold">{videoFps}</span>
               </label>
               <input
@@ -215,17 +210,17 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
                 value={videoFps}
                 onChange={(e) => setVideoFps(Number(e.target.value))}
                 className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full appearance-none cursor-pointer accent-violet-500"
-              />
-              <div className="flex justify-between text-[9px] text-slate-400 mt-0.5">
+               id={`${fieldPrefix}-modal-field-3`}/>
+              <div className="flex justify-between text-xs text-slate-400 mt-0.5">
                 <span>10</span>
-                <span>60 {tr('(Smooth)', '(Akıcı)')}</span>
+                <span>60 {message(language, "GifExportModal.smooth")}</span>
               </div>
             </div>
 
             {/* Video Quality */}
             <div>
-              <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
-                {tr('Bitrate / Quality', 'Bitrate / Kalite')}
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
+                {message(language, "GifExportModal.bitrateQuality")}
               </label>
               <div className="grid grid-cols-3 gap-1.5">
                 {VIDEO_QUALITIES.map((q) => (
@@ -238,8 +233,8 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
                         : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
                   >
-                    <span className="text-xs font-bold">{q.label}</span>
-                    <span className={`text-[9px] mt-0.5 ${videoQuality === q.value ? 'text-violet-200' : 'text-slate-400'}`}>
+                    <span className="text-xs font-bold">{message(language, `quality.${q.value}`)}</span>
+                    <span className={`text-xs mt-0.5 ${videoQuality === q.value ? 'text-violet-200' : 'text-slate-400'}`}>
                       {q.sublabel}
                     </span>
                   </button>
@@ -249,8 +244,8 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
 
             {/* Resolution Scale */}
             <div>
-              <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
-                {tr('Resolution Scale', 'Çözünürlük Ölçeği')}
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
+                {message(language, "GifExportModal.resolutionScale")}
               </label>
               <div className="grid grid-cols-3 gap-1.5">
                 {VIDEO_RESOLUTIONS.map((r) => (
@@ -264,24 +259,21 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
                     }`}
                   >
                     <span className="text-xs font-bold">{r.label}</span>
-                    <span className={`text-[9px] mt-0.5 ${videoScale === r.value ? 'text-violet-200' : 'text-slate-400'}`}>
+                    <span className={`text-xs mt-0.5 ${videoScale === r.value ? 'text-violet-200' : 'text-slate-400'}`}>
                       {r.sublabel[language]}
                     </span>
                   </button>
                 ))}
               </div>
-              <p className="text-[9px] text-slate-400 mt-1">
-                {tr(
-                  'All resolutions use 2× supersampling for sharp text. Higher scales produce larger, crisper videos.',
-                  'Tüm çözünürlükler net yazı için 2× süperörnekleme kullanır. Yüksek ölçek daha büyük ama daha keskin video üretir.'
-                )}
+              <p className="text-xs text-slate-400 mt-1">
+                {message(language, "GifExportModal.allResolutionsUse2SupersamplingForSharp")}
               </p>
             </div>
 
             {/* Rendering Engine Mode Selection */}
             <div>
-              <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
-                {tr('Export Engine Mode', 'Dışa Aktarma Motoru')}
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
+                {message(language, "GifExportModal.exportEngineMode")}
               </label>
               <div className="grid grid-cols-2 gap-1.5">
                 <button
@@ -294,10 +286,10 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
                   }`}
                 >
                   <span className="text-xs font-bold flex items-center gap-1">
-                    ⚡ {tr('Fast Canvas 2D', 'Hızlı Canvas 2D')}
+                    ⚡ {message(language, "GifExportModal.fastCanvas2D")}
                   </span>
-                  <span className={`text-[9px] mt-0.5 ${videoEngine === 'canvas' ? 'text-violet-200' : 'text-slate-400'}`}>
-                    {tr('Ultra fast, vector-sharp', 'Ultra hızlı, vektörel netlik')}
+                  <span className={`text-xs mt-0.5 ${videoEngine === 'canvas' ? 'text-violet-200' : 'text-slate-400'}`}>
+                    {message(language, "GifExportModal.ultraFastVectorSharp")}
                   </span>
                 </button>
 
@@ -311,32 +303,26 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
                   }`}
                 >
                   <span className="text-xs font-bold flex items-center gap-1">
-                    🎥 {tr('DOM Capture', 'DOM Ekran Kaydı')}
+                    🎥 {message(language, "GifExportModal.dOMCapture")}
                   </span>
-                  <span className={`text-[9px] mt-0.5 ${videoEngine === 'screen' ? 'text-violet-200' : 'text-slate-400'}`}>
-                    {tr('Exact screen replica', 'Birebir ekran kopyası')}
+                  <span className={`text-xs mt-0.5 ${videoEngine === 'screen' ? 'text-violet-200' : 'text-slate-400'}`}>
+                    {message(language, "GifExportModal.exactScreenReplica")}
                   </span>
                 </button>
               </div>
             </div>
 
             {/* Info box */}
-            <div className="rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200/60 dark:border-violet-800/40 p-3 text-[10px] text-violet-700 dark:text-violet-400 space-y-1">
+            <div className="rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200/60 dark:border-violet-800/40 p-3 text-xs text-violet-700 dark:text-violet-400 space-y-1">
               <p className="font-semibold">
                 {videoEngine === 'canvas'
-                  ? tr('About Canvas 2D Export', 'Canvas 2D Dışa Aktarma Hakkında')
-                  : tr('About DOM Screen Capture', 'DOM Ekran Kaydı Hakkında')}
+                  ? message(language, "GifExportModal.aboutCanvas2DExport")
+                  : message(language, "GifExportModal.aboutDOMScreenCapture")}
               </p>
               <p className="text-violet-600/80 dark:text-violet-500">
                 {videoEngine === 'canvas'
-                  ? tr(
-                      'Renders using high-speed Canvas 2D engine. 50–100× faster export with crisp vector lines and hardware acceleration.',
-                      'Yüksek hızlı Canvas 2D motoru ile oluşturulur. Vektörel çizgiler ve donanım hızlandırması ile 50–100× daha hızlı.'
-                    )
-                  : tr(
-                      'Captures the exact DOM view frame-by-frame in real-time. Ideal when exact visual fidelity including HTML/CSS effects is required.',
-                      'Gerçek zamanlı olarak DOM görüntüsünü birebir kaydeder. HTML/CSS efektleri dahil birebir görsel sadakat gerektiğinde idealdir.'
-                    )}
+                  ? message(language, "GifExportModal.rendersUsingHighSpeedCanvas2DEngine")
+                  : message(language, "GifExportModal.capturesTheExactDOMViewFrameBy")}
               </p>
             </div>
           </div>
@@ -349,7 +335,7 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl text-xs cursor-pointer transition-colors"
           >
-            {language === 'tr' ? 'İptal' : 'Cancel'}
+            {message(language, "GifExportModal.cancel")}
           </button>
           <button
             type="button"
@@ -362,12 +348,12 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
           >
             <Check className="w-3.5 h-3.5" />
             {tab === 'gif'
-              ? tr('Export GIF', 'GIF Oluştur')
-              : tr('Export Video', 'Video Oluştur')}
+              ? message(language, "GifExportModal.exportGIF")
+              : message(language, "GifExportModal.exportVideo")}
           </button>
         </div>
       </div>
-    </div>,
+    </ModalSurface>,
     document.body
   );
 };

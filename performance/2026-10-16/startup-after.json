@@ -1,0 +1,76 @@
+{
+  "initial": {
+    "files": 5,
+    "bytes": 435417,
+    "gzipBytes": 130793
+  },
+  "welcome": {
+    "files": 12,
+    "bytes": 499551,
+    "gzipBytes": 150449
+  },
+  "initialFiles": [
+    {
+      "file": "assets/index-fRWX0Gll.js",
+      "bytes": 207793,
+      "gzipBytes": 58983
+    },
+    {
+      "file": "assets/react-vendor-Cb2OAULU.js",
+      "bytes": 189068,
+      "gzipBytes": 59132
+    },
+    {
+      "file": "assets/icons-lucide-bXLAuUiG.js",
+      "bytes": 34314,
+      "gzipBytes": 10785
+    },
+    {
+      "file": "assets/index-PE8KZyAE.js",
+      "bytes": 3487,
+      "gzipBytes": 1493
+    },
+    {
+      "file": "assets/_commonjsHelpers-CE1G-McA.js",
+      "bytes": 755,
+      "gzipBytes": 400
+    }
+  ],
+  "welcomeAdditionalFiles": [
+    {
+      "file": "assets/WelcomeScreen-sAZK12Ol.js",
+      "bytes": 46202,
+      "gzipBytes": 11821
+    },
+    {
+      "file": "assets/EmptyState-BFltVE1E.js",
+      "bytes": 6762,
+      "gzipBytes": 2765
+    },
+    {
+      "file": "assets/formatters-VzlSXaWM.js",
+      "bytes": 1001,
+      "gzipBytes": 509
+    },
+    {
+      "file": "assets/Field-CyXLwltv.js",
+      "bytes": 1113,
+      "gzipBytes": 503
+    },
+    {
+      "file": "assets/ModalSurface-D9jSAcvF.js",
+      "bytes": 1264,
+      "gzipBytes": 718
+    },
+    {
+      "file": "assets/useUiCopy-xKau_TYE.js",
+      "bytes": 6068,
+      "gzipBytes": 2585
+    },
+    {
+      "file": "assets/index-BIetY6Rk.js",
+      "bytes": 1724,
+      "gzipBytes": 755
+    }
+  ]
+}

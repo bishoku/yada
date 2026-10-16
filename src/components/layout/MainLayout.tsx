@@ -1,5 +1,8 @@
+import { useCompactLayout } from './useCompactLayout';
+import { PanelDrawer, type CompactPanel } from './PanelDrawer';
+import { message } from '../../i18n/messages';
 import { translations } from '../../i18n/translations';
-import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { TopBar } from './TopBar';
 import { SidebarLeft } from './SidebarLeft';
 import { RightSidebarShell } from '../sidebar/RightSidebarShell';
@@ -18,6 +21,27 @@ import { ChatOverlay } from '../chat/ChatOverlay';
 
 export const MainLayout: React.FC = () => {
 
+  const compact = useCompactLayout();
+  const [compactPanel, setCompactPanel] = useState<CompactPanel | null>(null);
+  const activeNodeId = useAppStore(s => s.activeNodeProperties?.id);
+  const activeEdgeId = useAppStore(s => s.activeEdgeProperties?.id);
+  const closeCompactPanel = () => {
+    if (compactPanel === 'properties') window.dispatchEvent(new Event('properties:cancelPreview'));
+    setCompactPanel(null);
+  };
+  const toggleCompactPanel = (panel: CompactPanel) => setCompactPanel(current => current === panel ? null : panel);
+  useEffect(() => { if (compact && (activeNodeId || activeEdgeId)) setCompactPanel('properties'); }, [compact, activeNodeId, activeEdgeId]);
+
+  useEffect(() => {
+    const openLibrary = () => {
+      if (compact) setCompactPanel('library');
+      else if (!useAppStore.getState().leftSidebarOpen) useAppStore.getState().toggleLeftSidebar();
+      requestAnimationFrame(() => window.dispatchEvent(new Event('sidebar:focusSearch')));
+    };
+    window.addEventListener('canvas:openLibrary', openLibrary);
+    return () => window.removeEventListener('canvas:openLibrary', openLibrary);
+  }, [compact]);
+
   const timelineHeight = useAppStore((s) => s.timelineHeight);
   const _timelineOpen = useAppStore((s) => s.timelineOpen);
   const setTimelineHeight = useAppStore((s) => s.setTimelineHeight);
@@ -27,7 +51,6 @@ export const MainLayout: React.FC = () => {
   const _leftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
   const _rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
   const [isResizing, setIsResizing] = useState(false);
-  const resizerRef = useRef<HTMLDivElement>(null);
 
   const isFullscreen = useAppStore((s) => s.isFullscreen);
   const exitFullscreen = useAppStore((s) => s.exitFullscreen);
@@ -38,48 +61,20 @@ export const MainLayout: React.FC = () => {
   const leftSidebarOpen = isFullscreen ? false : _leftSidebarOpen;
   const rightSidebarOpen = isFullscreen ? false : _rightSidebarOpen;
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  }, []);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isResizing) return;
-    const newHeight = window.innerHeight - e.clientY;
-    const clampedHeight = Math.min(Math.max(140, newHeight), window.innerHeight * 0.7);
-    setTimelineHeight(clampedHeight);
-  }, [isResizing, setTimelineHeight]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  useEffect(() => {
-    if (isResizing) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    } else {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isResizing, handleMouseMove, handleMouseUp]);
+  useEffect(() => { if (!compact || isFullscreen) setCompactPanel(null); }, [compact, isFullscreen]);
 
   return (
-    <div className="h-screen w-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none transition-colors duration-300">
-      
+    <div className="h-dvh w-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col overflow-hidden select-none transition-colors duration-300">
+
       {/* Top Bar */}
-      {!isFullscreen && <TopBar />}
+      {!isFullscreen && <TopBar compact={compact} compactPanel={compactPanel} onPanelToggle={toggleCompactPanel} />}
 
       {/* Floating Exit Fullscreen Button */}
       {isFullscreen && (
         <button
           onClick={exitFullscreen}
           className="absolute top-4 right-4 z-50 p-2 bg-slate-900/50 hover:bg-slate-900/80 text-white rounded-lg shadow-lg transition-all backdrop-blur-sm cursor-pointer"
-          title={language === 'tr' ? 'Tam Ekrandan Çık' : 'Exit Fullscreen'}
+          title={message(language, "MainLayout.exitFullscreen")}
         >
           <Minimize className="w-5 h-5" />
         </button>
@@ -87,13 +82,13 @@ export const MainLayout: React.FC = () => {
 
       {/* Main Work Area */}
       <div className="flex-1 flex overflow-hidden relative">
-        
+
         {/* Left Sidebar: Explorer & Library */}
-        {leftSidebarOpen && <SidebarLeft />}
+        {!compact && leftSidebarOpen && <SidebarLeft />}
 
         {/* Center Section: Canvas & Timeline */}
-        <main className="flex-1 flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950">
-          
+        <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950">
+
           {/* Diagram Tab Bar */}
           <DiagramTabBar />
 
@@ -117,32 +112,51 @@ export const MainLayout: React.FC = () => {
           )}
 
           {/* Resizer Splitter Bar */}
-          {timelineOpen && (
+          {!compact && timelineOpen && (
             <div
-              ref={resizerRef}
-              onMouseDown={handleMouseDown}
-              className="h-1 bg-slate-200/60 hover:h-1.5 hover:bg-indigo-500 dark:bg-slate-800 dark:hover:bg-indigo-500 cursor-ns-resize transition-all duration-150 relative z-30 flex-shrink-0"
+              role="separator" aria-orientation="horizontal" tabIndex={0}
+              aria-label={message(language, 'layout.resizeTimeline')}
+              aria-valuemin={140} aria-valuemax={Math.round(window.innerHeight * 0.7)} aria-valuenow={timelineHeight}
+              onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); setIsResizing(true); }}
+              onPointerMove={event => { if (isResizing) setTimelineHeight(Math.min(Math.max(140, window.innerHeight - event.clientY), window.innerHeight * 0.7)); }}
+              onPointerUp={() => setIsResizing(false)} onPointerCancel={() => setIsResizing(false)}
+              onKeyDown={event => {
+                if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+                event.preventDefault();
+                const max = window.innerHeight * 0.7;
+                const next = event.key === 'Home' ? 140 : event.key === 'End' ? max : timelineHeight + (event.key === 'ArrowUp' ? 20 : -20);
+                setTimelineHeight(Math.min(Math.max(140, next), max));
+              }}
+              className="h-1 bg-slate-200/60 hover:h-1.5 hover:bg-indigo-500 dark:bg-slate-800 dark:hover:bg-indigo-500 cursor-ns-resize touch-none transition-all duration-150 relative z-30 flex-shrink-0"
               title={t.timelineUi.resize}
             />
           )}
 
           {/* Timeline Animation Panel */}
-          {activeDiagramId && (
-            <div 
-              style={{ height: timelineOpen ? timelineHeight : 'auto' }}
+          {activeDiagramId && (!compact || compactPanel !== 'timeline') && (
+            <div
+              style={{ height: !compact && timelineOpen ? timelineHeight : 'auto' }}
               className="border-t border-slate-200 dark:border-slate-800 z-10 shrink-0 select-none overflow-hidden"
             >
-              <TimelinePanel forceCollapsed={isFullscreen} />
+              <TimelinePanel forceCollapsed={isFullscreen || compact} />
             </div>
           )}
-          
+
         </main>
 
         {/* Right Sidebar: Simulation Panel / Properties Panel */}
-        {rightSidebarOpen && <RightSidebarShell />}
+        {!compact && rightSidebarOpen && <RightSidebarShell />}
 
       </div>
-      
+
+      {compact && compactPanel && !isFullscreen && <PanelDrawer
+        title={compactPanel === 'library' ? message(language, 'layout.library') : compactPanel === 'properties' ? message(language, 'layout.properties') : t.terms.timeline}
+        onClose={closeCompactPanel}>
+        {compactPanel === 'library' && <SidebarLeft onPick={() => setCompactPanel(null)} />}
+        {compactPanel === 'properties' && <RightSidebarShell />}
+        {compactPanel === 'timeline' && activeDiagramId && <TimelinePanel forceExpanded />}
+      </PanelDrawer>}
+
       {/* Create Diagram Name Modal */}
       <CreateDiagramModal />
 

@@ -16,7 +16,6 @@ import {
   FreeFormContent
 } from '../../types';
 import { ParticleType } from '../../config/particles';
-import { getLayoutedElements } from '../../utils/layout';
 import { generateNodeId } from '../../utils/idGenerator';
 import { collabManager } from '../../services/collab/CollabManager';
 
@@ -94,7 +93,7 @@ export interface CanvasSlice {
   distributeSelectedNodes: (nodeIds: string[], direction: 'horizontal' | 'vertical') => void;
   packNodesIntoSection: (nodeIds: string[], title?: string) => void;
   deleteSelectedNodes: (nodeIds: string[]) => void;
-  applyAutoLayout: (direction: 'TB' | 'LR') => void;
+  applyAutoLayout: (direction: 'TB' | 'LR') => Promise<void>;
   focusedNodeId: string | null;
   setFocusedNodeId: (id: string | null) => void;
   setActiveNodeProperties: (props: ActiveNodeProperties | null) => void;
@@ -1305,7 +1304,12 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
   },
 
 
-  applyAutoLayout: (direction) => {
+  applyAutoLayout: async (direction) => {
+    const workspace = get().currentWorkspace;
+    const diagramId = get().activeDiagramId;
+    const { getLayoutedElements } = await import('../../utils/layout');
+    // Never apply a deferred layout to a different workspace or diagram.
+    if (get().currentWorkspace !== workspace || get().activeDiagramId !== diagramId) return;
     get().pushToHistory();
     const state = get();
     const { nodes, edges } = state.logicalData;

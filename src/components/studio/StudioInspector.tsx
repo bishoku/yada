@@ -1,3 +1,5 @@
+import { Input, Textarea, Select } from '../ui/Field';
+import { message } from '../../i18n/messages';
 import React from 'react';
 import { Move, ArrowUp, ArrowDown, Trash2, Image as ImageIcon, Lock, Unlock, Eye, EyeOff, Copy, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { ShapeLayer } from '../../types';
@@ -69,13 +71,13 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
     <aside className="w-80 border-l border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 flex flex-col overflow-hidden shrink-0">
       {/* Top Half: Layers Panel */}
       <div className="flex-1 flex flex-col border-b border-slate-200 dark:border-slate-800 p-4 min-h-[220px] overflow-hidden">
-        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 shrink-0">
+        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 shrink-0">
           {t.layersListTitle}
         </span>
 
         <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-1.5">
           {layersListDescending.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-4 text-slate-400 italic text-[11px] text-center">
+            <div className="flex-1 flex flex-col items-center justify-center p-4 text-slate-400 italic text-xs text-center">
               {t.noLayers}
             </div>
           ) : (
@@ -84,7 +86,7 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
               const isSelected = selectedLayerId === layer.id;
               const isLocked = layer.locked ?? false;
               const isVisible = layer.visible !== false;
-              
+
               return (
                 <div
                   key={layer.id}
@@ -97,8 +99,8 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
                     onSelectLayer(layer.id);
                   }}
                   className={`px-3 py-2 border rounded-xl flex items-center justify-between cursor-pointer group transition-all duration-150 ${
-                    isSelected 
-                      ? 'border-indigo-500/40 bg-indigo-500/5 dark:bg-indigo-500/10' 
+                    isSelected
+                      ? 'border-indigo-500/40 bg-indigo-500/5 dark:bg-indigo-500/10'
                       : 'border-slate-100 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800/40'
                   } ${draggedId === layer.id ? 'opacity-40 bg-slate-100/50 dark:bg-slate-800/50 border-dashed border-indigo-500' : ''} ${
                     !isVisible ? 'opacity-40' : ''
@@ -160,7 +162,7 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
                         }}
                         disabled={originalIdx === totalLayersCount - 1}
                         className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-                        title="Katmanı Üste Taşı"
+                        title={t.commonUi.moveLayerUp}
                       >
                         <ArrowUp className="w-3 h-3" />
                       </button>
@@ -171,7 +173,7 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
                         }}
                         disabled={originalIdx === 0}
                         className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
-                        title="Katmanı Alta Taşı"
+                        title={t.commonUi.moveLayerDown}
                       >
                         <ArrowDown className="w-3 h-3" />
                       </button>
@@ -181,7 +183,7 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
                           onDeleteLayer(layer.id);
                         }}
                         className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                        title="Sil"
+                        title={t.delete}
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -196,97 +198,97 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
 
       {/* Bottom Half: Property Inspector */}
       <div className="flex-1 flex flex-col p-4 overflow-y-auto">
-        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">
+        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">
           {t.attributesInspectorTitle}
         </span>
 
         {!selectedLayer ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-4 text-slate-400 italic text-[11px] text-center">
+          <div className="flex-1 flex flex-col items-center justify-center p-4 text-slate-400 italic text-xs text-center">
             {t.selectLayerPrompt}
           </div>
         ) : (
           <div className="flex flex-col gap-3.5">
             {/* Layer Rename */}
             <div className="flex flex-col gap-1">
-              <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                 {t.layerTitle}
               </label>
-              <input
+              <Input
                 type="text"
                 value={selectedLayer.name}
                 onChange={(e) => onUpdateLayer(selectedLayer.id, { name: e.target.value })}
-                className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200 font-bold"
+                className=""
               />
             </div>
 
             {/* X & Y position / width / height */}
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  X ({language === 'tr' ? 'Koordinat' : 'Coord'})
+                <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  X ({message(language, "StudioInspector.coord")})
                 </label>
-                <input
+                <Input
                   type="number"
                   value={selectedLayer.x}
                   onChange={(e) => onUpdateLayer(selectedLayer.id, { x: Number(e.target.value) })}
-                  className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                  className=""
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  Y ({language === 'tr' ? 'Koordinat' : 'Coord'})
+                <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Y ({message(language, "StudioInspector.coord")})
                 </label>
-                <input
+                <Input
                   type="number"
                   value={selectedLayer.y}
                   onChange={(e) => onUpdateLayer(selectedLayer.id, { y: Number(e.target.value) })}
-                  className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                  className=""
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   {t.widthW}
                 </label>
-                <input
+                <Input
                   type="number"
                   value={selectedLayer.width}
                   onChange={(e) => onUpdateLayer(selectedLayer.id, { width: Math.max(1, Number(e.target.value)) })}
-                  className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                  className=""
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   {t.heightH}
                 </label>
-                <input
+                <Input
                   type="number"
                   value={selectedLayer.height}
                   onChange={(e) => onUpdateLayer(selectedLayer.id, { height: Math.max(1, Number(e.target.value)) })}
-                  className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                  className=""
                 />
               </div>
 
               <div className="flex flex-col gap-1 col-span-2">
-                <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   {t.rotationDeg}
                 </label>
-                <input
+                <Input
                   type="number"
                   value={selectedLayer.style.rotation ?? 0}
                   onChange={(e) => onUpdateLayer(selectedLayer.id, {
                     style: { ...selectedLayer.style, rotation: Number(e.target.value) % 360 }
                   })}
-                  className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                  className=""
                 />
               </div>
             </div>
 
             {/* Opacity slider */}
             <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-wider">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-400 dark:text-slate-550 uppercase tracking-wider">
                 <span>{t.opacity}</span>
                 <span>{Math.round((selectedLayer.style.opacity ?? 1) * 100)}%</span>
               </div>
@@ -308,55 +310,55 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
               <div className="flex flex-col gap-3">
                 {/* Text Content - Textarea for multi-line */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     {t.textValue}
                   </label>
-                  <textarea
+                  <Textarea
                     rows={3}
                     value={selectedLayer.content || ''}
                     onChange={(e) => onUpdateLayer(selectedLayer.id, { content: e.target.value })}
-                    className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-250 font-bold resize-none"
+                    className="resize-none"
                   />
                 </div>
 
                 {/* Font Family & Font Size */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                       {t.fontFamily}
                     </label>
-                    <select
+                    <Select
                       value={selectedLayer.style.fontFamily || 'sans-serif'}
                       onChange={(e) => onUpdateLayer(selectedLayer.id, {
                         style: { ...selectedLayer.style, fontFamily: e.target.value }
                       })}
-                      className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                      className=""
                     >
                       {FONT_FAMILIES.map((f) => (
                         <option key={f.value} value={f.value}>{f.label}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                       {t.fontSize}
                     </label>
-                    <input
+                    <Input
                       type="number"
                       min={6}
                       value={selectedLayer.style.fontSize ?? Math.round(selectedLayer.height * 0.7)}
                       onChange={(e) => onUpdateLayer(selectedLayer.id, {
                         style: { ...selectedLayer.style, fontSize: Math.max(6, Number(e.target.value)) }
                       })}
-                      className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                      className=""
                     />
                   </div>
                 </div>
 
                 {/* Font Weight */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     {t.fontWeight}
                   </label>
                   <div className="flex items-center gap-1">
@@ -366,13 +368,13 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
                         onClick={() => onUpdateLayer(selectedLayer.id, {
                           style: { ...selectedLayer.style, fontWeight: fw.value }
                         })}
-                        className={`flex-1 px-2 py-1.5 text-[10px] font-semibold rounded-lg border transition-colors cursor-pointer ${
+                        className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded-lg border transition-colors cursor-pointer ${
                           (selectedLayer.style.fontWeight || '400') === fw.value
                             ? 'bg-indigo-500/20 text-indigo-500 border-indigo-500/30'
                             : 'text-slate-400 hover:text-slate-600 border-slate-200 dark:border-slate-800'
                         }`}
                       >
-                        {fw.label}
+                        {message(language, `weight.${fw.value}` as 'weight.300' | 'weight.400' | 'weight.700' | 'weight.900')}
                       </button>
                     ))}
                   </div>
@@ -380,7 +382,7 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
 
                 {/* Text Align */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     {t.textAlign}
                   </label>
                   <div className="flex items-center gap-1">
@@ -408,7 +410,7 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
 
                 {/* Letter Spacing */}
                 <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     <span>{t.letterSpacing}</span>
                     <span>{selectedLayer.style.letterSpacing ?? 0}px</span>
                   </div>
@@ -429,12 +431,12 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
 
             {selectedLayer.type === 'image' && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   {t.chooseImageAsset}
                 </label>
                 <div className="relative border border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50/50 dark:bg-slate-950 flex flex-col items-center justify-center gap-1.5 cursor-pointer">
                   <ImageIcon className="w-5 h-5 text-slate-400" />
-                  <span className="text-[10px] font-semibold text-indigo-555 dark:text-indigo-400">
+                  <span className="text-xs font-semibold text-indigo-555 dark:text-indigo-400">
                     {selectedLayer.content ? t.changeImage : t.uploadImage}
                   </span>
                   <input
@@ -450,10 +452,10 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
             {/* Polygon Properties */}
             {selectedLayer.type === 'polygon' && (
               <div className="flex flex-col gap-1">
-                <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   {t.polygonSides}
                 </label>
-                <input
+                <Input
                   type="number"
                   min={3}
                   max={12}
@@ -461,7 +463,7 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
                   onChange={(e) => onUpdateLayer(selectedLayer.id, {
                     style: { ...selectedLayer.style, sides: Math.min(12, Math.max(3, Number(e.target.value))) }
                   })}
-                  className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                  className=""
                 />
               </div>
             )}
@@ -470,10 +472,10 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
             {selectedLayer.type === 'star' && (
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     {t.starPoints}
                   </label>
-                  <input
+                  <Input
                     type="number"
                     min={3}
                     max={12}
@@ -481,12 +483,12 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
                     onChange={(e) => onUpdateLayer(selectedLayer.id, {
                       style: { ...selectedLayer.style, points: Math.min(12, Math.max(3, Number(e.target.value))) }
                     })}
-                    className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                    className=""
                   />
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     <span>{t.starInnerRadius}</span>
                     <span>{selectedLayer.style.innerRadius ?? 0.4}</span>
                   </div>
@@ -509,7 +511,7 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
             {selectedLayer.type !== 'image' && (
               <div className="grid grid-cols-2 gap-2 mt-1">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     {t.fillColor}
                   </label>
                   <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-0.5">
@@ -521,14 +523,14 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
                       })}
                       className="w-5 h-5 border-0 bg-transparent cursor-pointer rounded"
                     />
-                    <span className="text-[10px] font-mono select-all truncate w-full uppercase">
+                    <span className="text-xs font-mono select-all truncate w-full uppercase">
                       {selectedLayer.style.fill || 'None'}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     {t.strokeColor}
                   </label>
                   <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-0.5">
@@ -540,7 +542,7 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
                       })}
                       className="w-5 h-5 border-0 bg-transparent cursor-pointer rounded"
                     />
-                    <span className="text-[10px] font-mono select-all truncate w-full uppercase">
+                    <span className="text-xs font-mono select-all truncate w-full uppercase">
                       {selectedLayer.style.stroke || 'None'}
                     </span>
                   </div>
@@ -552,33 +554,33 @@ export const StudioInspector: React.FC<StudioInspectorProps> = ({
             {selectedLayer.type !== 'image' && (
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                     {t.strokeWidth}
                   </label>
-                  <input
+                  <Input
                     type="number"
                     min="0"
                     value={selectedLayer.style.strokeWidth ?? 0}
                     onChange={(e) => onUpdateLayer(selectedLayer.id, {
                       style: { ...selectedLayer.style, strokeWidth: Number(e.target.value) }
                     })}
-                    className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                    className=""
                   />
                 </div>
 
                 {selectedLayer.type === 'rectangle' && (
                   <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-wider">
+                    <label className="text-xs font-bold text-slate-400 dark:text-slate-550 uppercase tracking-wider">
                       {t.cornerRadius}
                     </label>
-                    <input
+                    <Input
                       type="number"
                       min="0"
                       value={selectedLayer.style.rx ?? 0}
                       onChange={(e) => onUpdateLayer(selectedLayer.id, {
                         style: { ...selectedLayer.style, rx: Number(e.target.value) }
                       })}
-                      className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"
+                      className=""
                     />
                   </div>
                 )}

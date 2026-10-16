@@ -1,3 +1,8 @@
+import { Select, Input } from '../../ui/Field';
+import { useId } from 'react';
+import { ModalSurface } from '../../ui/ModalSurface';
+import { useUiCopy } from '../../../i18n/useUiCopy';
+import { message } from '../../../i18n/messages';
 import React, { useState, useEffect } from 'react';
 import { Settings, Globe, Sun, Moon, Check, HardDrive, Folder, Sparkles, Sliders, Plus, Trash2, ShieldCheck } from 'lucide-react';
 import { translations } from '../../../i18n/translations';
@@ -23,6 +28,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   onChangeLanguage,
   onChangeTheme,
 }) => {
+  const fieldPrefix = useId();
+  const uiCopy = useUiCopy();
   const [storageMode, setStorageMode] = useState<StorageMode>(StorageService.getMode());
   const [activeTab, setActiveTab] = useState<'general' | 'integrations'>('general');
   const [isAppStoreBuild, setIsAppStoreBuild] = useState<boolean>(false);
@@ -62,15 +69,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+
 
 
   if (!isOpen) return null;
@@ -147,7 +146,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
     const newId = `profile-${Date.now()}`;
     const newProfile: LlmProfile = {
       id: newId,
-      name: language === 'tr' ? `Yeni Profil ${profiles.length + 1}` : `New Profile ${profiles.length + 1}`,
+      name: message(language, "PreferencesModal.newProfile", { value1: profiles.length + 1 }),
       provider: 'openrouter',
       apiUrl: 'https://openrouter.ai/api/v1',
       apiKey: '',
@@ -198,7 +197,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+    <ModalSurface label={t.appPrefTitle} onClose={onClose} width="28rem">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl transition-all animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -220,7 +219,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             }`}
           >
             <Sliders className="w-4 h-4" />
-            {language === 'tr' ? 'Uygulama Tercihleri' : 'Application Preferences'}
+            {message(language, "PreferencesModal.applicationPreferences")}
           </button>
 
           <button
@@ -233,7 +232,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             }`}
           >
             <Sparkles className="w-4 h-4" />
-            {language === 'tr' ? 'Entegrasyonlar' : 'Integrations'}
+            {message(language, "PreferencesModal.integrations")}
           </button>
         </div>
 
@@ -247,7 +246,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <HardDrive className="w-3.5 h-3.5" />
-                    {language === 'tr' ? 'Depolama Konumu' : 'Storage Location'}
+                    {message(language, "PreferencesModal.storageLocation")}
                   </label>
                   <div className="flex flex-col gap-2">
                     <button
@@ -265,7 +264,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     >
                       <HardDrive className="w-3.5 h-3.5 shrink-0" />
                       <span className="flex-1 text-left">
-                        {language === 'tr' ? 'Sanal (LocalStorage)' : 'Virtual (LocalStorage)'}
+                        {message(language, "PreferencesModal.virtualLocalStorage")}
                       </span>
                       {storageMode === 'localstorage' && <Check className="w-3.5 h-3.5 shrink-0" />}
                     </button>
@@ -286,7 +285,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     >
                       <Folder className="w-3.5 h-3.5 shrink-0" />
                       <span className="flex-1 text-left">
-                        {language === 'tr' ? 'Yerel Klasör (.yada vb.)' : 'Local Folder (.yada etc.)'}
+                        {message(language, "PreferencesModal.localFolderYadaEtc")}
                       </span>
                       {storageMode === 'fs-access' && <Check className="w-3.5 h-3.5 shrink-0" />}
                     </button>
@@ -299,7 +298,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <HardDrive className="w-3.5 h-3.5" />
-                    {language === 'tr' ? 'Depolama Konumu' : 'Storage Location'}
+                    {message(language, "PreferencesModal.storageLocation")}
                   </label>
                   <div className="flex flex-col gap-2">
                     <button
@@ -317,7 +316,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     >
                       <HardDrive className="w-3.5 h-3.5 shrink-0" />
                       <span className="flex-1 text-left">
-                        {language === 'tr' ? 'Mac Yerel Klasör (~/.yada)' : 'Mac Local Folder (~/.yada)'}
+                        {message(language, "PreferencesModal.macLocalFolderYada")}
                       </span>
                       {storageMode === 'tauri' && <Check className="w-3.5 h-3.5 shrink-0" />}
                     </button>
@@ -351,8 +350,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           {storageMode === 'icloud-drive' && <Check className="w-3.5 h-3.5 shrink-0" />}
                         </div>
                         {!iCloudPath && (
-                          <div className="text-[10px] text-red-500 font-normal pl-5 w-full text-left break-all">
-                            Hata: {iCloudDebugMsg || 'Bilinmiyor'}
+                          <div className="text-xs text-red-500 font-normal pl-5 w-full text-left break-all">
+                            {uiCopy.error} {iCloudDebugMsg || 'Bilinmiyor'}
                           </div>
                         )}
                       </button>
@@ -369,22 +368,18 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => onChangeLanguage('tr')}
+                    aria-pressed={language === 'tr'} onClick={() => onChangeLanguage('tr')}
                     className={`py-2 px-3 text-xs font-semibold rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      language === 'tr'
-                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-650/25'
-                        : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                      language === 'tr' ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
                     {language === 'tr' && <Check className="w-3.5 h-3.5" />}
                     {t.langTr}
                   </button>
                   <button
-                    onClick={() => onChangeLanguage('en')}
+                    aria-pressed={language === 'en'} onClick={() => onChangeLanguage('en')}
                     className={`py-2 px-3 text-xs font-semibold rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      language === 'en'
-                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-650/25'
-                        : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                      language === 'en' ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
                     {language === 'en' && <Check className="w-3.5 h-3.5" />}
@@ -410,7 +405,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   ] as const).map(({ key, label: themeLabel, Icon }) => (
                     <button
                       key={key}
-                      onClick={() => onChangeTheme(key)}
+                      aria-pressed={theme === key} onClick={() => onChangeTheme(key)}
                       className={`py-2 px-3.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer flex items-center gap-2 ${
                         theme === key
                           ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-650/25'
@@ -432,21 +427,17 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider mb-1">
-                  {language === 'tr' ? 'AI Asistan Profilleri (LLM)' : 'AI Assistant Profiles (LLM)'}
+                  {message(language, "PreferencesModal.aIAssistantProfilesLLM")}
                 </label>
-                <p className="text-[11px] text-slate-400 leading-relaxed mb-2">
-                  {language === 'tr'
-                    ? 'Birden fazla sağlayıcı profili tanımlayabilir, aktif olanı seçerek kullanabilirsiniz.'
-                    : 'Manage multiple LLM profiles and switch between them.'}
+                <p className="text-xs text-slate-400 leading-relaxed mb-2">
+                  {message(language, "PreferencesModal.manageMultipleLLMProfilesAndSwitchBetween")}
                 </p>
 
                 {/* Web Crypto Vault Security Badge */}
-                <div className="flex items-center gap-1.5 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-600 dark:text-emerald-400 text-[10px] font-medium mb-3">
+                <div className="flex items-center gap-1.5 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-600 dark:text-emerald-400 text-xs font-medium mb-3">
                   <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
                   <span>
-                    {language === 'tr'
-                      ? 'API anahtarlarınız Web Crypto API (AES-GCM-256) ile yerel olarak şifrelenir.'
-                      : 'Your API keys are encrypted locally using Web Crypto API (AES-GCM-256).'}
+                    {message(language, "PreferencesModal.yourAPIKeysAreEncryptedLocallyUsing")}
                   </span>
                 </div>
               </div>
@@ -454,19 +445,19 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               {/* Profile Selection & Actions */}
               <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                    {language === 'tr' ? 'Aktif Profil' : 'Active Profile'}
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    {message(language, "PreferencesModal.activeProfile")}
                   </label>
 
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={handleAddProfile}
-                      className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-                      title={language === 'tr' ? 'Yeni Profil Ekle' : 'Add New Profile'}
+                      className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                      title={message(language, "PreferencesModal.addNewProfile")}
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      {language === 'tr' ? 'Yeni Ekle' : 'Add New'}
+                      {message(language, "PreferencesModal.addNew")}
                     </button>
 
                     {profiles.length > 1 && currentProfile && (
@@ -474,7 +465,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                         type="button"
                         onClick={() => handleDeleteProfile(currentProfile.id)}
                         className="p-1 hover:bg-rose-500/10 text-rose-500 rounded-lg cursor-pointer transition-colors"
-                        title={language === 'tr' ? 'Profili Sil' : 'Delete Profile'}
+                        title={message(language, "PreferencesModal.deleteProfile")}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -482,39 +473,39 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                   </div>
                 </div>
 
-                <select
+                <Select
                   value={activeProfileId}
                   onChange={(e) => handleSelectProfile(e.target.value)}
-                  className="w-full text-xs p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 cursor-pointer font-semibold"
+                  className="w-full"
                 >
                   {profiles.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} ({p.provider}) {p.id === activeProfileId ? (language === 'tr' ? '✓ Aktif' : '✓ Active') : ''}
+                      {p.name} ({p.provider}) {p.id === activeProfileId ? (message(language, "PreferencesModal.active")) : ''}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {/* Profile Details Form */}
               {currentProfile && (
                 <div className="space-y-3 pt-2">
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
-                      {language === 'tr' ? 'Profil Adı' : 'Profile Name'}
+                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" htmlFor={`${fieldPrefix}-modal-field-1`}>
+                      {message(language, "PreferencesModal.profileName")}
                     </label>
-                    <input
+                    <Input
                       type="text"
                       value={currentProfile.name || ''}
                       onChange={(e) => handleUpdateCurrentProfile({ name: e.target.value })}
-                      className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 select-text font-medium"
-                    />
+                      className="w-full"
+                     id={`${fieldPrefix}-modal-field-1`}/>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
-                      Provider (Sağlayıcı)
+                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" htmlFor={`${fieldPrefix}-modal-field-2`}>
+                      {uiCopy.provider}
                     </label>
-                    <select
+                    <Select
                       value={currentProfile.provider || 'openrouter'}
                       onChange={(e) => {
                         const provider = e.target.value as any;
@@ -544,57 +535,57 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                           model,
                         });
                       }}
-                      className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 cursor-pointer font-medium"
-                    >
-                      <option value="openrouter">OpenRouter (Recommended)</option>
+                      className="w-full"
+                     id={`${fieldPrefix}-modal-field-2`}>
+                      <option value="openrouter">{uiCopy.openRouterRecommended}</option>
                       <option value="openai">OpenAI</option>
                       <option value="gemini">Google Gemini</option>
                       <option value="anthropic">Anthropic (Claude)</option>
-                      <option value="ollama">Ollama (Local / Offline)</option>
-                      <option value="custom">Custom / Other</option>
-                    </select>
+                      <option value="ollama">{uiCopy.ollamaLocalOffline}</option>
+                      <option value="custom">{uiCopy.customOther}</option>
+                    </Select>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center justify-between">
-                      <span>API Key</span>
+                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 flex items-center justify-between" htmlFor={`${fieldPrefix}-modal-field-3`}>
+                      <span>{uiCopy.aPIKey}</span>
                       {currentProfile.provider === 'ollama' && (
-                        <span className="text-[9px] text-slate-400 font-normal">
-                          {language === 'tr' ? '(Ollama için isteğe bağlı)' : '(Optional for Ollama)'}
+                        <span className="text-xs text-slate-400 font-normal">
+                          {message(language, "PreferencesModal.optionalForOllama")}
                         </span>
                       )}
                     </label>
-                    <input
+                    <Input
                       type="password"
                       placeholder={currentProfile.provider === 'ollama' ? 'optional' : 'sk-...'}
                       value={currentProfile.apiKey || ''}
                       onChange={(e) => handleUpdateCurrentProfile({ apiKey: e.target.value })}
-                      className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 select-text"
-                    />
+                      className="w-full"
+                     id={`${fieldPrefix}-modal-field-3`}/>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
-                      API URL
+                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" htmlFor={`${fieldPrefix}-modal-field-4`}>
+                      {uiCopy.aPIURL}
                     </label>
-                    <input
+                    <Input
                       type="text"
                       value={currentProfile.apiUrl || ''}
                       onChange={(e) => handleUpdateCurrentProfile({ apiUrl: e.target.value })}
-                      className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 select-text"
-                    />
+                      className="w-full"
+                     id={`${fieldPrefix}-modal-field-4`}/>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
-                      Model
+                    <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1" htmlFor={`${fieldPrefix}-modal-field-5`}>
+                      {uiCopy.model}
                     </label>
-                    <input
+                    <Input
                       type="text"
                       value={currentProfile.model || ''}
                       onChange={(e) => handleUpdateCurrentProfile({ model: e.target.value })}
-                      className="w-full text-xs p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 select-text"
-                    />
+                      className="w-full"
+                     id={`${fieldPrefix}-modal-field-5`}/>
                   </div>
                 </div>
               )}
@@ -612,7 +603,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   );
 };
 
