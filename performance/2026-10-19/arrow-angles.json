@@ -1,0 +1,273 @@
+[
+  {
+    "scenario": "tight",
+    "route": "bezier",
+    "markers": [
+      {
+        "orient": "39.811141214819344",
+        "refX": "8"
+      },
+      {
+        "orient": "39.81111760289484",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "tight",
+    "route": "straight",
+    "markers": [
+      {
+        "orient": "15.255141706454545",
+        "refX": "8"
+      },
+      {
+        "orient": "15.25509953355662",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "tight",
+    "route": "smoothstep",
+    "markers": [
+      {
+        "orient": "90",
+        "refX": "8"
+      },
+      {
+        "orient": "90",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "tight",
+    "route": "step",
+    "markers": [
+      {
+        "orient": "90",
+        "refX": "8"
+      },
+      {
+        "orient": "90",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "diagonal",
+    "route": "bezier",
+    "markers": [
+      {
+        "orient": "76.28693328530682",
+        "refX": "8"
+      },
+      {
+        "orient": "76.28658627121372",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "diagonal",
+    "route": "straight",
+    "markers": [
+      {
+        "orient": "21.80139325171153",
+        "refX": "8"
+      },
+      {
+        "orient": "21.801377016960853",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "diagonal",
+    "route": "smoothstep",
+    "markers": [
+      {
+        "orient": "90",
+        "refX": "8"
+      },
+      {
+        "orient": "90",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "diagonal",
+    "route": "step",
+    "markers": [
+      {
+        "orient": "90",
+        "refX": "8"
+      },
+      {
+        "orient": "90",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "horizontal",
+    "route": "bezier",
+    "markers": [
+      {
+        "orient": "0",
+        "refX": "8"
+      },
+      {
+        "orient": "0",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "horizontal",
+    "route": "straight",
+    "markers": [
+      {
+        "orient": "0",
+        "refX": "8"
+      },
+      {
+        "orient": "0",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "horizontal",
+    "route": "smoothstep",
+    "markers": [
+      {
+        "orient": "0",
+        "refX": "8"
+      },
+      {
+        "orient": "0",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "horizontal",
+    "route": "step",
+    "markers": [
+      {
+        "orient": "0",
+        "refX": "8"
+      },
+      {
+        "orient": "0",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "reverse",
+    "route": "bezier",
+    "markers": [
+      {
+        "orient": "-109.31056467707806",
+        "refX": "8"
+      },
+      {
+        "orient": "-109.31037600891756",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "reverse",
+    "route": "straight",
+    "markers": [
+      {
+        "orient": "-162.47447111653844",
+        "refX": "8"
+      },
+      {
+        "orient": "-162.47422101184048",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "reverse",
+    "route": "smoothstep",
+    "markers": [
+      {
+        "orient": "-90",
+        "refX": "8"
+      },
+      {
+        "orient": "-90",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "reverse",
+    "route": "step",
+    "markers": [
+      {
+        "orient": "-90",
+        "refX": "8"
+      },
+      {
+        "orient": "-90",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "loop",
+    "route": "bezier",
+    "markers": [
+      {
+        "orient": "-156.8542393618543",
+        "refX": "8"
+      },
+      {
+        "orient": "-23.14582941353011",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "loop",
+    "route": "straight",
+    "markers": [
+      {
+        "orient": "-156.8542393618543",
+        "refX": "8"
+      },
+      {
+        "orient": "-23.14582941353011",
+        "refX": "0"
+      }
+    ]
+  },
+  {
+    "scenario": "loop",
+    "route": "smoothstep",
+    "markers": []
+  },
+  {
+    "scenario": "loop",
+    "route": "step",
+    "markers": [
+      {
+        "orient": "-156.8542393618543",
+        "refX": "8"
+      },
+      {
+        "orient": "-23.14582941353011",
+        "refX": "0"
+      }
+    ]
+  }
+]

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { arrowReference, placeEdgeLabel, reconnectCenter } from './edgePresentation';
+import { arrowReference, endpointArrowAngles, placeEdgeLabel, reconnectCenter } from './edgePresentation';
 
 describe('compact connection presentation', () => {
   it.each([
@@ -30,4 +30,16 @@ describe('compact connection presentation', () => {
     const point = placeEdgeLabel({ x: 400, y: 250 }, { x: 1, y: 0 }, { width: 70, height: 20 }, []);
     expect(point.x).toBe(400);
   });
+});
+
+it('aligns arrows with their footprint on a sharply turning curve', () => {
+  const points = (distance: number) => ({x: distance, y: distance * distance / 100});
+  const angles = endpointArrowAngles({getTotalLength: () => 100, getPointAtLength: points}, 10);
+  expect(angles.start).toBeCloseTo(Math.atan2(1, 10) * 180 / Math.PI);
+  expect(angles.end).toBeCloseTo(Math.atan2(19, 10) * 180 / Math.PI);
+});
+it.each([0, 1, 100])('keeps short and straight path orientations finite (%s)', length => {
+  const angles = endpointArrowAngles({getTotalLength: () => length, getPointAtLength: d => ({x: -d, y: 0})}, 10);
+  expect(Number.isFinite(angles.start) && Number.isFinite(angles.end)).toBe(true);
+  if (length) expect(angles).toEqual({start: 180, end: 180});
 });

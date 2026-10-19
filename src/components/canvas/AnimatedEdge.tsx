@@ -1,8 +1,8 @@
-import { arrowReference, reconnectCenter } from './utils/edgePresentation';
+import { arrowReference, endpointArrowAngles, reconnectCenter } from './utils/edgePresentation';
 import { useEdgeLabelPlacement } from './hooks/useEdgeLabelPlacement';
 import { getEdgeTopology } from './hooks/edgeTopology';
 import { useTranslation } from '../../i18n/useTranslation';
-import React, { useRef, memo, useMemo, useState, useEffect } from 'react';
+import React, { useRef, memo, useMemo, useState, useEffect, useLayoutEffect } from 'react';
 import {
   EdgeProps,
   EdgeLabelRenderer,
@@ -391,6 +391,15 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const currentStrokeWidth = isEdgeActive ? baseStrokeWidth + 0.75 : baseStrokeWidth;
 
   const markerSize = Math.max(12.5, baseStrokeWidth * 2.5);
+  const endMarkerRef = useRef<SVGMarkerElement>(null);
+  const startMarkerRef = useRef<SVGMarkerElement>(null);
+  useLayoutEffect(() => {
+    const path = pathRef.current;
+    if (!path || (arrowEndType === 'none' && arrowStartType === 'none')) return;
+    const angles = endpointArrowAngles(path, markerSize * 0.8);
+    endMarkerRef.current?.setAttribute('orient', String(angles.end));
+    startMarkerRef.current?.setAttribute('orient', String(angles.start));
+  }, [edgePath, markerSize, arrowEndType, arrowStartType, markerEndId, markerStartId]);
 
   // Dash pattern
   const strokeDasharray = getDashArray(ve?.lineStyle, isAsync);
@@ -438,6 +447,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
       <defs>
         {arrowEndType !== 'none' && (
           <marker
+            ref={endMarkerRef}
             id={markerEndId}
             markerWidth={markerSize}
             markerHeight={markerSize * 0.8}
@@ -452,6 +462,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
         )}
         {arrowStartType !== 'none' && (
           <marker
+            ref={startMarkerRef}
             id={markerStartId}
             markerWidth={markerSize}
             markerHeight={markerSize * 0.8}

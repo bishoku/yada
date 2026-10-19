@@ -35,3 +35,14 @@ export function placeEdgeLabel(anchor: Point, tangent: Point, size: { width: num
   });
   return best;
 }
+
+/** Align the glyph with the part of the curve it covers, not an infinitesimal endpoint turn. */
+export function endpointArrowAngles(path: { getTotalLength(): number; getPointAtLength(distance: number): Point }, footprint: number) {
+  const length = path.getTotalLength();
+  const span = Math.min(Math.max(footprint, 0.01), length / 2);
+  const angle = (a: Point, b: Point) => Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+  return {
+    start: angle(path.getPointAtLength(0), path.getPointAtLength(span)),
+    end: angle(path.getPointAtLength(length - span), path.getPointAtLength(length)),
+  };
+}

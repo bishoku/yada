@@ -303,3 +303,7 @@ Safari ve gerçek macOS Tauri debug uygulamasında kayıt/çıktı kabulü yapı
 Kullanıcının bildirdiği connector taşıma sorunu ayrıca düzeltildi: yeniden bağlama yeni bağlantı fallback'ine girmez, edge kimliği sabit kalır, kaynak/hedef yönüne uygun bırakma katmanı açılır. Normal ve Freeform node'larda iki uç/dört yön, iptal/geçersiz hedef, aynı port, geri alma/yeniden uygulama ve ardından normal yeni bağlantı oluşturma gerçek canvas'ta doğrulandı. Edge/adım sayısı, süre/gecikme ve metadata korunur. [Kabul raporu ve ekran](performance/2026-10-18/edge-reconnect.md).
 
 Son otomatik kontrol: **66 dosyada 379 test; web, Forge, Data Center ve macOS Tauri debug derlemeleri başarılı**. Büyük diyagram simülasyonu ve ekran okuyucu kabulü kapsam dışında kaldı. Fiziksel dokunmatik cihazda connector taşıma ve diğer işletim sistemlerinde native çıktı kabulü yapılmadı.
+
+## Keskin eğrilerde ok hizası — 19 Ekim 2026
+
+Oklar yalnızca uç noktanın anlık teğetine değil, gövdelerinin kapladığı rota bölümünün geliş açısına hizalanır. Connector'daki uç konumu ve mevcut rota/simülasyon/yeniden bağlama davranışı korunur. Kısa keskin eğri, ters/yatay/diyagonal/loop rotaları ve temiz/eskiz görünümü kontrol edildi. **66 dosyada 383 test ve web üretim derlemesi başarılı.** [Kabul notu ve ekran](performance/2026-10-19/arrow-angle.md).

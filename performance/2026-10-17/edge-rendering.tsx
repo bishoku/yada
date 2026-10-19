@@ -12,6 +12,7 @@ import type { EdgeArrowType, EdgeConnectionType } from '../../src/types';
 const nodeTypes = { customNode: BaseNode }, edgeTypes = { customEdge: AnimatedEdge };
 const cases = {
   vertical: { a: [160, 60], b: [160, 185], source: 'bottom:50', target: 'top:50' },
+  tight: { a: [70, 40], b: [180, 140], source: 'bottom:50', target: 'top:50' },
   diagonal: { a: [70, 40], b: [420, 250], source: 'bottom:50', target: 'top:50' },
   horizontal: { a: [70, 160], b: [480, 160], source: 'right:50', target: 'left:50' },
   reverse: { a: [450, 250], b: [70, 60], source: 'top:50', target: 'bottom:50' },
