@@ -341,13 +341,9 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
     }
   }); // Runs after every render to ensure pathRef triggers one update
 
-  // Pre-allocate stable refs for particles (max 5 for repeat mode)
-  const p0 = useRef<SVGGElement>(null);
-  const p1 = useRef<SVGGElement>(null);
-  const p2 = useRef<SVGGElement>(null);
-  const p3 = useRef<SVGGElement>(null);
-  const p4 = useRef<SVGGElement>(null);
-  const particleRefs = useMemo(() => [p0, p1, p2, p3, p4], []);
+  // Match the 1–10 particle count already supported by the properties editor.
+  // The continuous-flow timing algorithm remains unchanged.
+  const particleRefs = useMemo(() => Array.from({length: 10}, () => React.createRef<SVGGElement>()), []);
 
 
   // Custom hook for animation calculation

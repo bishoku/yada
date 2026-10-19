@@ -1,3 +1,4 @@
+import { syncTopology, generateTopology } from '../dsl/topology';
 import { resetHistorySnapshotCache } from './historySnapshot';
 import { saveCurrentDiagram } from '../services/saveCoordinator';
 import { simulationClock } from './simulationClock';
@@ -44,6 +45,22 @@ export const useAppStore = create<AppState>()((set, get, store) => {
                                  nextState.visualData.layoutEdges !== undefined &&
                                  nextState.visualData.layoutEdges !== state.visualData.layoutEdges;
 
+      // Source is optional document metadata. Canvas/timeline edits patch it in the
+      // same transaction; history restoration and explicit DSL commits own theirs.
+      if ((logicalChanged || timelinesChanged) && state.logicalData.dsl) {
+        const logical = nextState.logicalData ?? state.logicalData;
+        const visual = nextState.visualData ?? state.visualData;
+        if (logical.dsl === state.logicalData.dsl &&
+            generateTopology(logical, visual).source !== generateTopology(state.logicalData, state.visualData).source) {
+          nextState.logicalData = {...logical, dsl: syncTopology(logical, visual, state.logicalData, state.visualData)};
+          if (state.isPlaying) {
+            simulationClock.reset();
+            nextState.isPlaying = false;
+            nextState.currentTime = 0;
+            nextState.activeSequenceIds = [];
+          }
+        }
+      }
       if (logicalChanged || timelinesChanged || layoutEdgesChanged) {
         const mergedLogical = nextState.logicalData !== undefined ? nextState.logicalData : state.logicalData;
         const mergedVisual = nextState.visualData !== undefined ? nextState.visualData : state.visualData;

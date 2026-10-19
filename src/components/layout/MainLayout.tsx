@@ -1,3 +1,4 @@
+import { TopologyCodePanel } from './TopologyCodePanel';
 import { editingCopy } from '../../i18n/editingCopy';
 import { useCompactLayout } from './useCompactLayout';
 import { PanelDrawer, type CompactPanel } from './PanelDrawer';
@@ -23,6 +24,11 @@ import { ChatOverlay } from '../chat/ChatOverlay';
 export const MainLayout: React.FC = () => {
 
   const compact = useCompactLayout();
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [codeWidth, setCodeWidth] = useState(34);
+  const [codeResizing, setCodeResizing] = useState(false);
+  const draftPending = useAppStore(s => s.logicalData.dsl?.draft !== undefined && !s.isCollabActive && !s.isReadOnly);
+  const splitRef = useRef<HTMLDivElement>(null);
   const [compactPanel, setCompactPanel] = useState<CompactPanel | null>(null);
   const tuningOpenedFromDock = useRef(false);
   const activeNodeId = useAppStore(s => s.activeNodeProperties?.id);
@@ -90,7 +96,7 @@ export const MainLayout: React.FC = () => {
       <div className="flex-1 flex overflow-hidden relative">
 
         {/* Left Sidebar: Explorer & Library */}
-        {!compact && leftSidebarOpen && <SidebarLeft />}
+        {!compact && leftSidebarOpen && !codeOpen && <div className="flex" inert={draftPending}><SidebarLeft /></div>}
 
         {/* Center Section: Canvas & Timeline */}
         <main className="isolate flex-1 min-w-0 flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -98,11 +104,28 @@ export const MainLayout: React.FC = () => {
           {/* Diagram Tab Bar */}
           <DiagramTabBar />
 
+          {openDiagramIds.length > 0 && !isFullscreen && <div className="flex items-center justify-end gap-2 border-b border-slate-200 dark:border-slate-800 px-3 py-1">
+            {draftPending && !codeOpen && <span className="text-xs text-amber-700 dark:text-amber-300">{language === 'tr' ? 'Kod taslağı bekliyor' : 'Code draft pending'}</span>}
+            <button type="button" aria-expanded={codeOpen} aria-controls="topology-code-panel" onClick={() => setCodeOpen(open => !open)} className="rounded px-3 py-1 text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-800">{'</> '}{language === 'tr' ? 'Kod' : 'Code'}</button>
+          </div>}
+
           {/* Canvas Workspace Area or Dashboard */}
           {openDiagramIds.length === 0 ? (
             <DiagramDashboard />
           ) : (
-            <div className="flex-1 min-h-0 relative" style={{ overflow: 'hidden' }}>
+            <div ref={splitRef} className="flex flex-1 min-h-0 relative overflow-hidden">
+              {codeOpen && !isFullscreen && <>
+                <div id="topology-code-panel" className="min-w-0 shrink-0" style={{width: compact ? '100%' : `${codeWidth}%`}}>
+                  <TopologyCodePanel key={activeDiagramId} onClose={() => setCodeOpen(false)} />
+                </div>
+                {!compact && <div role="separator" aria-orientation="vertical" aria-label={language === 'tr' ? 'Kod paneli genişliği' : 'Code panel width'} aria-valuemin={20} aria-valuemax={65} aria-valuenow={Math.round(codeWidth)} tabIndex={0}
+                  onPointerDown={e => {e.currentTarget.setPointerCapture(e.pointerId); setCodeResizing(true);}}
+                  onPointerMove={e => {if (codeResizing && splitRef.current) {const bounds = splitRef.current.getBoundingClientRect(); setCodeWidth(Math.max(20, Math.min(65, (e.clientX - bounds.left) / bounds.width * 100)));}}}
+                  onPointerUp={() => setCodeResizing(false)} onPointerCancel={() => setCodeResizing(false)}
+                  onKeyDown={e => {if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {e.preventDefault(); setCodeWidth(width => e.key === 'Home' ? 20 : e.key === 'End' ? 65 : Math.max(20, Math.min(65, width + (e.key === 'ArrowLeft' ? -2 : 2))));}}}
+                  className="w-1 shrink-0 cursor-col-resize touch-none bg-slate-200 dark:bg-slate-800 hover:bg-indigo-500 focus:bg-indigo-500" />}
+              </>}
+              <div inert={draftPending} className={`flex-1 min-w-0 relative ${compact && codeOpen && !isFullscreen ? 'hidden' : ''}`}>
               {viewMode === 'freeform' ? (
                 <DiagramCanvas />
               ) : (
@@ -114,6 +137,7 @@ export const MainLayout: React.FC = () => {
                   <SequenceDiagramCanvas />
                 </Suspense>
               )}
+              </div>
             </div>
           )}
 
@@ -141,6 +165,7 @@ export const MainLayout: React.FC = () => {
           {/* Timeline Animation Panel */}
           {activeDiagramId && (!compact || compactPanel !== 'timeline') && (
             <div
+              inert={draftPending}
               style={{ height: !compact && timelineOpen ? timelineHeight : 'auto' }}
               className="border-t border-slate-200 dark:border-slate-800 z-10 shrink-0 select-none overflow-hidden"
             >
@@ -154,7 +179,7 @@ export const MainLayout: React.FC = () => {
         </main>
 
         {/* Right Sidebar: Simulation Panel / Properties Panel */}
-        {!compact && rightSidebarOpen && <RightSidebarShell />}
+        {!compact && rightSidebarOpen && <div className="flex" inert={draftPending}><RightSidebarShell /></div>}
 
       </div>
 

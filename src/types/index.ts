@@ -94,6 +94,7 @@ export interface SequenceStep {
 }
 
 export interface LogicalDiagram {
+  dsl?: import('../dsl/topology').DslDocument;
   sequenceDiagram?: MermaidSequenceMetadata;
   schemaVersion: number;   // Schema version for future-proof migrations (current: 2)
   nodes: LogicalNode[];
@@ -251,6 +252,7 @@ export interface FreeFormContent {
 }
 
 export interface VisualDiagram {
+  autoLayoutDirection?: 'LR' | 'TB';
   canvas: {
     zoom: number;
     pan: { x: number; y: number };

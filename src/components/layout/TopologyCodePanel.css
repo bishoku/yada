@@ -1,0 +1,51 @@
+/* The input and paint layers must have identical metrics: no token font weights. */
+.topology-editor-input,
+.topology-editor-paint {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 24px;
+  font-weight: 400;
+  font-variant-ligatures: none;
+  letter-spacing: normal;
+  tab-size: 4;
+  padding: 12px;
+  margin: 0;
+  border: 0;
+  white-space: pre;
+  box-sizing: border-box;
+}
+.topology-editor-input {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+  caret-color: #334155;
+}
+.dark .topology-editor-input { caret-color: #e2e8f0; }
+.topology-editor-input::selection { background: rgb(99 102 241 / 25%); }
+.topology-editor-paint { color: #334155; pointer-events: none; user-select: none; }
+.dark .topology-editor-paint { color: #e2e8f0; }
+.topology-code-line { display: block; height: 24px; min-width: 100%; width: max-content; }
+.topology-code-error { background: rgb(239 68 68 / 9%); text-decoration: underline wavy #dc2626; text-underline-offset: 4px; }
+.topology-token-type, .topology-token-keyword { color: #7e22ce; }
+.topology-token-identifier { color: #0369a1; }
+.topology-token-edgeId { color: #0f766e; }
+.topology-token-arrow { color: #be185d; }
+.topology-token-option { color: #b45309; }
+.topology-token-value { color: #c2410c; }
+.topology-token-string { color: #15803d; }
+.topology-token-comment { color: #64748b; }
+.topology-token-punctuation { color: #475569; }
+.topology-token-invalid { color: #dc2626; }
+.dark .topology-token-type, .dark .topology-token-keyword { color: #d8b4fe; }
+.dark .topology-token-identifier { color: #7dd3fc; }
+.dark .topology-token-edgeId { color: #5eead4; }
+.dark .topology-token-arrow { color: #f9a8d4; }
+.dark .topology-token-option { color: #fcd34d; }
+.dark .topology-token-value { color: #fdba74; }
+.dark .topology-token-string { color: #86efac; }
+.dark .topology-token-comment { color: #94a3b8; }
+.dark .topology-token-punctuation { color: #cbd5e1; }
+.dark .topology-token-invalid { color: #fca5a5; }
+@media (forced-colors: active) {
+  .topology-editor-paint { display: none; }
+  .topology-editor-input { color: CanvasText !important; -webkit-text-fill-color: CanvasText; caret-color: CanvasText; }
+}

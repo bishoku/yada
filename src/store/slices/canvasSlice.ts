@@ -1311,82 +1311,16 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
   applyAutoLayout: async (direction) => {
     const workspace = get().currentWorkspace;
     const diagramId = get().activeDiagramId;
-    const { getLayoutedElements } = await import('../../utils/layout');
+    const { layoutDiagram } = await import('../../utils/layout');
     // Never apply a deferred layout to a different workspace or diagram.
     if (get().currentWorkspace !== workspace || get().activeDiagramId !== diagramId) return;
     get().pushToHistory();
     const state = get();
-    const { nodes, edges } = state.logicalData;
-
-    // Helper map to find node parentIds
-    const nodeParentMap = new Map<string, string | undefined>(
-      nodes.map(n => [n.id, n.parentId])
-    );
-
-    // 1. Only include top-level nodes for Dagre (ignore children of sections)
-    const topLevelNodes = nodes.filter(n => !n.parentId);
-
-    const rfNodes = topLevelNodes.map((node) => {
-      const visual = state.visualData.layoutNodes[node.id] || {};
-      return {
-        id: node.id,
-        position: { x: visual.x ?? 0, y: visual.y ?? 0 },
-        data: { name: node.name, type: node.type },
-        width: visual.width ?? (node.type === 'section' ? 400 : 224),
-        height: visual.height ?? (node.type === 'section' ? 300 : 52),
-      };
-    });
-
-    // 2. Map edges: if source/target is inside a section, point to section.
-    // Discard edges where both source and target map to the same section.
-    const mappedEdges: { id: string; source: string; target: string }[] = [];
-    edges.forEach((edge) => {
-      const parentSrc = nodeParentMap.get(edge.sourceId);
-      const parentTgt = nodeParentMap.get(edge.targetId);
-
-      const actualSource = parentSrc || edge.sourceId;
-      const actualTarget = parentTgt || edge.targetId;
-
-      if (actualSource !== actualTarget) {
-        mappedEdges.push({
-          id: edge.id,
-          source: actualSource,
-          target: actualTarget,
-        });
-      }
-    });
-
-    // 3. Calculate layout
-    const layouted = getLayoutedElements(rfNodes, mappedEdges as any, direction);
-
-    // 4. Update coordinates only for the top-level nodes Dagre processed
-    const layoutNodes = { ...state.visualData.layoutNodes };
-    layouted.forEach((node) => {
-      layoutNodes[node.id] = {
-        ...layoutNodes[node.id],
-        x: node.position.x,
-        y: node.position.y,
-      };
-    });
-
-    // Update edge handles in visual layer based on layout direction (excluding internal section edges)
-    const newSourceHandle: string = direction === 'TB' ? 'bottom:50' : 'right:50';
-    const newTargetHandle: string = direction === 'TB' ? 'top:50' : 'left:50';
-    const layoutEdges = { ...state.visualData.layoutEdges };
-    edges.forEach((edge) => {
-      const parentSrc = nodeParentMap.get(edge.sourceId);
-      const parentTgt = nodeParentMap.get(edge.targetId);
-      if (parentSrc && parentTgt && parentSrc === parentTgt) {
-        // Internal to a section, keep original handles
-        return;
-      }
-      const existingVE = layoutEdges[edge.id] ?? { id: edge.id };
-      layoutEdges[edge.id] = { ...existingVE, sourceHandle: newSourceHandle, targetHandle: newTargetHandle };
-    });
+    const visualData = layoutDiagram(state.logicalData, state.visualData, direction);
 
     set({
       logicalData: { ...state.logicalData },
-      visualData: { ...state.visualData, layoutNodes, layoutEdges },
+      visualData,
       layoutVersion: state.layoutVersion + 1,
       autoLayoutVersion: (state.autoLayoutVersion || 0) + 1,
       isDirty: true

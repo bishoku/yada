@@ -273,3 +273,83 @@ PNG/SVG capture restores the actual viewport, UI display styles, capture mode an
 ### Editing and startup measurements
 
 `npm run measure:editing` runs the isolated store CPU/retained-history benchmark with forced GC. `npm run build:startup-profile` and `npm run preview:startup-profile` enable the visible local startup probe; the probe is absent from normal production builds, and service-worker installation is disabled in the startup profile. Methodology, paired reports, limits and compact-control acceptance are in [the 2026-10-16 report](performance/2026-10-16/editing-and-startup.md). These local measurements do not establish real-user Core Web Vitals or large-simulation performance.
+
+### Optional topology code panel
+
+Open **Code** above the canvas to edit topology alongside the drawing. The panel
+starts closed and its divider can be resized. On narrow screens, code temporarily
+uses the workspace area. Opening the panel preserves the existing drawing.
+Structural code edits use the shared auto-layout (left to right by default); the
+panel also offers top to bottom. This per-diagram choice is saved outside the
+DSL and is shared with toolbar auto-layout. Labels and playback-only edits
+preserve placement; all edits preserve styling.
+
+```text
+yada 1
+
+client web "Web App"
+group backend "Backend" {
+  service orders "Order Service"
+  database db "PostgreSQL"
+  queue events "Events"
+}
+
+web --> orders : "Create order" @create [step=1, duration=800ms]
+orders --> db : "Save order" @save [step=2, roundtrip, duration=1.2s]
+orders ~> events : "OrderCreated" @publish [step=3, repeat=3, duration=500ms]
+```
+
+- Component and connection identifiers are stable, case-sensitive names using
+  letters, digits and underscores, with a letter or underscore first. Labels are
+  quoted strings; `%%` starts a comment outside strings. Groups may nest;
+  connections are declared outside group blocks and connect components.
+- `-->` is synchronous; `~>` is asynchronous. Each connection requires `@id`.
+  Optional `protocol="HTTPS"` describes its protocol.
+- Without any `step` options, connection order supplies steps 1, 2, 3….
+  When at least one explicit step exists, only numbered connections play.
+  Equal numbers use the existing scheduler's execution grouping; gaps do not
+  add delays. Existing asynchronous scheduling rules are unchanged.
+- `roundtrip` uses YADA's existing round-trip mode. `repeat=3` means three
+  continuously flowing particles during the existing diagram playback window,
+  **not three sequential executions**. Particle counts are 1–10. Repeat and
+  round-trip are mutually exclusive; round-trip requires a synchronous edge.
+- `duration=800ms` or `duration=1.2s` sets the existing transit duration. For
+  round-trip it covers both transport legs; for repeat it is the particle cycle
+  duration. Existing internal-process timing is preserved. Omission retains an
+  existing duration or uses 1000 ms for a new step. No positions or styles enter
+  the DSL.
+- Valid drafts apply after a short typing pause. Invalid drafts retain the last
+  valid drawing. Destructive changes require **Apply deletions**. Drafts are
+  saved with the project, including incomplete text. **Restore current code**
+  discards only the draft. While a draft is pending, canvas/timeline controls
+  are temporarily inert; concurrent document changes are detected before apply.
+- Canvas and timeline edits update source text while preserving comments and
+  unchanged declarations. Applied code changes participate in document undo/redo
+  and stop/reset playback. Renaming a label preserves identity; manually changing
+  an identifier means deleting and adding an entity.
+- Code view is read-only during live collaboration and for documents outside
+  this initial subset (such as Mermaid sequence metadata or several steps on
+  one connection). These documents remain editable with the existing tools.
+  No existing schema migration or playback algorithm is changed. Optional source
+  metadata is stored inside the logical document and travels with `.dproj` files.
+
+#### Code assistance
+
+The topology editor suggests declared component IDs at connection endpoints and
+`step`, `duration`, `roundtrip`, `repeat`, and `protocol` inside connection option
+brackets. It works with incomplete drafts, suppresses suggestions inside labels
+and comments, and filters duplicate/incompatible options. Use **Ctrl+Space** to
+open suggestions, **↑/↓** to choose, **Enter/Tab** to insert, or **Esc** to dismiss.
+
+Place the cursor on a connection line to show quick controls for its step,
+transit duration, playback mode and repeat particle count. These controls edit
+the same source text and follow the usual validation and synchronization path;
+other options and trailing comments are preserved. Arbitrary positive steps and
+durations can still be typed directly in code.
+
+The code editor highlights node types, IDs, connection arrows, option names,
+values, strings and comments in both light and dark themes. Invalid drafts keep
+highlighting while the first parser error is marked on its line with a gutter
+indicator, tinted background and wavy underline. **Go to error** focuses that
+line; correcting it clears the marker. Diagnostics are also exposed to screen
+readers. Highlighting never modifies the source or the last valid diagram.
