@@ -225,3 +225,81 @@ Doğrulama: **39 dosyada 259 test başarılı; web, Forge ve Data Center üretim
 Doğrulama: **45 dosyada 275 test başarılı; web, Forge, Data Center ve imzasız debug Tauri derlemeleri başarılı.** Tarayıcıda kompakt düzenin masaüstü/mobil ve TR/EN kabulü bu paketin ekran kayıtlarıyla belgelendi. Gerçek host ve fiziksel cihaz kabulü tamamlanmış sayılmıyor.
 
 **Kalan öncelikler:** Canlı Forge/Data Center kaydet/aç ve hata kabulü; üretimdeki önceki PWA sürümünden staging yükseltmesi; UI dosya yükleme/karmaşık çıktı kabulü; kayıtlı belgenin diskten açılış ölçümü; tüm tema/iki dil/ekran okuyucu/gerçek cihaz kabulü ve yeni kullanıcı görev testi. Büyük diyagram simülasyonu ertelenmiş durumda.
+
+
+## Yedinci uygulama teslimi — tüm temalarda kompakt UI ve erişilebilirlik
+
+17 Ekim 2026 tarihinde altı tema, TR/EN ve mobil/masaüstü için 24 kombinasyon kontrol edildi; tercihler, ana sayfa ve örnek diyagramın 72 yüzey kaydı alındı. 360/390/768 px ve yatay ekran ek kontrolleri, açık timeline/kitaplık/araçlar, çizim kontrolleri, Mermaid ve entegrasyon formu incelendi. Ayrıntılar ve ekranlar [kabul raporunda](performance/2026-10-17/compact-accessibility.md).
+
+- 320 px header çakışması, soldan kesilen araçlar menüsü ve menünün önüne çıkan tuval kontrolleri düzeltildi. Çok dar ekranda görünüm anahtarları ve mobil tam ekran eylemi araçlar menüsünde; 44 px header korunuyor. Çizim ve seçim araçları ekran sınırında satıra kırılıyor.
+- Eski dolu butonlara ortak tema kontrastı uygulandı. Nord/Dracula/Synthwave ana butonlarının beyaz yazı oranları 4,5 üzerinde; altı tema için test var. Soluk aydınlık tema metinleri koyulaştırıldı. Küçük hedefler en az 24 px; timeline kaydırıcısının görsel çizgisi ince, etkileşim alanı daha yüksek. Ana buton ölçüleri kompakt kaldı.
+- Dialog odak döngüsü negatif tab sırasını ve devre dışı kontrolleri dışarıda bırakıyor. Tercihler tab/tabpanel ve ok/Home/End davranışı kullanıyor. Dışa aktarma açık durum/ilk odak/Escape/modalden dönüş akışları düzeltildi. Aktif profil alanı etiketlendi; çizim renk/kalınlık açıklamaları ve seçili durumları TR/EN tamamlandı.
+- Hızlı aç/kapat kontrolünde bulunan gecikmiş sığdırmanın ana sayfayı değişmiş işaretleme hatası belge sahipliğiyle engellendi. Azaltılmış hareket tercihi açılış sığdırması ve UI geçişlerinde gözetiliyor. Simülasyon kapsamına girilmedi.
+
+Doğrulama: **48 dosyada 287 test; web, Forge, Data Center ve imzasız debug Tauri derlemeleri başarılı.** Son matris ve ek genişliklerde seçilen yüzeylerde yatay taşma/çakışma/adsız kontrol/küçük hedef bulunmadı. Yerel üretim önizlemesi ayrıca kontrol edildi.
+
+**Kalan kabul işleri:** Fiziksel mobil cihaz kontrolü; tüm içerik uzunlukları ve karmaşık belgeler; yeni kullanıcı görev testi. Önceki paketten canlı host kaydet/aç, staging PWA yükseltmesi, UI dosya yükleme/karmaşık çıktı ve kayıtlı belgenin diskten açılış ölçümü açık. Büyük diyagram simülasyonu ertelenmiş durumda. Bu teslim tüm uygulama için erişilebilirlik sertifikasyonu olarak değerlendirilmez.
+
+
+### Kapsam güncellemesi — 17 Ekim 2026
+
+Kullanıcının isteğiyle ekran okuyucu kabulü (VoiceOver/TalkBack/NVDA) ve buna yönelik özel doğrulama paketi kapsamdan çıkarıldı. Bu kabul tamamlandı olarak işaretlenmez ve sonraki paketlerde zorunlu iş olarak takip edilmez. Temel klavye erişimi, odak davranışı, okunabilirlik, kompakt düzen ve taşma kontrolleri korunur. Premium UI, eksiksiz TR/EN desteği ve büyük diyagram simülasyonunun kapsam dışında olması değişmedi.
+
+
+17 Ekim 2026: Kullanıcı isteğiyle varsayılan tema **Light** olarak değiştirildi. Web başlangıcı, eksik/geçersiz tercih ve tercih okuma hatası Light kullanır; Tauri'nin yeni kullanıcı varsayılanı da Light oldu. Geçerli kayıtlı kullanıcı tercihi ve mevcut URL tema seçimi davranışı korunur. Mevcut kullanıcıların tema kayıtları topluca değiştirilmez.
+
+
+## Timeline yeniden tasarımı — 17 Ekim 2026
+
+Kullanıcı geri bildirimi doğrultusunda timeline, seyrek kullanılan gelişmiş zamanlama aracı olarak yeniden düzenlendi. [Araştırma, kararlar, ölçümler ve ekranlar](performance/2026-10-17/timeline-redesign.md).
+
+- İlk açılışta, yeni belgede ve belge değiştirmede panel kapalı. Boş tuvalde oynatma şeridi de yok. Toolbar anahtarı ve yeni küçük Zamanlama girişi paneli isteğe bağlı açar.
+- Günlük oynatma tek satıra indirildi: masaüstü 36 px, mobil 40 px. Dört hız düğmesi tek seçici oldu. Büyük mod butonları ve sürekli açıklama/seçimsiz bilgi satırları kaldırıldı.
+- Açık editörde 37 px araç satırı; detay yalnızca seçim olduğunda, yardım istenince görünür. Düzenleme küçük bir anahtar kullanır; adım eylemleri seçili satıra taşındı. Satırlar 56 px. Kapalıyken adım DOM'u ve sürükleme dinleyicileri oluşturulmaz.
+- Altı tema, TR/EN ve 320/1280 px için 24 kombinasyon; taşma yok. Küçük referansta oynatma, süre düzenleme ve geri alma; yeniden yüklemede kapalı başlangıç doğrulandı. **50 dosyada 297 test; web, Forge, Data Center ve imzasız debug Tauri derlemeleri başarılı.**
+
+Premium tema dili, Light varsayılanı ve TR/EN korundu. Ekran okuyucu kabulü ve büyük diyagram simülasyonu kapsam dışında kaldı. İleri UX adayları adım arama/filtreleme ve kullanıcı görev testidir. Satır içi sayısal düzenleme aşağıdaki teslimle tamamlandı.
+
+
+## Timeline satır içi zamanlama — 17 Ekim 2026
+
+Seçili adımın süre ve gecikmesi modal açmadan alt detay satırında düzenlenebilir. Enter veya alandan ayrılma uygular; Escape mevcut değere döner. Başka adıma doğrudan tıklamak da taslağı seçim değişmeden önce uygular. Her alanın onayı tek geri alma noktasıdır; Enter ardından blur ek kayıt oluşturmaz. Yazarken zamanlama hesapları çalıştırılmaz.
+
+Virgül ve nokta ondalıkları, sıfır ve küçük kesirler korunur. Geçersiz girişler yerel hata gösterir; aynı alanın veya belgenin eşzamanlı değişmesi eski taslağın üzerine yazmasını engeller. Diğer alanın yeni değeri ve iç işlem/animasyon verileri korunur. Oynatma sırasında alanlar kilitli; salt okunur belgelerde yalnızca değerler görünür. İç işlem ayrıntıları bilgi düğmesiyle açılabilir.
+
+Masaüstü seçim satırı **31 px**, oynatma şeridi **36 px**; mobil seçim alanı iki satır **64 px** ve sayısal girişler 16 px. TR/EN, Light/Dark ve 320 px mobil tarayıcı kontrollerinde taşma bulunmadı. Üretim önizlemesinde modal açılmadan süre/gecikme, adım değişimi, Escape ve geri alma kontrol edildi. **51 dosyada 315 test; web, Forge ve Data Center derlemeleri başarılı.** Fiziksel cihaz kabulü bu teslimin parçası değildir. Büyük diyagram simülasyonu ve ekran okuyucu kabulü kapsam dışında kaldı.
+
+[Ayrıntılı kabul notları ve ekranlar](performance/2026-10-17/timeline-inline.md).
+
+
+## Tuval bağlantıları: uçlar, oklar ve etiketler — 17 Ekim 2026
+
+İlk tuval paketi tamamlandı. [Kabul raporu ve ekranlar](performance/2026-10-17/edge-rendering.md).
+
+- Büyük mavi yeniden bağlama halkaları yerine 7 tuval birimlik işaretler kullanılır; ayrı, görünmez 24 birimlik sürükleme alanı korunur. Ekleme tutamaçları bağlantı seçilince görünür. Kısa bağlantıda tek orta ekleme noktası, uzun bağlantıda iki nokta vardır.
+- Oklar aktiflikte büyümez; kullanıcının temel çizgi kalınlığına göre ölçülen sabit boyutta kalır. Ok ucu bağlantı portuna hizalanır. Temiz ve eskiz görünümünde tek ok katmanı gerçek rotanın teğetini izler; dekoratif eskiz alt yolları ek/yamuk ok üretmez. Başlangıç/bitiş ok şekilleri korunur.
+- Etiketler dikey rotanın yanına, yatay rotanın üstüne yerleşir. Uç kartlarla çakışan adayın yerine uygun karşı taraf/komşu konum seçilir. Sayısal etiket konumu korunur. Uzun içerik kısalır; tam içerik ve TR/EN hızlı düzenleme açıklaması tooltip'tedir. Geniş, bütün diyagramı kapsayan etiket yerleşim çözümleyicisi eklenmedi.
+- Otomatik aktif çizgi vurgusu sakinleştirildi; kullanıcı tarafından seçilmiş renk, çizgi deseni, gradient ve glow korunur. Node ve parçacık şekilleri bu ilk pakette yeniden tasarlanmadı.
+- Kabulde bulunan mevcut protokol hızlı düzenleme hatası düzeltildi: iç işlem parametresi verilmemişse adımın mevcut iç işlemi korunur. Açık boş metinle silme ve sıfır süre desteği devam eder. Örnek akış protokol değişiminden sonra 2.500 ms kalır.
+
+Doğrulama: **54 dosyada 332 test; web, Forge ve Data Center üretim derlemeleri başarılı.** Gerçek renderer/scheduler kullanılan yerel kabul ekranında temiz/eskiz × beş geometri (10 durum), dört ara noktalı rota, beş ok seçeneği, altı tema; seçilen geometrilerde uç kart-etiket çakışması yok. Yeniden bağlama, ara nokta sürükleyerek ekleme ve çift tıkla kaldırma, seçili etiketi çift tıkla düzenleme, %25/%50 etiket konumu ve oynatma kontrol edildi. TR/EN 360 px mobil ve 1100 px masaüstü; sayfa taşması yok. Son üretim önizlemesinde ok katmanları/yerelleştirilmiş etiketler tekrar doğrulandı. Fiziksel cihaz ve native yeniden derleme bu teslimin parçası değildir. Büyük diyagram simülasyonu ve ekran okuyucu kabulü kapsam dışıdır.
+
+
+## Node durumları, parçacıklar ve görünümü koruyan çıktı — 18 Ekim 2026
+
+Paket tamamlandı. [Kabul raporu, ölçüm ve örnek çıktılar](performance/2026-10-18/node-and-export.md).
+
+- Seçim ince kesikli çizgiye; aktiflik küçük nokta/hafif vurguya, iç işlem küçük yeşil göstergeye indirildi. Kart büyümesi ve kalın aktif halkalar kaldırıldı. Parçacıklar küçültüldü; hareketli tekrar numarası kaldırılarak sabit etikette bırakıldı. Ok dönüşte ters yönü izler. Mevcut düzenleme, zamanlama ve simülasyon verisi korunur.
+- PNG/SVG/HTML/video için görünür tuval varsayılanı ve Tüm diyagram kadrajı eklendi. Gerçek canvas fontları, tema, ikon, gölge ve durumları kullanılır. HTML/video ortak sahne yakalamasından üretilir; video tam boyutlu kareleri toplamak yerine sınırlı kuyruk ve yeniden kullanılan canvas ile kodlanır. TR/EN metinler eşleşir.
+- Küçük referansın 24 örneğinde 3 görsel durum yakalamak, yakalama süresini **801,3→128,6 ms** düşürdü. 1,5 saniye/1280×608 MP4 kodlama **171,6 ms**; encoder kuyruğu en fazla 4. Bu sonuç büyük diyagram kıyası değildir. Toplam heap ölçülmedi.
+- **62 dosyada 362 test; web, Forge ve Data Center derlemeleri başarılı.** Altı tema, gerçek sıralama görünümü, TR/EN HTML oynatıcı, PNG/SVG ve MP4 kontrol edildi. Native/Safari codec kabulü yapılmadı. SVG foreignObject desteği, uzak görsel CORS'u ve video sıkıştırması çıktı eşleşmesinin sınırlarıdır.
+
+Büyük diyagram simülasyonu ve ekran okuyucu kabulü kapsam dışında kalır. Sonraki isteğe bağlı kabul çalışması: farklı tarayıcı/native codec'lerde ve daha zengin görsel içeriklerde çıktı eşleşmesi; GIF'in ortak sahne akışına taşınması ayrı kapsamdır.
+
+## Safari/native çıktı ve connector taşıma düzeltmesi — 18 Ekim 2026
+
+Safari ve gerçek macOS Tauri debug uygulamasında kayıt/çıktı kabulü yapıldı. WebKit değişken fontlarının çıktıda kaybolması ve parçacıkların zoom sonrası çizgiden ayrılması düzeltildi. Video kuyruğu sınırlı tutulur; codec, recorder ve resim yükleme işlemleri sonsuza kadar beklemez, hata/bitişte kaynaklar bırakılır. Native PNG/SVG/HTML/MP4 kaydı; Safari'de çıktı açma, oynatma, adım seçimi, zoom ve TR/EN HTML kontrol edildi. Son native 3 saniyelik video Apple çözücüsüyle açıldı. [Ölçümler, kapsam sınırları ve çıktılar](performance/2026-10-18/safari-native-export.md).
+
+Kullanıcının bildirdiği connector taşıma sorunu ayrıca düzeltildi: yeniden bağlama yeni bağlantı fallback'ine girmez, edge kimliği sabit kalır, kaynak/hedef yönüne uygun bırakma katmanı açılır. Normal ve Freeform node'larda iki uç/dört yön, iptal/geçersiz hedef, aynı port, geri alma/yeniden uygulama ve ardından normal yeni bağlantı oluşturma gerçek canvas'ta doğrulandı. Edge/adım sayısı, süre/gecikme ve metadata korunur. [Kabul raporu ve ekran](performance/2026-10-18/edge-reconnect.md).
+
+Son otomatik kontrol: **66 dosyada 379 test; web, Forge, Data Center ve macOS Tauri debug derlemeleri başarılı**. Büyük diyagram simülasyonu ve ekran okuyucu kabulü kapsam dışında kaldı. Fiziksel dokunmatik cihazda connector taşıma ve diğer işletim sistemlerinde native çıktı kabulü yapılmadı.

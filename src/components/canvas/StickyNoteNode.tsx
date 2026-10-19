@@ -25,7 +25,7 @@ export const StickyNoteNode: React.FC<NodeProps> = ({ id, selected }) => {
     backgroundColor: noteStyle.backgroundColor || '#0f172a',
     borderColor: noteStyle.borderColor || '#6366f1',
     color: noteStyle.textColor || '#e2e8f0',
-    fontFamily: isSketchy ? 'var(--font-sketchy), Caveat, cursive' : (noteStyle.fontFamily || 'Inter'),
+    fontFamily: isSketchy ? 'var(--font-sketchy), Caveat, cursive' : (noteStyle.fontFamily ? `${noteStyle.fontFamily}, var(--font-sans)` : 'var(--font-sans)'),
     fontSize: isSketchy ? `${(noteStyle.fontSize || 12) * 1.15}px` : `${noteStyle.fontSize || 12}px`,
     borderRadius: `${noteStyle.borderRadius || 8}px`,
     opacity: opacity,
@@ -36,10 +36,9 @@ export const StickyNoteNode: React.FC<NodeProps> = ({ id, selected }) => {
 
   return (
     <>
-      <div 
-        className={`w-full h-full flex flex-col overflow-hidden border-2 relative
-          ${selected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}
-        `}
+      <div data-capture-state={`${isVisible}:${opacity}`}
+        data-selected={selected ? 'true' : 'false'}
+        className="yada-node-card w-full h-full flex flex-col overflow-hidden border-2 relative"
         style={style}
         onDoubleClick={() => {
           if (!isReadOnly && !isPlaying) {

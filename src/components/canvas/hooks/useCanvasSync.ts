@@ -103,7 +103,10 @@ export const useCanvasSync = (
       ) {
         setTimeout(() => {
           const freshState = useAppStore.getState();
-          setRfEdges(() => buildRfEdgesFromState(freshState.logicalData, freshState.visualData));
+          setRfEdges(previous => {
+            const selected = new Set(previous.filter(edge => edge.selected).map(edge => edge.id));
+            return buildRfEdgesFromState(freshState.logicalData, freshState.visualData).map(edge => ({...edge,selected:selected.has(edge.id)}));
+          });
         }, 50);
       }
     });

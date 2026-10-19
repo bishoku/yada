@@ -157,6 +157,7 @@ export const useEdgeAnimation = (
 
                 ref.current.style.display = 'block';
                 ref.current.setAttribute('transform', `translate(${x}, ${y}) rotate(${angle})`);
+                ref.current.querySelector('[data-particle-upright]')?.setAttribute('transform', `rotate(${-angle})`);
               } else {
                 ref.current.style.display = 'none';
               }
@@ -179,13 +180,15 @@ export const useEdgeAnimation = (
             }
 
             const { x, y, angle } = pointAtProgress(cachedSamples, actualProgress);
+            const travelAngle = elapsed >= returnStartElapsed ? angle + 180 : angle;
 
             for (let i = 0; i < particleRefs.length; i++) {
               const ref = particleRefs[i];
               if (!ref.current) continue;
               if (i === 0) {
                 ref.current.style.display = 'block';
-                ref.current.setAttribute('transform', `translate(${x}, ${y}) rotate(${angle})`);
+                ref.current.setAttribute('transform', `translate(${x}, ${y}) rotate(${travelAngle})`);
+                ref.current.querySelector('[data-particle-upright]')?.setAttribute('transform', `rotate(${-travelAngle})`);
               } else {
                 ref.current.style.display = 'none';
               }
@@ -211,6 +214,7 @@ export const useEdgeAnimation = (
               if (i === 0) {
                 ref.current.style.display = 'block';
                 ref.current.setAttribute('transform', `translate(${x}, ${y}) rotate(${angle})`);
+                ref.current.querySelector('[data-particle-upright]')?.setAttribute('transform', `rotate(${-angle})`);
               } else {
                 ref.current.style.display = 'none';
               }

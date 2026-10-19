@@ -1,0 +1,188 @@
+[
+  {
+    "label": "Aydınlık",
+    "dialogOverflow": 0,
+    "fields": [],
+    "filled": [
+      {
+        "background": "oklch(0.511 0.262 276.966)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Sanal (LocalStorage)"
+      },
+      {
+        "background": "oklch(0.511 0.262 276.966)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Türkçe"
+      },
+      {
+        "background": "oklch(0.511 0.262 276.966)",
+        "color": "oklab(0.899326 -0.00496245 -0.0161543)",
+        "name": "Aydınlık"
+      }
+    ],
+    "outside": [],
+    "pageOverflow": 0,
+    "smallTargets": [],
+    "theme": "",
+    "unnamed": [],
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  },
+  {
+    "label": "Karanlık",
+    "dialogOverflow": 0,
+    "fields": [],
+    "filled": [
+      {
+        "background": "oklch(0.511 0.262 276.966)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Sanal (LocalStorage)"
+      },
+      {
+        "background": "oklch(0.511 0.262 276.966)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Türkçe"
+      },
+      {
+        "background": "oklch(0.511 0.262 276.966)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Karanlık"
+      }
+    ],
+    "outside": [],
+    "pageOverflow": 0,
+    "smallTargets": [],
+    "theme": "dark",
+    "unnamed": [],
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  },
+  {
+    "label": "Nord (Kuzey)",
+    "dialogOverflow": 0,
+    "fields": [],
+    "filled": [
+      {
+        "background": "rgb(94, 129, 172)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Sanal (LocalStorage)"
+      },
+      {
+        "background": "rgb(94, 129, 172)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Türkçe"
+      },
+      {
+        "background": "rgb(94, 129, 172)",
+        "color": "oklab(0.899267 -0.00496536 -0.0161637)",
+        "name": "Nord (Kuzey)"
+      }
+    ],
+    "outside": [],
+    "pageOverflow": 0,
+    "smallTargets": [],
+    "theme": "dark theme-nord",
+    "unnamed": [],
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  },
+  {
+    "label": "Dracula",
+    "dialogOverflow": 0,
+    "fields": [],
+    "filled": [
+      {
+        "background": "rgb(152, 112, 219)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Sanal (LocalStorage)"
+      },
+      {
+        "background": "rgb(152, 112, 219)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Türkçe"
+      },
+      {
+        "background": "rgb(152, 112, 219)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Dracula"
+      }
+    ],
+    "outside": [],
+    "pageOverflow": 0,
+    "smallTargets": [],
+    "theme": "dark theme-dracula",
+    "unnamed": [],
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  },
+  {
+    "label": "Synthwave (Neon)",
+    "dialogOverflow": 0,
+    "fields": [],
+    "filled": [
+      {
+        "background": "rgb(216, 75, 158)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Sanal (LocalStorage)"
+      },
+      {
+        "background": "rgb(216, 75, 158)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Türkçe"
+      },
+      {
+        "background": "rgb(216, 75, 158)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Synthwave (Neon)"
+      }
+    ],
+    "outside": [],
+    "pageOverflow": 0,
+    "smallTargets": [],
+    "theme": "dark theme-synthwave",
+    "unnamed": [],
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  },
+  {
+    "label": "Retro (Kehribar)",
+    "dialogOverflow": 0,
+    "fields": [],
+    "filled": [
+      {
+        "background": "rgb(180, 83, 9)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Sanal (LocalStorage)"
+      },
+      {
+        "background": "rgb(180, 83, 9)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Türkçe"
+      },
+      {
+        "background": "rgb(180, 83, 9)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Retro (Kehribar)"
+      }
+    ],
+    "outside": [],
+    "pageOverflow": 0,
+    "smallTargets": [],
+    "theme": "dark theme-retro",
+    "unnamed": [],
+    "viewport": {
+      "height": 720,
+      "width": 1280
+    }
+  }
+]

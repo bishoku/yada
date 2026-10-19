@@ -1,0 +1,605 @@
+{
+  "method": "Small editable reference diagram; six themes × TR/EN × 320x568 / 1280x720. Closed state checked after each actual document open; open state checked via playback dock. No large simulation benchmark.",
+  "cases": [
+    {
+      "language": "tr",
+      "theme": "Aydınlık",
+      "closed": {
+        "dock": 40,
+        "editor": false,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "",
+        "width": 320
+      },
+      "open": {
+        "dock": 40,
+        "editor": true,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "",
+        "toolbar": 37,
+        "width": 320
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "Karanlık",
+      "closed": {
+        "dock": 40,
+        "editor": false,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark",
+        "width": 320
+      },
+      "open": {
+        "dock": 40,
+        "editor": true,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark",
+        "toolbar": 37,
+        "width": 320
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "Nord (Kuzey)",
+      "closed": {
+        "dock": 40,
+        "editor": false,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-nord",
+        "width": 320
+      },
+      "open": {
+        "dock": 40,
+        "editor": true,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-nord",
+        "toolbar": 37,
+        "width": 320
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "Dracula",
+      "closed": {
+        "dock": 40,
+        "editor": false,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-dracula",
+        "width": 320
+      },
+      "open": {
+        "dock": 40,
+        "editor": true,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-dracula",
+        "toolbar": 37,
+        "width": 320
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "Synthwave (Neon)",
+      "closed": {
+        "dock": 40,
+        "editor": false,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-synthwave",
+        "width": 320
+      },
+      "open": {
+        "dock": 40,
+        "editor": true,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-synthwave",
+        "toolbar": 37,
+        "width": 320
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "Retro (Kehribar)",
+      "closed": {
+        "dock": 40,
+        "editor": false,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-retro",
+        "width": 320
+      },
+      "open": {
+        "dock": 40,
+        "editor": true,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-retro",
+        "toolbar": 37,
+        "width": 320
+      }
+    },
+    {
+      "language": "en",
+      "theme": "Light",
+      "closed": {
+        "dock": 40,
+        "editor": false,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "",
+        "width": 320
+      },
+      "open": {
+        "dock": 40,
+        "editor": true,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "",
+        "toolbar": 37,
+        "width": 320
+      }
+    },
+    {
+      "language": "en",
+      "theme": "Dark",
+      "closed": {
+        "dock": 40,
+        "editor": false,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark",
+        "width": 320
+      },
+      "open": {
+        "dock": 40,
+        "editor": true,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark",
+        "toolbar": 37,
+        "width": 320
+      }
+    },
+    {
+      "language": "en",
+      "theme": "Nord",
+      "closed": {
+        "dock": 40,
+        "editor": false,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-nord",
+        "width": 320
+      },
+      "open": {
+        "dock": 40,
+        "editor": true,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-nord",
+        "toolbar": 37,
+        "width": 320
+      }
+    },
+    {
+      "language": "en",
+      "theme": "Dracula",
+      "closed": {
+        "dock": 40,
+        "editor": false,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-dracula",
+        "width": 320
+      },
+      "open": {
+        "dock": 40,
+        "editor": true,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-dracula",
+        "toolbar": 37,
+        "width": 320
+      }
+    },
+    {
+      "language": "en",
+      "theme": "Synthwave",
+      "closed": {
+        "dock": 40,
+        "editor": false,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-synthwave",
+        "width": 320
+      },
+      "open": {
+        "dock": 40,
+        "editor": true,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-synthwave",
+        "toolbar": 37,
+        "width": 320
+      }
+    },
+    {
+      "language": "en",
+      "theme": "Retro (Amber)",
+      "closed": {
+        "dock": 40,
+        "editor": false,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-retro",
+        "width": 320
+      },
+      "open": {
+        "dock": 40,
+        "editor": true,
+        "height": 568,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-retro",
+        "toolbar": 37,
+        "width": 320
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "Aydınlık",
+      "closed": {
+        "dock": 36,
+        "editor": false,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "",
+        "width": 1280
+      },
+      "open": {
+        "dock": 36,
+        "editor": true,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "",
+        "toolbar": 37,
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "Karanlık",
+      "closed": {
+        "dock": 36,
+        "editor": false,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark",
+        "width": 1280
+      },
+      "open": {
+        "dock": 36,
+        "editor": true,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark",
+        "toolbar": 37,
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "Nord (Kuzey)",
+      "closed": {
+        "dock": 36,
+        "editor": false,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-nord",
+        "width": 1280
+      },
+      "open": {
+        "dock": 36,
+        "editor": true,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-nord",
+        "toolbar": 37,
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "Dracula",
+      "closed": {
+        "dock": 36,
+        "editor": false,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-dracula",
+        "width": 1280
+      },
+      "open": {
+        "dock": 36,
+        "editor": true,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-dracula",
+        "toolbar": 37,
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "Synthwave (Neon)",
+      "closed": {
+        "dock": 36,
+        "editor": false,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-synthwave",
+        "width": 1280
+      },
+      "open": {
+        "dock": 36,
+        "editor": true,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-synthwave",
+        "toolbar": 37,
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "Retro (Kehribar)",
+      "closed": {
+        "dock": 36,
+        "editor": false,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-retro",
+        "width": 1280
+      },
+      "open": {
+        "dock": 36,
+        "editor": true,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-retro",
+        "toolbar": 37,
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "Light",
+      "closed": {
+        "dock": 36,
+        "editor": false,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "",
+        "width": 1280
+      },
+      "open": {
+        "dock": 36,
+        "editor": true,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "",
+        "toolbar": 37,
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "Dark",
+      "closed": {
+        "dock": 36,
+        "editor": false,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark",
+        "width": 1280
+      },
+      "open": {
+        "dock": 36,
+        "editor": true,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark",
+        "toolbar": 37,
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "Nord",
+      "closed": {
+        "dock": 36,
+        "editor": false,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-nord",
+        "width": 1280
+      },
+      "open": {
+        "dock": 36,
+        "editor": true,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-nord",
+        "toolbar": 37,
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "Dracula",
+      "closed": {
+        "dock": 36,
+        "editor": false,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-dracula",
+        "width": 1280
+      },
+      "open": {
+        "dock": 36,
+        "editor": true,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-dracula",
+        "toolbar": 37,
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "Synthwave",
+      "closed": {
+        "dock": 36,
+        "editor": false,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-synthwave",
+        "width": 1280
+      },
+      "open": {
+        "dock": 36,
+        "editor": true,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-synthwave",
+        "toolbar": 37,
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "Retro (Amber)",
+      "closed": {
+        "dock": 36,
+        "editor": false,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-retro",
+        "width": 1280
+      },
+      "open": {
+        "dock": 36,
+        "editor": true,
+        "height": 720,
+        "outside": [],
+        "overflow": 0,
+        "small": [],
+        "theme": "dark theme-retro",
+        "toolbar": 37,
+        "width": 1280
+      }
+    }
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "cases": [
+    {
+      "style": "clean",
+      "case": "vertical",
+      "labelIntersections": 0,
+      "markerPaths": 1,
+      "smoothPath": "M270,125 C270,152.5 270,152.5 270,180"
+    },
+    {
+      "style": "clean",
+      "case": "diagonal",
+      "labelIntersections": 0,
+      "markerPaths": 1,
+      "smoothPath": "M180,105 C180,175 530,175 530,245"
+    },
+    {
+      "style": "clean",
+      "case": "horizontal",
+      "labelIntersections": 0,
+      "markerPaths": 1,
+      "smoothPath": "M295,190 C385,190 385,190 475,190"
+    },
+    {
+      "style": "clean",
+      "case": "reverse",
+      "labelIntersections": 0,
+      "markerPaths": 1,
+      "smoothPath": "M560,245 C560,185 180,185 180,125"
+    },
+    {
+      "style": "clean",
+      "case": "loop",
+      "labelIntersections": 0,
+      "markerPaths": 1,
+      "smoothPath": "M 445,190 C 515,155 515,265 445,230"
+    },
+    {
+      "style": "sketchy",
+      "case": "vertical",
+      "labelIntersections": 0,
+      "markerPaths": 1,
+      "smoothPath": "M270,125 C270,152.5 270,152.5 270,180"
+    },
+    {
+      "style": "sketchy",
+      "case": "diagonal",
+      "labelIntersections": 0,
+      "markerPaths": 1,
+      "smoothPath": "M180,105 C180,175 530,175 530,245"
+    },
+    {
+      "style": "sketchy",
+      "case": "horizontal",
+      "labelIntersections": 0,
+      "markerPaths": 1,
+      "smoothPath": "M295,190 C385,190 385,190 475,190"
+    },
+    {
+      "style": "sketchy",
+      "case": "reverse",
+      "labelIntersections": 0,
+      "markerPaths": 1,
+      "smoothPath": "M560,245 C560,185 180,185 180,125"
+    },
+    {
+      "style": "sketchy",
+      "case": "loop",
+      "labelIntersections": 0,
+      "markerPaths": 1,
+      "smoothPath": "M 445,190 C 515,155 515,265 445,230"
+    }
+  ],
+  "routes": [
+    {
+      "route": "bezier",
+      "d": "M 180,105 C 244,123 306,129 340,150 C 374,171 312,191 350,210 C 388,229 458,231 530,245",
+      "label": {
+        "bottom": 255.375,
+        "height": 20,
+        "left": 398.59375,
+        "right": 455.90625,
+        "top": 235.375,
+        "width": 57.3125,
+        "x": 398.59375,
+        "y": 235.375
+      },
+      "markers": 1
+    },
+    {
+      "route": "straight",
+      "d": "M 180,105 L 328.44818871815323,146.75105307698058 Q 340,150 341.9727878476643,161.83672708598573 L 348.0272121523357,198.16327291401427 Q 350,210 361.77938467602297,212.2904359092267 L 530,245",
+      "label": {
+        "bottom": 253.5,
+        "height": 20,
+        "left": 411.34375,
+        "right": 468.65625,
+        "top": 233.5,
+        "width": 57.3125,
+        "x": 411.34375,
+        "y": 233.5
+      },
+      "markers": 1
+    },
+    {
+      "route": "smoothstep",
+      "d": "M 180,105 L 328.44818871815323,146.75105307698058 Q 340,150 341.9727878476643,161.83672708598573 L 348.0272121523357,198.16327291401427 Q 350,210 361.77938467602297,212.2904359092267 L 530,245",
+      "label": {
+        "bottom": 253.5,
+        "height": 20,
+        "left": 411.34375,
+        "right": 468.65625,
+        "top": 233.5,
+        "width": 57.3125,
+        "x": 411.34375,
+        "y": 233.5
+      },
+      "markers": 1
+    },
+    {
+      "route": "step",
+      "d": "M 180,105 L 340,150 L 350,210 L 530,245",
+      "label": {
+        "bottom": 253.5,
+        "height": 20,
+        "left": 411.34375,
+        "right": 468.65625,
+        "top": 233.5,
+        "width": 57.3125,
+        "x": 411.34375,
+        "y": 233.5
+      },
+      "markers": 1
+    }
+  ],
+  "shapes": [
+    {
+      "shape": "triangle",
+      "markers": [
+        {
+          "ref": "8",
+          "units": "userSpaceOnUse",
+          "width": "12.5"
+        },
+        {
+          "ref": "0",
+          "units": "userSpaceOnUse",
+          "width": "12.5"
+        }
+      ]
+    },
+    {
+      "shape": "open",
+      "markers": [
+        {
+          "ref": "8.75",
+          "units": "userSpaceOnUse",
+          "width": "12.5"
+        },
+        {
+          "ref": "-0.75",
+          "units": "userSpaceOnUse",
+          "width": "12.5"
+        }
+      ]
+    },
+    {
+      "shape": "diamond",
+      "markers": [
+        {
+          "ref": "8.25",
+          "units": "userSpaceOnUse",
+          "width": "12.5"
+        },
+        {
+          "ref": "-0.25",
+          "units": "userSpaceOnUse",
+          "width": "12.5"
+        }
+      ]
+    },
+    {
+      "shape": "circle",
+      "markers": [
+        {
+          "ref": "7.05",
+          "units": "userSpaceOnUse",
+          "width": "12.5"
+        },
+        {
+          "ref": "0.9500000000000002",
+          "units": "userSpaceOnUse",
+          "width": "12.5"
+        }
+      ]
+    },
+    {
+      "shape": "none",
+      "markers": []
+    }
+  ]
+}

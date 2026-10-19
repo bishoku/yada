@@ -1,0 +1,38 @@
+[
+  {
+    "theme": "light",
+    "background": "oklch(0.984 0.003 247.858)",
+    "border": "rgb(99, 102, 241)",
+    "color": "oklch(0.372 0.044 257.287)"
+  },
+  {
+    "theme": "dark",
+    "background": "oklch(0.208 0.042 265.755)",
+    "border": "rgb(99, 102, 241)",
+    "color": "oklch(0.968 0.007 247.896)"
+  },
+  {
+    "theme": "nord",
+    "background": "rgb(59, 66, 82)",
+    "border": "rgb(136, 192, 208)",
+    "color": "rgb(236, 239, 244)"
+  },
+  {
+    "theme": "dracula",
+    "background": "rgb(40, 42, 54)",
+    "border": "rgb(189, 147, 249)",
+    "color": "rgb(255, 255, 255)"
+  },
+  {
+    "theme": "synthwave",
+    "background": "rgb(36, 30, 58)",
+    "border": "rgb(0, 240, 255)",
+    "color": "rgb(255, 255, 255)"
+  },
+  {
+    "theme": "retro",
+    "background": "rgb(38, 30, 27)",
+    "border": "rgb(255, 183, 3)",
+    "color": "rgb(255, 247, 237)"
+  }
+]

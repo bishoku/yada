@@ -3,10 +3,10 @@
  *
  * Renders the SVG content for each particle type.
  * Used in two contexts:
- *  1. AnimatedEdge — particle moving along the path (larger, with step number)
+ *  1. AnimatedEdge — compact particle moving along the path (step number stays on the edge label)
  *  2. ParticlePicker — thumbnail in the properties panel (smaller, static)
  */
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { ParticleType, PARTICLE_MAP } from '../../config/particles';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ interface AnimParticleProps {
 
 const C = '#ffffff'; // label/icon color on top of fill
 
-export const AnimationParticle: React.FC<AnimParticleProps> = ({ type, rotation, stepNumber, color }) => {
+const ParticleArtwork: React.FC<AnimParticleProps> = ({ type, rotation, stepNumber, color }) => {
   const def = PARTICLE_MAP[type];
   const fill = color || def?.color || '#6366f1';
   const R = -rotation; // counter-rotation for upright labels
@@ -41,21 +41,7 @@ export const AnimationParticle: React.FC<AnimParticleProps> = ({ type, rotation,
   switch (type) {
     // ── Dot ──────────────────────────────────────────────────────────────────
     case 'dot':
-      return (
-        <g transform={`rotate(${R})`}>
-          <circle r={16} fill={fill} opacity={0.25} />
-          <circle r={11} fill={fill} />
-          {stepNumber !== null && (
-            <>
-              <circle r={6.5} fill={C} />
-              <text textAnchor="middle" dominantBaseline="central" fill="#1e293b"
-                style={{ fontSize: '8.5px', fontWeight: 900, fontFamily: 'sans-serif', userSelect: 'none' }}>
-                {stepNumber}
-              </text>
-            </>
-          )}
-        </g>
-      );
+      return <circle r={4} fill={fill} stroke={C} strokeWidth={1} />;
 
     // ── Arrow ─────────────────────────────────────────────────────────────────
     case 'arrow':
@@ -196,6 +182,21 @@ export const AnimationParticle: React.FC<AnimParticleProps> = ({ type, rotation,
   }
 };
 
+
+/** One compact moving mark. Active step numbers live in the stationary edge label. */
+export const AnimationParticle: React.FC<AnimParticleProps> = (props) => {
+  const artwork = useRef<SVGGElement>(null);
+  useLayoutEffect(() => {
+    const group = artwork.current;
+    const angle = Number(group?.parentElement?.getAttribute('transform')?.match(/rotate\(([-\d.]+)\)/)?.[1] ?? 0);
+    group?.setAttribute('transform', `rotate(${props.type === 'arrow' ? 0 : -angle})`);
+  });
+  return <g ref={artwork} data-particle-artwork data-particle-upright={props.type !== 'arrow' ? 'true' : undefined}>
+    <g transform={props.type === 'dot' ? undefined : 'scale(0.5)'}>
+      <ParticleArtwork {...props} stepNumber={null} />
+    </g>
+  </g>;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Picker thumbnail — rendered inside a 32×32 viewBox SVG in the properties panel

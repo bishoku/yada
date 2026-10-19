@@ -1,3 +1,4 @@
+import type { CaptureFraming } from '../../../utils/captureFraming';
 import { useId } from 'react';
 import { ModalSurface } from '../../ui/ModalSurface';
 import { message } from '../../../i18n/messages';
@@ -10,6 +11,7 @@ interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onExportGif: (fps: number, quality: number, scale: number) => void;
+  framing?: CaptureFraming;
   onExportVideo: (fps: number, quality: 'low' | 'medium' | 'high', scale: number, mode: 'canvas' | 'screen') => void;
 }
 
@@ -31,8 +33,8 @@ const VIDEO_QUALITIES: { label: string; sublabel: string; value: VideoQuality }[
 
 const VIDEO_RESOLUTIONS = [
   { label: '1×',   sublabel: { en: 'Standard', tr: 'Standart' },    value: 1   },
-  { label: '1.5×', sublabel: { en: 'HD',       tr: 'HD' },          value: 1.5 },
-  { label: '2×',   sublabel: { en: 'Full HD',  tr: 'Full HD' },     value: 2   },
+  { label: '1.5×', sublabel: { en: 'Sharper', tr: 'Daha net' },          value: 1.5 },
+  { label: '2×',   sublabel: { en: 'Extra sharp', tr: 'En net' },     value: 2   },
 ] as const;
 
 export const GifExportModal: React.FC<ExportModalProps> = ({
@@ -40,6 +42,7 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
   onClose,
   onExportGif,
   onExportVideo,
+  framing = 'viewport',
 }) => {
   const fieldPrefix = useId();
   const language = useAppStore((s) => s.language);
@@ -55,7 +58,7 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
   const [videoFps,     setVideoFps]     = useState(30);
   const [videoQuality, setVideoQuality] = useState<VideoQuality>('medium');
   const [videoScale,   setVideoScale]   = useState(1);
-  const [videoEngine,  setVideoEngine]  = useState<'canvas' | 'screen'>('canvas');
+  const videoEngine = 'screen' as const;
 
 
 
@@ -270,59 +273,14 @@ export const GifExportModal: React.FC<ExportModalProps> = ({
               </p>
             </div>
 
-            {/* Rendering Engine Mode Selection */}
-            <div>
-              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
-                {message(language, "GifExportModal.exportEngineMode")}
-              </label>
-              <div className="grid grid-cols-2 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setVideoEngine('canvas')}
-                  className={`flex flex-col items-start p-2.5 rounded-xl cursor-pointer transition-all border text-left ${
-                    videoEngine === 'canvas'
-                      ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                  }`}
-                >
-                  <span className="text-xs font-bold flex items-center gap-1">
-                    ⚡ {message(language, "GifExportModal.fastCanvas2D")}
-                  </span>
-                  <span className={`text-xs mt-0.5 ${videoEngine === 'canvas' ? 'text-violet-200' : 'text-slate-400'}`}>
-                    {message(language, "GifExportModal.ultraFastVectorSharp")}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setVideoEngine('screen')}
-                  className={`flex flex-col items-start p-2.5 rounded-xl cursor-pointer transition-all border text-left ${
-                    videoEngine === 'screen'
-                      ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                  }`}
-                >
-                  <span className="text-xs font-bold flex items-center gap-1">
-                    🎥 {message(language, "GifExportModal.dOMCapture")}
-                  </span>
-                  <span className={`text-xs mt-0.5 ${videoEngine === 'screen' ? 'text-violet-200' : 'text-slate-400'}`}>
-                    {message(language, "GifExportModal.exactScreenReplica")}
-                  </span>
-                </button>
-              </div>
-            </div>
-
+            <p className="text-xs text-slate-500 dark:text-slate-400">{message(language,'capture.framing')}: {message(language,framing === 'viewport' ? 'capture.viewport' : 'capture.diagram')}</p>
             {/* Info box */}
             <div className="rounded-xl bg-violet-50 dark:bg-violet-950/20 border border-violet-200/60 dark:border-violet-800/40 p-3 text-xs text-violet-700 dark:text-violet-400 space-y-1">
               <p className="font-semibold">
-                {videoEngine === 'canvas'
-                  ? message(language, "GifExportModal.aboutCanvas2DExport")
-                  : message(language, "GifExportModal.aboutDOMScreenCapture")}
+                {message(language, "GifExportModal.aboutDOMScreenCapture")}
               </p>
               <p className="text-violet-600/80 dark:text-violet-500">
-                {videoEngine === 'canvas'
-                  ? message(language, "GifExportModal.rendersUsingHighSpeedCanvas2DEngine")
-                  : message(language, "GifExportModal.capturesTheExactDOMViewFrameBy")}
+                {message(language, "GifExportModal.capturesTheExactDOMViewFrameBy")}
               </p>
             </div>
           </div>

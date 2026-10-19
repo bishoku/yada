@@ -1,6 +1,6 @@
+import { containDialogFocus } from './dialogFocus';
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 
-const focusable = 'button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, [tabindex]:not([tabindex="-1"])';
 
 /** Shared lifecycle for dialogs with custom content, including nested dialogs. */
 export function ModalSurface({ label, onClose, children, width = '36rem', fullscreen = false, dismissible = true, className = '' }: {
@@ -23,11 +23,7 @@ export function ModalSurface({ label, onClose, children, width = '36rem', fullsc
     onKeyDown={event => {
       if (event.defaultPrevented || (event.target as Element).closest('dialog') !== event.currentTarget) return;
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); if (dismissible) onClose(); return; }
-      if (event.key !== 'Tab') return;
-      const controls = [...event.currentTarget.querySelectorAll<HTMLElement>(focusable)].filter(element => element.getClientRects().length > 0 && !element.closest('[inert]'));
-      const first = controls[0], last = controls[controls.length - 1];
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      containDialogFocus(event);
     }}>
     {children}
   </dialog>;

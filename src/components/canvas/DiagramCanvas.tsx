@@ -1,3 +1,4 @@
+import { persistViewport } from './hooks/persistViewport';
 import { CanvasStart } from './CanvasStart';
 import { flowAria } from '../../i18n/flowAria';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -83,7 +84,6 @@ const FlowWrapper: React.FC = () => {
   const deleteNode = useAppStore((s) => s.deleteNode);
   const deleteEdge = useAppStore((s) => s.deleteEdge);
   const cloneNode = useAppStore((s) => s.cloneNode);
-  const updateCanvasViewport = useAppStore((s) => s.updateCanvasViewport);
   const pendingDrop = useAppStore((s) => s.pendingDrop);
   const selectedSequenceId = useAppStore((s) => s.selectedSequenceId);
   const setSelectedSequenceId = useAppStore((s) => s.setSelectedSequenceId);
@@ -135,6 +135,7 @@ const FlowWrapper: React.FC = () => {
   // ── Pending Connection Modal State ─────────────────────────────────────────
   const dragStartRef = useRef<{ nodeId: string; handleId: string } | null>(null);
   const connectionCompletedRef = useRef(false);
+  const reconnectingEdgeRef = useRef<string | null>(null);
   const [showClearModal, setShowClearModal] = useState(false);
 
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -166,15 +167,16 @@ const FlowWrapper: React.FC = () => {
   useEffect(() => {
     if (rfNodes.length > 0) {
       const timer = setTimeout(() => {
+        const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 300;
         const { logicalData, visualData } = useAppStore.getState();
         const bounds = calculateViewportBounds(logicalData, visualData);
         if (bounds && bounds.width > 0 && bounds.height > 0) {
           fitBounds(
             { x: bounds.minX, y: bounds.minY, width: bounds.width, height: bounds.height },
-            { padding: 0.1, duration: 300 }
+            { padding: 0.1, duration }
           );
         } else {
-          fitView({ padding: 0.2, duration: 300 });
+          fitView({ padding: 0.2, duration });
         }
       }, 100);
       return () => clearTimeout(timer);
@@ -629,7 +631,7 @@ const FlowWrapper: React.FC = () => {
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      if (isPlaying) return;
+      if (isPlaying || reconnectingEdgeRef.current) return;
       connectionCompletedRef.current = true;
       if (!connection.source || !connection.target) return;
       createConnectionBetweenNodes(
@@ -645,6 +647,13 @@ const FlowWrapper: React.FC = () => {
   const onConnectEnd = useCallback((event: any) => {
     // Remove the connecting class so handles go back to their default visibility
     wrapperRef.current?.classList.remove('react-flow--connecting');
+
+    // React Flow calls onConnectEnd for reconnect gestures too. They must never create an edge.
+    if (reconnectingEdgeRef.current) {
+      connectionCompletedRef.current = false;
+      dragStartRef.current = null;
+      return;
+    }
 
     // Smart magnetic port snapping fallback: If dropped anywhere on a node body
     if (!connectionCompletedRef.current && dragStartRef.current && event) {
@@ -724,7 +733,10 @@ const FlowWrapper: React.FC = () => {
       if (srcNode.type === 'section' || tgtNode.type === 'section') return;
       if (srcNode.type === 'sticky_note' || tgtNode.type === 'sticky_note') return;
 
-      setRfEdges((els) => reconnectEdge(oldEdge, newConnection, els));
+      if (state.isPlaying || state.isReadOnly || !state.logicalData.edges.some(edge => edge.id === oldEdge.id)) return;
+      connectionCompletedRef.current = true;
+      // Stable IDs keep simulation steps and the delayed store sync attached to this edge.
+      setRfEdges((els) => reconnectEdge(oldEdge, newConnection, els, { shouldReplaceId: false }));
       const sourceHandle = (newConnection.sourceHandle ?? 'right:50').split('-')[0];
       const targetHandle = (newConnection.targetHandle ?? 'left:50').split('-')[0];
       zustandReconnectEdge(oldEdge.id, newConnection.source, newConnection.target, sourceHandle, targetHandle);
@@ -733,11 +745,13 @@ const FlowWrapper: React.FC = () => {
   );
 
   // ── Viewport ───────────────────────────────────────────────────────────────
+  const viewportMounted = useRef(true);
+  useEffect(() => { viewportMounted.current = true; return () => {viewportMounted.current = false;}; }, []);
   const onMoveEnd = useCallback(
     (_event: unknown, viewport: { x: number; y: number; zoom: number }) => {
-      updateCanvasViewport(viewport.zoom, { x: viewport.x, y: viewport.y });
+      if (viewportMounted.current) persistViewport({ workspacePath: currentWorkspacePath, diagramId: activeDiagramId }, viewport);
     },
-    [updateCanvasViewport]
+    [currentWorkspacePath, activeDiagramId]
   );
 
   // ── Context Menu Actions ───────────────────────────────────────────────────
@@ -1082,12 +1096,20 @@ const FlowWrapper: React.FC = () => {
         panOnDrag={!activeDrawingTool}
         isValidConnection={isValidConnection}
         elevateEdgesOnSelect={true}
+        reconnectRadius={12}
         onNodesChange={isReadOnly ? undefined : onNodesChange}
         onEdgesChange={isReadOnly ? undefined : onEdgesChange}
-        onConnect={isReadOnly ? undefined : onConnect}
-        onConnectStart={isReadOnly ? undefined : onConnectStart}
-        onConnectEnd={isReadOnly ? undefined : onConnectEnd}
-        onReconnect={isReadOnly ? undefined : onReconnect}
+        onConnect={isReadOnly || isPlaying || activeDrawingTool ? undefined : onConnect}
+        onConnectStart={isReadOnly || isPlaying || activeDrawingTool ? undefined : onConnectStart}
+        onConnectEnd={isReadOnly || isPlaying || activeDrawingTool ? undefined : onConnectEnd}
+        onReconnect={isReadOnly || isPlaying || activeDrawingTool ? undefined : onReconnect}
+        onReconnectStart={(_event, edge) => { reconnectingEdgeRef.current = edge.id; }}
+        onReconnectEnd={() => {
+          reconnectingEdgeRef.current = null;
+          dragStartRef.current = null;
+          connectionCompletedRef.current = false;
+          wrapperRef.current?.classList.remove('react-flow--connecting');
+        }}
         onMoveEnd={onMoveEnd}
         onNodeContextMenu={isReadOnly ? undefined : onNodeContextMenu}
         onEdgeContextMenu={isReadOnly ? undefined : onEdgeContextMenu}

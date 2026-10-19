@@ -1,0 +1,27 @@
+{
+  "arrowLayers": 2,
+  "labels": [
+    {
+      "text": "1 · HTTP",
+      "title": "1 · HTTP · Çift tıkla: Protokol ve açıklamayı hızlı düzenle"
+    },
+    {
+      "text": "2 · SQL",
+      "title": "2 · SQL · Çift tıkla: Protokol ve açıklamayı hızlı düzenle"
+    }
+  ],
+  "markers": [
+    {
+      "reference": "8",
+      "units": "userSpaceOnUse",
+      "width": "12.5"
+    },
+    {
+      "reference": "8",
+      "units": "userSpaceOnUse",
+      "width": "12.5"
+    }
+  ],
+  "overflow": false,
+  "width": 1100
+}

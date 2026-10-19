@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-vi.mock('html-to-image', () => ({toSvg:vi.fn(),toPng:vi.fn()}));
+vi.mock('html-to-image', () => ({toSvg:vi.fn(),toPng:vi.fn(),getFontEmbedCSS:vi.fn(async()=>''),}));
+vi.mock('./captureFonts',()=>({captureFontCSS:vi.fn(async()=>'' )}));
 import {toSvg} from 'html-to-image';
 import { exportToSvg, generateSvgDataUrl } from './exportMedia';
 import { useAppStore } from '../store/useAppStore';
@@ -22,7 +23,9 @@ describe('image export failure recovery', () => {
     vi.mocked(toSvg).mockRejectedValueOnce(Error('SVG clone failed'));
     await expect(exportToSvg('.react-flow','diagram.svg','tr')).rejects.toThrow('SVG clone failed');
     expect(display).toEqual({value:'inline-flex',priority:'important'});
-    expect(restored).toHaveBeenCalledOnce();expect(shadow.remove).toHaveBeenCalledOnce();expect(isFullSequenceCapture()).toBe(false);
+    expect(restored).toHaveBeenCalledOnce();expect(shadow.remove).not.toHaveBeenCalled();
+    expect(document.head.appendChild).not.toHaveBeenCalled();
+    expect(vi.mocked(toSvg).mock.calls[0][1]).not.toHaveProperty('style.filter');expect(isFullSequenceCapture()).toBe(false);
     expect(useAppStore.getState().logicalData).toBe(logical);expect(useAppStore.getState().visualData).toBe(visual);expect(useAppStore.getState().isDirty).toBe(true);
   });
   it('rejects a missing canvas rather than acknowledging an export', async () => {

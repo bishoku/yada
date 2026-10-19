@@ -61,7 +61,7 @@ export const MultiSelectionToolbar: React.FC<MultiSelectionToolbarProps> = memo(
       onMouseDown={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
-      className="nowheel nodrag nopan absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 shadow-xl shadow-black/10 animate-in fade-in slide-in-from-top-2 duration-200 select-none"
+      className="yada-selection-toolbar nowheel nodrag nopan absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-800/80 shadow-xl shadow-black/10 animate-in fade-in slide-in-from-top-2 duration-200 select-none"
     >
       {/* Selection counter badge */}
       <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 mr-1 select-none">

@@ -1,10 +1,12 @@
+import type { CaptureFraming } from '../../utils/captureFraming';
+import { canvasCaptureDuration } from '../../utils/captureDuration';
 import type { CompactPanel } from './PanelDrawer';
 import { ModalSurface } from '../ui/ModalSurface';
 import { useUiCopy } from '../../i18n/useUiCopy';
 import { message } from '../../i18n/messages';
 import { MermaidExportModal } from './topbar/MermaidExportModal';
 import { getPlatformCapabilities } from '../../services/platformCapabilities';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppStore } from '../../store/useAppStore';
 import {
@@ -47,7 +49,6 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
   const manualSave = useAppStore((s: any) => s.manualSave);
   const setWorkspace = useAppStore((s) => s.setWorkspace);
   const language = useAppStore((s) => s.language);
-  const theme = useAppStore((s) => s.theme);
   const storedLeftSidebarOpen = useAppStore((s) => s.leftSidebarOpen);
   const storedRightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
   const storedToggleLeftSidebar = useAppStore((s) => s.toggleLeftSidebar);
@@ -92,14 +93,25 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
   const [showSettings, setShowSettings] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportPanelId = useId();
+  const exportRoot = useRef<HTMLDivElement>(null);
+  const exportTrigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!showExportMenu) return;
+    exportRoot.current?.querySelector<HTMLElement>('[data-export-actions] button')?.focus();
+    const outside = (event: PointerEvent) => {if (!exportRoot.current?.contains(event.target as Node)) setShowExportMenu(false);};
+    document.addEventListener('pointerdown', outside);
+    return () => document.removeEventListener('pointerdown', outside);
+  }, [showExportMenu]);
   const [showMermaidExport, setShowMermaidExport] = useState(false);
+  const [exportFraming, setExportFraming] = useState<CaptureFraming>('viewport');
   const [exportProgress, setExportProgress] = useState<number | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showEmbedModal, setShowEmbedModal] = useState(false);
 
   // Export Config State (shared modal for GIF + Video)
   const [showExportConfig, setShowExportConfig] = useState(false);
-  const [exportMode, setExportMode] = useState<'gif' | 'video'>('gif');
+  const [exportMode, setExportMode] = useState<'gif' | 'video' | 'html'>('gif');
 
   // AI Copy Modal State
   const [showAiModal, setShowAiModal] = useState(false);
@@ -123,12 +135,13 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
   };
 
   const handleExportHtml = async () => {
+    setExportMode('html'); setExportProgress(0);
     try {
       const defaultName = `${currentWorkspace?.name || 'diagram'}_simulation.html`;
 
-      const htmlContent = viewMode === 'sequence'
-        ? (await import('../../utils/exportSequenceTemplate')).generateSequenceHtml(logicalData, useAppStore.getState().schedules, visualData.timelines, theme === 'light' ? 'light' : 'dark', language)
-        : (await import('../../utils/exportTemplate')).generateStandaloneHtml(logicalData, visualData, libraryComponents, language);
+      const state = useAppStore.getState();
+      const duration = canvasCaptureDuration(state.logicalData,state.visualData,state.schedules);
+      const htmlContent = await (await import('../../utils/canvasSceneHtml')).generateVisibleCanvasHtml('.react-flow',duration,language,setExportProgress,exportFraming);
 
       if (isTauri()) {
         const { save } = await import('@tauri-apps/plugin-dialog');
@@ -148,7 +161,7 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
         a.href = url;
         a.download = defaultName;
         a.click();
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
       openAlert({
         title: message(language, "TopBar.success"),
@@ -160,13 +173,13 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
         title: message(language, "TopBar.error"),
         message: message(language, "TopBar.exportError", { value1: err })
       });
-    }
+    } finally { setExportProgress(null); }
   };
 
   const handleExportPng = async () => {
     try {
       const defaultName = `${currentWorkspace?.name || 'diagram'}.png`;
-      await (await import('../../utils/exportMedia')).exportToPng('.react-flow', defaultName, language);
+      await (await import('../../utils/exportMedia')).exportToPng('.react-flow', defaultName, language, exportFraming);
     } catch (err) {
       console.error('Error exporting PNG:', err);
       openAlert({
@@ -179,7 +192,7 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
   const handleExportSvg = async () => {
     try {
       const defaultName = `${currentWorkspace?.name || 'diagram'}.svg`;
-      await (await import('../../utils/exportMedia')).exportToSvg('.react-flow', defaultName, language);
+      await (await import('../../utils/exportMedia')).exportToSvg('.react-flow', defaultName, language, exportFraming);
     } catch (err) {
       console.error('Error exporting SVG:', err);
       openAlert({
@@ -222,29 +235,28 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
     fps: number,
     quality: 'low' | 'medium' | 'high',
     scale: number = 1,
-    mode: 'canvas' | 'screen' = 'canvas'
+    mode: 'canvas' | 'screen' = 'screen'
   ) => {
     try {
       setExportMode('video');
       setExportProgress(0);
       const defaultName = `${currentWorkspace?.name || 'diagram'}.${mode === 'screen' ? 'webm' : 'mp4'}`;
-      const schedules = useAppStore.getState().schedules as Record<string, { start: number, end: number }>;
-      const schedValues = Object.values(schedules);
-      const maxDuration = schedValues.length > 0 ? Math.max(...schedValues.map(s => s.end)) + 500 : 2000;
+      const state = useAppStore.getState();
+      const maxDuration = canvasCaptureDuration(state.logicalData,state.visualData,state.schedules);
 
       if (mode === 'screen') {
         const { exportToVideoScreenCapture } = await import('../../utils/exportMedia');
         await exportToVideoScreenCapture(
           '.react-flow', maxDuration, defaultName, language,
           fps, quality,
-          (progress) => setExportProgress(progress)
+          (progress) => setExportProgress(progress), scale, exportFraming
         );
       } else {
         await (await import('../../utils/exportMedia')).exportToVideo(
           '.react-flow', maxDuration, defaultName, language,
           fps, quality,
           (progress) => setExportProgress(progress),
-          scale
+          scale, exportFraming
         );
       }
     } catch (err) {
@@ -365,7 +377,7 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
       </div>
 
       {/* ── Center Section: View Switcher ── */}
-      <div className="flex-1 flex justify-center min-w-0">
+      <div className="yada-view-switcher flex-1 flex justify-center min-w-0">
         {activeDiagramId && (
           <div className="flex items-center bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 p-0.5 rounded-lg select-none">
             <button
@@ -431,10 +443,10 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
             >
               <PanelRight className="w-3.5 h-3.5" />
             </button>
-            <div className="w-px h-4 bg-slate-200 dark:bg-slate-800 mx-0.5" />
+            <div className="hidden sm:block w-px h-4 bg-slate-200 dark:bg-slate-800 mx-0.5" />
             <button
               onClick={toggleFullscreen}
-              className="p-1.5 rounded-md cursor-pointer transition-colors text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200"
+              className="hidden sm:inline-flex p-1.5 rounded-md cursor-pointer transition-colors text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200"
               title={message(language, "TopBar.fullscreen")}
             >
               {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
@@ -449,6 +461,13 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
             <MoreHorizontal size={20} />
           </summary>
           <div className="yada-tools-content absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 shadow-xl flex flex-col gap-3">
+            {activeDiagramId && <div className="yada-narrow-view-switcher">
+              <button type="button" className="yada-menu-action" aria-pressed={viewMode === 'freeform'} onClick={() => {if(viewMode !== 'freeform') toggleViewMode(); if(toolsRef.current) toolsRef.current.open = false;}}><LayoutDashboard size={16} />{message(language, "TopBar.freeStyle")}</button>
+              <button type="button" className="yada-menu-action" aria-pressed={viewMode === 'sequence'} onClick={() => {if(viewMode !== 'sequence') toggleViewMode(); if(toolsRef.current) toolsRef.current.open = false;}}><ListOrdered size={16} />{t.terms.sequenceDiagram}</button>
+            </div>}
+            <button type="button" className="yada-menu-action yada-mobile-fullscreen" onClick={() => {if (toolsRef.current) toolsRef.current.open = false; void toggleFullscreen();}}>
+              {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}{message(language, "TopBar.fullscreen")}
+            </button>
             {activeDiagramId && currentView === 'diagram' && !isReadOnly && <>
             <CanvasBgSelector />
 
@@ -523,8 +542,8 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
           <>
             {/* Export & Share */}
             {!isEmbedMode && (
-              <div className="relative">
-                <button
+              <div ref={exportRoot} className="relative" onKeyDown={event => {if(event.key === 'Escape' && showExportMenu) {event.preventDefault();event.stopPropagation();setShowExportMenu(false);exportTrigger.current?.focus();}}}>
+                <button ref={exportTrigger} aria-expanded={showExportMenu} aria-controls={showExportMenu ? exportPanelId : undefined}
                   onClick={() => { if (toolsRef.current) toolsRef.current.open = false; setShowExportMenu(!showExportMenu); }}
                   className="flex items-center gap-1 px-2 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs cursor-pointer font-semibold transition-all"
                   title={message(language, "TopBar.exportShare")}
@@ -535,7 +554,14 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
                 </button>
 
                 {showExportMenu && (
-                  <div className="absolute right-0 mt-1.5 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1 overflow-hidden">
+                  <div id={exportPanelId} data-export-actions role="group" aria-label={message(language, "TopBar.exportShare")} onClickCapture={event => { if ((event.target as HTMLElement).closest('button')) exportTrigger.current?.focus(); }} className="absolute right-0 mt-1.5 w-52 max-h-[calc(100dvh-4rem)] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 py-1">
+                    <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 mb-1">
+                      <label className="flex flex-col gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">{message(language, 'capture.framing')}
+                        <select className="min-h-8 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-1 text-xs max-sm:text-base" value={exportFraming} onChange={event=>setExportFraming(event.target.value as CaptureFraming)}>
+                          <option value="viewport">{message(language,'capture.viewport')}</option><option value="diagram">{message(language,'capture.diagram')}</option>
+                        </select>
+                      </label><p className="text-[10px] text-slate-500 mt-1">{message(language,'capture.formats')}</p>
+                    </div>
                     <button onClick={() => { setShowMermaidExport(true); setShowExportMenu(false); }} className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer">
                       {t.mermaid.exportLabel}
                     </button>
@@ -699,12 +725,12 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4">
             <Loader2 className={`w-12 h-12 animate-spin mb-6 ${exportMode === 'video' ? 'text-violet-500' : 'text-indigo-500'}`} />
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-2 text-center">
-              {exportMode === 'video'
+              {exportMode === 'html' ? message(language, "TopBar.preparingHTML") : exportMode === 'video'
                 ? (message(language, "TopBar.generatingVideo"))
                 : (message(language, "TopBar.generatingGIF"))}
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 text-center">
-              {exportMode === 'video'
+              {exportMode === 'html' ? message(language, "TopBar.preparingHTMLDescription") : exportMode === 'video'
                 ? (message(language, "TopBar.pleaseWaitFramesAreCapturedAndEncoded"))
                 : (message(language, "TopBar.pleaseWaitFramesAreBeingRenderedAnd"))}
             </p>
@@ -729,6 +755,7 @@ export const TopBar: React.FC<{ compact?: boolean; compactPanel?: CompactPanel |
         onClose={() => setShowExportConfig(false)}
         onExportGif={handleExportGif}
         onExportVideo={handleExportVideo}
+        framing={exportFraming}
       />
 
       {/* AI Copy Modal */}

@@ -410,6 +410,10 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
     if (sourceNode.type === 'section' || targetNode.type === 'section') return;
     if (sourceNode.type === 'sticky_note' || targetNode.type === 'sticky_note') return;
 
+    const existingEdge = state.logicalData.edges.find(edge => edge.id === edgeId);
+    if (!existingEdge) return;
+    const previousVisual = state.visualData.layoutEdges[edgeId];
+    if (existingEdge.sourceId === sourceId && existingEdge.targetId === targetId && previousVisual?.sourceHandle === sourceHandle && previousVisual?.targetHandle === targetHandle) return;
     get().pushToHistory();
     const edges = state.logicalData.edges.map((e) => {
       if (e.id === edgeId) {
@@ -806,7 +810,7 @@ export const createCanvasSlice: StateCreator<AppState, [], [], CanvasSlice> = (s
           ...existing,
           duration: duration ?? existing.duration,
           delay: delay ?? existing.delay,
-          internalProcess: tooltipText ? { text: tooltipText, duration: tooltipDuration || 1000 } : undefined
+          internalProcess: tooltipText === undefined ? existing.internalProcess : tooltipText ? { text: tooltipText, duration: tooltipDuration ?? 1000 } : undefined
         };
       });
 

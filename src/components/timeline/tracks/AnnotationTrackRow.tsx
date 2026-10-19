@@ -27,7 +27,7 @@ export const AnnotationTrackRow: React.FC<AnnotationTrackRowProps> = memo(({
   const noteStyle = note.style || {};
 
   return (
-    <div className="h-16 border-b border-slate-200/50 dark:border-slate-800/20 relative flex items-center w-full">
+    <div className="h-14 border-b border-slate-200/50 dark:border-slate-800/20 relative flex items-center w-full">
       <div
         onPointerDown={(e) => {e.stopPropagation();if(editable)onBarMouseDown(e,id);}}
         className="h-6 rounded-lg absolute cursor-grab active:cursor-grabbing transition-shadow flex items-center px-2 group border shadow-sm"

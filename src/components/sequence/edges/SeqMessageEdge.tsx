@@ -126,7 +126,7 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
   const showLabel = !isReturn;
 
   return (
-    <>
+    <g data-capture-state={phase}>
       <defs>
         {/* Arrowhead marker */}
         <marker
@@ -190,11 +190,13 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
       {totalLen > 0 && (
         <circle
           ref={dotRef}
+          data-capture-particle
+          data-particle-id={`${id}:${phase}`}
           className="seq-dot"
           cy={y}
-          r={5}
+          r={3.5}
           fill={dotColor}
-          filter={`url(#${glowId})`}
+
           style={{ display: 'none', zIndex: 10 }}
         />
       )}
@@ -301,6 +303,6 @@ export const SeqMessageEdge = memo(function SeqMessageEdge({
           </div>
         </EdgeLabelRenderer>
       )}
-    </>
+    </g>
   );
 });

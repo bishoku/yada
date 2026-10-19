@@ -1,3 +1,4 @@
+import { editingCopy } from '../../../i18n/editingCopy';
 import { participantActivityKey, type ParticipantInterval } from '../sequencePlayback';
 import { useSimulationSelector } from '../useSimulationSelector';
 import React, { memo, useMemo } from 'react';
@@ -149,6 +150,8 @@ export const SeqParticipantNode = memo(function SeqParticipantNode({
 
   const { minSlot, maxSlot, isActive } = useParticipantActivity(activityIntervals);
 
+  const language = useAppStore(s => s.language);
+  const copy = editingCopy[language];
   const themeName = useAppStore((s) => s.theme);
   const bgColor = useAppStore((s) => s.visualData.canvas.bgColor);
   const isBgDark = bgColor ? isColorDark(bgColor) : (themeName !== 'light');
@@ -226,21 +229,21 @@ export const SeqParticipantNode = memo(function SeqParticipantNode({
 
   // ── Card classes (matches BaseNode card exactly) ──────────────────────────
   const cardClasses = [
-    'flex flex-row items-center gap-3 px-4 py-3',
+    'yada-node-card relative flex flex-row items-center gap-3 px-4 py-3',
     'border-2 rounded-xl',
-    'shadow-md dark:shadow-xl',
+    'shadow-sm',
     'transition-all duration-200',
     'font-sans select-none cursor-default',
     'text-slate-800 dark:text-slate-100',
     isActive
-      ? `${theme.activeBg} ${theme.activeBorder} scale-[1.02] ${theme.activeRing}`
+      ? `bg-white dark:bg-slate-900 ${theme.border}`
       : `bg-white dark:bg-slate-900 ${theme.border}`,
   ].join(' ');
 
   const lifelineColor = isActive ? theme.activityBorder : defaultLifelineColor;
 
   return (
-    <div
+    <div data-capture-state={`${isActive}:${minSlot}:${maxSlot}`}
       style={{
         position: 'relative',
         width: PARTICIPANT_WIDTH,
@@ -251,8 +254,10 @@ export const SeqParticipantNode = memo(function SeqParticipantNode({
       {/* ── Top header card ── */}
       <div
         className={cardClasses}
-        style={{ width: PARTICIPANT_WIDTH, height: HEADER_HEIGHT, boxSizing: 'border-box' }}
+        data-activity={isActive ? 'active' : 'idle'}
+        style={{ width: PARTICIPANT_WIDTH, height: HEADER_HEIGHT, boxSizing: 'border-box', '--node-activity': theme.activityBorder } as React.CSSProperties}
       >
+        {isActive && <span className="yada-node-status" role="img" aria-label={copy.nodeActive} title={copy.nodeActive} />}
         <div
           className={`flex items-center justify-center shrink-0 p-1.5 rounded-lg border w-9 h-9 ${theme.bg} ${theme.border} transition-all duration-300`}
         >
@@ -261,7 +266,7 @@ export const SeqParticipantNode = memo(function SeqParticipantNode({
         <div className="flex-1 min-w-0">
           <div className="font-bold text-xs truncate text-slate-800 dark:text-slate-200">{name}</div>
           <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-            {nodeType}
+            {nodeDef?.name[language] ?? nodeType}
           </div>
         </div>
       </div>
@@ -287,7 +292,9 @@ export const SeqParticipantNode = memo(function SeqParticipantNode({
       {/* ── Bottom footer card (UML convention) ── */}
       <div
         className={cardClasses}
+        data-activity={isActive ? 'active' : 'idle'}
         style={{
+          ['--node-activity' as any]: theme.activityBorder,
           position: 'absolute',
           top: HEADER_HEIGHT + lifelineHeight,
           left: 0,
@@ -296,6 +303,7 @@ export const SeqParticipantNode = memo(function SeqParticipantNode({
           boxSizing: 'border-box',
         }}
       >
+        {isActive && <span className="yada-node-status" role="img" aria-label={copy.nodeActive} title={copy.nodeActive} />}
         <div
           className={`flex items-center justify-center shrink-0 p-1.5 rounded-lg border w-9 h-9 ${theme.bg} ${theme.border} transition-all duration-300`}
         >
@@ -304,7 +312,7 @@ export const SeqParticipantNode = memo(function SeqParticipantNode({
         <div className="flex-1 min-w-0">
           <div className="font-bold text-xs truncate text-slate-800 dark:text-slate-200">{name}</div>
           <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-            {nodeType}
+            {nodeDef?.name[language] ?? nodeType}
           </div>
         </div>
       </div>

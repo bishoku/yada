@@ -1,3 +1,4 @@
+import { editingCopy } from '../../i18n/editingCopy';
 import { useUiCopy } from '../../i18n/useUiCopy';
 import React, { memo, useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { Handle, Position, NodeResizer, useConnection, useReactFlow } from '@xyflow/react';
@@ -113,20 +114,6 @@ export const getContrastingTextColors = (bgColor: string) => {
   };
 };
 
-const addOpacityToHex = (color: string, opacity: number) => {
-  if (!color) return `rgba(99, 102, 241, ${opacity})`;
-  let hex = color.trim();
-  if (PRESET_HEX[hex]) hex = PRESET_HEX[hex];
-  if (/^#([0-9a-f]{3})$/i.test(hex)) {
-    hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
-  }
-  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
-  if (!match) return color;
-  const r = parseInt(match[1], 16);
-  const g = parseInt(match[2], 16);
-  const b = parseInt(match[3], 16);
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-};
 
 const getIcon = (type: string, colorClass: string, isIconOnly: boolean, customColor?: string, iconPx?: number) => {
   const def = getNodeDefinition(type);
@@ -182,11 +169,15 @@ const themeStyles: Record<string, { border: string; borderHover: string; ring: s
 export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) => {
   const uiCopy = useUiCopy();
   const language = useAppStore(s => s.language);
+  const copy = editingCopy[language];
+  const isPlaying = useAppStore(s => s.isPlaying);
+  const isReadOnly = useAppStore(s => s.isReadOnly);
   const name = data?.name ?? 'Node';
   const type = data?.type ?? 'server';
 
   const connection = useConnection();
   const isConnecting = !!connection.inProgress;
+  const connectingToSource = isConnecting && connection.fromHandle?.type === 'target';
 
   const { tooltipActive: isProcessing, nodeActive: isNodeActive, tooltipText: activeTooltipText } = useNodeAnimation(id);
 
@@ -375,17 +366,17 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
     paddingTop: displayMode === 'icon-only' ? 0 : `${cardPaddingY}px`,
     paddingBottom: displayMode === 'icon-only' ? 0 : `${cardPaddingY}px`,
     gap: `${cardGap}px`,
-    ['--tw-ring-color' as any]: addOpacityToHex((activeBgHex === '#ffffff' || activeBgHex === 'white') ? '#6366f1' : activeBgHex, 0.5),
+    ['--node-activity' as any]: (activeBgHex === '#ffffff' || activeBgHex === 'white') ? 'var(--ui-accent)' : activeBgHex,
   };
 
   return (
-    <div ref={nodeContainerRef} className={`relative w-full h-full ${isSketchy ? 'font-[family-name:var(--font-sketchy)]' : 'font-sans'}`} style={{ overflow: 'visible' }}>
+    <div data-capture-state={`${isProcessing ? 'processing' : isNodeActive ? 'active' : 'idle'}:${activeTooltipText}`} ref={nodeContainerRef} className={`relative w-full h-full ${isSketchy ? 'font-[family-name:var(--font-sketchy)]' : 'font-sans'}`} style={{ overflow: 'visible' }}>
 
       <NodeResizer
         minWidth={isVertical ? 32 : 120}
         minHeight={isVertical ? 120 : 32}
-        isVisible={!!selected}
-        lineClassName={style.resizerBorder}
+        isVisible={!!selected && !isPlaying && !isReadOnly}
+        lineClassName="!border-transparent"
         lineStyle={{ borderColor: (isBorderOnly || contrastColors?.isLight) ? '#4f46e5' : activeBgHex }}
         handleClassName="w-2.5 h-2.5 rounded-full border-2 shadow-sm"
         handleStyle={{
@@ -399,10 +390,8 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
 
       {/* Tooltip Bubble */}
       {activeTooltipText && (
-        <div className="absolute top-[-52px] left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-xl shadow-lg border border-indigo-500/30 whitespace-nowrap">
-          <MessageSquare className="w-3.5 h-3.5 fill-white/10" />
-          <span>{activeTooltipText}</span>
-          <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-indigo-600 rotate-45 border-r border-b border-indigo-500/30" />
+        <div className="yada-node-process-label" title={activeTooltipText}>
+          <MessageSquare size={11} /><span>{activeTooltipText}</span>
         </div>
       )}
 
@@ -426,12 +415,9 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
               style={{
                 ...posStyle,
                 opacity: 0,
-                width: isConnecting ? 32 : undefined,
-                height: isConnecting ? 32 : undefined,
-                marginLeft: isConnecting ? -16 : undefined,
-                marginTop: isConnecting ? -16 : undefined,
+                pointerEvents: connectingToSource ? 'none' : 'auto',
               }}
-              className={`${sizeClass} !border-0 !bg-transparent ${handleClass}`}
+              className={`${sizeClass} !border-0 !bg-transparent ${handleClass} ${isConnecting && !connectingToSource ? 'handle-drop-target' : ''}`}
             />
             <Handle
               type="source"
@@ -439,13 +425,13 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
               id={`${h.id}-source`}
               style={{
                 ...posStyle,
-                pointerEvents: isConnecting ? 'none' : 'auto',
+                pointerEvents: isConnecting && !connectingToSource ? 'none' : 'auto',
                 backgroundColor: activeBgHex,
                 ['--handle-glow-color' as any]: activeBgHex,
               }}
               className={`${sizeClass} !border-2 ${
                 (isBorderOnly || contrastColors?.isLight) ? '!border-slate-400 dark:!border-slate-600' : '!border-white dark:!border-slate-900'
-              } !transition-all !duration-150 ${handleClass}`}
+              } !transition-all !duration-150 ${handleClass} ${connectingToSource ? 'handle-drop-target' : ''}`}
             />
 
             {/* Multi-Edge Disambiguation Badge & Quick Reconnect Picker */}
@@ -526,25 +512,23 @@ export const BaseNode: React.FC<BaseNodeProps> = memo(({ id, data, selected }) =
       {/* Node card */}
       <div
         style={containerStyle}
-        className={`w-full h-full rounded-xl flex transition-all duration-200 relative ${
+        data-activity={isProcessing ? 'processing' : isNodeActive ? 'active' : 'idle'}
+        data-selected={!!selected}
+        className={`yada-node-card w-full h-full rounded-xl flex transition-all duration-200 relative ${
           isBorderOnly && !isSketchy ? 'bg-white dark:bg-slate-900' : ''
         } ${
           contrastColors ? '' : 'text-slate-800 dark:text-slate-100'
         } ${displayMode === 'icon-only'
-            ? `bg-transparent border-transparent ${iconOnlyFlexClass} ${selected ? 'ring-2' : ''}`
-            : `items-center justify-center ${isSketchy ? 'border-0' : 'border-2 shadow-md dark:shadow-xl'} ${
+            ? `bg-transparent border-transparent ${iconOnlyFlexClass} `
+            : `items-center justify-center ${isSketchy ? 'border-0' : 'border-2 shadow-sm'} ${
                 isVertical ? 'flex-col' : 'flex-row'
               } ${
-                isProcessing
-                  ? 'ring-4 ring-emerald-400/40 border-emerald-400'
-                  : isNodeActive
-                  ? 'ring-2'
-                  : selected
-                  ? 'ring-2 shadow-lg'
-                  : 'hover:opacity-95'
+                'hover:opacity-95'
               }`
         }`}
       >
+        {(isProcessing || isNodeActive) && <span className="yada-node-status" data-processing={isProcessing} role="img"
+          aria-label={isProcessing ? copy.nodeProcessing : copy.nodeActive} title={isProcessing ? copy.nodeProcessing : copy.nodeActive} />}
         {/* Sketchy SVG background & border */}
         {roughBg && (
           <svg className="absolute inset-0 w-full h-full pointer-events-none -z-10 overflow-visible" width={nodeWidth} height={nodeHeight}>

@@ -1,3 +1,4 @@
+import { editingCopy } from '../../i18n/editingCopy';
 import React, { memo, useMemo } from 'react';
 import { NodeResizer } from '@xyflow/react';
 import { useAppStore } from '../../store/useAppStore';
@@ -165,6 +166,9 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
 
   const updateNodeDimensions = useAppStore((s: any) => s.updateNodeDimensions);
   const isActive = useSectionAnimation(id);
+  const language = useAppStore(s => s.language);
+  const isPlaying = useAppStore(s => s.isPlaying);
+  const isReadOnly = useAppStore(s => s.isReadOnly);
 
   const customHex = useMemo(() => themeKey.startsWith('#') ? getCustomHexStyles(themeKey, customStyles.bgOpacity) : null, [themeKey, customStyles.bgOpacity]);
   const style = themeStyles[themeKey] ?? themeStyles.slate;
@@ -367,12 +371,12 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
   }, [isSketchy, sectionWidth, sectionHeight, borderHex, backgroundHex, id]);
 
   return (
-    <div className={`relative w-full h-full ${isSketchy ? 'font-[family-name:var(--font-sketchy)]' : 'font-sans'}`}>
+    <div data-capture-state={isActive ? 'active' : 'idle'} className={`relative w-full h-full ${isSketchy ? 'font-[family-name:var(--font-sketchy)]' : 'font-sans'}`}>
       <NodeResizer 
         minWidth={200} 
         minHeight={150} 
-        isVisible={!!selected} 
-        lineClassName="border-indigo-500/50" 
+        isVisible={!!selected && !isPlaying && !isReadOnly}
+        lineClassName="!border-transparent"
         handleClassName="w-2.5 h-2.5 bg-white border-2 border-indigo-500 rounded-full shadow-sm"
         onResizeEnd={(_, params) => {
           updateNodeDimensions(id, params.width, params.height);
@@ -392,17 +396,12 @@ export const SectionNode: React.FC<SectionNodeProps> = memo(({ id, data, selecte
       )}
 
       {/* Section Container */}
-      <div 
-        className={`w-full h-full rounded-xl ${isSketchy ? 'border-0 bg-transparent' : `border-2 ${borderClass}`} backdrop-blur-[1px] transition-all duration-300 flex ${headerContainerClass} relative
-                    ${customHex ? '' : `${style.border} ${customStyles.backgroundColor ? '' : style.bg}`}
-                    ${isActive 
-                      ? 'ring-2 ring-emerald-500/30 dark:ring-emerald-400/20 border-emerald-500/60 dark:border-emerald-400/40 shadow-lg ' + (customHex ? '' : style.glow)
-                      : selected 
-                        ? 'ring-2 ring-indigo-500/20 shadow-md ' + (customHex ? '' : style.glow)
-                        : ''
-                    }`}
-        style={isSketchy ? { borderColor: 'transparent', backgroundColor: 'transparent' } : containerBgStyle}
+      <div data-selected={!!selected} data-activity={isActive ? 'active' : 'idle'}
+        className={`yada-node-card w-full h-full rounded-xl ${isSketchy ? 'border-0 bg-transparent' : `border-2 ${borderClass}`} backdrop-blur-[1px] transition-all duration-300 flex ${headerContainerClass} relative
+                    ${customHex ? '' : `${style.border} ${customStyles.backgroundColor ? '' : style.bg}`}`}
+        style={{ ...(isSketchy ? { borderColor: 'transparent', backgroundColor: 'transparent' } : containerBgStyle), '--node-activity': 'var(--color-emerald-500)' } as React.CSSProperties}
       >
+        {isActive && <span className="yada-node-status" role="img" aria-label={editingCopy[language].nodeActive} title={editingCopy[language].nodeActive} />}
         {/* Sketchy rough border & background */}
         {roughBg && (
           <svg className="absolute inset-0 w-full h-full pointer-events-none -z-10 overflow-visible" width={sectionWidth} height={sectionHeight}>

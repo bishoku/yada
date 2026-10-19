@@ -1,3 +1,5 @@
+import { arrowReference, reconnectCenter } from './utils/edgePresentation';
+import { useEdgeLabelPlacement } from './hooks/useEdgeLabelPlacement';
 import { getEdgeTopology } from './hooks/edgeTopology';
 import { useTranslation } from '../../i18n/useTranslation';
 import React, { useRef, memo, useMemo, useState, useEffect } from 'react';
@@ -210,6 +212,8 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const logicalData = useAppStore((s) => s.logicalData);
   const layoutEdges = useAppStore((s) => s.visualData.layoutEdges);
   const isPlaying = useAppStore((s) => s.isPlaying);
+  const isReadOnly = useAppStore((s) => s.isReadOnly);
+  const canEdit = !isPlaying && !isReadOnly;
   const topology = getEdgeTopology(logicalData.edges, logicalData.sequences);
   const le = topology.edgesById.get(id);
   const ve = layoutEdges[id];
@@ -349,32 +353,17 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   // Custom hook for animation calculation
   const { isAnimating, isSelected, isAsync, seqsForEdge, activeStepNumber } = useEdgeAnimation(id, pathRef, particleRefs);
 
-  // Label positioning along path (default 50%)
-  const labelPosPercent = ve?.labelPosition ?? 50;
-  const labelPosRef = useRef<{ x: number; y: number } | null>(null);
-
-  if (pathRef.current && labelPosPercent !== 50) {
-    try {
-      const totalLen = pathRef.current.getTotalLength();
-      const pt = pathRef.current.getPointAtLength((labelPosPercent / 100) * totalLen);
-      labelPosRef.current = { x: pt.x, y: pt.y };
-    } catch {
-      labelPosRef.current = null;
-    }
-  } else {
-    labelPosRef.current = null;
-  }
-
-  const labelX = labelPosRef.current ? labelPosRef.current.x : defaultLabelX;
-  const labelY = labelPosRef.current ? labelPosRef.current.y : defaultLabelY;
-
   // Build step labels string
   const stepNums = seqsForEdge
     .map((s) => s.stepNumber)
     .sort((a, b) => a - b)
     .filter((value, index, self) => self.indexOf(value) === index);
-  const protocolText = le?.protocol ? `- [${le.protocol}]` : '';
+  const protocolText = le?.protocol ? ` · ${le.protocol}` : '';
   const stepLabel = stepNums.length > 0 ? `${stepNums.join(', ')}${protocolText}` : '';
+
+  const { labelRef, labelX, labelY } = useEdgeLabelPlacement(pathRef, edgePath, { x: defaultLabelX, y: defaultLabelY }, ve?.labelPosition ?? 50, stepLabel, props.source, props.target);
+  const reconnectSource = reconnectCenter({ x: sourceX, y: sourceY }, sourcePosition);
+  const reconnectTarget = reconnectCenter({ x: targetX, y: targetY }, targetPosition);
 
   const appTheme = useAppStore((s) => s.theme);
   const themeColors = useMemo(() => getThemeEdgeColors(appTheme), [appTheme]);
@@ -399,7 +388,9 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
 
   // Stroke width
   const baseStrokeWidth = ve?.strokeWidth ?? 2;
-  const currentStrokeWidth = isEdgeActive ? Math.max(4, baseStrokeWidth + 1.5) : baseStrokeWidth;
+  const currentStrokeWidth = isEdgeActive ? baseStrokeWidth + 0.75 : baseStrokeWidth;
+
+  const markerSize = Math.max(12.5, baseStrokeWidth * 2.5);
 
   // Dash pattern
   const strokeDasharray = getDashArray(ve?.lineStyle, isAsync);
@@ -410,7 +401,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   const finalStroke = hasGradient ? `url(#${gradientId})` : strokeColor;
 
   // Glow intensity
-  const glowIntensity: EdgeGlowIntensity = ve?.glowIntensity ?? (isEdgeActive ? 'subtle' : 'none');
+  const glowIntensity: EdgeGlowIntensity = ve?.glowIntensity ?? 'none';
   let filterStyle: string | undefined = undefined;
 
   switch (glowIntensity) {
@@ -442,18 +433,19 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
   }, [isSketchy, edgePath, currentStrokeWidth]);
 
   return (
-    <g className="group">
+    <g className="group" data-capture-state={`${isAnimating}:${activeStepNumber ?? ''}`}>
       {/* Dynamic defs for arrows & gradients */}
       <defs>
         {arrowEndType !== 'none' && (
           <marker
             id={markerEndId}
-            markerWidth="10"
-            markerHeight="10"
-            refX="7"
+            markerWidth={markerSize}
+            markerHeight={markerSize * 0.8}
+            viewBox="-1 -1 10 8"
+            refX={arrowReference(arrowEndType)}
             refY="3"
             orient="auto"
-            markerUnits="strokeWidth"
+            markerUnits="userSpaceOnUse"
           >
             {renderMarkerShape(arrowEndType, strokeColor, false)}
           </marker>
@@ -461,12 +453,13 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
         {arrowStartType !== 'none' && (
           <marker
             id={markerStartId}
-            markerWidth="10"
-            markerHeight="10"
-            refX="1"
+            markerWidth={markerSize}
+            markerHeight={markerSize * 0.8}
+            viewBox="-1 -1 10 8"
+            refX={arrowReference(arrowStartType, true)}
             refY="3"
             orient="auto"
-            markerUnits="strokeWidth"
+            markerUnits="userSpaceOnUse"
           >
             {renderMarkerShape(arrowStartType, strokeColor, true)}
           </marker>
@@ -480,7 +473,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
       </defs>
 
       {/* Invisible thicker path to make clicking the edge easier */}
-      {!isPlaying && (
+      {canEdit && (
         <path
           d={edgePath}
           fill="none"
@@ -506,8 +499,6 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
         d={isSketchy && roughEdgePath?.strokePath ? roughEdgePath.strokePath : edgePath}
         fill="none"
         strokeDasharray={strokeDasharray}
-        markerStart={markerStartId ? `url(#${markerStartId})` : undefined}
-        markerEnd={markerEndId ? `url(#${markerEndId})` : undefined}
         className="react-flow__edge-path transition-all duration-150"
         style={{
           stroke: finalStroke,
@@ -518,11 +509,24 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
         }}
       />
 
+      {/* Markers follow the exact smooth route, even when the visible line is sketchy. */}
+      <path data-edge-arrow-layer d={edgePath} fill="none" stroke="none" pointerEvents="none"
+        markerStart={markerStartId ? `url(#${markerStartId})` : undefined}
+        markerEnd={markerEndId ? `url(#${markerEndId})` : undefined} />
+
+      {/* Small visual affordances; React Flow retains separate 24px reconnect targets. */}
+      {canEdit && isCanvasSelected && <g className="yada-edge-endpoints export-exclude" pointerEvents="none">
+        <circle cx={reconnectSource.x} cy={reconnectSource.y} r={3.5} />
+        <circle cx={reconnectTarget.x} cy={reconnectTarget.y} r={3.5} />
+      </g>}
+
       {/* Playback particles using refs */}
       {isAnimating && particleRefs.map((ref, idx) => (
         <g
           key={`particle-${idx}`}
           ref={ref}
+          data-capture-particle
+          data-particle-id={`${id}:${idx}:${activeStepNumber}`}
           style={{ pointerEvents: 'none', display: 'none' }}
         >
           <AnimationParticle
@@ -535,7 +539,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
       ))}
 
       {/* Orthogonal Segment Drag Handles */}
-      {!isPlaying && (connectionType === 'step' || connectionType === 'smoothstep') && activeWaypoints.length >= 2 && (() => {
+      {canEdit && (connectionType === 'step' || connectionType === 'smoothstep') && activeWaypoints.length >= 2 && (() => {
         const segments = [];
         for (let i = 0; i < activeWaypoints.length - 1; i++) {
           const p1 = activeWaypoints[i];
@@ -563,37 +567,33 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
       })()}
 
       {/* Waypoint Handles */}
-      {!isPlaying && activeWaypoints.map((wp, idx) => (
+      {canEdit && activeWaypoints.map((wp, idx) => (
         <g key={`wp-${idx}`} className={`react-flow__edge-interaction export-exclude transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
           <circle cx={wp.x} cy={wp.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, idx, false)} onDoubleClick={(e) => handleDoubleClick(e, idx)} className="cursor-grab active:cursor-grabbing" />
-          <circle cx={wp.x} cy={wp.y} r={5} fill={activeColor} stroke="#fff" strokeWidth={1.5} style={{ pointerEvents: 'none' }} />
+          <circle cx={wp.x} cy={wp.y} r={3.5} fill={activeColor} stroke="#fff" strokeWidth={1.5} style={{ pointerEvents: 'none' }} />
         </g>
       ))}
 
       {/* Ghost Handles for adding new waypoints */}
-      {!isPlaying && (() => {
+      {canEdit && isCanvasSelected && (() => {
         const ghosts = [];
 
         if (activeWaypoints.length === 0) {
           if (pathRef.current) {
             try {
               const totalLen = pathRef.current.getTotalLength();
-              // Place two ghost points at 33% and 67% to avoid the exact middle (50%) where the label usually is
-              const p1 = pathRef.current.getPointAtLength(totalLen * 0.33);
-              const p2 = pathRef.current.getPointAtLength(totalLen * 0.67);
-
-              ghosts.push(
-                <g key="ghost-0" className={`react-flow__edge-interaction export-exclude transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
-                  <circle cx={p1.x} cy={p1.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, 0, true, { x: p1.x, y: p1.y })} className="cursor-grab hover:fill-slate-500/10" />
-                  <circle cx={p1.x} cy={p1.y} r={4} fill="transparent" stroke="#64748b" strokeWidth={1.5} strokeDasharray="2 2" className="pointer-events-none" />
-                </g>
-              );
-              ghosts.push(
-                <g key="ghost-1" className={`react-flow__edge-interaction export-exclude transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
-                  <circle cx={p2.x} cy={p2.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, 0, true, { x: p2.x, y: p2.y })} className="cursor-grab hover:fill-slate-500/10" />
-                  <circle cx={p2.x} cy={p2.y} r={4} fill="transparent" stroke="#64748b" strokeWidth={1.5} strokeDasharray="2 2" className="pointer-events-none" />
-                </g>
-              );
+              // The label is off the route. A short edge needs only one central handle,
+              // clear of the endpoint reconnect targets; long edges retain two insertion sites.
+              const fractions = totalLen < 96 ? [0.5] : [0.33, 0.67];
+              fractions.forEach((fraction, index) => {
+                const point = pathRef.current!.getPointAtLength(totalLen * fraction);
+                ghosts.push(
+                  <g key={`ghost-${index}`} className="react-flow__edge-interaction export-exclude" style={{ pointerEvents: 'all' }}>
+                    <circle cx={point.x} cy={point.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, 0, true, { x: point.x, y: point.y })} className="cursor-grab hover:fill-slate-500/10" />
+                    <circle cx={point.x} cy={point.y} r={2.5} fill="transparent" stroke="#64748b" strokeWidth={1} strokeDasharray="2 2" className="pointer-events-none" />
+                  </g>
+                );
+              });
             } catch (e) {
               // Ignore if SVG is not fully ready
             }
@@ -608,7 +608,7 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
             ghosts.push(
               <g key={`ghost-${i}`} className={`react-flow__edge-interaction export-exclude transition-opacity duration-200 ${isCanvasSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} style={{ pointerEvents: 'all' }}>
                 <circle cx={mid.x} cy={mid.y} r={12} fill="transparent" onPointerDown={(e) => handlePointerDown(e, i, true, mid)} className="cursor-grab hover:fill-slate-500/10" />
-                <circle cx={mid.x} cy={mid.y} r={4} fill="transparent" stroke="#64748b" strokeWidth={1.5} strokeDasharray="2 2" className="pointer-events-none" />
+                <circle cx={mid.x} cy={mid.y} r={2.5} fill="transparent" stroke="#64748b" strokeWidth={1} strokeDasharray="2 2" className="pointer-events-none" />
               </g>
             );
           }
@@ -626,7 +626,8 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
               pointerEvents: 'all',
               zIndex: isEditingInline ? 50 : 20,
             }}
-            className="nodrag nopan"
+            ref={labelRef}
+            className="nodrag nopan yada-edge-label"
           >
             {isEditingInline ? (
               <InlineEdgeEditor
@@ -641,17 +642,14 @@ export const AnimatedEdge: React.FC<EdgeProps> = memo((props) => {
               <div
                 onDoubleClick={(e) => {
                   e.stopPropagation();
-                  if (!isPlaying) setIsEditingInline(true);
+                  if (canEdit) setIsEditingInline(true);
                 }}
-                className={
-                  isEdgeActive
-                    ? "px-2 py-0.5 rounded-full text-white text-[9px] font-extrabold shadow-md select-none transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95"
-                    : "px-2 py-0.5 rounded-full bg-slate-900/90 dark:bg-white text-white dark:text-slate-950 text-[9px] font-extrabold shadow-md border border-slate-700/50 dark:border-slate-200 transition-all select-none cursor-pointer hover:scale-105 active:scale-95"
-                }
-                style={isEdgeActive ? { backgroundColor: activeColor, borderColor: activeColor } : undefined}
-                title={t.commonUi.quickEditConnection}
+                className="yada-edge-label-chip"
+                data-active={isEdgeActive}
+                style={{ '--edge-accent': activeColor } as React.CSSProperties}
+                title={`${stepLabel} · ${t.commonUi.quickEditConnection}`}
               >
-                {stepLabel}
+                {isAnimating && activeStepNumber !== null ? `${activeStepNumber}${protocolText}` : stepLabel}
               </div>
             )}
           </div>

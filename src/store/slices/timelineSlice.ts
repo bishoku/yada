@@ -40,8 +40,8 @@ export const createTimelineSlice: StateCreator<AppState, [], [], TimelineSlice> 
   playbackRate: 1,
   activeSequenceIds: [],
   selectedSequenceId: null,
-  timelineOpen: true,
-  timelineHeight: 250,
+  timelineOpen: false,
+  timelineHeight: 240,
   loopPlayback: true,
 
   startPlayback: () => {

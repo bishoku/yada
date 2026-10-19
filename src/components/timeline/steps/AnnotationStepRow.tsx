@@ -23,7 +23,7 @@ export const AnnotationStepRow: React.FC<AnnotationStepRowProps> = memo(({
   const disabled = useAppStore(s => s.isReadOnly || s.isPlaying);
   const t = translations[language];
   return (
-    <div className="h-16 border-b border-slate-200/50 dark:border-slate-800/20 px-3 flex items-center justify-between group bg-amber-50/10 dark:bg-amber-900/10">
+    <div className="h-14 border-b border-slate-200/50 dark:border-slate-800/20 px-3 flex items-center justify-between group bg-amber-50/10 dark:bg-amber-900/10">
       <div className="flex items-center gap-2 overflow-hidden">
         <div
           className="w-1.5 h-6 rounded-full shrink-0"

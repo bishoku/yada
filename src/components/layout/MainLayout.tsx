@@ -1,8 +1,9 @@
+import { editingCopy } from '../../i18n/editingCopy';
 import { useCompactLayout } from './useCompactLayout';
 import { PanelDrawer, type CompactPanel } from './PanelDrawer';
 import { message } from '../../i18n/messages';
 import { translations } from '../../i18n/translations';
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { TopBar } from './TopBar';
 import { SidebarLeft } from './SidebarLeft';
 import { RightSidebarShell } from '../sidebar/RightSidebarShell';
@@ -23,13 +24,18 @@ export const MainLayout: React.FC = () => {
 
   const compact = useCompactLayout();
   const [compactPanel, setCompactPanel] = useState<CompactPanel | null>(null);
+  const tuningOpenedFromDock = useRef(false);
   const activeNodeId = useAppStore(s => s.activeNodeProperties?.id);
   const activeEdgeId = useAppStore(s => s.activeEdgeProperties?.id);
   const closeCompactPanel = () => {
     if (compactPanel === 'properties') window.dispatchEvent(new Event('properties:cancelPreview'));
     setCompactPanel(null);
+    if (tuningOpenedFromDock.current) {
+      tuningOpenedFromDock.current = false;
+      requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[data-playback-dock] .yada-dock-toggle')?.focus());
+    }
   };
-  const toggleCompactPanel = (panel: CompactPanel) => setCompactPanel(current => current === panel ? null : panel);
+  const toggleCompactPanel = (panel: CompactPanel) => {tuningOpenedFromDock.current = false;setCompactPanel(current => current === panel ? null : panel);};
   useEffect(() => { if (compact && (activeNodeId || activeEdgeId)) setCompactPanel('properties'); }, [compact, activeNodeId, activeEdgeId]);
 
   useEffect(() => {
@@ -87,7 +93,7 @@ export const MainLayout: React.FC = () => {
         {!compact && leftSidebarOpen && <SidebarLeft />}
 
         {/* Center Section: Canvas & Timeline */}
-        <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950">
+        <main className="isolate flex-1 min-w-0 flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950">
 
           {/* Diagram Tab Bar */}
           <DiagramTabBar />
@@ -138,7 +144,10 @@ export const MainLayout: React.FC = () => {
               style={{ height: !compact && timelineOpen ? timelineHeight : 'auto' }}
               className="border-t border-slate-200 dark:border-slate-800 z-10 shrink-0 select-none overflow-hidden"
             >
-              <TimelinePanel forceCollapsed={isFullscreen || compact} />
+              <TimelinePanel forceCollapsed={isFullscreen || compact} onExpand={compact || isFullscreen ? () => {
+                if (isFullscreen) {void exitFullscreen();if (!useAppStore.getState().timelineOpen) useAppStore.getState().toggleTimeline();}
+                if (compact) {tuningOpenedFromDock.current = true;setCompactPanel('timeline');}
+              } : undefined} />
             </div>
           )}
 
@@ -150,11 +159,11 @@ export const MainLayout: React.FC = () => {
       </div>
 
       {compact && compactPanel && !isFullscreen && <PanelDrawer
-        title={compactPanel === 'library' ? message(language, 'layout.library') : compactPanel === 'properties' ? message(language, 'layout.properties') : t.terms.timeline}
+        title={compactPanel === 'library' ? message(language, 'layout.library') : compactPanel === 'properties' ? message(language, 'layout.properties') : editingCopy[language].tuningHelp}
         onClose={closeCompactPanel}>
         {compactPanel === 'library' && <SidebarLeft onPick={() => setCompactPanel(null)} />}
         {compactPanel === 'properties' && <RightSidebarShell />}
-        {compactPanel === 'timeline' && activeDiagramId && <TimelinePanel forceExpanded />}
+        {compactPanel === 'timeline' && activeDiagramId && <TimelinePanel forceExpanded onCollapse={closeCompactPanel} />}
       </PanelDrawer>}
 
       {/* Create Diagram Name Modal */}

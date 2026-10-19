@@ -1,0 +1,57 @@
+{
+  "integration": {
+    "dialogOverflow": 0,
+    "fields": [
+      {
+        "font": "16px",
+        "labelled": true,
+        "name": "Active Profile"
+      },
+      {
+        "font": "16px",
+        "labelled": true,
+        "name": "Profile Name"
+      },
+      {
+        "font": "16px",
+        "labelled": true,
+        "name": "Provider"
+      },
+      {
+        "font": "16px",
+        "labelled": true,
+        "name": "API key"
+      },
+      {
+        "font": "16px",
+        "labelled": true,
+        "name": "API URL"
+      },
+      {
+        "font": "16px",
+        "labelled": true,
+        "name": "Model"
+      }
+    ],
+    "filled": [
+      {
+        "background": "rgb(180, 83, 9)",
+        "color": "rgb(255, 255, 255)",
+        "name": "Add New"
+      }
+    ],
+    "height": 844,
+    "outside": [],
+    "overlaps": [],
+    "pageOverflow": 0,
+    "smallTargets": [],
+    "theme": "dark theme-retro",
+    "unnamed": [],
+    "width": 390
+  },
+  "tabWrap": {
+    "name": "Integrations",
+    "role": "tab",
+    "selected": "true"
+  }
+}

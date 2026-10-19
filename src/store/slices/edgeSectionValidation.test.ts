@@ -103,4 +103,18 @@ describe('Edge Section Validation & Reconnection Safeguards', () => {
     expect(le1.sourceHandle).toBe('right:50');
     expect(le2.sourceHandle).toBe('right:50');
   });
+  it('moves only a connector while keeping edge identity, steps, timing and undo intact', () => {
+    const before=useAppStore.getState();const steps=before.logicalData.sequences;
+    before.reconnectEdge('edge-1','node-1','node-2','bottom:50','top:50');
+    const after=useAppStore.getState();expect(after.logicalData.edges).toHaveLength(2);expect(after.logicalData.edges[0].id).toBe('edge-1');expect(after.logicalData.sequences).toBe(steps);expect(after.visualData.timelines).toBe(before.visualData.timelines);expect(after.pastStates).toHaveLength(1);
+    after.undo();expect(useAppStore.getState().visualData.layoutEdges['edge-1'].sourceHandle).toBe('right:50');
+    useAppStore.getState().redo();expect(useAppStore.getState().visualData.layoutEdges['edge-1'].sourceHandle).toBe('bottom:50');expect(useAppStore.getState().logicalData.sequences[0].edgeId).toBe('edge-1');
+  });
+  it('ignores missing edges and drops on the existing connector without adding history', () => {
+    const state=useAppStore.getState();
+    state.reconnectEdge('missing','node-1','node-2','bottom:50','top:50');
+    state.reconnectEdge('edge-1','node-1','node-2','right:50','left:50');
+    expect(useAppStore.getState().logicalData).toBe(state.logicalData);expect(useAppStore.getState().visualData).toBe(state.visualData);expect(useAppStore.getState().pastStates).toHaveLength(0);
+  });
+
 });

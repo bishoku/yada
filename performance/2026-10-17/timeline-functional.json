@@ -1,0 +1,21 @@
+{
+  "timingFlow": {
+    "applied": "İstemci → API servisi\nSüre: 1.400 ms\nGecikme: 0 ms",
+    "undone": "İstemci → API servisi\nSüre: 1.200 ms\nGecikme: 0 ms"
+  },
+  "playbackFlow": {
+    "editorMounted": false,
+    "seek": "1407",
+    "time": "1.407 ms / 2.500 ms"
+  },
+  "reload": {
+    "dock": 36,
+    "editor": false,
+    "height": 720,
+    "outside": [],
+    "overflow": 0,
+    "small": [],
+    "theme": "",
+    "width": 1280
+  }
+}

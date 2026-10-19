@@ -1,3 +1,5 @@
+import { useNodeAnimation } from './hooks';
+import { editingCopy } from '../../i18n/editingCopy';
 import { message } from '../../i18n/messages';
 import React, { memo, useMemo, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
@@ -26,6 +28,7 @@ interface FreeFormNodeProps {
 }
 
 export const FreeFormNode = memo(({ id, data, selected }: FreeFormNodeProps) => {
+  const { nodeActive, tooltipActive, tooltipText } = useNodeAnimation(id);
   const [isEditing, setIsEditing] = useState(false);
 
   const visualNode = useAppStore((s: any) => s.visualData.layoutNodes[id]);
@@ -33,7 +36,7 @@ export const FreeFormNode = memo(({ id, data, selected }: FreeFormNodeProps) => 
   const updateFreeformContent = useAppStore((s: any) => s.updateFreeformContent);
   const isReadOnly = useAppStore((s: any) => s.isReadOnly);
   const isPlaying = useAppStore((s: any) => s.isPlaying);
-  const language = useAppStore((s: any) => s.language);
+  const language = useAppStore(s => s.language);
 
   const canvasRenderStyle = useAppStore((s: any) => s.visualData?.canvas?.renderStyle || 'clean');
   const isSketchy = canvasRenderStyle === 'sketchy';
@@ -57,6 +60,7 @@ export const FreeFormNode = memo(({ id, data, selected }: FreeFormNodeProps) => 
   // Connection state (for showing handles during edge creation)
   const connection = useConnection();
   const isConnecting = !!connection.inProgress;
+  const connectingToSource = isConnecting && connection.fromHandle?.type === 'target';
 
   const handleSave = useCallback((content: FreeFormContent) => {
     updateFreeformContent(id, content);
@@ -121,8 +125,8 @@ export const FreeFormNode = memo(({ id, data, selected }: FreeFormNodeProps) => 
               type="target"
               position={pos}
               id={`${h.id}-target`}
-              style={{ ...posStyle, opacity: 0 }}
-              className={`${sizeClass} !border-0 !bg-transparent ${handleClass}`}
+              style={{ ...posStyle, opacity: 0, pointerEvents: connectingToSource ? 'none' : 'auto' }}
+              className={`${sizeClass} !border-0 !bg-transparent ${handleClass} ${isConnecting && !connectingToSource ? 'handle-drop-target' : ''}`}
             />
             <Handle
               type="source"
@@ -130,24 +134,28 @@ export const FreeFormNode = memo(({ id, data, selected }: FreeFormNodeProps) => 
               id={`${h.id}-source`}
               style={{
                 ...posStyle,
-                pointerEvents: isConnecting ? 'none' : 'auto',
+                pointerEvents: isConnecting && !connectingToSource ? 'none' : 'auto',
                 backgroundColor: '#8b5cf6',
                 ['--handle-glow-color' as any]: '#8b5cf6',
               }}
-              className={`${sizeClass} !border-2 !border-white dark:!border-slate-900 !transition-all !duration-150 ${handleClass}`}
+              className={`${sizeClass} !border-2 !border-white dark:!border-slate-900 !transition-all !duration-150 ${handleClass} ${connectingToSource ? 'handle-drop-target' : ''}`}
             />
           </React.Fragment>
         );
       })}
 
       {/* Node card */}
-      <div
-        className={`group relative w-full h-full flex flex-col rounded-xl border-2 transition-shadow bg-white dark:bg-slate-900 overflow-hidden
+      <div data-capture-state={`${nodeActive}:${tooltipActive}:${tooltipText}`}
+        data-activity={tooltipActive ? 'processing' : nodeActive ? 'active' : 'idle'}
+        data-selected={!!selected}
+        style={{'--node-activity': 'var(--color-violet-500)'} as React.CSSProperties}
+        className={`yada-node-card group relative w-full h-full flex flex-col rounded-xl border-2 transition-shadow bg-white dark:bg-slate-900 overflow-hidden
           ${isSketchy ? 'border-transparent bg-transparent dark:bg-transparent' : 'border-violet-400/50'}
-          ${selected ? 'ring-2 ring-violet-500/30 shadow-md' : 'shadow-sm hover:shadow-md'}
+          shadow-sm
         `}
         onDoubleClick={handleDoubleClick}
       >
+        {(nodeActive || tooltipActive) && <span className="yada-node-status yada-freeform-status" data-processing={tooltipActive} role="img" aria-label={tooltipActive ? editingCopy[language].nodeProcessing : editingCopy[language].nodeActive} title={tooltipText || editingCopy[language].nodeActive} />}
         {isSketchy && roughPaths && (
           <div className="absolute inset-0 pointer-events-none -z-10">
             <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="overflow-visible">

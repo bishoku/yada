@@ -37,7 +37,7 @@ export const SequenceTrackRow: React.FC<SequenceTrackRowProps> = memo(({
   const language = useAppStore(s => s.language);
   const t = translations[language];
   const copy = editingCopy[language];
-  if (!schedule) return <div className="h-16" />;
+  if (!schedule) return <div className="h-14" />;
 
   const duration = preview?.values.duration ?? timing?.duration ?? 1000;
   const delay = preview?.values.delay ?? timing?.delay ?? 0;
@@ -45,14 +45,14 @@ export const SequenceTrackRow: React.FC<SequenceTrackRowProps> = memo(({
   const width = duration * pxPerMs;
 
   return (
-    <div className="h-16 border-b border-slate-200/50 dark:border-slate-800/20 relative flex items-center w-full">
+    <div className="h-14 border-b border-slate-200/50 dark:border-slate-800/20 relative flex items-center w-full">
       {/* Interactive Drag Bar */}
       <div
         role="button"
         tabIndex={0}
         aria-label={`${t.terms.step} ${seq.stepNumber}: ${editable ? t.timelineUi.editStep : copy.selectStep}`}
         title={editable ? t.timelineUi.timingHint : copy.inspectHint}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(seq.id); onOpenTooltip(seq.id); } }}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(seq.id); if (editable) onOpenTooltip(seq.id); } }}
         onPointerDown={(e) => {
           onSelect(seq.id);
           if (editable) onBarPointerDown(e, seq.id, delay, duration);

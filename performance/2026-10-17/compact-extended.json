@@ -1,0 +1,633 @@
+{
+  "keyboard": [
+    {
+      "case": "last control → Tab",
+      "focus": "Close"
+    },
+    {
+      "case": "first control → Shift+Tab",
+      "focus": "Design New (title)"
+    },
+    {
+      "case": "tabs → ArrowRight",
+      "focus": "Diagrams"
+    },
+    {
+      "case": "drawer → Escape",
+      "focus": "Left panel",
+      "openDialogs": 0
+    },
+    {
+      "case": "export modal → close",
+      "focus": "Export / Share",
+      "expanded": "false"
+    }
+  ],
+  "cases": [
+    {
+      "size": {
+        "width": 320,
+        "height": 568
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback speed"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          }
+        ],
+        "height": 568,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 320
+      },
+      "tools": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback speed"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          }
+        ],
+        "height": 568,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 320
+      },
+      "timeline": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback speed"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Step order"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Step order"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "color(srgb 0.621176 0.286431 0.0310588)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Edit timing"
+          }
+        ],
+        "height": 568,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 320
+      }
+    },
+    {
+      "size": {
+        "width": 360,
+        "height": 640
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback speed"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          }
+        ],
+        "height": 640,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 360
+      },
+      "tools": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback speed"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          }
+        ],
+        "height": 640,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 360
+      },
+      "timeline": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback speed"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Step order"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Step order"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "color(srgb 0.621176 0.286431 0.0310588)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Edit timing"
+          }
+        ],
+        "height": 640,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 360
+      }
+    },
+    {
+      "size": {
+        "width": 390,
+        "height": 844
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback speed"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          }
+        ],
+        "height": 844,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 390
+      },
+      "tools": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback speed"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          }
+        ],
+        "height": 844,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 390
+      },
+      "timeline": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback speed"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Step order"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Step order"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "color(srgb 0.621176 0.286431 0.0310588)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Edit timing"
+          }
+        ],
+        "height": 844,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 390
+      }
+    },
+    {
+      "size": {
+        "width": 768,
+        "height": 1024
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          }
+        ],
+        "height": 1024,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 768
+      },
+      "tools": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          }
+        ],
+        "height": 1024,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 768
+      },
+      "timeline": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Step order"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Step order"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "color(srgb 0.621176 0.286431 0.0310588)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Edit timing"
+          }
+        ],
+        "height": 1024,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 768
+      }
+    },
+    {
+      "size": {
+        "width": 844,
+        "height": 390
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          }
+        ],
+        "height": 390,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 844
+      },
+      "tools": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          }
+        ],
+        "height": 390,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 844
+      },
+      "timeline": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Step order"
+          },
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Step order"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "color(srgb 0.621176 0.286431 0.0310588)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Edit timing"
+          }
+        ],
+        "height": 390,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 844
+      }
+    }
+  ]
+}

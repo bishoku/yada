@@ -112,7 +112,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
   isEmbed: false,
   isCreateDiagramModalOpen: false,
   language: 'en',
-  theme: 'nord',
+  theme: 'light',
   maxSteps: 30,
   llmPreferences: {
     provider: 'openrouter',
@@ -331,7 +331,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         pastStates: [],
         futureStates: [],
         rightSidebarOpen: false,
-        timelineOpen: true,
+        timelineOpen: false,
         isPlaying: false,
         currentTime: 0,
         activeSequenceIds: [],
@@ -407,7 +407,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
         futureStates: [],
         selectedSequenceId: null,
         rightSidebarOpen: false,
-        timelineOpen: true
+        timelineOpen: false
       });
       await get().fetchRecentWorkspaces();
       await get().loadLibrary();
@@ -542,7 +542,7 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
 
       let finalTheme: Theme = ['dark', 'light', 'nord', 'dracula', 'synthwave', 'retro'].includes(prefObj.theme)
         ? prefObj.theme
-        : 'nord';
+        : 'light';
 
       const urlParams = new URLSearchParams(window.location.search);
       const paramTheme = urlParams.get('theme');
@@ -607,8 +607,8 @@ export const createWorkspaceSlice: StateCreator<AppState, [], [], WorkspaceSlice
       console.error('Error loading app preferences:', err);
       const sysLang = navigator.language || 'en';
       const finalLang: Language = sysLang.toLowerCase().startsWith('tr') ? 'tr' : 'en';
-      set({ language: finalLang, theme: 'nord', maxSteps: 30 });
-      applyTheme('nord');
+      set({ language: finalLang, theme: 'light', maxSteps: 30 });
+      applyTheme('light');
 
       try {
         await get().loadLibrary();

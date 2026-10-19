@@ -1,0 +1,17 @@
+{
+  "desktop": {
+    "dock": 36,
+    "canvas": 603,
+    "editorOnLoad": false
+  },
+  "mobile": {
+    "closed": {
+      "dock": 40,
+      "editor": false
+    },
+    "open": {
+      "overflow": 0,
+      "toolbar": 37
+    }
+  }
+}

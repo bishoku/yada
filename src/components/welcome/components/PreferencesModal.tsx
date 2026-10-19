@@ -208,9 +208,16 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 mb-5 gap-2">
+        <div role="tablist" aria-label={t.appPrefTitle} className="flex border-b border-slate-200 dark:border-slate-800 mb-5 gap-2" onKeyDown={event => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === 'Home' ? 'general' : event.key === 'End' ? 'integrations' : activeTab === 'general' ? 'integrations' : 'general';
+          setActiveTab(next);
+          event.currentTarget.querySelector<HTMLElement>(`[data-preference-tab="${next}"]`)?.focus();
+        }}>
           <button
             type="button"
+            role="tab" data-preference-tab="general" id={`${fieldPrefix}-general-tab`} aria-controls={`${fieldPrefix}-general-panel`} aria-selected={activeTab === 'general'} tabIndex={activeTab === 'general' ? 0 : -1}
             onClick={() => setActiveTab('general')}
             className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
               activeTab === 'general'
@@ -224,6 +231,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
 
           <button
             type="button"
+            role="tab" data-preference-tab="integrations" id={`${fieldPrefix}-integrations-tab`} aria-controls={`${fieldPrefix}-integrations-panel`} aria-selected={activeTab === 'integrations'} tabIndex={activeTab === 'integrations' ? 0 : -1}
             onClick={() => setActiveTab('integrations')}
             className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
               activeTab === 'integrations'
@@ -237,8 +245,9 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto space-y-5 pr-1">
+        <div className="flex-1 overflow-y-auto pr-1">
           {/* TAB 1: General Preferences */}
+          <div role="tabpanel" id={`${fieldPrefix}-general-panel`} aria-labelledby={`${fieldPrefix}-general-tab`} hidden={activeTab !== 'general'}>
           {activeTab === 'general' && (
             <div className="space-y-5">
               {/* Storage Location (Web Only) */}
@@ -422,7 +431,10 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
             </div>
           )}
 
+          </div>
+
           {/* TAB 2: Integrations (LLM Multi-Profile) */}
+          <div role="tabpanel" id={`${fieldPrefix}-integrations-panel`} aria-labelledby={`${fieldPrefix}-integrations-tab`} hidden={activeTab !== 'integrations'}>
           {activeTab === 'integrations' && (
             <div className="space-y-4">
               <div>
@@ -445,7 +457,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               {/* Profile Selection & Actions */}
               <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <label htmlFor={`${fieldPrefix}-active-profile`} className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                     {message(language, "PreferencesModal.activeProfile")}
                   </label>
 
@@ -474,6 +486,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                 </div>
 
                 <Select
+                  id={`${fieldPrefix}-active-profile`}
                   value={activeProfileId}
                   onChange={(e) => handleSelectProfile(e.target.value)}
                   className="w-full"
@@ -557,7 +570,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
                     </label>
                     <Input
                       type="password"
-                      placeholder={currentProfile.provider === 'ollama' ? 'optional' : 'sk-...'}
+                      placeholder={currentProfile.provider === 'ollama' ? message(language, 'PreferencesModal.optionalForOllama') : 'sk-...'}
                       value={currentProfile.apiKey || ''}
                       onChange={(e) => handleUpdateCurrentProfile({ apiKey: e.target.value })}
                       className="w-full"
@@ -591,6 +604,8 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({
               )}
             </div>
           )}
+          </div>
+
         </div>
 
         {/* Footer */}

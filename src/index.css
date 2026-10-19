@@ -197,18 +197,15 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 1 !important;
 }
 
-/* During connection, only target handles should accept pointer events so they can receive the dropped edge */
-.react-flow--connecting .react-flow__handle.target.handle-idle,
-.react-flow__node.connecting-target .react-flow__handle.target.handle-idle {
-  pointer-events: auto !important;
-}
-
-/* Ensure source handles do not block target handles during connection */
-.react-flow--connecting .react-flow__handle.source,
-.react-flow__node.connecting-target .react-flow__handle.source {
+/* A reconnect can move either end. Only the matching source/target layer receives the drop. */
+.react-flow--connecting .react-flow__node .react-flow__handle:is(.source,.target),
+.react-flow__node.connecting-target .react-flow__handle:is(.source,.target) {
   pointer-events: none !important;
 }
-
+.react-flow--connecting .react-flow__node .react-flow__handle.handle-drop-target,
+.react-flow__node.connecting-target .react-flow__handle.handle-drop-target {
+  pointer-events: auto !important;
+}
 
 /* Subtle glow on handle hover for easier targeting — no scale */
 .react-flow__handle:hover {
@@ -319,20 +316,19 @@ input[type=number] {
   font-size: 1.05em !important;
 }
 
-/* ── Selected Edge Reconnect Handle Enhancements ────────────────────────── */
+/* Reconnect hit targets stay large and invisible; the edge renders small visual dots. */
 .react-flow__edge.selected .react-flow__edgeupdater {
-  r: 12 !important;
-  stroke: var(--color-indigo-500) !important;
-  stroke-width: 2.5px !important;
-  fill: rgba(99, 102, 241, 0.25) !important;
-  cursor: grab !important;
+  stroke: transparent !important;
+  fill: transparent !important;
+  cursor: grab;
 }
-
-.react-flow__edge.selected .react-flow__edgeupdater:hover {
-  r: 14 !important;
-  fill: rgba(99, 102, 241, 0.45) !important;
-  cursor: grabbing !important;
-}
+.react-flow__edge.selected .react-flow__edgeupdater:hover { cursor: grabbing; }
+.yada-edge-endpoints circle { fill: var(--color-slate-50); stroke: var(--ui-accent); stroke-width: 1.5; }
+.dark .yada-edge-endpoints circle { fill: var(--color-slate-900); }
+.yada-edge-label-chip { max-width: 180px; overflow: hidden; text-overflow: ellipsis; padding: 2px 6px; border-radius: 5px; border: 1px solid var(--color-slate-200); background: var(--color-slate-50); color: var(--color-slate-700); font-size: 10px; font-weight: 600; line-height: 14px; white-space: nowrap; user-select: none; cursor: pointer; box-shadow: 0 1px 3px rgb(15 23 42 / 0.07); }
+.dark .yada-edge-label-chip { background: var(--color-slate-900); color: var(--color-slate-100); border-color: var(--color-slate-700); }
+.yada-edge-label-chip[data-active="true"] { border-color: var(--edge-accent); }
+.yada-edge-label-chip:hover { border-color: var(--ui-accent); }
 
 
 /* Shared controls: theme colors stay in Tailwind; dimensions and focus are consistent. */
@@ -636,3 +632,134 @@ button, input, select, textarea { font-family: inherit; }
 /* Timeline rows retain their 64px track alignment inside the mobile drawer. */
 .yada-modal .yada-timeline-step-select,
 .yada-modal .yada-timeline-step-actions button { min-height: 1.5rem; }
+
+/* Legacy filled controls use the same readable foreground as shared Buttons. */
+:where(button, a).bg-indigo-600:is(.text-white, .text-slate-100) {
+  background-color: var(--ui-accent); color: var(--ui-on-accent);
+}
+:where(button, a).bg-indigo-600:is(.text-white, .text-slate-100):hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--ui-accent) 88%, black);
+}
+.yada-button { min-width: 0; overflow-wrap: anywhere; }
+.yada-button > svg { flex-shrink: 0; }
+.yada-field, .yada-tab-list > button { min-width: 0; }
+.yada-tab-list > button { overflow-wrap: anywhere; }
+.yada-dialog, .yada-modal { overscroll-behavior: contain; }
+.yada-dialog > header h2 { min-width: 0; overflow-wrap: anywhere; }
+
+.yada-playback-seek { height: 1.5rem; appearance: none; background: transparent; }
+.yada-playback-seek::-webkit-slider-runnable-track { height: 0.25rem; border-radius: 1rem; background: var(--color-slate-350); }
+.yada-playback-seek::-moz-range-track { height: 0.25rem; border-radius: 1rem; background: var(--color-slate-350); }
+.dark .yada-playback-seek::-webkit-slider-runnable-track { background: var(--color-slate-600); }
+.dark .yada-playback-seek::-moz-range-track { background: var(--color-slate-600); }
+.yada-playback-seek::-webkit-slider-thumb { appearance: none; width: 1rem; height: 1rem; margin-top: -0.375rem; border-radius: 50%; background: var(--ui-accent); border: 1px solid var(--ui-on-accent); }
+.yada-playback-seek::-moz-range-thumb { width: 1rem; height: 1rem; border-radius: 50%; background: var(--ui-accent); border: 1px solid var(--ui-on-accent); }
+.yada-drawing-toolbar, .yada-selection-toolbar { max-width: calc(100% - 1rem); width: max-content; flex-wrap: wrap; justify-content: center; }
+.yada-drawing-toolbar > .flex { flex-wrap: wrap; justify-content: center; }
+@media (max-width: 639px) {
+  .yada-topbar .yada-tools-content { position: fixed; right: 0.5rem; top: 3rem; margin: 0; width: min(18rem, calc(100vw - 1rem)); max-width: none; max-height: calc(100dvh - 3.5rem); }
+  .yada-timeline-controls .yada-icon-button { min-width: 2rem; min-height: 2rem; }
+  .yada-timeline-controls .yada-button { padding-inline: 0.5rem; }
+}
+
+.yada-narrow-view-switcher { display: none; }
+@media (max-width: 359px) {
+  .yada-topbar > .yada-view-switcher { display: none; }
+  .yada-topbar > :last-child { margin-left: auto; }
+  .yada-narrow-view-switcher { display: flex; }
+}
+
+.yada-topbar button { min-width: 1.5rem; }
+[data-timeline-panel] button, [data-timeline-panel] summary { min-height: 1.5rem; }
+[data-timeline-panel] summary { line-height: 1.5rem; }
+@media (max-width: 1023px) { .yada-topbar button { min-width: 2rem; } }
+
+html:not(.dark) :where(.yada-topbar, .yada-modal, .yada-dialog) .text-slate-400 { color: var(--color-slate-550); }
+
+.yada-modal button { min-width: 1.5rem; }
+
+.yada-drawing-toolbar button, .yada-selection-toolbar button { min-width: 1.5rem; min-height: 1.5rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .yada-topbar, .yada-welcome, .yada-drawer, .yada-timeline-controls,
+  .yada-drawing-toolbar, .yada-selection-toolbar,
+  .react-flow__node:not(.dragging) { transition: none; animation: none; }
+}
+
+.yada-mobile-fullscreen { display: none; }
+@media (max-width: 639px) { .yada-mobile-fullscreen { display: flex; } }
+
+/* Everyday playback is a single row; the optional editor owns advanced tuning. */
+.yada-playback-dock { display: flex; align-items: center; gap: 4px; padding: 3px 8px; min-height: 36px; flex-shrink: 0; border-top: 1px solid var(--color-slate-200); background: var(--color-slate-50); }
+.dark .yada-playback-dock { border-color: var(--color-slate-800); background: var(--color-slate-950); }
+.yada-playback-dock .yada-icon-button, .yada-tuning-toolbar .yada-icon-button { min-width: 28px; min-height: 28px; border-radius: 6px; }
+.yada-playback-dock .yada-icon-button:hover, .yada-tuning-toolbar .yada-icon-button:hover { background: rgb(114 136 255 / 0.1); }
+.yada-playback-dock .yada-dock-play { background: var(--ui-accent); color: var(--ui-on-accent); }
+.yada-playback-dock .yada-dock-play:hover { background: color-mix(in srgb, var(--ui-accent) 88%, black); }
+.yada-playback-dock .yada-icon-button:disabled { opacity: 0.4; cursor: not-allowed; }
+.yada-playback-dock .yada-playback-seek { flex: 1; min-width: 24px; margin: 0 4px; }
+.yada-dock-rate, .yada-tuning-zoom { width: 56px; min-height: 28px; border: 1px solid var(--color-slate-200); border-radius: 6px; background: transparent; color: inherit; font-size: 12px; font-variant-numeric: tabular-nums; padding: 0 2px; cursor: pointer; }
+.dark .yada-dock-rate, .dark .yada-tuning-zoom { border-color: var(--color-slate-700); }
+.yada-dock-time { white-space: nowrap; font: 11px/1.4 ui-monospace, monospace; font-variant-numeric: tabular-nums; color: var(--color-slate-550); padding-inline: 3px; }
+.dark .yada-dock-time { color: var(--color-slate-350); }
+.yada-playback-dock .yada-dock-toggle { min-height: 28px; padding: 3px 6px; font-size: 12px; line-height: 18px; gap: 5px; }
+.yada-timeline-editor { container-type: inline-size; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.yada-tuning-toolbar { display: flex; align-items: center; gap: 4px; padding: 4px 8px; flex-shrink: 0; border-bottom: 1px solid var(--color-slate-200); }
+.dark .yada-tuning-toolbar { border-color: var(--color-slate-800); }
+.yada-tuning-title { font-size: 12px; font-weight: 600; margin-right: auto; }
+.yada-tuning-edit { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 28px; min-width: 28px; padding: 3px 6px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.yada-tuning-edit[aria-pressed="true"], .yada-tuning-toolbar button[aria-pressed="true"] { background: rgb(114 136 255 / 0.12); color: var(--color-indigo-600); }
+.dark .yada-tuning-edit[aria-pressed="true"], .dark .yada-tuning-toolbar button[aria-pressed="true"] { color: var(--color-indigo-400); }
+.yada-tuning-selection { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 2px 8px; min-height: 30px; flex-shrink: 0; border-top: 1px solid var(--color-slate-200); font-size: 12px; color: var(--color-slate-550); }
+.dark .yada-tuning-selection { border-color: var(--color-slate-800); color: var(--color-slate-350); }
+.yada-tuning-selection .yada-icon-button { min-width: 24px; min-height: 24px; }
+.yada-tuning-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 16rem; margin-right: auto; font-weight: 600; }
+@container (max-width: 540px) { .yada-tuning-title { display: none; } }
+@container (max-width: 360px) { .yada-tuning-edit > span { display: none; } }
+@media (max-width: 639px) {
+  .yada-playback-dock { min-height: 40px; padding-inline: 6px; }
+  .yada-playback-dock .yada-icon-button { min-width: 32px; min-height: 32px; }
+  .yada-playback-dock .yada-dock-toggle { min-height: 32px; padding-inline: 6px; }
+  .yada-dock-toggle > span, .yada-dock-total { display: none; }
+  .yada-dock-rate { font-size: 16px; min-height: 32px; width: 58px; }
+  .yada-tuning-zoom { font-size: 16px; width: 58px; }
+  .yada-tuning-name { max-width: 100%; width: 100%; }
+}
+
+/* In-place timing uses the same quiet, compact numeric controls as the dock. */
+.yada-timing-values { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.yada-inline-timing { display: inline-flex; position: relative; align-items: center; gap: 5px; min-width: 0; }
+.yada-inline-timing-control { display: inline-flex; align-items: center; height: 26px; border: 1px solid var(--color-slate-200); border-radius: 5px; background: var(--color-slate-50); }
+.dark .yada-inline-timing-control { border-color: var(--color-slate-700); background: var(--color-slate-900); }
+.yada-inline-timing-control:focus-within { border-color: var(--ui-accent); }
+.yada-inline-timing-control input { width: 68px; min-width: 0; height: 24px; padding: 2px 4px; color: var(--color-slate-800); background: transparent; border: 0; border-radius: 4px; font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+.dark .yada-inline-timing-control input { color: var(--color-slate-100); }
+.yada-inline-timing-control > span { padding-right: 5px; font-size: 10px; }
+.yada-inline-timing-control:has(:disabled) { opacity: 0.5; }
+.yada-inline-timing-control[data-invalid="true"] { border-color: var(--color-rose-600); }
+.yada-inline-timing-error { position: absolute; z-index: 20; bottom: calc(100% + 4px); right: 0; width: max-content; max-width: 180px; padding: 5px 7px; border: 1px solid var(--color-rose-600); border-radius: 5px; background: var(--color-slate-50); color: var(--color-rose-700); box-shadow: 0 2px 8px rgb(0 0 0 / 0.1); }
+.dark .yada-inline-timing-error { background: var(--color-slate-900); color: var(--color-rose-300); }
+@media (max-width: 639px) {
+  .yada-tuning-selection { display: grid; grid-template-columns: minmax(0, 1fr) 24px 24px; gap: 5px; }
+  .yada-tuning-selection .yada-tuning-name { width: auto; grid-column: 1; grid-row: 1; }
+  .yada-tuning-selection > .yada-tooltip-anchor { grid-row: 1; }
+  .yada-timing-values { grid-column: 1 / -1; grid-row: 2; justify-content: space-between; gap: 6px; }
+  .yada-inline-timing { gap: 3px; }
+  .yada-inline-timing > span:first-child { font-size: 11px; }
+  .yada-inline-timing-control { height: 30px; }
+  .yada-inline-timing-control input { width: 72px; height: 28px; font-size: 16px; }
+  .yada-inline-timing-control > span { padding-right: 3px; }
+}
+
+/* Selection describes editing; activity describes simulation, independently. */
+.yada-node-card[data-selected="true"] { outline: 1.5px dashed var(--ui-accent); outline-offset: 3px; }
+.yada-node-card[data-activity="active"] { box-shadow: 0 0 0 1px color-mix(in srgb, var(--node-activity) 50%, transparent), 0 2px 5px rgb(15 23 42 / 0.08); }
+.yada-node-card[data-activity="processing"] { box-shadow: 0 0 0 1px var(--color-emerald-500), 0 2px 5px rgb(15 23 42 / 0.08); }
+.yada-node-status { position: absolute; z-index: 2; right: 5px; top: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--node-activity); box-shadow: 0 0 0 1px var(--color-slate-50); pointer-events: none; }
+.dark .yada-node-status { box-shadow: 0 0 0 1px var(--color-slate-900); }
+.yada-node-status[data-processing="true"] { width: 10px; height: 5px; border-radius: 2px; background: var(--color-emerald-500); }
+.yada-node-process-label { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 4px; max-width: 240px; padding: 3px 6px; border-radius: 5px; border: 1px solid var(--color-emerald-500); background: var(--color-slate-50); color: var(--color-slate-700); font-size: 10px; font-weight: 500; white-space: nowrap; box-shadow: 0 1px 4px rgb(15 23 42 / 0.08); }
+.yada-node-process-label > span { overflow: hidden; text-overflow: ellipsis; }
+.yada-node-process-label > svg { flex-shrink: 0; }
+.dark .yada-node-process-label { background: var(--color-slate-900); color: var(--color-slate-100); }
+.yada-freeform-status { top: auto; bottom: 5px; }

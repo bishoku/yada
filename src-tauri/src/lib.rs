@@ -267,7 +267,7 @@ fn load_preferences(app_handle: AppHandle) -> Result<String, String> {
     if !pref_file.exists() {
         let default_pref = serde_json::json!({
             "language": "system",
-            "theme": "dark"
+            "theme": "light"
         });
         return Ok(default_pref.to_string());
     }

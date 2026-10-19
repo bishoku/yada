@@ -46,7 +46,7 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
 
   return (
     <div
-      className={`h-16 overflow-hidden py-1.5 px-3 border-b border-slate-200/50 dark:border-slate-800/50 flex ${editing ? "flex-col items-stretch justify-center sm:flex-row sm:items-center sm:justify-between" : "items-center justify-between"} transition-colors duration-150 group ${
+      className={`h-14 overflow-hidden py-1 px-3 border-b border-slate-200/50 dark:border-slate-800/50 flex ${editing ? "flex-col items-stretch justify-center sm:flex-row sm:items-center sm:justify-between" : "items-center justify-between"} transition-colors duration-150 group ${
         isPlaying ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
       } ${
         isSelected
@@ -63,20 +63,20 @@ export const SequenceStepRow: React.FC<SequenceStepRowProps> = memo(({
             {srcName} → {dstName}
           </span>
         </div>
-        {hasProcess && (
+        {hasProcess && !edge?.description && (
           <span className="text-xs font-medium text-emerald-600 dark:text-emerald-500 truncate pl-1">
             ↳ {t.terms.process}: {timing?.internalProcess?.text}
           </span>
         )}
         {edge?.description && (
-          <span className="text-xs font-medium text-slate-550 dark:text-slate-400 pl-1 leading-normal break-words">
+          <span className="text-xs font-medium text-slate-550 dark:text-slate-400 pl-1 leading-normal truncate">
             ↳ {edge.description}
           </span>
         )}
       </button>
 
       {/* Row Actions */}
-      {editing && <div className="yada-timeline-step-actions flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+      {editing && isSelected && <div className="yada-timeline-step-actions flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
         <select
           aria-label={t.timelineUi.order}
           disabled={isPlaying || isReadOnly}

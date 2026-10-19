@@ -1,3 +1,4 @@
+import { editingCopy } from '../../i18n/editingCopy';
 import { message } from '../../i18n/messages';
 import React from 'react';
 import {
@@ -35,6 +36,7 @@ const SIZE_PRESETS = [
 
 export const DrawingToolbar: React.FC = () => {
   const language = useAppStore((s) => s.language);
+  const copy = editingCopy[language];
   const activeDrawingTool = useAppStore((s) => s.activeDrawingTool);
   const drawingColor = useAppStore((s) => s.drawingColor);
   const drawingSize = useAppStore((s) => s.drawingSize);
@@ -47,10 +49,10 @@ export const DrawingToolbar: React.FC = () => {
   if (!activeDrawingTool) return null;
 
   return (
-    <div className="export-exclude absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+    <div className="yada-drawing-toolbar export-exclude absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 px-3 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
       {/* Select / Move Mode */}
       <button
-        onClick={() => setActiveDrawingTool('select')}
+        aria-pressed={activeDrawingTool === 'select'} onClick={() => setActiveDrawingTool('select')}
         className={`p-2 rounded-xl transition-all ${
           activeDrawingTool === 'select'
             ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
@@ -66,7 +68,7 @@ export const DrawingToolbar: React.FC = () => {
       {/* Shapes & Creation Tools */}
       <div className="flex items-center gap-1">
         <button
-          onClick={() => setActiveDrawingTool('rectangle')}
+          aria-pressed={activeDrawingTool === 'rectangle'} onClick={() => setActiveDrawingTool('rectangle')}
           className={`p-2 rounded-xl transition-all ${
             activeDrawingTool === 'rectangle'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
@@ -78,7 +80,7 @@ export const DrawingToolbar: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveDrawingTool('diamond')}
+          aria-pressed={activeDrawingTool === 'diamond'} onClick={() => setActiveDrawingTool('diamond')}
           className={`p-2 rounded-xl transition-all ${
             activeDrawingTool === 'diamond'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
@@ -90,7 +92,7 @@ export const DrawingToolbar: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveDrawingTool('ellipse')}
+          aria-pressed={activeDrawingTool === 'ellipse'} onClick={() => setActiveDrawingTool('ellipse')}
           className={`p-2 rounded-xl transition-all ${
             activeDrawingTool === 'ellipse'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
@@ -102,7 +104,7 @@ export const DrawingToolbar: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveDrawingTool('arrow')}
+          aria-pressed={activeDrawingTool === 'arrow'} onClick={() => setActiveDrawingTool('arrow')}
           className={`p-2 rounded-xl transition-all ${
             activeDrawingTool === 'arrow'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
@@ -114,7 +116,7 @@ export const DrawingToolbar: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveDrawingTool('line')}
+          aria-pressed={activeDrawingTool === 'line'} onClick={() => setActiveDrawingTool('line')}
           className={`p-2 rounded-xl transition-all ${
             activeDrawingTool === 'line'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
@@ -126,7 +128,7 @@ export const DrawingToolbar: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveDrawingTool('pen')}
+          aria-pressed={activeDrawingTool === 'pen'} onClick={() => setActiveDrawingTool('pen')}
           className={`p-2 rounded-xl transition-all ${
             activeDrawingTool === 'pen'
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 scale-105'
@@ -138,7 +140,7 @@ export const DrawingToolbar: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveDrawingTool('highlighter')}
+          aria-pressed={activeDrawingTool === 'highlighter'} onClick={() => setActiveDrawingTool('highlighter')}
           className={`p-2 rounded-xl transition-all ${
             activeDrawingTool === 'highlighter'
               ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25 scale-105'
@@ -150,7 +152,7 @@ export const DrawingToolbar: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveDrawingTool('text')}
+          aria-pressed={activeDrawingTool === 'text'} onClick={() => setActiveDrawingTool('text')}
           className={`p-2 rounded-xl transition-all ${
             activeDrawingTool === 'text'
               ? 'bg-violet-600 text-white shadow-md shadow-violet-500/25 scale-105'
@@ -162,7 +164,7 @@ export const DrawingToolbar: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveDrawingTool('eraser')}
+          aria-pressed={activeDrawingTool === 'eraser'} onClick={() => setActiveDrawingTool('eraser')}
           className={`p-2 rounded-xl transition-all ${
             activeDrawingTool === 'eraser'
               ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25 scale-105'
@@ -183,8 +185,9 @@ export const DrawingToolbar: React.FC = () => {
             {COLOR_PRESETS.map((c) => (
               <button
                 key={c}
+                aria-label={copy.strokeColor.replace('{value}', c)} aria-pressed={drawingColor === c}
                 onClick={() => setDrawingColor(c)}
-                className={`w-5 h-5 rounded-full border transition-all ${
+                className={`w-6 h-6 rounded-full border transition-all ${
                   drawingColor === c
                     ? 'ring-2 ring-indigo-500 scale-115 border-white dark:border-slate-900'
                     : 'border-slate-300 dark:border-slate-700 hover:scale-110'
@@ -202,6 +205,7 @@ export const DrawingToolbar: React.FC = () => {
             {SIZE_PRESETS.map((s) => (
               <button
                 key={s.label}
+                aria-label={copy.strokeWidth.replace('{value}', String(s.value))} aria-pressed={drawingSize === s.value}
                 onClick={() => setDrawingSize(s.value)}
                 className={`px-2 py-0.5 text-xs font-bold rounded-md transition-all ${
                   drawingSize === s.value

@@ -1,0 +1,2213 @@
+{
+  "method": "Local dev UI, actual DOM controls; six themes, two languages, 320x568 and 1280x720; preferences, home, diagram. Intentional canvas/text ellipsis and vertical scroll are allowed; checks cover horizontal bounds, header overlap, names, 24px controls and form fonts.",
+  "cases": [
+    {
+      "language": "tr",
+      "theme": "light",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Sanal (LocalStorage)"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Türkçe"
+          },
+          {
+            "background": "color(srgb 0.272627 0.241569 0.790275)",
+            "color": "oklab(0.897968 -0.00503001 -0.0163725)",
+            "name": "Aydınlık"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Yeni diyagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Oynatma konumu"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dışa Aktar"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Oynat"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Akışı izle"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "dark",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Sanal (LocalStorage)"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Türkçe"
+          },
+          {
+            "background": "color(srgb 0.272627 0.241569 0.790275)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Karanlık"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Yeni diyagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Oynatma konumu"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dışa Aktar"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Oynat"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Akışı izle"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "nord",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Sanal (LocalStorage)"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Türkçe"
+          },
+          {
+            "background": "color(srgb 0.234667 0.341647 0.462431)",
+            "color": "oklab(0.894215 -0.00521669 -0.0169755)",
+            "name": "Nord (Kuzey)"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-nord",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Yeni diyagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-nord",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Oynatma konumu"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dışa Aktar"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Oynat"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Akışı izle"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-nord",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "dracula",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Sanal (LocalStorage)"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Türkçe"
+          },
+          {
+            "background": "color(srgb 0.407216 0.276078 0.607373)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dracula"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-dracula",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Yeni diyagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-dracula",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Oynatma konumu"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dışa Aktar"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Oynat"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Akışı izle"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-dracula",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "synthwave",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Sanal (LocalStorage)"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Türkçe"
+          },
+          {
+            "background": "color(srgb 0.545255 0.120784 0.355451)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Synthwave (Neon)"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-synthwave",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Yeni diyagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-synthwave",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Oynatma konumu"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dışa Aktar"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Oynat"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Akışı izle"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-synthwave",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "retro",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Sanal (LocalStorage)"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Türkçe"
+          },
+          {
+            "background": "color(srgb 0.621176 0.286431 0.0310588)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Retro (Kehribar)"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Yeni diyagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Oynatma konumu"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dışa Aktar"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Oynat"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Akışı izle"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Virtual (LocalStorage)"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "English"
+          },
+          {
+            "background": "color(srgb 0.272627 0.241569 0.790275)",
+            "color": "oklab(0.894286 -0.00521318 -0.0169641)",
+            "name": "Light"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "New diagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Preview flow"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Virtual (LocalStorage)"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "English"
+          },
+          {
+            "background": "color(srgb 0.272627 0.241569 0.790275)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dark"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "New diagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Preview flow"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "nord",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Virtual (LocalStorage)"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "English"
+          },
+          {
+            "background": "color(srgb 0.234667 0.341647 0.462431)",
+            "color": "oklab(0.898699 -0.00499363 -0.016255)",
+            "name": "Nord"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-nord",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "New diagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-nord",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Preview flow"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-nord",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dracula",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Virtual (LocalStorage)"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "English"
+          },
+          {
+            "background": "color(srgb 0.407216 0.276078 0.607373)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dracula"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-dracula",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "New diagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-dracula",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Preview flow"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-dracula",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "synthwave",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Virtual (LocalStorage)"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "English"
+          },
+          {
+            "background": "color(srgb 0.545255 0.120784 0.355451)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Synthwave"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-synthwave",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "New diagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-synthwave",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Preview flow"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-synthwave",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "retro",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Virtual (LocalStorage)"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "English"
+          },
+          {
+            "background": "color(srgb 0.621176 0.286431 0.0310588)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Retro (Amber)"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "New diagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Preview flow"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "light",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Sanal (LocalStorage)"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Türkçe"
+          },
+          {
+            "background": "color(srgb 0.272627 0.241569 0.790275)",
+            "color": "oklab(0.899932 -0.00493228 -0.0160569)",
+            "name": "Aydınlık"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Yeni diyagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Oynatma konumu"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dışa Aktar"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Oynat"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Akışı izle"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "dark",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Sanal (LocalStorage)"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Türkçe"
+          },
+          {
+            "background": "color(srgb 0.272627 0.241569 0.790275)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Karanlık"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Yeni diyagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Oynatma konumu"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dışa Aktar"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Oynat"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Akışı izle"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "nord",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Sanal (LocalStorage)"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Türkçe"
+          },
+          {
+            "background": "color(srgb 0.234667 0.341647 0.462431)",
+            "color": "oklab(0.899947 -0.00493156 -0.0160546)",
+            "name": "Nord (Kuzey)"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-nord",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Yeni diyagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-nord",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Oynatma konumu"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dışa Aktar"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Oynat"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Akışı izle"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-nord",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "dracula",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Sanal (LocalStorage)"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Türkçe"
+          },
+          {
+            "background": "color(srgb 0.407216 0.276078 0.607373)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dracula"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-dracula",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Yeni diyagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-dracula",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Oynatma konumu"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dışa Aktar"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Oynat"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Akışı izle"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-dracula",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "synthwave",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Sanal (LocalStorage)"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Türkçe"
+          },
+          {
+            "background": "color(srgb 0.545255 0.120784 0.355451)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Synthwave (Neon)"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-synthwave",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Yeni diyagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-synthwave",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Oynatma konumu"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dışa Aktar"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Oynat"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Akışı izle"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-synthwave",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "tr",
+      "theme": "retro",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Sanal (LocalStorage)"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Türkçe"
+          },
+          {
+            "background": "color(srgb 0.621176 0.286431 0.0310588)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Retro (Kehribar)"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Yeni diyagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Oynatma konumu"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dışa Aktar"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Oynat"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Akışı izle"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "light",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Virtual (LocalStorage)"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "English"
+          },
+          {
+            "background": "color(srgb 0.272627 0.241569 0.790275)",
+            "color": "oklab(0.894242 -0.00521535 -0.0169711)",
+            "name": "Light"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "New diagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Preview flow"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dark",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Virtual (LocalStorage)"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "English"
+          },
+          {
+            "background": "color(srgb 0.272627 0.241569 0.790275)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dark"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "New diagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(79, 70, 229)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Preview flow"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "nord",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Virtual (LocalStorage)"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "English"
+          },
+          {
+            "background": "color(srgb 0.234667 0.341647 0.462431)",
+            "color": "oklab(0.894346 -0.00521017 -0.0169544)",
+            "name": "Nord"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-nord",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "New diagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-nord",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(68, 99, 134)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Preview flow"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-nord",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "dracula",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Virtual (LocalStorage)"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "English"
+          },
+          {
+            "background": "color(srgb 0.407216 0.276078 0.607373)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Dracula"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-dracula",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "New diagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-dracula",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(118, 80, 176)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Preview flow"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-dracula",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "synthwave",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Virtual (LocalStorage)"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "English"
+          },
+          {
+            "background": "color(srgb 0.545255 0.120784 0.355451)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Synthwave"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-synthwave",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "New diagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-synthwave",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(158, 35, 103)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Preview flow"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-synthwave",
+        "unnamed": [],
+        "width": 1280
+      }
+    },
+    {
+      "language": "en",
+      "theme": "retro",
+      "preferences": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Virtual (LocalStorage)"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "English"
+          },
+          {
+            "background": "color(srgb 0.621176 0.286431 0.0310588)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Retro (Amber)"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 1280
+      },
+      "home": {
+        "dialogOverflow": 0,
+        "fields": [],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "New diagram"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 1280
+      },
+      "diagram": {
+        "dialogOverflow": 0,
+        "fields": [
+          {
+            "font": "16px",
+            "labelled": true,
+            "name": "Playback position"
+          }
+        ],
+        "filled": [
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Export"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Play"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "1×"
+          },
+          {
+            "background": "rgb(180, 83, 9)",
+            "color": "rgb(255, 255, 255)",
+            "name": "Preview flow"
+          }
+        ],
+        "height": 720,
+        "outside": [],
+        "overlaps": [],
+        "pageOverflow": 0,
+        "smallTargets": [],
+        "theme": "dark theme-retro",
+        "unnamed": [],
+        "width": 1280
+      }
+    }
+  ]
+}

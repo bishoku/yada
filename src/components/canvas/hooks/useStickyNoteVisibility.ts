@@ -1,9 +1,11 @@
+import { useAnimatedCapture } from '../../../services/animatedCapture';
 import { useMemo } from 'react';
 import { useAppStore } from '../../../store/useAppStore';
 
 export const useStickyNoteVisibility = (id: string) => {
+  const capturing = useAnimatedCapture();
   const str = useAppStore((s) => {
-    const isPlaying = s.isPlaying;
+    const isPlaying = s.isPlaying || capturing;
     const annotation = s.visualData.annotations?.[id];
     
     if (!annotation) return JSON.stringify({ isVisible: false, opacity: 0 });
