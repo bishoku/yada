@@ -103,7 +103,8 @@ export const EmbedSnippetModal: React.FC<EmbedSnippetModalProps> = ({ onClose })
   if (storageMode === 'direct' && compressedData) {
     activeUrl = `${baseUrl}${embedParam}#share=${compressedData}`;
   } else if (storageMode === 'cloud' && cloudRefId) {
-    activeUrl = `${baseUrl}${embedParam}#ref=${cloudRefId}`;
+    const query = displayMode === 'preview' ? `?embed=true&ref=${cloudRefId}` : `?ref=${cloudRefId}`;
+    activeUrl = `${baseUrl}${query}`;
   }
 
   const iframeSnippet = activeUrl
