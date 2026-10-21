@@ -63,8 +63,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ onClose }) => {
         ? 'https://bishoku.github.io/yada/'
         : window.location.origin + window.location.pathname;
 
-      const embedParam = useEmbed ? '?embed=true' : '';
-      const url = `${baseUrl}${embedParam}#ref=${refId}`;
+      const query = useEmbed ? `?embed=true&ref=${refId}` : `?ref=${refId}`;
+      const url = `${baseUrl}${query}`;
 
       setShareUrl(url);
     } catch (err: any) {
