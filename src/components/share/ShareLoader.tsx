@@ -101,13 +101,16 @@ export const ShareLoader: React.FC = () => {
     // Check if URL has embed parameter or is in iframe BEFORE modifying history state
     const isEmbedUrl = window.self !== window.top || window.location.href.includes('embed');
 
-    // Preserve ?embed=true and #ref=<id> if present in URL
+    // Preserve ?embed=true and ?ref=<id> if present in URL
     const refMatch = window.location.href.match(/ref=([A-Za-z0-9]{6,12})/);
-    const refHash = refMatch ? `#ref=${refMatch[1]}` : '';
+    const params = new URLSearchParams();
+    if (isEmbedUrl) params.set('embed', 'true');
+    if (refMatch && refMatch[1]) params.set('ref', refMatch[1]);
+    const queryStr = params.toString();
 
-    const newUrl = isEmbedUrl
-      ? `${window.location.pathname}?embed=true${refHash}`
-      : `${window.location.pathname}${refHash}`;
+    const newUrl = queryStr
+      ? `${window.location.pathname}?${queryStr}`
+      : window.location.pathname;
     window.history.replaceState(null, '', newUrl);
 
     if (payload.logicalData && payload.visualData) {
@@ -135,24 +138,24 @@ export const ShareLoader: React.FC = () => {
   return (
     <ModalSurface label={needsPin ? t.secureDiagram : error ? t.loadFailed : t.loadingDiagram}
       onClose={() => { window.location.href = window.location.pathname; }} dismissible={!isLoading} width="28rem">
-      <div className="bg-slate-800 rounded-2xl shadow-2xl p-8 w-full max-w-md border border-slate-700 animate-in fade-in zoom-in-95 duration-300">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-8 w-full max-w-md border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in-95 duration-300">
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
             <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
-            <h2 className="text-xl font-medium text-white">{t.loadingDiagram}</h2>
-            <p className="text-slate-400">{t.loadingSub}</p>
+            <h2 className="text-xl font-medium text-slate-900 dark:text-white">{t.loadingDiagram}</h2>
+            <p className="text-slate-500 dark:text-slate-400">{t.loadingSub}</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center">
-              <FileWarning className="w-8 h-8 text-red-400" />
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-500/20 rounded-full flex items-center justify-center">
+              <FileWarning className="w-8 h-8 text-red-500 dark:text-red-400" />
             </div>
-            <h2 className="text-xl font-medium text-white text-center">{t.loadFailed}</h2>
-            <p role="alert" className="text-slate-400 text-center">{error}</p>
+            <h2 className="text-xl font-medium text-slate-900 dark:text-white text-center">{t.loadFailed}</h2>
+            <p role="alert" className="text-slate-500 dark:text-slate-400 text-center">{error}</p>
             <button
               onClick={() => window.location.href = window.location.pathname}
-              className="mt-4 px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-colors"
+              className="mt-4 px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-white rounded-xl transition-colors"
             >
               {t.backToHome}
             </button>
@@ -160,11 +163,11 @@ export const ShareLoader: React.FC = () => {
         ) : needsPin ? (
           <form onSubmit={handlePinSubmit} className="space-y-6">
             <div className="flex flex-col items-center text-center space-y-3">
-              <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center">
-                <Lock className="w-8 h-8 text-blue-400" />
+              <div className="w-16 h-16 bg-blue-50 dark:bg-blue-500/20 rounded-full flex items-center justify-center">
+                <Lock className="w-8 h-8 text-blue-600 dark:text-blue-400" />
               </div>
-              <h2 className="text-xl font-semibold text-white">{t.secureDiagram}</h2>
-              <p className="text-slate-400 text-sm">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t.secureDiagram}</h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">
                 {t.enterPinNotice}
               </p>
             </div>
@@ -176,13 +179,13 @@ export const ShareLoader: React.FC = () => {
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 placeholder={message(language, "ShareLoader.enterPINCode")}
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-center text-xl tracking-[0.5em] focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-center text-xl tracking-[0.5em] focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 autoFocus data-dialog-autofocus=""
               />
               <button
                 type="submit"
                 disabled={pin.length < 4}
-                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
+                className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-slate-700 dark:disabled:text-slate-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
               >
                 {t.unlockBtn}
                 <ArrowRight className="w-4 h-4" />
